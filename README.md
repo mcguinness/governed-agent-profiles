@@ -5,6 +5,10 @@
 This is the working area for "OAuth 2.0 Profile for Governed Agent Federation"
 and its SCIM client management, agent management, and lifecycle companions.
 
+The repository name predates the core draft's rename to
+`draft-mcguinness-oauth-governed-agent-federation`; the editor's copies keep
+their existing URLs under this repository.
+
 The draft defines how an IdP resolves dedicated OAuth client identities or
 independently validated workload identities to stable Agent Principals.
 Identity Binding, Client Association, user delegation, and resource-local
@@ -38,10 +42,10 @@ identifiers are provisional pending coordination with WAG.
 Instance identification, attester endorsement, key transition, and Identity
 Continuation Assertion compositions remain deferred.
 
-* [Editor's Copy](https://mcguinness.github.io/draft-mcguinness-oauth-workload-agent-federation/#go.draft-mcguinness-oauth-workload-agent-federation.html)
-* [Datatracker Page](https://datatracker.ietf.org/doc/draft-mcguinness-oauth-workload-agent-federation)
-* [Individual Draft](https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-workload-agent-federation)
-* [Compare Editor's Copy to Individual Draft](https://mcguinness.github.io/draft-mcguinness-oauth-workload-agent-federation/#go.draft-mcguinness-oauth-workload-agent-federation.diff)
+* [Editor's Copy](https://mcguinness.github.io/draft-mcguinness-oauth-workload-agent-federation/#go.draft-mcguinness-oauth-governed-agent-federation.html)
+* [Datatracker Page](https://datatracker.ietf.org/doc/draft-mcguinness-oauth-governed-agent-federation)
+* [Individual Draft](https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-governed-agent-federation)
+* [Compare Editor's Copy to Individual Draft](https://mcguinness.github.io/draft-mcguinness-oauth-workload-agent-federation/#go.draft-mcguinness-oauth-governed-agent-federation.diff)
 
 ## SCIM OAuth Client Management
 

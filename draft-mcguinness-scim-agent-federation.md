@@ -38,8 +38,8 @@ normative:
       - name: Karl McGuinness
     date: 2026-09-18
     seriesinfo:
-      Internet-Draft: draft-mcguinness-oauth-workload-agent-federation
-    target: https://mcguinness.github.io/draft-mcguinness-oauth-workload-agent-federation/draft-mcguinness-oauth-workload-agent-federation.html
+      Internet-Draft: draft-mcguinness-oauth-governed-agent-federation
+    target: https://mcguinness.github.io/draft-mcguinness-oauth-workload-agent-federation/draft-mcguinness-oauth-governed-agent-federation.html
   SCIM-AGENT: I-D.wzdk-scim-agent-resource
   RFC7643:
   RFC7644:

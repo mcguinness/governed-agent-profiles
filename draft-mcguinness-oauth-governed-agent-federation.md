@@ -2,7 +2,7 @@
 title: "OAuth 2.0 Profile for Governed Agent Federation"
 abbrev: "Governed Agent Federation"
 category: std
-docname: draft-mcguinness-oauth-workload-agent-federation-latest
+docname: draft-mcguinness-oauth-governed-agent-federation-latest
 submissiontype: IETF
 stand_alone: yes
 ipr: trust200902
@@ -20,7 +20,7 @@ venue:
   mail: "oauth@ietf.org"
   arch: "https://mailarchive.ietf.org/arch/browse/oauth/"
   github: "mcguinness/draft-mcguinness-oauth-workload-agent-federation"
-  latest: "https://mcguinness.github.io/draft-mcguinness-oauth-workload-agent-federation/draft-mcguinness-oauth-workload-agent-federation.html"
+  latest: "https://mcguinness.github.io/draft-mcguinness-oauth-workload-agent-federation/draft-mcguinness-oauth-governed-agent-federation.html"
 author:
  - fullname: Karl McGuinness
    organization: Independent

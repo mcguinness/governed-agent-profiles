@@ -50,7 +50,7 @@ normative:
       - name: Karl McGuinness
     date: 2026-09-18
     seriesinfo:
-      Internet-Draft: draft-mcguinness-oauth-workload-agent-federation
+      Internet-Draft: draft-mcguinness-oauth-governed-agent-federation
   SCIM-AGENT: I-D.wzdk-scim-agent-resource
   OAUTH-CLIENT:
     title: "SCIM Profile for OAuth 2.0 Client Management"

@@ -18,7 +18,7 @@
 /versioned/
 Gemfile.lock
 archive.json
-draft-mcguinness-oauth-workload-agent-federation.xml
+draft-mcguinness-oauth-governed-agent-federation.xml
 draft-mcguinness-oauth-governed-agent-lifecycle.xml
 draft-mcguinness-oauth-attested-agent-identity.xml
 package-lock.json

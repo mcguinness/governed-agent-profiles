@@ -38,10 +38,10 @@ identifiers are provisional pending coordination with WAG.
 Instance identification, attester endorsement, key transition, and Identity
 Continuation Assertion compositions remain deferred.
 
-* [Editor's Copy](https://mcguinness.github.io/governed-agent-federation/#go.draft-mcguinness-oauth-governed-agent-federation.html)
+* [Editor's Copy](https://mcguinness.github.io/governed-agent-profiles/#go.draft-mcguinness-oauth-governed-agent-federation.html)
 * [Datatracker Page](https://datatracker.ietf.org/doc/draft-mcguinness-oauth-governed-agent-federation)
 * [Individual Draft](https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-governed-agent-federation)
-* [Compare Editor's Copy to Individual Draft](https://mcguinness.github.io/governed-agent-federation/#go.draft-mcguinness-oauth-governed-agent-federation.diff)
+* [Compare Editor's Copy to Individual Draft](https://mcguinness.github.io/governed-agent-profiles/#go.draft-mcguinness-oauth-governed-agent-federation.diff)
 
 ## SCIM OAuth Client Management
 
@@ -54,7 +54,7 @@ admission and references used by agent associations. Client registration,
 agent identity, and permission to use that identity remain separate.
 
 * [OAuthClient profile source](draft-mcguinness-scim-oauth-client-management.md)
-* [OAuthClient editor's copy](https://mcguinness.github.io/governed-agent-federation/draft-mcguinness-scim-oauth-client-management.html)
+* [OAuthClient editor's copy](https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-oauth-client-management.html)
 
 ## Platform-to-IdP SCIM Management
 
@@ -69,7 +69,7 @@ Credential-authority trust, client registration permission, user delegation,
 and downstream revocation remain separate.
 
 * [SCIM management profile source](draft-mcguinness-scim-agent-federation.md)
-* [SCIM management editor's copy](https://mcguinness.github.io/governed-agent-federation/draft-mcguinness-scim-agent-federation.html)
+* [SCIM management editor's copy](https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html)
 
 ## Provisioning and Lifecycle Companion
 
@@ -85,12 +85,12 @@ CAEP can revoke all authorization derived from an issuer-qualified ID-JAG
 defined. Current state cannot recover a missed disable-and-reenable cycle.
 
 * [Lifecycle profile source](draft-mcguinness-oauth-governed-agent-lifecycle.md)
-* [Lifecycle profile editor's copy](https://mcguinness.github.io/governed-agent-federation/draft-mcguinness-oauth-governed-agent-lifecycle.html)
+* [Lifecycle profile editor's copy](https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html)
 
 ## Contributing
 
 See the
-[guidelines for contributions](https://github.com/mcguinness/governed-agent-federation/blob/main/CONTRIBUTING.md).
+[guidelines for contributions](https://github.com/mcguinness/governed-agent-profiles/blob/main/CONTRIBUTING.md).
 
 The contributing file also has tips on how to make contributions, if you
 don't already know how to do that.

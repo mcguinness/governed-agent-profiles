@@ -1065,10 +1065,10 @@ Table of Contents
    [FEDERATION]
               McGuinness, K., "OAuth 2.0 Profile for Governed Agent
               Federation", Work in Progress, Internet-Draft, draft-
-              mcguinness-oauth-workload-agent-federation, 18 September
+              mcguinness-oauth-governed-agent-federation, 18 September
               2026, <https://mcguinness.github.io/draft-mcguinness-
               oauth-workload-agent-federation/draft-mcguinness-oauth-
-              workload-agent-federation.html>.
+              governed-agent-federation.html>.
 
    [SCIM-AGENT]
               Wahl, M., Zollner, D., Dingle, P., and I. Kazzouzi, "AI

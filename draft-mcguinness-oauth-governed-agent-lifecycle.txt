@@ -31,11 +31,10 @@ About This Document
    This note is to be removed before publishing as an RFC.
 
    The latest revision of this draft can be found at
-   https://mcguinness.github.io/draft-mcguinness-oauth-governed-agent-
-   federation/draft-mcguinness-oauth-governed-agent-lifecycle.html.
-   Status information for this document may be found at
-   https://datatracker.ietf.org/doc/draft-mcguinness-oauth-governed-
-   agent-lifecycle/.
+   https://mcguinness.github.io/governed-agent-federation/draft-
+   mcguinness-oauth-governed-agent-lifecycle.html.  Status information
+   for this document may be found at https://datatracker.ietf.org/doc/
+   draft-mcguinness-oauth-governed-agent-lifecycle/.
 
    Discussion of this document takes place on the System for Cross-
    domain Identity Management Working Group mailing list
@@ -44,8 +43,7 @@ About This Document
    https://www.ietf.org/mailman/listinfo/scim/.
 
    Source for this draft and an issue tracker can be found at
-   https://github.com/mcguinness/draft-mcguinness-oauth-governed-agent-
-   federation.
+   https://github.com/mcguinness/governed-agent-federation.
 
 Status of This Memo
 
@@ -767,9 +765,9 @@ Table of Contents
               McGuinness, K., "SCIM Profile for OAuth 2.0 Client
               Management", Work in Progress, Internet-Draft, draft-
               mcguinness-scim-oauth-client-management, 18 September
-              2026, <https://mcguinness.github.io/draft-mcguinness-
-              oauth-governed-agent-federation/draft-mcguinness-scim-
-              oauth-client-management.html>.
+              2026, <https://mcguinness.github.io/governed-agent-
+              federation/draft-mcguinness-scim-oauth-client-
+              management.html>.
 
    [RFC7643]  Hunt, P., Ed., Grizzle, K., Wahlstroem, E., and C.
               Mortimore, "System for Cross-domain Identity Management:
@@ -804,9 +802,8 @@ Table of Contents
               McGuinness, K., "SCIM Profile for Agent Federation
               Management", Work in Progress, Internet-Draft, draft-
               mcguinness-scim-agent-federation, 18 September 2026,
-              <https://mcguinness.github.io/draft-mcguinness-oauth-
-              governed-agent-federation/draft-mcguinness-scim-agent-
-              federation.html>.
+              <https://mcguinness.github.io/governed-agent-federation/
+              draft-mcguinness-scim-agent-federation.html>.
 
    [RFC7009]  Lodderstedt, T., Ed., Dronia, S., and M. Scurtescu, "OAuth
               2.0 Token Revocation", RFC 7009, DOI 10.17487/RFC7009,

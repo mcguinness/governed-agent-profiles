@@ -34,11 +34,10 @@ About This Document
    This note is to be removed before publishing as an RFC.
 
    The latest revision of this draft can be found at
-   https://mcguinness.github.io/draft-mcguinness-oauth-governed-agent-
-   federation/draft-mcguinness-oauth-governed-agent-federation.html.
-   Status information for this document may be found at
-   https://datatracker.ietf.org/doc/draft-mcguinness-oauth-governed-
-   agent-federation/.
+   https://mcguinness.github.io/governed-agent-federation/draft-
+   mcguinness-oauth-governed-agent-federation.html.  Status information
+   for this document may be found at https://datatracker.ietf.org/doc/
+   draft-mcguinness-oauth-governed-agent-federation/.
 
    Discussion of this document takes place on the Web Authorization
    Protocol Working Group mailing list (mailto:oauth@ietf.org), which is
@@ -46,8 +45,7 @@ About This Document
    Subscribe at https://www.ietf.org/mailman/listinfo/oauth/.
 
    Source for this draft and an issue tracker can be found at
-   https://github.com/mcguinness/draft-mcguinness-oauth-governed-agent-
-   federation.
+   https://github.com/mcguinness/governed-agent-federation.
 
 Status of This Memo
 
@@ -3960,9 +3958,8 @@ Table of Contents
               McGuinness, K., "SCIM Profile for Agent Federation
               Management", Work in Progress, Internet-Draft, draft-
               mcguinness-scim-agent-federation, 18 September 2026,
-              <https://mcguinness.github.io/draft-mcguinness-oauth-
-              governed-agent-federation/draft-mcguinness-scim-agent-
-              federation.html>.
+              <https://mcguinness.github.io/governed-agent-federation/
+              draft-mcguinness-scim-agent-federation.html>.
 
    [AIMS]     Kasselman, P., Lombardo, J., Rosomakho, Y., Campbell, B.,
               Steele, N., and A. Parecki, "AI Identity Management
@@ -3975,9 +3972,8 @@ Table of Contents
               McGuinness, K., "Governed Agent Lifecycle Profile for SCIM
               and OAuth", Work in Progress, Internet-Draft, draft-
               mcguinness-oauth-governed-agent-lifecycle, n.d.,
-              <https://mcguinness.github.io/draft-mcguinness-oauth-
-              governed-agent-federation/draft-mcguinness-oauth-governed-
-              agent-lifecycle.html>.
+              <https://mcguinness.github.io/governed-agent-federation/
+              draft-mcguinness-oauth-governed-agent-lifecycle.html>.
 
    [EMA]      Model Context Protocol, "Enterprise-Managed
               Authorization", n.d.,

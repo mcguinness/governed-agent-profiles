@@ -35,7 +35,7 @@ About This Document
    This note is to be removed before publishing as an RFC.
 
    The latest revision of this draft can be found at
-   https://mcguinness.github.io/governed-agent-federation/draft-
+   https://mcguinness.github.io/governed-agent-profiles/draft-
    mcguinness-scim-agent-federation.html.  Status information for this
    document may be found at https://datatracker.ietf.org/doc/draft-
    mcguinness-scim-agent-federation/.
@@ -47,7 +47,7 @@ About This Document
    https://www.ietf.org/mailman/listinfo/scim/.
 
    Source for this draft and an issue tracker can be found at
-   https://github.com/mcguinness/governed-agent-federation.
+   https://github.com/mcguinness/governed-agent-profiles.
 
 Status of This Memo
 
@@ -1057,7 +1057,7 @@ Table of Contents
               Management", Work in Progress, Internet-Draft, draft-
               mcguinness-scim-oauth-client-management, 18 September
               2026, <https://mcguinness.github.io/governed-agent-
-              federation/draft-mcguinness-scim-oauth-client-
+              profiles/draft-mcguinness-scim-oauth-client-
               management.html>.
 
    [FEDERATION]
@@ -1065,7 +1065,7 @@ Table of Contents
               Federation", Work in Progress, Internet-Draft, draft-
               mcguinness-oauth-governed-agent-federation, 18 September
               2026, <https://mcguinness.github.io/governed-agent-
-              federation/draft-mcguinness-oauth-governed-agent-
+              profiles/draft-mcguinness-oauth-governed-agent-
               federation.html>.
 
    [SCIM-AGENT]
@@ -1111,7 +1111,7 @@ Table of Contents
               and OAuth", Work in Progress, Internet-Draft, draft-
               mcguinness-oauth-governed-agent-lifecycle, 18 September
               2026, <https://mcguinness.github.io/governed-agent-
-              federation/draft-mcguinness-oauth-governed-agent-
+              profiles/draft-mcguinness-oauth-governed-agent-
               lifecycle.html>.
 
 Appendix A.  Example: Platform Onboarding

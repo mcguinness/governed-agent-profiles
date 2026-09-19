@@ -19,8 +19,8 @@ venue:
   type: "Working Group"
   mail: "oauth@ietf.org"
   arch: "https://mailarchive.ietf.org/arch/browse/oauth/"
-  github: "mcguinness/draft-mcguinness-oauth-governed-agent-federation"
-  latest: "https://mcguinness.github.io/draft-mcguinness-oauth-governed-agent-federation/draft-mcguinness-oauth-governed-agent-federation.html"
+  github: "mcguinness/governed-agent-federation"
+  latest: "https://mcguinness.github.io/governed-agent-federation/draft-mcguinness-oauth-governed-agent-federation.html"
 author:
  - fullname: Karl McGuinness
    organization: Independent
@@ -62,11 +62,11 @@ informative:
     date: 2026-09-18
     seriesinfo:
       Internet-Draft: draft-mcguinness-scim-agent-federation
-    target: https://mcguinness.github.io/draft-mcguinness-oauth-governed-agent-federation/draft-mcguinness-scim-agent-federation.html
+    target: https://mcguinness.github.io/governed-agent-federation/draft-mcguinness-scim-agent-federation.html
   AIMS: I-D.ietf-wimse-aims
   AGENT-LIFECYCLE:
     title: "Governed Agent Lifecycle Profile for SCIM and OAuth"
-    target: https://mcguinness.github.io/draft-mcguinness-oauth-governed-agent-federation/draft-mcguinness-oauth-governed-agent-lifecycle.html
+    target: https://mcguinness.github.io/governed-agent-federation/draft-mcguinness-oauth-governed-agent-lifecycle.html
     author:
       - name: Karl McGuinness
     seriesinfo:

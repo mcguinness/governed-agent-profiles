@@ -17,8 +17,8 @@ venue:
   type: "Working Group"
   mail: "scim@ietf.org"
   arch: "https://mailarchive.ietf.org/arch/browse/scim/"
-  github: "mcguinness/draft-mcguinness-oauth-governed-agent-federation"
-  latest: "https://mcguinness.github.io/draft-mcguinness-oauth-governed-agent-federation/draft-mcguinness-scim-agent-federation.html"
+  github: "mcguinness/governed-agent-federation"
+  latest: "https://mcguinness.github.io/governed-agent-federation/draft-mcguinness-scim-agent-federation.html"
 author:
  - fullname: Karl McGuinness
    organization: Independent
@@ -31,7 +31,7 @@ normative:
     date: 2026-09-18
     seriesinfo:
       Internet-Draft: draft-mcguinness-scim-oauth-client-management
-    target: https://mcguinness.github.io/draft-mcguinness-oauth-governed-agent-federation/draft-mcguinness-scim-oauth-client-management.html
+    target: https://mcguinness.github.io/governed-agent-federation/draft-mcguinness-scim-oauth-client-management.html
   FEDERATION:
     title: "OAuth 2.0 Profile for Governed Agent Federation"
     author:
@@ -39,7 +39,7 @@ normative:
     date: 2026-09-18
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-federation
-    target: https://mcguinness.github.io/draft-mcguinness-oauth-governed-agent-federation/draft-mcguinness-oauth-governed-agent-federation.html
+    target: https://mcguinness.github.io/governed-agent-federation/draft-mcguinness-oauth-governed-agent-federation.html
   SCIM-AGENT: I-D.wzdk-scim-agent-resource
   RFC7643:
   RFC7644:
@@ -52,7 +52,7 @@ informative:
     date: 2026-09-18
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-lifecycle
-    target: https://mcguinness.github.io/draft-mcguinness-oauth-governed-agent-federation/draft-mcguinness-oauth-governed-agent-lifecycle.html
+    target: https://mcguinness.github.io/governed-agent-federation/draft-mcguinness-oauth-governed-agent-lifecycle.html
 --- abstract
 
 This document profiles the System for Cross-domain Identity Management

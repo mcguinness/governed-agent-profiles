@@ -19,8 +19,8 @@ venue:
   type: "Working Group"
   mail: "scim@ietf.org"
   arch: "https://mailarchive.ietf.org/arch/browse/scim/"
-  github: "mcguinness/draft-mcguinness-oauth-governed-agent-federation"
-  latest: "https://mcguinness.github.io/draft-mcguinness-oauth-governed-agent-federation/draft-mcguinness-oauth-governed-agent-lifecycle.html"
+  github: "mcguinness/governed-agent-federation"
+  latest: "https://mcguinness.github.io/governed-agent-federation/draft-mcguinness-oauth-governed-agent-lifecycle.html"
 author:
  - fullname: Karl McGuinness
    organization: Independent
@@ -59,7 +59,7 @@ normative:
     date: 2026-09-18
     seriesinfo:
       Internet-Draft: draft-mcguinness-scim-oauth-client-management
-    target: https://mcguinness.github.io/draft-mcguinness-oauth-governed-agent-federation/draft-mcguinness-scim-oauth-client-management.html
+    target: https://mcguinness.github.io/governed-agent-federation/draft-mcguinness-scim-oauth-client-management.html
   RFC7643:
   RFC7644:
   RFC7662:
@@ -71,7 +71,7 @@ informative:
     date: 2026-09-18
     seriesinfo:
       Internet-Draft: draft-mcguinness-scim-agent-federation
-    target: https://mcguinness.github.io/draft-mcguinness-oauth-governed-agent-federation/draft-mcguinness-scim-agent-federation.html
+    target: https://mcguinness.github.io/governed-agent-federation/draft-mcguinness-scim-agent-federation.html
   RFC7009:
   WISE:
     title: "Workload Identity Security Events (WISE) Profile"

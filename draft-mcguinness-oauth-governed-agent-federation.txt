@@ -34,7 +34,7 @@ About This Document
    This note is to be removed before publishing as an RFC.
 
    The latest revision of this draft can be found at
-   https://mcguinness.github.io/draft-mcguinness-oauth-workload-agent-
+   https://mcguinness.github.io/draft-mcguinness-oauth-governed-agent-
    federation/draft-mcguinness-oauth-governed-agent-federation.html.
    Status information for this document may be found at
    https://datatracker.ietf.org/doc/draft-mcguinness-oauth-governed-
@@ -46,7 +46,7 @@ About This Document
    Subscribe at https://www.ietf.org/mailman/listinfo/oauth/.
 
    Source for this draft and an issue tracker can be found at
-   https://github.com/mcguinness/draft-mcguinness-oauth-workload-agent-
+   https://github.com/mcguinness/draft-mcguinness-oauth-governed-agent-
    federation.
 
 Status of This Memo
@@ -3961,7 +3961,7 @@ Table of Contents
               Management", Work in Progress, Internet-Draft, draft-
               mcguinness-scim-agent-federation, 18 September 2026,
               <https://mcguinness.github.io/draft-mcguinness-oauth-
-              workload-agent-federation/draft-mcguinness-scim-agent-
+              governed-agent-federation/draft-mcguinness-scim-agent-
               federation.html>.
 
    [AIMS]     Kasselman, P., Lombardo, J., Rosomakho, Y., Campbell, B.,
@@ -3976,7 +3976,7 @@ Table of Contents
               and OAuth", Work in Progress, Internet-Draft, draft-
               mcguinness-oauth-governed-agent-lifecycle, n.d.,
               <https://mcguinness.github.io/draft-mcguinness-oauth-
-              workload-agent-federation/draft-mcguinness-oauth-governed-
+              governed-agent-federation/draft-mcguinness-oauth-governed-
               agent-lifecycle.html>.
 
    [EMA]      Model Context Protocol, "Enterprise-Managed

@@ -17,8 +17,8 @@ venue:
   type: "Working Group"
   mail: "scim@ietf.org"
   arch: "https://mailarchive.ietf.org/arch/browse/scim/"
-  github: "mcguinness/draft-mcguinness-oauth-workload-agent-federation"
-  latest: "https://mcguinness.github.io/draft-mcguinness-oauth-workload-agent-federation/draft-mcguinness-scim-oauth-client-management.html"
+  github: "mcguinness/draft-mcguinness-oauth-governed-agent-federation"
+  latest: "https://mcguinness.github.io/draft-mcguinness-oauth-governed-agent-federation/draft-mcguinness-scim-oauth-client-management.html"
 author:
  - fullname: Karl McGuinness
    organization: Independent

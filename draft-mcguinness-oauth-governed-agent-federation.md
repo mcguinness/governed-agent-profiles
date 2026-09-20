@@ -410,9 +410,6 @@ This document assumes that the grant issuer governs the agent
 namespace. Forwarding an actor from another IdP namespace through a
 broker is outside its scope.
 
-Token reuse preserves the authorized identity and authority context
-under {{client-token-reuse}}.
-
 ## Core Invariants {#invariants}
 
 Identity resolution establishes which governed principal participates
@@ -682,15 +679,13 @@ prompt. A platform retaining its shared single sign-on (SSO) client instead
 uses an
 agreed independent workload input ({{optional-inputs}} or {{jwt-svid-input}}).
 
-Credential-class validation follows {{actor-inputs}}; profile
-applicability and downgrade prevention follow {{discovery}}.
-
 Grant protection, workload-evidence protection, and access-token
-protection are separate choices. Even bound governed agent access can
-use bearer workload evidence and, under explicit resource policy,
-bearer access tokens. {{grant-protection}} and {{discovery}} define
-applicability and downgrade prevention; {{access-token-protection}} defines
-protection on the API hop.
+protection are separate choices: even bound governed agent access can
+use bearer workload evidence and, under explicit resource policy, bearer
+access tokens. Credential-class validation follows {{actor-inputs}},
+grant protection and downgrade prevention follow {{grant-protection}}
+and {{discovery}}, and protection on the API hop follows
+{{access-token-protection}}.
 
 Out of scope for this document: continuation composition, provisioning protocols
 and account administration, multi-agent delegation chains, instance
@@ -863,8 +858,6 @@ requirements. The separation of authentication, resolution, and
 permission in {{inputs}} applies to every input.
 
 Input support follows {{scope}}; alternatives are in {{optional-inputs}}.
-Support does not establish trust in a credential authority or permission
-to use a binding.
 
 Clients and platforms use existing credential mechanisms. For workload
 evidence, those mechanisms MUST authorize issuance for the asserted
@@ -875,21 +868,19 @@ Credential acquisition is outside this profile.
 
 The two presentation modes retain distinct resolution semantics:
 
-| Input | Presentation | Identity Binding source |
+| Input | Presentation | Identity used for resolution |
 |---|---|---|
-| Dedicated client (required capability) | RFC 7523 client assertion; authentication context | Authenticated dedicated-client identity ({{client-assertion-input}}) |
-| JWT-SVID (optional) | Native `client_assertion`; authentication context | Trust domain and exact SPIFFE ID ({{jwt-svid-input}}) |
-| WIT-SVID (optional) | Client Attestation and proof-of-possession (PoP) headers; authentication context | Trust domain and exact SPIFFE ID ({{spiffe-input}}) |
-| X.509-SVID (optional) | Mutual-TLS client certificate; authentication context | Trust domain and exact SPIFFE ID ({{spiffe-input}}) |
-| Client Attestation (optional) | Attestation and proof under the configured method; authentication context | Trusted attester and validated client `sub` ({{agent-evidence}}) |
-| Existing platform JWT (optional; REQUIRED for shared-client support) | Separate `actor_token` in delegated issuance or `subject_token` in self-acting issuance; independent client authentication | Configured issuer, subject, and exact selectors ({{imported-jwt-input}}) |
-{: title="Agent-resolution inputs and presentation"}
+| Dedicated client (required capability) | RFC 7523 client assertion; authentication context | Trusted assertion issuer and exact client `sub`, qualified by the IdP client-registration context ({{client-assertion-input}}) |
+| JWT-SVID (optional) | Native `client_assertion`; authentication context | Approved trust domain and exact SPIFFE ID in `sub` ({{jwt-svid-input}}) |
+| WIT-SVID (optional) | Client Attestation and proof-of-possession (PoP) headers; authentication context | Approved trust domain and exact SPIFFE ID in the validated `sub` ({{spiffe-input}}) |
+| X.509-SVID (optional) | Mutual-TLS client certificate; authentication context | Approved trust domain and exact SPIFFE ID in the certificate's URI Subject Alternative Name ({{spiffe-input}}) |
+| Client Attestation (optional) | Attestation and proof under the configured method; authentication context | Trusted attester and validated Client Attestation `sub`, which identifies the OAuth client; the client-to-agent mapping is explicit ({{agent-evidence}}) |
+| Existing platform JWT (optional; REQUIRED for shared-client support) | Separate `actor_token` in delegated issuance or `subject_token` in self-acting issuance; independent client authentication | Approved issuer and exact `sub`, with configured additional selectors ({{imported-jwt-input}}) |
+{: title="Agent-resolution inputs, presentation, and identity used for resolution"}
 
 Authentication-context inputs omit actor-token parameters. Mode selection,
 parameter requirements, and rejection processing are defined once in
-{{actor-inputs}}. Credential class and Identity Binding determine which
-principal is resolved; reusing authentication context does not make the
-OAuth client and Agent Principal the same identity.
+{{actor-inputs}}.
 
 Audience validation follows the input's credential specification and
 this profile's requirements; there is no universal IdP audience:
@@ -917,21 +908,15 @@ be supported.
 
 The assertion authenticates the client; it is not independent workload
 evidence. In this explicitly configured mode, the IdP uses the validated
-client-authentication context as the resolution source. The Identity
-Binding determines the Agent Principal; client authentication alone does
-not authorize its use.
+client-authentication context as the resolution source.
 
-The client MUST present its assertion in `client_assertion`, with
-`client_assertion_type` set to
-`urn:ietf:params:oauth:client-assertion-type:jwt-bearer`, and MUST omit
-`actor_token` and `actor_token_type`. The IdP MUST reject either actor
-parameter in this mode with `invalid_request`.
-
-This profile defines the authenticated-client resolution composition;
-it is not the dual-presentation input of {{ACTOR-PROFILE}}. Its relationship to
-Token Exchange and Actor Profile is stated in
-{{dedicated-client-coordination}}. Mode selection and missing-evidence
-handling follow {{actor-inputs}}.
+The client presents its assertion in `client_assertion` with
+`client_assertion_type`
+`urn:ietf:params:oauth:client-assertion-type:jwt-bearer`; actor-token
+parameters are omitted and rejected under {{actor-inputs}}. This is the
+authenticated-client resolution composition, not the dual-presentation
+input of {{ACTOR-PROFILE}}; {{dedicated-client-coordination}} states its
+relationship to Token Exchange and Actor Profile.
 
 The IdP MUST:
 
@@ -1014,7 +999,10 @@ method defines and validates the corresponding proof.
 ## Optional Inputs {#optional-inputs}
 
 The inputs in this section are OPTIONAL. Each defines an agent-resolution
-composition and requires trusted configuration under {{flow-configuration}}.
+composition and requires trusted configuration under
+{{flow-configuration}}. All except the platform JWT resolve from
+authentication context: actor-token parameters are omitted, and mode
+selection follows {{actor-inputs}}.
 
 ### SPIFFE JWT-SVID {#jwt-svid-input}
 
@@ -1022,9 +1010,7 @@ This OPTIONAL input supports workload identity independently of the
 OAuth client identifier, including multiple agents behind a shared client.
 
 The client presents the JWT-SVID in `client_assertion` and authenticates
-under {{Section 3.1 of SPIFFE-OAUTH}}. Resolution uses the validated
-authentication context; actor-token parameters are omitted under
-{{actor-inputs}}. The IdP MUST apply its JWT-SVID validation rules before
+under {{Section 3.1 of SPIFFE-OAUTH}}. The IdP MUST apply its JWT-SVID validation rules before
 resolving the agent, including:
 
 * Require `client_assertion_type` of
@@ -1040,8 +1026,7 @@ resolving the agent, including:
 
 The IdP MUST resolve the exact SPIFFE ID in the validated `sub` and
 separately authorize client use under {{identity-binding}}, even when
-client authentication permits a prefix match. The evidence-role
-separation in {{inputs}} applies to this dual use of the credential.
+client authentication permits a prefix match.
 
 This input retains JWT-SVID's existing format and bearer semantics; it
 requires no new `typ` value or issuer-bound key. When used, DPoP binds
@@ -1128,8 +1113,7 @@ attested OAuth client identity maps explicitly to one Agent Principal.
 
 * **Client presentation:** Present the attestation in
   `OAuth-Client-Attestation` and authenticate with the configured
-  {{ATTEST}} method. Resolution uses the validated authentication context;
-  actor-token parameters are omitted under {{actor-inputs}}.
+  {{ATTEST}} method.
 * **Validation:** The IdP MUST validate the attestation and proof under
   {{ATTEST}} before resolving the agent ({{actor-inputs}}).
 * **Resolution:** The IdP MUST identify the attester unambiguously from
@@ -1167,10 +1151,13 @@ OAuth client authentication. They reuse existing credential formats
 and presentation mechanisms; this profile adds the Identity Binding
 and governed actor construction. No second credential is required.
 
-The client and IdP configure authentication-context resolution and the
-accepted SVID class under {{actor-inputs}}. Resolution uses the SVID
-validated for this token request; actor-token parameters are omitted.
-Failure handling follows {{errors}}.
+The client and IdP configure the accepted SVID class under
+{{actor-inputs}}; resolution uses the SVID validated for this token
+request. WIT-SVID is the SPIFFE form of a Workload Identity Token
+(WIT), and X.509-SVID is a certificate input within the Workload
+Identity Certificate (WIC) model in {{WIT}}; general non-SPIFFE WIT and
+WIC inputs are excluded ({{excluded-compositions}}).
+{{svid-context-example}} illustrates both inputs.
 
 #### Presentation and Validation
 
@@ -1226,19 +1213,7 @@ The selected input proves control of a credential-bound key. Assurance
 about a particular runtime or execution depends on the credential
 authority's issuance rules and identity granularity.
 
-#### Relationship to General WIMSE Credentials
-
-WIT-SVID is the SPIFFE form of a Workload Identity Token (WIT), and
-X.509-SVID provides a certificate input within the Workload Identity
-Certificate (WIC) model in {{WIT}}. This document profiles their existing
-OAuth SPIFFE presentation mechanisms. It does not define a general
-non-SPIFFE WIT or WIC input, WIT presentation with Workload Proof Tokens
-or HTTP Message Signatures, or conversion of a certificate to a JWT
-actor token ({{excluded-compositions}}).
-
-{{svid-context-example}} illustrates both inputs.
-
-## Resolution-Key Lifecycle {#resolution-key-lifecycle}
+### Resolution-Key Lifecycle {#resolution-key-lifecycle}
 
 When the resolution key is also the grant proof key, replacing it does
 not change the binding of an outstanding grant, access token, or refresh
@@ -1288,17 +1263,8 @@ RAS correlates both to its local principals.
 
 ## Identity Binding {#identity-binding}
 
-An Identity Binding is keyed by the qualified identity of its input:
-
-| Input | Identity used for resolution | Qualification |
-|---|---|---|
-| Dedicated client identity | Trusted assertion issuer and exact client `sub`, qualified by the IdP client-registration context | Common mode under {{client-assertion-input}}; explicit client-to-agent binding |
-| SPIFFE JWT-SVID | Approved trust domain and exact SPIFFE ID in `sub` | Optional input under {{jwt-svid-input}}; native client authentication |
-| SPIFFE WIT-SVID | Approved trust domain and exact SPIFFE ID in validated `sub` | Authentication-context resolution under {{spiffe-input}} |
-| SPIFFE X.509-SVID | Approved trust domain and exact SPIFFE ID in the authenticated certificate's URI Subject Alternative Name | Authentication-context resolution under {{spiffe-input}} |
-| Existing platform JWT | Approved issuer and exact subject, with configured additional selectors | Input under {{imported-jwt-input}}; REQUIRED when shared clients are supported |
-| Client Attestation whose attested client maps explicitly to one Agent Principal | Trusted attester and validated Client Attestation `sub` under {{agent-evidence}} | The validated `sub` identifies the OAuth client; client-to-agent mapping is explicit |
-{: title="Identity used for resolution"}
+An Identity Binding is keyed by the qualified identity of its input,
+as listed for each input in {{evidence}}.
 
 After validating the configured resolution input, the IdP MUST:
 
@@ -1310,8 +1276,7 @@ After validating the configured resolution input, the IdP MUST:
   identifies the client, not the agent.
 
 Similar names, unqualified identifiers, or a shared signing key MUST
-NOT establish identity equivalence. The table above defines the
-qualified identity for each input.
+NOT establish identity equivalence.
 
 Deployments SHOULD permit an Identity Binding to be disabled independently
 of the Agent Principal and its other bindings.
@@ -1424,9 +1389,7 @@ whitespace, or member order.
 In particular, the RAS MUST NOT translate `act.sub` to its local
 agent-principal identifier or replace `act.iss` with its own issuer.
 The local agent record supports authorization and attribution; it does
-not replace the federated actor.
-Thus, user identity is translated into the RAS namespace, while agent
-identity is preserved and correlated with a local record. That rule concerns the actor of a delegated token; for self-acting
+not replace the federated actor. That rule concerns the actor of a delegated token; for self-acting
 access the access token's subject is the local principal and the
 qualified identity is retained under {{wag-redemption}}.
 
@@ -2108,10 +2071,8 @@ following context:
   cannot outlive an expiration unknown to the API.
 
 The processing in {{api-processing}} applies to the introspected
-context exactly as to JWT claims. Deployments also applying
-{{AGENT-LIFECYCLE}} also apply its administrative-state and session-revocation
-checks. That companion describes the propagation and caching limits; it
-does not require a different introspection protocol.
+context exactly as to JWT claims. Lifecycle propagation and its caching
+limits are in {{status-changes}}.
 
 ### RAS Refresh Tokens {#ras-refresh}
 
@@ -2166,8 +2127,7 @@ storage representation is defined. Absolute expiration prevents
 indefinite renewal from one ID-JAG without a fresh IdP decision.
 
 Continued access beyond that expiration requires a new ID-JAG and new
-IdP and RAS authorization decisions, establishing a new period rather
-than extending the old one.
+IdP and RAS authorization decisions.
 IdP refresh-token and delegation policy, together with any cumulative
 RAS limits, bound overall unattended access. IdP revocation reaches
 existing RAS authorization only through a signal or online check
@@ -2236,9 +2196,6 @@ before authorization. This profile specifies the following outcomes:
 Agent-resolution credential failures use `invalid_grant` instead of
 the default `invalid_request` described by RFC 8693; this narrowing is
 intentional.
-When DPoP is used, proof and nonce errors follow {{RFC9449}} at both
-endpoints; unsupported DPoP and missing required issuance proof follow
-{{grant-protection}}.
 
 Client authentication failures use the authentication method's error,
 including when the same credential supplies an agent-resolution input.
@@ -2329,10 +2286,8 @@ and MUST enforce the following requirements:
   the requested operation. Missing, ambiguous, or conflicting tenant
   context MUST result in denial.
 
-{{AGENT-LIFECYCLE}} adds provisioning and disablement behavior when
-configured. Offline JWT validation and cached introspection retain their
-limits: neither necessarily observes a newly applied RAS revocation
-immediately. The companion defines no universal end-to-end denial bound.
+Revocation visibility for offline validation and cached introspection
+is bounded as described in {{status-changes}}.
 
 If the API delegates authorization evaluation to a policy decision
 service, it MUST preserve the distinction between the user, the
@@ -2398,13 +2353,11 @@ Servers MUST publish {{RFC8414}} metadata as follows:
   ID-JAG in `identity_chaining_requested_token_types_supported` under
   {{Section 7.1 of ID-JAG}}.
   * Include `private_key_jwt` in `token_endpoint_auth_methods_supported`.
-  * When JWT-SVID is supported, include `spiffe_jwt` under
-    {{Section 4 of SPIFFE-OAUTH}}. The generic JWT actor token type alone
-    does not advertise JWT-SVID client authentication.
-  * When WIT-SVID or X.509-SVID authentication is supported, include
-    `spiffe_wit` or `spiffe_x509`, respectively, under that same section.
+  * When SPIFFE authentication is supported, include `spiffe_jwt`,
+    `spiffe_wit`, or `spiffe_x509` under {{Section 4 of SPIFFE-OAUTH}}.
     Authentication metadata alone does not advertise agent-resolution
-    support; client and IdP MUST configure the input under {{actor-inputs}}.
+    support; client and IdP MUST configure the input under
+    {{actor-inputs}}.
   * Support for self-acting WAG issuance ({{wag-flow}}) is established
     by trusted configuration; this document defines no metadata
     parameter for it.
@@ -2797,16 +2750,15 @@ policy and reject an inactive agent or withdrawn binding once the change
 has been applied; cached policy data MUST have configured freshness
 limits.
 
-Cross-system disablement and revocation need the mechanisms in
-{{lifecycle-gap}}; without a signal or online check, issued tokens
-remain usable until expiration.
-
-For deployments applying {{AGENT-LIFECYCLE}}, that companion profiles
-SCIM administrative state, optional change notices, and session revocation.
-Applied disablement stops RAS issuance and refresh and revokes associated
-sessions. Cached introspection results or offline JWTs can remain usable
-until their acceptance limits. Current active state alone cannot recover
-a missed disable-and-reenable transition or invalidate every old grant.
+Cross-system disablement needs a provisioning and signaling contract
+({{lifecycle-gap}}); without a signal or online check, issued tokens
+remain usable until expiration. {{AGENT-LIFECYCLE}} profiles SCIM
+administrative state, optional change notices, and session revocation
+for that purpose: applied disablement stops RAS issuance and refresh
+and revokes associated sessions, cached introspection results or
+offline JWTs can remain usable until their acceptance limits, and
+current active state alone cannot recover a missed
+disable-and-reenable transition or invalidate every old grant.
 
 Execution termination, Identity Binding disablement, Client Association
 removal, delegation revocation, and Agent Principal disablement have
@@ -2828,8 +2780,8 @@ the enforcing server; it defines no new propagation mechanism:
 {: title="Effects of administrative changes"}
 
 The RAS requirements for applied disablement and revocation are in
-{{applied-changes}}. The provisioning that feeds them is a deployment
-choice; {{AGENT-LIFECYCLE}} profiles one. An IdP SHOULD retain the identifiers
+{{applied-changes}}; the provisioning that feeds them is a deployment
+choice. An IdP SHOULD retain the identifiers
 of the ID-JAGs it issued under each delegation, Identity Binding, and
 Client Association, so that withdrawing any of them can be propagated to
 derived authorization through grant-derived revocation in that companion

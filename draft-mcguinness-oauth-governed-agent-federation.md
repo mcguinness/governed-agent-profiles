@@ -707,8 +707,10 @@ The adoption path preserves existing Enterprise-Managed Authorization
 binding. The names identify deployment profiles, not assurance ratings.
 
 This profile does not establish trust in previously unknown agent issuers
-or automatically create Identity Bindings or Agent Principal Correlations
-from presented credentials.
+or automatically create Identity Bindings from presented credentials. A
+resource domain creates an Agent Principal Correlation from a validated
+grant only where its own policy permits just-in-time correlation
+({{AGENT-LIFECYCLE}}).
 
 | Adoption profile | Required addition | Grant protection |
 |---|---|---|
@@ -1533,7 +1535,9 @@ The RAS MUST:
 * Resolve that qualified identity independently of the user's identity;
   a bare subject, display name, or OAuth client identifier MUST NOT
   replace it.
-* Deny authorization that depends on a missing provisioned agent record.
+* Deny authorization that depends on a missing agent record, whether
+  that record is provisioned in advance or created just in time where
+  resource policy permits ({{AGENT-LIFECYCLE}}).
 
 User-account and agent-record links are distinct. A changed Identity
 Binding or local agent link MUST NOT transfer an existing delegation
@@ -2750,9 +2754,9 @@ the request of {{redemption-request}}. The RAS MUST:
 2. Resolve the pair (`iss`, `sub`) under {{agent-correlation}} to one
    local agent principal in the authorized Target Tenant. The RAS MUST
    have that authorized correlation before issuance; for governed agents
-   this replaces the acceptance of previously unseen identifiers in
-   {{Section 7 of WAG}}. Just-in-time correlation, where configured, is
-   defined by {{AGENT-LIFECYCLE}}.
+   this replaces the required acceptance of previously unseen
+   identifiers in {{Section 7 of WAG}}. Just-in-time correlation, where
+   resource policy permits it, is defined by {{AGENT-LIFECYCLE}}.
 3. Validate resource, scope, and authorization details as in
    {{redemption-validation}}, and apply current RAS policy for the
    agent, client, tenant, and resource. A valid grant sets an authority
@@ -3068,7 +3072,9 @@ composition. Coordination is needed on:
   under {{grant-protection}}.
 * **Linking:** {{Section 7 of WAG}} requires acceptance of previously
   unseen agent identifiers under trusted issuers. Governed agents
-  instead require an authorized local correlation ({{wag-redemption}}).
+  instead require an authorized local correlation, established in
+  advance or, where resource policy permits, just in time
+  ({{wag-redemption}}).
 * **Renewal:** This document adopts WAG's prohibition on refresh tokens;
   continuing self-acting access re-issues the grant.
 * **Subject presentation:** A token exchange in which the authenticated

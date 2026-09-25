@@ -54,29 +54,47 @@ profile that.
 
 ## An architecture for governed agents
 
-Governing agents takes more than an inventory and a kill switch. It takes an
-interoperable answer to each of four questions, with the boundaries between
-them kept explicit:
+Governing agents means owned facts, explicit boundaries, composition at the
+action, and independent ends.
 
-| Question | Layer | Profiles | What is standardized |
-|---|---|---|---|
-| Which agents does the enterprise govern? | Management | SCIM Governed Agent Federation Management; SCIM OAuth Client Management | Agent Principals, Identity Bindings, Client Associations, and OAuth client registrations as managed resources at the IdP, independent of the platform an agent runs on |
-| May this agent obtain authority, and for whom? | Federation | Governed Agent Federation | Resolution of client and workload identity to the Agent Principal, client authority, delegation or agent authorization at the IdP, and the actor gate at the resource |
-| Is this action allowed or denied? | Action authorization | AuthZEN Authorization API; COAZ, with its MCP binding; ARAP and AROP | A policy decision for each operation, such as an MCP tool call mapped into an AuthZEN evaluation at the enforcement point; a requestable denial becomes an access request, re-evaluated after approval and completed as an issued OAuth access token |
-| How is authority withdrawn? | Lifecycle | Governed Agent Lifecycle; Shared Signals and CAEP | Principal disablement, session revocation, and Local Suspension, each with its own boundary |
+Three facts matter for every agent action: which governed principal is
+acting, what authority it holds, and whether approved work still justifies
+the action. Each fact is established by its own owner, carried across
+boundaries by an explicit contract, decided at the action, and ended on its
+own:
 
-Agent governance is not one identity and one kill switch. Principal
-identity, execution binding, client authority, delegation, resource
-authority, and administrative state are separate relationships, and their
-boundaries stay explicit as an agent crosses systems.
+| Fact | Established by | Carried across boundaries by | Decided at the action by | Ended by |
+|---|---|---|---|---|
+| **Identity**: which governed principal is acting | The IdP: Agent Principal, Identity Bindings, and Client Associations (SCIM Governed Agent Federation Management) | Governed Agent Federation, across execution changes through Identity Binding and across domains with the agent preserved and the user translated | RAS correlation of the issuer-qualified agent, and the actor gate at the API | Principal or binding disablement (Governed Agent Lifecycle); Local Suspension as the resource domain's own denial |
+| **Authority**: what it may do, and for whom | The IdP: Delegation Authorization or Agent Authorization for an associated client | The grant, ID-JAG or the proposed WAG, as a ceiling | The RAS deciding anew within that ceiling; AuthZEN and COAZ allowing or denying each operation; ARAP and AROP re-establishing authority after a requestable denial | Grant and session revocation at the issuing server (Governed Agent Lifecycle, CAEP) |
+| **Work**: whether approved work still justifies the action | Mission approval | Mission projection | Mission runtime enforcement, at the same AuthZEN decision point with work state as an input | Mission termination, which reaches every boundary that checks work state |
 
-These profiles stop at whether an action is allowed or denied. Whether it
-falls within an approved task, and whether that task is still in force, is
-the Mission layer:
+These drafts define the Identity and Authority rows.
 [Mission-Bound Authorization](https://github.com/mcguinness/mission-bound-authorization)
-defines the Mission and governs each action against it at runtime, with its
-own AuthZEN binding. Behavioral monitoring, anomaly detection, and telemetry
-are outside both.
+defines the Work row. The fact-by-fact treatment of boundaries follows
+[Continuity Is Not One Thing](https://notes.karlmcguinness.com/notes/continuity-is-not-one-thing/).
+
+### Principles
+
+* **Execution identity is evidence; governed identity is the principal.**
+  Platforms mint execution identities. The enterprise governs the principal,
+  and an Identity Binding connects the two, so an agent keeps its identity
+  when it moves between platforms or rotates credentials.
+* **Every fact has an owner, and no fact stands in for another.** The IdP
+  owns identity, the resource domain owns resource authority, and the Mission
+  control point owns work. Being known is not being authorized, and being
+  authorized is not being approved for this work.
+* **Owners, not a single control plane.** Each boundary keeps its own
+  decision: the RAS decides anew within the grant, and a Local Suspension
+  cannot be cleared from upstream.
+* **Facts cross boundaries only by contract.** A contract states what is
+  preserved, what is translated, and what is decided anew. Traceable
+  delegation is attribution, not authority.
+* **As many kill switches as owners.** Each fact ends on its own, with its
+  own reach and timing.
+
+Request provenance through intermediaries, behavioral monitoring, anomaly
+detection, and telemetry are outside this architecture.
 
 ### How the drafts fit together
 

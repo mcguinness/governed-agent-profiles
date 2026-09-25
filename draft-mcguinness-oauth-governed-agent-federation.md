@@ -479,18 +479,19 @@ another. A local principal link identifies the agent; resource policy
 still determines whether to accept its delegated access.
 
 
-Three identities meet in one request, and each answers a different
-question:
+Up to three identities meet in one request, and each answers a
+different question:
 
 | Identity | Question it answers | Established by |
 |---|---|---|
-| Workload | Which computational principal presented the accepted evidence? | Credential validation ({{evidence}}) |
+| Workload | Which workload identity does the accepted evidence assert? | Credential validation ({{evidence}}) |
 | OAuth client | Which software is requesting the grant? | Client authentication |
 | Agent Principal | Which independently governed principal does that input resolve to? | Identity Binding ({{identity-binding}}) |
 {: title="Distinct identities in a request"}
 
-They can coincide in a deployment, as when a dedicated client's
-identity is the resolution input, but none is inferred from another.
+Dedicated-client resolution establishes no separate workload identity:
+the authenticated client identity is itself the resolution input. In
+every case, none of these identities is inferred from another.
 The relationship between workloads and Agent Principals can be
 one-to-one; this profile does not require it ({{governance-boundary}}).
 Client Association authorizes client use through the binding, acting

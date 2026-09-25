@@ -256,6 +256,16 @@ RFC 7523 client assertions, SPIFFE JWT Verifiable Identity Documents
 same identity model ({{evidence}},
 {{optional-inputs}}).
 
+This document federates an agent governed by the IdP that issues the
+grant into a resource domain. It does not define identity continuity
+across a chain of IdPs or brokers; forwarding an actor from another
+IdP's namespace is out of scope. Also out of scope are task or mission
+authorization, asynchronous approval, continuation composition,
+provisioning protocols and account administration, multi-agent
+delegation chains, instance identification and propagation, client
+attester endorsement, and enrollment or key-replacement protocols
+({{upstream-gaps}}).
+
 # Conventions and Terminology
 
 {::boilerplate bcp14-tagged-bcp14}
@@ -461,9 +471,6 @@ resolution. An existing service
 principal can represent the agent locally without replacing its
 IdP-qualified identity ({{agent-correlation}}).
 
-This document assumes that the grant issuer governs the agent
-namespace. Forwarding an actor from another IdP namespace through a
-broker is outside its scope.
 
 ## Core Invariants {#invariants}
 
@@ -742,10 +749,6 @@ grant protection and downgrade prevention follow {{grant-protection}}
 and {{discovery}}, and protection on the API hop follows
 {{access-token-protection}}.
 
-Out of scope for this document: continuation composition, provisioning protocols
-and account administration, multi-agent delegation chains, instance
-identification and propagation, client attester endorsement, and
-enrollment or key-replacement protocols ({{upstream-gaps}}).
 
 ## Deployment Configuration {#configuration}
 

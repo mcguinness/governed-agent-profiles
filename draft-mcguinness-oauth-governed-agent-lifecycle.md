@@ -298,27 +298,7 @@ This profile raises Federation's provisioning recommendation to a
 requirement: the RAS MUST have the authorized local correlation before
 accepting a grant involving the agent. A missing or ambiguous
 correlation fails under Federation's identity-resolution error rules.
-{{jit}} defines the one optional way to establish that correlation
-without a prior SCIM write.
-
-## Just-in-Time Correlation {#jit}
-
-A Receiver MAY be configured to establish the local correlation from a
-validated ID-JAG instead of a prior SCIM write. This option is disabled
-by default and enabled per governing issuer and Target Tenant.
-
-When enabled, on a validated grant whose `act.iss` is that issuer and
-whose `act.sub` has no correlation in that tenant, the RAS MAY create
-the local agent principal and its correlation keyed by the pair, with an
-initial local `active` state set by local policy. The RAS MUST NOT
-attach the pair to an existing principal by name or other descriptive
-match, MUST apply Local Suspension, retained revocation state, and local
-policy before issuance, and MUST subject the created principal to the
-same provisioning, reconciliation, and disablement rules as a
-provisioned one. A grant does not carry the IdP's administrative
-status; just-in-time correlation therefore does not replace SCIM
-provisioning for disablement, and a later SCIM write for the same pair
-updates the created record rather than creating a second principal.
+A validated grant does not by itself create that correlation.
 
 # SCIM Provisioning {#scim}
 

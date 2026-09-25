@@ -146,18 +146,35 @@ coordination with WAG; its identifiers are provisional.
 
 # Introduction
 
-Agent platforms establish workload identities. Enterprises govern
-stable authorization principals. Resource systems need to recognize
-those principals without understanding every platform's credentials.
-This document defines how an identity provider (IdP) resolves client or
-workload identity to an Agent Principal, separately authorizes OAuth
-client use and user delegation, and carries the governed identity into
-the resource domain.
+Enterprises run agents on platforms they do not operate. Each platform
+issues its own identity for the workload it runs, and that identity is
+not the principal the enterprise governs. A platform integration
+commonly uses one shared OAuth client, which leaves every agent behind
+that client indistinguishable at the resource server: individual
+actions cannot be attributed, and authorization cannot be withdrawn
+from one agent without withdrawing it from all of them.
 
-Execution identity can be too coarse when one runtime serves several
-actors that need independent governance. It can also be too unstable
-when one actor moves across runtime identities while its authorization
-identity needs to remain stable.
+What an enterprise needs instead is a principal it can authorize once,
+audit across resources, and disable everywhere, whose identity does not
+change when the agent moves between platforms or rotates credentials.
+
+Client and workload identities do not necessarily match the
+enterprise's governance boundary. One runtime may serve several
+independently governed actors, while one actor may operate through
+several platform identities.
+
+Enterprise identity already solves a version of this problem for
+people. A person has one account, several credentials linked to it,
+and separate rules about which applications may use that account.
+This document applies that shape to agents. The Agent Principal is
+the account, an Identity Binding maps a validated, qualified client or
+workload identity to it, and a Client Association states which OAuth
+client may exercise that binding.
+
+This document defines how an identity provider (IdP) resolves client
+or workload identity to an Agent Principal, separately authorizes
+OAuth client use and user delegation, and carries the governed
+identity into the resource domain.
 
 A dedicated OAuth client resolves through an explicit client-to-agent
 binding. A shared client uses independently validated workload identity
@@ -374,6 +391,27 @@ The IdP controls Identity Bindings, Client Associations, and Agent and
 Delegation Authorization. The RAS controls local principal correlation and
 authorization, using trusted provisioning from the IdP or an authorized
 directory connector where applicable.
+
+One Agent Principal carries a set of Identity Bindings and a set of
+Client Associations:
+
+~~~
+ Agent Principal: agent-42
+ (one stable identity in the IdP issuer's namespace)
+   |
+   |  Identity Bindings        keyed by qualified input identity
+   +-- B1  dedicated client  https://idp.example/clients/c1
+   +-- B2  SPIFFE workload   spiffe://acme.example/ns/ml/sa/bot
+   +-- B3  platform JWT      https://platform.example  agent/7
+   |
+   |  Client Associations      permit a client to use bindings
+   +-- A1  client C1 -> B1        delegated
+   +-- A2  client C2 -> B2, B3    self-acting
+~~~
+
+A binding maps one qualified identity to the Agent Principal. An
+association permits one client to exercise named bindings for one
+acting relationship. Neither implies the other.
 
 Establishing one relationship MUST NOT be treated as establishing
 another. A local principal link identifies the agent; resource policy
@@ -1311,6 +1349,21 @@ A binding can remain valid while permission to use it is withdrawn,
 preserving identity continuity across policy changes. Credential class
 constrains the authorized resolution path even when several classes
 can resolve to the same Agent Principal.
+
+For example, one Agent Principal can carry three bindings at once:
+
+~~~
+ Agent Principal  agent-42
+ B1  dedicated client  https://idp.example/clients/c1      enabled
+ B2  SPIFFE workload   spiffe://acme.example/ns/ml/sa/bot  enabled
+ B3  platform JWT      https://platform.example  agent/7   disabled
+~~~
+
+The agent resolves through B1 when it runs as its own OAuth client and
+through B2 when it runs behind a shared platform client. Disabling B3
+prevents new issuance through that binding. It does not change the
+Client Association's configured permissions: A2 may still authorize
+use of B2, subject to the remaining checks.
 
 ## Subject Resolution and Linking {#subject-resolution}
 

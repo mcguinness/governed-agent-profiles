@@ -56,7 +56,7 @@ normative:
   RFC9700:
 informative:
   AGENT-MANAGEMENT:
-    title: "SCIM Profile for Agent Federation Management"
+    title: "SCIM Profile for Governed Agent Federation Management"
     author:
       - name: Karl McGuinness
     date: 2026-09-18

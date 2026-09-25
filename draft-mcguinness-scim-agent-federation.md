@@ -1,5 +1,5 @@
 ---
-title: "SCIM Profile for Agent Federation Management"
+title: "SCIM Profile for Governed Agent Federation Management"
 abbrev: "SCIM Agent Federation"
 category: std
 docname: draft-mcguinness-scim-agent-federation-latest

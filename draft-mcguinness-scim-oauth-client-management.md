@@ -45,7 +45,7 @@ informative:
       Internet-Draft: draft-hunt-oauth-scim-client-reg-00
     target: https://datatracker.ietf.org/doc/html/draft-hunt-oauth-scim-client-reg-00
   AGENT-MANAGEMENT:
-    title: "SCIM Profile for Agent Federation Management"
+    title: "SCIM Profile for Governed Agent Federation Management"
     author:
       - name: Karl McGuinness
     date: 2026-09-18

@@ -49,6 +49,24 @@ independently validated workload identities to stable Agent Principals.
 Identity Binding, Client Association, user delegation, and resource-local
 authorization remain separate decisions.
 
+The governing principle is that the Agent Principal is the authorization
+identity. Client and workload identities are authenticated inputs that
+resolve to it; they do not replace it downstream. Three consequences follow:
+
+* Governed identity is independent of execution identity. Platforms,
+  workload credentials, and OAuth clients can change without changing the
+  Agent Principal.
+* Resolving an identity does not authorize its use. An Identity Binding says
+  which agent a credential represents; a separate Client Association says
+  whether a client may exercise it.
+* Actor attribution is not delegation authority. An agent named in `act`
+  acts for a user only under the IdP's delegation decision and the
+  resource's actor gate.
+
+The scope is deliberately narrow: an agent governed by the IdP that issues
+the grant, federated into a resource domain. Identity continuity across a
+chain of IdPs or brokers is out of scope.
+
 The mandatory delegated path uses an ID Token issued for the dedicated
 client, `private_key_jwt` client authentication, a governed ID-JAG, and RFC
 7523 `jwt-bearer` redemption. Dedicated-client resolution uses the authenticated
@@ -70,8 +88,8 @@ or policy-permitted RAS refresh within retained authorization and lifetime
 limits. Existing SSO refresh tokens do not automatically authorize downstream
 resources.
 
-The self-acting WAG realization issues an IdP-signed WAG naming the Agent
-Principal as subject, redeemed with the JWT bearer grant and correlated to
+The proposed self-acting WAG realization issues an IdP-signed WAG naming the
+Agent Principal as subject, redeemed with the JWT bearer grant and correlated to
 the same local principal. Its token-type, JWT-type, and profile
 identifiers are provisional pending coordination with WAG.
 Instance identification, attester endorsement, key transition, and Identity

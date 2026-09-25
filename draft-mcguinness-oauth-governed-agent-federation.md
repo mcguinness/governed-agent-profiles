@@ -56,7 +56,7 @@ normative:
   RFC9700:
 informative:
   AGENT-MANAGEMENT:
-    title: "SCIM Profile for Agent Federation Management"
+    title: "SCIM Profile for Governed Agent Federation Management"
     author:
       - name: Karl McGuinness
     date: 2026-09-18
@@ -127,20 +127,23 @@ informative:
 --- abstract
 
 This document defines how an identity provider resolves a dedicated
-OAuth client identity or an independently validated workload identity
-to a stable Agent Principal. Client authority and user
-delegation are authorized separately. Resource systems consume the
-issuer-qualified agent identity without interpreting the original
-credential. No new credential format is defined.
+OAuth client identity or an independently validated workload identity,
+through an explicit Identity Binding, to a stable Agent Principal that
+persists as the agent moves between platforms and rotates credentials.
+A separate Client Association authorizes an OAuth client to exercise
+that principal, and user delegation is authorized independently of
+both. Resource systems consume the issuer-qualified agent identity
+without interpreting the original credential. No new credential format
+is defined.
 
 The federation model covers self-acting access, with the Agent Principal
 as subject, and delegated access, with the user as subject and the
 agent as actor. This document defines a complete delegated profile of
 the Identity Assertion JWT Authorization Grant (ID-JAG), using existing
-client assertions and workload credentials. It also defines a
+client assertions and workload credentials. It also proposes a
 self-acting realization in which the IdP issues a Workload Authorization
-Grant (WAG) naming the Agent Principal as subject, proposed for
-coordination with WAG; its identifiers are provisional.
+Grant (WAG) naming the Agent Principal as subject, for coordination
+with WAG; its identifiers are provisional.
 
 --- middle
 
@@ -171,17 +174,49 @@ the account, an Identity Binding maps a validated, qualified client or
 workload identity to it, and a Client Association states which OAuth
 client may exercise that binding.
 
-This document defines how an identity provider (IdP) resolves client
-or workload identity to an Agent Principal, separately authorizes
-OAuth client use and user delegation, and carries the governed
-identity into the resource domain.
+Existing OAuth mechanisms authenticate clients and carry actors, but
+they leave three relationships open:
+
+1. How different client and workload identities resolve to the same
+   governed principal. {{ATTEST}} and {{SPIFFE-OAUTH}} authenticate
+   OAuth clients, not the agents a shared client serves.
+2. How authority to use that principal is separated from identity
+   resolution. The Identity Assertion JWT Authorization Grant (ID-JAG)
+   leaves the validation and authorization of an actor, and the
+   relationship among client, subject, and actor, to extensions
+   ({{Section 9.7 of ID-JAG}}).
+3. How the resulting principal is represented and correlated across
+   authorization domains. {{RFC8693}} defines the `act` claim but not
+   how an actor authenticated through a client or workload credential
+   is named in it, or how a resource domain correlates that name with
+   local state.
+
+This document defines how an identity provider (IdP) establishes those
+relationships and how OAuth grants carry the result into the resource
+domain.
+
+The governing principle is that the Agent Principal is the
+authorization identity: client and workload identities are
+authenticated inputs from which the IdP resolves it, and they do not
+replace it downstream. Three consequences shape the rest of the
+document:
+
+* **Governed identity is independent of execution identity.**
+  Platforms, workload credentials, and OAuth clients can change without
+  changing the Agent Principal.
+* **Resolving an identity does not authorize its use.** Identity
+  Binding establishes which agent a credential represents; a separate
+  Client Association establishes whether a client may exercise it.
+* **Actor attribution is not delegation authority.** An agent named in
+  `act` acts for the user only under the IdP's Delegation Authorization
+  and the resource's actor gate ({{actor-authorization}}).
 
 A dedicated OAuth client resolves through an explicit client-to-agent
 binding. A shared client uses independently validated workload identity
 to distinguish the agents it serves. Both deployments retain separate
 identity, client-authority, delegation, and resource-policy decisions.
 
-Five independent relationships establish that contract:
+Five independent relationships make up the model:
 
 | Question | Relationship |
 |---|---|
@@ -192,44 +227,29 @@ Five independent relationships establish that contract:
 | What resource-local principal represents the IdP-qualified agent? | Agent Principal Correlation |
 {: title="Federation relationships"}
 
-Client and workload credentials are resolution inputs; downstream
-authorization identifies the IdP-governed principal. For delegated access,
-the resource authorization server (RAS):
+For delegated access, the resource authorization server (RAS):
 
 * Translates the user identity into its local namespace.
 * Preserves the issuer-qualified agent identity.
 * Correlates that identity with local authorization state without
   replacing it with the local principal's identifier.
 
-External credentials, execution environments, and OAuth clients can
-change without changing the governed identity.
-
-Existing specifications leave that mapping open. {{RFC8693}} defines
-`act`, while the Identity Assertion JWT Authorization Grant (ID-JAG)
-leaves actor-token validation, authorization, and representation to
-extensions ({{Section 9.7 of ID-JAG}}). {{ATTEST}} and
-{{SPIFFE-OAUTH}} authenticate OAuth clients, not the agents a shared
-client serves.
 
 AIMS {{AIMS}} describes a broader framework for agent identity management.
-This document defines an enterprise federation composition within that
-space: resolving client or workload identity to an IdP-governed Agent
-Principal, separately authorizing client use and user delegation, and
-correlating that principal in a resource domain. A workload identifier
-can supply a resolution input without becoming the downstream Agent
-Principal identifier. In particular, a shared OAuth client's `client_id`
-does not identify the individual agent represented by `act`.
+This document is an OAuth protocol profile within that space, not a
+governance framework: it defines how the identities in one transaction
+relate across authorization domains.
 
-The federation model ({{model}}) defines identity resolution, client
-authorization, delegation authorization, and resource correlation.
-Grant-specific realizations specify how those relationships are carried
-and enforced:
+The document has three layers with different status:
 
-* **Delegated ID-JAG:** {{delegated-flow}} defines the normative wire
-  profile and is the basis for conformance in this document.
-* **Self-acting Workload Authorization Grant (WAG):** {{wag-flow}}
-  defines the self-acting realization; its identifiers are provisional
-  pending WAG coordination ({{wag-gaps}}).
+* **Federation model ({{model}}):** identity resolution, client
+  authorization, delegation and agent authorization, and resource
+  correlation, independent of the grant that carries them.
+* **Delegated ID-JAG ({{delegated-flow}}):** the normative wire profile
+  and the basis for conformance in this document.
+* **Self-acting Workload Authorization Grant (WAG) ({{wag-flow}}):** a
+  proposed application of the model to WAG, pending WAG coordination
+  ({{wag-gaps}}); its identifiers are provisional.
 
 Other grant realizations require their own composition rules; the
 federation model alone does not define their wire behavior.
@@ -238,6 +258,16 @@ RFC 7523 client assertions, SPIFFE JWT Verifiable Identity Documents
 (JWT-SVIDs), and the other supported credentials supply inputs to the
 same identity model ({{evidence}},
 {{optional-inputs}}).
+
+This document federates an agent governed by the IdP that issues the
+grant into a resource domain. It does not define identity continuity
+across a chain of IdPs or brokers; forwarding an actor from another
+IdP's namespace is out of scope. Also out of scope are task or mission
+authorization, asynchronous approval, continuation composition,
+provisioning protocols and account administration, multi-agent
+delegation chains, instance identification and propagation, client
+attester endorsement, and enrollment or key-replacement protocols
+({{upstream-gaps}}).
 
 # Conventions and Terminology
 
@@ -380,7 +410,9 @@ Governance Tenant:
   tenant.
 
 Target Tenant:
-: The tenant at the RAS in which the agent or user is authorized.
+: The tenant at the RAS in which the agent or user is authorized, that
+  is, where authority is exercised. It can differ from the Governance
+  Tenant, as in {{identity-example}}.
 
 Where the meaning is clear, this document uses agent as shorthand for
 Agent Principal.
@@ -391,6 +423,35 @@ The IdP controls Identity Bindings, Client Associations, and Agent and
 Delegation Authorization. The RAS controls local principal correlation and
 authorization, using trusted provisioning from the IdP or an authorized
 directory connector where applicable.
+
+The relationships compose into one model; the grant that carries the
+result depends on the acting relationship:
+
+~~~
+ Client authentication or workload evidence
+                      |
+               Identity Binding .......... which agent?
+                      v
+       Agent Principal (IdP namespace)
+                      |
+              Client Association ........ may this client use it?
+                      |
+          +-----------+------------+
+          |                        |
+ Delegation Authorization    Agent Authorization
+   agent acts for user         agent acts for itself
+          |                        |
+ ID-JAG: sub = user          WAG: sub = agent
+         act = agent               |
+          |                        |
+          +-----------+------------+
+                      |
+                      v
+ RAS: validate grant; correlate agent with local principal
+                      |
+                      v
+ RAS and API: resource authorization; actor gate if delegated
+~~~
 
 One Agent Principal carries a set of Identity Bindings and a set of
 Client Associations:
@@ -417,23 +478,24 @@ Establishing one relationship MUST NOT be treated as establishing
 another. A local principal link identifies the agent; resource policy
 still determines whether to accept its delegated access.
 
-~~~
- Resolution source        IdP namespace       Resource namespace
 
- dedicated client --\
-                     >--> agent-42 ----------> local agent principal
- workload identity -/
-            Identity Binding         Agent Correlation
+Up to three identities meet in one request, and each answers a
+different question:
 
- OAuth client -- Client Association --> permission to use binding
- agent-42 -- Delegation Authorization --> authority to act for user
- agent-42 -- Agent Authorization --> authority to act for itself
-~~~
+| Identity | Question it answers | Established by |
+|---|---|---|
+| Workload | Which workload identity does the accepted evidence assert? | Credential validation ({{evidence}}) |
+| OAuth client | Which software is requesting the grant? | Client authentication |
+| Agent Principal | Which independently governed principal does that input resolve to? | Identity Binding ({{identity-binding}}) |
+{: title="Distinct identities in a request"}
 
-External workload identity, Agent Principal identity, and OAuth client
-identity are distinct. Identity Binding resolves the agent identity;
+Dedicated-client resolution establishes no separate workload identity:
+the authenticated client identity is itself the resolution input. In
+every case, none of these identities is inferred from another.
+The relationship between workloads and Agent Principals can be
+one-to-one; this profile does not require it ({{governance-boundary}}).
 Client Association authorizes client use through the binding, acting
-relationship, and credential class. Its coverage is explicit under {{identity-binding}}.
+relationship, and credential class under {{identity-binding}}.
 
 The IdP is the authority for the Agent Principal: the ID-JAG's `act.iss`
 equals its `iss`, and `act.sub` comes from the IdP's mapping rather than
@@ -444,9 +506,6 @@ resolution. An existing service
 principal can represent the agent locally without replacing its
 IdP-qualified identity ({{agent-correlation}}).
 
-This document assumes that the grant issuer governs the agent
-namespace. Forwarding an actor from another IdP namespace through a
-broker is outside its scope.
 
 ## Core Invariants {#invariants}
 
@@ -553,11 +612,14 @@ Target Tenant for the requested resource uses `invalid_target`.
 
 Clients, workloads, or other actors requiring independently managed
 authorization, delegation, attribution, resource correlation, or
-disablement as principals need separate Agent Principal identities.
-Differences in process, replica, session, worker, or credential alone
-do not require distinct
-identities. Sharing those elements does not justify combining actors
-that require independent governance.
+disablement as principals need separate Agent Principal identities,
+even when they share a runtime, OAuth client, workload credential, or
+deployment. Differences in process, replica, session, worker, or
+credential alone do not require distinct identities. An execution that
+shares all of these with an Agent Principal, such as a sub-agent
+working entirely within its parent's authority and attributed to it,
+can run as that Agent Principal; one that needs any of them separately
+needs its own identity.
 
 Multiple executions MAY operate as the same Agent Principal, and an
 agent MAY move between workloads or execution environments through
@@ -584,8 +646,8 @@ distinguishes their wire-profile status, not their architectural scope:
 
 | Acting relationship | Grant | Profile status |
 |---|---|---|
-| Agent acts as itself | WAG; Agent Principal is the subject | Realization in {{wag-flow}}; token-type, JWT-type, and profile identifiers provisional pending WAG coordination ({{wag-gaps}}) |
-| Agent acts for a user | ID-JAG; user is the subject and Agent Principal is the actor | Complete flow in {{delegated-flow}} |
+| Agent acts as itself | WAG; Agent Principal is the subject | Proposed realization in {{wag-flow}}, pending WAG coordination; token-type, JWT-type, and profile identifiers provisional ({{wag-gaps}}) |
+| Agent acts for a user | ID-JAG; user is the subject and Agent Principal is the actor | Normative profile in {{delegated-flow}}; basis for conformance |
 {: title="Grant paths"}
 
 An Agent Principal is not intrinsically self-acting or delegated. The
@@ -725,12 +787,8 @@ grant protection and downgrade prevention follow {{grant-protection}}
 and {{discovery}}, and protection on the API hop follows
 {{access-token-protection}}.
 
-Out of scope for this document: continuation composition, provisioning protocols
-and account administration, multi-agent delegation chains, instance
-identification and propagation, client attester endorsement, and
-enrollment or key-replacement protocols ({{upstream-gaps}}).
 
-## Deployment Configuration {#configuration}
+## Federation Configuration {#configuration}
 
 The relationships in {{model}} require trusted configuration, not a
 particular storage representation or administrative interface:
@@ -768,8 +826,9 @@ particular storage representation or administrative interface:
   the corresponding metadata.
 * **Client registration association:** For each target RAS, the IdP
   holds the authoritative mapping from its authenticated client to that
-  client's registration at the RAS, from which it derives the ID-JAG
-  `client_id` ({{flow-configuration}}). Using one identifier at both
+  client's registration at the RAS ({{Section 5 of ID-JAG}}), from which
+  it derives the ID-JAG `client_id` ({{flow-configuration}}). Using one
+  identifier at both
   servers, which a CIMD Client Identifier URL provides by construction,
   makes that mapping the identity mapping. No companion profile
   provisions this association; it is configured.
@@ -911,7 +970,7 @@ from the underlying protocols are summarized in {{profile-additions}}.
 | RAS | Validate and redeem the grant; apply local authorization and token-protection policy | {{redemption}} |
 | API | Enforce profile applicability, actor authorization, tenant, and token protection | {{api-processing}} |
 | Client, IdP, and RAS | Configure capabilities, advertise support, and process failures | {{metadata}}, {{errors}} |
-| IdP, RAS, and API | Issue, redeem, and enforce the self-acting WAG realization | {{wag-flow}} |
+| IdP, RAS, and API | Issue, redeem, and enforce the proposed self-acting WAG realization | {{wag-flow}} |
 | IdP Service Provider and Provisioning Client | Manage Agents, Identity Bindings, Client Associations, and OAuth client registrations | {{AGENT-MANAGEMENT}} (companion) |
 | Receiver | Accept IdP provisioning; apply disablement and revocation at the RAS | {{AGENT-LIFECYCLE}} (companion) |
 {: title="Requirements by implementer"}
@@ -2115,9 +2174,14 @@ unrecognized confirmation method.
 
 ### Distributed Platforms and Key Use {#distributed-key-use}
 
-Bound-grant issuance and redemption require the same key holder. For
-a DPoP access token, API use also requires proofs from that key; handing
-only the token to a worker with an independent key is insufficient.
+The component exercising a sender-constrained credential needs the
+required proofs from its bound key, either through local custody or an
+authorized signing arrangement; this document defines no transition to
+another key ({{key-transition-gap}}). Bound-grant issuance and
+redemption therefore
+require the same key holder. For a DPoP access token, API use also
+requires proofs from that key; handing only the token to a worker with
+an independent key is insufficient.
 
 | Arrangement | Requirement through API use |
 |---|---|
@@ -2133,10 +2197,9 @@ token is bound to the worker's key ({{grant-protection}}). This keeps
 the key at the component that calls the API without a key transition.
 
 Remote signing or shared key custody does not establish an independent
-worker binding and expands the trusted computing base. This document
-defines no handoff to a worker's independent DPoP key
-({{key-transition-gap}}). Access-token and refresh-token bindings remain
-subject to {{access-token-protection}} and {{ras-refresh}}.
+worker binding and expands the trusted computing base. Access-token and
+refresh-token bindings remain subject to {{access-token-protection}}
+and {{ras-refresh}}.
 
 ### Opaque Access Tokens and Introspection {#introspection}
 
@@ -2526,24 +2589,24 @@ Before using the delegated path:
   describe only the paths actually supported and agree with the
   ID-JAG advertisement.
 
-# Self-Acting WAG Realization {#wag-flow}
+# Proposed Self-Acting WAG Realization {#wag-flow}
 
-This section realizes the federation model for self-acting access: the
-Agent Principal is the subject of a Workload Authorization Grant (WAG)
-{{WAG}} issued by the IdP and redeemed at the RAS. It parallels
-{{delegated-flow}}. The same resolution inputs, Identity Binding, client
-authorization, grant protection, access-token protection, and resource
-processing apply, with the differences stated here; where this section
-is silent, {{delegated-flow}} applies with the WAG in place of the
-ID-JAG.
-
+This section proposes a self-acting realization of the federation model
+for coordination with the Workload Authorization Grant (WAG) {{WAG}}.
 WAG-00 defines a platform-issued bearer grant and leaves IdP issuance,
 proof of possession, and identifier registrations open
-({{Section 5 of WAG}} and its list of open issues). This section is
+({{Section 5 of WAG}} and its list of open issues); this section is
 this document's proposal for that composition. The token type, JWT
 type, and profile URIs below are provisional until WAG registers or
 adopts them ({{wag-gaps}}); the processing rules do not depend on their
 final spelling.
+
+In this realization, the Agent Principal is the subject of a WAG issued
+by the IdP and redeemed at the RAS. It parallels {{delegated-flow}}.
+The same resolution inputs, Identity Binding, client authorization,
+grant protection, access-token protection, and resource processing
+apply, with the differences stated here; where this section is silent,
+{{delegated-flow}} applies with the WAG in place of the ID-JAG.
 
 ## Differences from Delegated Access {#wag-differences}
 

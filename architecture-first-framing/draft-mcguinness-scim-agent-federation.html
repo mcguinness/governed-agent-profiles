@@ -1,0 +1,3464 @@
+<!DOCTYPE html>
+<html lang="en" class="Internet-Draft">
+<head>
+<meta charset="utf-8">
+<meta content="Common,Latin" name="scripts">
+<meta content="initial-scale=1.0" name="viewport">
+<title>SCIM Profile for Agent Federation Management</title>
+<meta content="Karl McGuinness" name="author">
+<meta content="
+       This document profiles the System for Cross-domain Identity Management
+(SCIM) for platform-to-identity-provider management of Agent Principals,
+Identity Bindings, and Client Associations. It extends the SCIM Agent
+resource with the principal's issuer-qualified identity and defines
+resources for identity and client-use relationships. A dedicated-client
+binding administers both decisions together; shared-client permissions
+use separate Client Associations. Both reference OAuthClient resources
+from the generic SCIM client-management profile. Shared clients use
+independent workload bindings to distinguish the agents they exercise. 
+       The profile reuses SCIM operations, discovery, and conditional updates.
+It defines how approved management changes affect new grant issuance; it
+does not establish credential-authority trust, grant user delegation, or
+revoke previously issued downstream authorization. 
+    " name="description">
+<meta content="xml2rfc 3.34.1" name="generator">
+<meta content="SCIM" name="keyword">
+<meta content="agent provisioning" name="keyword">
+<meta content="workload federation" name="keyword">
+<meta content="draft-mcguinness-scim-agent-federation-latest" name="ietf.draft">
+<!-- Generator version information:
+  xml2rfc 3.34.1
+    Python 3.14.7
+    ConfigArgParse 1.7.7
+    google-i18n-address 3.1.1
+    intervaltree 3.2.1
+    Jinja2 3.1.6
+    lxml 6.1.1
+    natsort 8.4.0
+    platformdirs 4.11.10
+    pycountry 24.6.1
+    PyYAML 6.0.3
+    requests 2.33.1
+    wcwidth 0.8.4
+-->
+<link href="draft-mcguinness-scim-agent-federation.xml" rel="alternate" type="application/rfc+xml">
+<link href="#copyright" rel="license">
+<style type="text/css">@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Lora SemiBold'), local('Lora-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-semibold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-greek.woff2') format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-greek.woff2') format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  color-scheme: light dark;
+  --background-color: #fff;
+  --text-color: #222;
+  --title-color: #191919;
+  --link-color: #2a6496;
+  --highlight-color: #f9f9f9;
+  --line-color: #eee;
+  --pilcrow-weak: #ddd;
+  --pilcrow-strong: #bbb;
+  --small-font-size: 14.5px;
+  --font-mono: 'Oxygen Mono', monospace;
+  --font-title: "Sofia Sans Semi Condensed", sans-serif;
+  scrollbar-color: #bbb #eee;
+}
+body {
+  max-width: 600px;
+  margin: 75px auto;
+  padding: 0 5px;
+  color: var(--text-color);
+  background-color: var(--background-color);
+  font: 16px/22px "Lora", serif;
+  scroll-behavior: smooth;
+}
+
+.ears {
+  display: none;
+}
+
+/* headings */
+section {
+  clear: both;
+}
+.section-number {
+  padding-right: 0.5em;
+}
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-title);
+  font-weight: 680;
+  margin: 0.8em 0 0.3em;
+  font-size-adjust: 0.5;
+  color: var(--title-color);
+}
+h1 {
+  &#title {
+    font-size: 32px;
+    line-height: 40px;
+    clear: both;
+    margin: 1.5em 0 0.2em;
+  }
+  &#rfcnum {
+    margin: 1.5em 0 0.2em;
+    & + h1#title {
+      margin: 0.2em 0;
+    }
+  }
+}
+
+h1, h2, h3 {
+  font-size: 22px;
+  line-height: 27px;
+}
+h4, h5, h6 {
+  font-size: 20px;
+  line-height: 24px;
+}
+
+/* general structure */
+.author {
+  padding-bottom: 0.3em;
+  vertical-align: top;
+}
+#abstract+p {
+  font-size: 18px;
+  line-height: 24px;
+  & code, & samp, & tt {
+    font-size: 16px;
+    line-height: 0;
+  }
+}
+
+p {
+  padding: 0;
+  margin: 0.5em 0;
+  text-align: left;
+}
+div {
+  margin: 0;
+}
+.alignRight {
+  margin: 1em 0;
+  &.art-text {
+    background-color: var(--highlight-color);
+    border: 1px solid var(--line-color);
+    border-radius: 3px;
+    padding: 0.5em 1em 0;
+    margin-bottom: 0.5em;
+    & pre {
+      padding: 0;
+      width: auto;
+    }
+  }
+  & > *:first-child {
+    border: none;
+    margin: 0;
+    float: right;
+    clear: both;
+  }
+  & > *:nth-child(2) {
+    clear: both;
+    display: block;
+    border: none;
+  }
+}
+svg {
+  display: block;
+  /* font-family isn't space-separated, but =~ will have to do */
+  &[font-family~="monospace" i], & [font-family~="monospace" i] {
+    font-family: var(--font-mono);
+  }
+}
+.alignCenter {
+  margin: 1em 0;
+  &.art-text {
+    background-color: var(--highlight-color);
+    border: 1px solid var(--line-color);
+    border-radius: 3px;
+    padding: 0.5em 1em 0;
+    margin-bottom: 0.5em;
+    & pre {
+      padding: 0;
+      width: auto;
+    }
+  }
+  & > *:first-child {
+    border: none;
+    /* this isn't optimal, but it's an existence proof.  PrinceXML doesn't
+       support flexbox yet.
+    */
+    display: table;
+    margin: 0 auto;
+  }
+}
+
+/* lists */
+ol, ul {
+  padding: 0;
+  margin: 0 0 0.5em 2em;
+  & :is(ol, ul) {
+    margin-left: 1em;
+  }
+}
+li {
+  margin: 0 0 0.25em 0;
+}
+ul.empty, .ulEmpty {
+  list-style-type: none;
+  & li {
+    margin-top: 0.5em;
+  }
+}
+:is(ul, ol).compact, .ulCompact, .olCompact {
+  margin: 0 0 0 2em;
+  & li {
+    margin: 0;
+    & :first-child { margin-top: 0; }
+    & :last-child { margin-bottom: 0; }
+  }
+}
+
+/* definition lists */
+dl {
+  clear: left;
+  --indent: 3ch;
+  /* --indent: attr(indent ch); not supported in any browser, but we can dream */
+  &.olPercent {
+    --indent: 5ch;
+    & > dt {
+      min-width: calc(var(--indent) - 2ch);
+      float: none;
+    }
+  }
+
+  dl > dd > & {
+    margin-top: 0.5em;
+    margin-bottom: 0;
+  }
+
+  &:not(.dlNewline) > dt {
+    float: left;
+    margin-right: 2ch;
+    min-width: 8ch;
+  }
+  & > dd {
+    margin-bottom: .8em;
+    margin-left: var(--indent) !important; /* stupid element overrides */
+    min-height: 2ex;
+  }
+}
+:is(dl.compact, .dlCompact) > dd {
+  margin-bottom: 0;
+  & > :is(:first-child, .break:first-child + *) {
+    margin-top: 0;
+  }
+  & > :is(:last-child) {
+    margin-bottom: 0;
+  }
+}
+:is(dd, span).break {
+  display: none;
+}
+
+/* links */
+a {
+  text-decoration: none;
+  &[href] {
+    color: var(--link-color);
+    &:hover { text-decoration: underline; }
+    &.selfRef {
+      color: var(--text-color);
+      &:hover {
+        text-decoration: none;
+        background-color: var(--highlight-color);
+      }
+    }
+  }
+}
+.iref + a[href].internal {
+  color: var(--text-color);
+}
+a.xref:is(.cite, .auto), :is(#status-of-memo, #copyright) a {
+  white-space: nowrap;
+}
+
+/* Figures */
+tt, code, pre {
+  background-color: var(--highlight-color);
+  font: 14px/22px var(--font-mono);
+}
+tt, code {
+  /* changing the font for inline elements leads to different ascender
+     and descender heights; as we want to retain baseline alignment,
+     remove leading to avoid altering the final height of lines
+     note: this fails if these blocks take an entire line,
+     a different solution would be great */
+  line-height: 0;
+}
+:is(h1, h2, h3, h4, h5, h6) :is(tt, code) {
+  font-size: 84%;
+}
+pre {
+  border: 1px solid var(--line-color);
+  font-size: 13.5px;
+  line-height: 16px;
+  letter-spacing: -0.2px;
+  margin: 5px;
+  padding: 5px;
+}
+img {
+  max-width: 100%;
+}
+figure {
+  margin: 0.5em 0;
+  padding: 0;
+  & blockquote {
+    margin: 0.8em 0.4em 0.4em;
+  }
+}
+figcaption, caption {
+  font-style: italic;
+  margin: 0.5em 1.5em;
+  text-align: left;
+  caption-side: bottom;
+}
+@media screen {
+  /* Auto-collapse boilerplate. */
+  :is(#status-of-memo, #copyright) {
+    & p {
+      margin: -2px 0;
+      max-height: 0;
+      transition: max-height 2s ease, margin 0.5s ease 0.5s;
+      overflow: hidden;
+    }
+    &:hover p,
+    & h2:target ~ p {
+      margin: 0.5em 0;
+      max-height: 500px;
+      overflow: auto;
+    }
+  }
+  pre, svg {
+    display: inline-block;
+    /* In the horizontal direction, sometimes people make over-sized figures.
+       Scrollbars for those is therefore necessary: auto adds them as necessary..
+       In the vertical direction, the line-height can combine with the font
+       asender/descender height to produce scrollbars: hidden avoids that. */
+    overflow: auto hidden;
+  }
+  pre {
+    max-width: 100%;
+    width: calc(100% - 22px - 1em);
+  }
+  svg {
+    max-width: calc(100% - 22px - 1em);
+  }
+  figure pre {
+    display: block;
+    width: calc(100% - 25px);
+  }
+  :is(pre, svg) + .pilcrow {
+    display: inline-block;
+    vertical-align: text-bottom;
+    padding-bottom: 8px;
+  }
+}
+
+/* aside, blockquote */
+aside, blockquote {
+  margin-left: 0;
+  padding: 0 2em;
+  font-style: italic;
+}
+blockquote {
+  margin: 1em 0;
+  border-left: 2px var(--pilcrow-strong) solid;
+}
+cite {
+  display: block;
+  text-align: right;
+  font-style: italic;
+}
+
+/* tables */
+table {
+  width: auto;
+  max-width: 100%;
+  margin: 0 0 1em;
+  border-collapse: collapse;
+  &.right { margin-left: auto; }
+  &.center { margin-left: auto; margin-right: auto; }
+  &.left { margin-right: auto; }
+  & .text-left { text-align: left; }
+  & .text-center { text-align: center; }
+  & .text-right { text-align: right; }
+  & caption {
+    margin: 0;
+    padding: 3px 0 3px 1em;
+  }
+  & p { margin: 0; }
+}
+
+thead, tbody {
+  border: 1px solid var(--line-color);
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 5px 10px;
+}
+th {
+  background-color: var(--line-color);
+}
+:is(tr:nth-child(2n), thead+tbody > tr:nth-child(2n+1)) > td {
+  background-color: var(--background-color);
+}
+:is(tr:nth-child(2n+1), thead+tbody > tr:nth-child(2n)) > td {
+  background-color: var(--highlight-color);
+}
+
+/* pilcrow */
+a.pilcrow {
+  margin-left: 3px;
+  opacity: 0.2;
+  user-select: none;
+  &[href] {
+    color: var(--pilcrow-weak);
+    &:hover { text-decoration: none; }
+  }
+  @media not print {
+    :hover > &, &:focus {
+      opacity: 1;
+    }
+    &[href]:hover {
+      color: var(--pilcrow-strong);
+      background-color: transparent;
+    }
+  }
+  @media print {
+    display: none;
+  }
+}
+
+/* misc */
+hr {
+  border: 0;
+  border-top: 1px solid var(--line-color);
+}
+.bcp14 {
+  font-variant: small-caps;
+  font-weight: 600;
+  font-size: var(--small-font-size);
+}
+.role {
+  font-variant: all-small-caps;
+}
+sub, sup {
+  line-height: 1;
+  font-size: 80%;
+}
+
+/* info block */
+#identifiers {
+  margin: 0;
+  font-size: var(--small-font-size);
+  line-height: 18px;
+  --identifier-width: 15ch;
+  & dt {
+    width: var(--identifier-width);
+    min-width: var(--identifier-width);
+    clear: left;
+    float: left;
+    text-align: right;
+    margin-right: 1ch;
+  }
+  & dd {
+    margin: 0;
+    margin-left: calc(1em + var(--identifier-width)) !important;
+    min-width: 5em;
+  }
+  & .authors {
+    & .author {
+      display: inline-block;
+      margin-right: 1.5em;
+    }
+    & .org {
+      font-style: italic;
+    }
+  }
+}
+
+/* The prepared/rendered info at the very bottom of the page */
+.docInfo {
+  color: #999;
+  font-size: 0.9em;
+  font-style: italic;
+  margin-top: 2em;
+  & .prepared {
+    float: right;
+  }
+}
+
+/* table of contents */
+#toc {
+  padding: 0.75em 0 2em 0;
+  margin-bottom: 1em;
+
+  & nav {
+    & ul {
+      margin: 0 0.5em 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    & li {
+      line-height: 1.3em;
+      margin: 2px 0;
+      padding-left: 1.2em;
+      text-indent: -1.2em;
+    }
+  }
+  & a.xref {
+    white-space: normal;
+  }
+}
+
+.references {
+  & > dt {
+    text-align: right;
+    font-weight: bold;
+    min-width: 10ch;
+    margin-right: 1.5ch;
+    &:target::before {
+      content: "⇒";
+      margin: 0 10px 0 -25px;
+    }
+  }
+  & > dd {
+    margin-left: 12ch !important;
+    overflow: visible;
+    & .refInstance {
+      margin-bottom: 0.8em;
+    }
+    & .ascii {
+      margin-bottom: 0.25em;
+    }
+  }
+}
+
+#rfc\.index\.index + ul {
+  margin-left: 0;
+}
+
+/* authors */
+address.vcard {
+  font-style: normal;
+  max-width: 20em;
+  margin: 1em auto 1em 0;
+
+  & .nameRole {
+    font-weight: 700;
+    margin-left: 0;
+  }
+  & .label {
+    margin: 0.5em 0;
+  }
+  & .type {
+    display: none;
+  }
+  & .alternative-contact {
+    margin: 0.5em 0 0.25em 0;
+  }
+  & .non-ascii {
+    margin: 0 0 0 2em;
+  }
+  & div.left {
+    text-align: left;
+  }
+  & div.right {
+    text-align: right;
+  }
+}
+
+hr.addr {
+  border-top: 1px dashed;
+  margin: 0;
+  color: #ddd;
+  max-width: calc(100% - 16px);
+}
+@media (min-width: 500px) {
+  #authors-addresses {
+    & > section {
+      column-count: 2;
+      column-gap: 20px;
+    }
+    & > section > h2 {
+      column-span: all;
+    }
+    /* hack for break-inside: avoid-column */
+    & address {
+      display: inline-block;
+      break-inside: avoid-column;
+    }
+  }
+}
+
+/* Comments */
+.rfcEditorRemove {
+  & p:first-of-type {
+    font-style: italic;
+  }
+}
+.cref {
+  background-color: rgba(249, 232, 105, 0.3);
+  padding: 2px 4px;
+}
+.crefSource {
+  font-style: italic;
+}
+
+@media screen {
+  #toc {
+    & nav {
+      font-family: var(--font-title);
+      font-weight: 360;
+      & > ul { margin-bottom: 2em; }
+      & ul {
+        margin: 0 0 0 4px;
+        & :is(p, li) {
+          margin: 2px 0;
+        }
+      }
+    }
+    & a.toplink {
+      float: right;
+    }
+  }
+}
+@media not screen {
+  #toc a.toplink {
+    display: none;
+  }
+}
+
+
+/* TOC layout for smaller screens */
+@media screen and (max-width: 929px) {
+  #toc {
+    position: fixed;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    padding: 1px 0 0 0;
+    margin: 0;
+    border-bottom: 1px solid #ccc;
+    opacity: 0.6;
+    & h2 {
+      margin: 0;
+      padding: 2px 0 2px 6px;
+      padding-right: 1em;
+      font-size: 18px;
+      line-height: 24px;
+      min-width: 190px;
+      text-align: right;
+      background-color: #444;
+      color: white;
+      cursor: pointer;
+      &::before { /* css hamburger */
+        float: right;
+        position: relative;
+        width: 1em;
+        height: 1px;
+        left: -164px;
+        margin: 8px 0 0 0;
+        background: white none repeat scroll 0 0;
+        box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
+        content: "";
+      }
+    }
+    & nav {
+      display: none;
+      background-color: var(--background-color);
+      padding: 0.5em 1em 1em;
+      overflow: auto;
+      overscroll-behavior: contain;
+      height: calc(100vh - 48px);
+      border-left: 1px solid #ddd;
+    }
+    &.active {
+      opacity: 1;
+      & nav { display: block; }
+    }
+    /* Make the collapsed ToC header render white on gray also when it's a link */
+    & h2 a,
+    & h2 a:is(:link, :focus, :hover),
+    & a.toplink,
+    & a.toplink:hover {
+      color: white;
+      background-color: #444;
+      text-decoration: none;
+    }
+    & a.toplink {
+      margin: 2px 0.5em 0;
+    }
+  }
+}
+
+/* TOC layout for wide screens */
+@media screen and (min-width: 930px) {
+  body {
+    padding-right: 360px;
+    padding-right: calc(min(180px + 20%, 500px));
+  }
+  #toc {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    right: calc(50vw - 480px);
+    width: 312px;
+    margin: 0;
+    padding: 0;
+    z-index: 1;
+    & h2 {
+      margin: 0;
+      padding: 0.25em 1em 1em 0;
+    }
+    & nav {
+      display: block;
+      height: calc(90vh - 84px);
+      bottom: 0;
+      padding: 0.5em 0 2em;
+      overflow: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+    }
+    & a.toplink {
+      margin: 8px 0.5em 0;
+    }
+  }
+  img { /* future proofing */
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* pagination */
+@media print {
+  body {
+    width: 100%;
+  }
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+  #n-copyright-notice {
+    border-bottom: none;
+  }
+  #toc {
+    page-break-before: always;
+    border-top: none;
+    padding-top: 0;
+  }
+  #n-introduction {
+    page-break-before: always;
+  }
+  figure, pre, .vcard {
+    page-break-inside: avoid;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+  :is(h2, h3, h4, h5, h6)+*, dd {
+    page-break-before: avoid;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 10pt;
+  }
+  table {
+    border: 1px solid #ddd;
+  }
+  td {
+    border-top: 1px solid #ddd;
+  }
+}
+
+@page :first {
+  padding-top: 0;
+  @top-left {
+    content: normal;
+    border: none;
+  }
+  @top-center {
+    content: normal;
+    border: none;
+  }
+  @top-right {
+    content: normal;
+    border: none;
+  }
+}
+
+@page {
+  size: A4;
+  margin-bottom: 45mm;
+  padding-top: 20px;
+}
+
+/* Dark mode. */
+@media (prefers-color-scheme: dark) {
+:root {
+  --background-color: #121212;
+  --text-color: #f0f0f0;
+  --title-color: #fff;
+  --link-color: #4da4f0;
+  --highlight-color: #282828;
+  --line-color: #444;
+  --pilcrow-weak: #444;
+  --pilcrow-strong: #666;
+  scrollbar-color: #777 #333;
+}
+}
+
+/* SVG Trick: a prefix match works because only black and white are allowed */
+svg {
+  & :is([stroke="black"], [stroke^="#000"]) {
+    stroke: var(--text-color);
+  }
+  & :is([stroke="white"], [stroke^="#fff"]) {
+    stroke: var(--background-color);
+  }
+  & :is([fill="black"], [fill^="#000"], :not([fill])) {
+    fill: var(--text-color);
+  }
+  & :is([fill="white"], [fill^="#fff"]) {
+    fill: var(--background-color);
+  }
+}
+</style>
+
+</head>
+<body class="xml2rfc">
+<table class="ears">
+<thead><tr>
+<td class="left">Internet-Draft</td>
+<td class="center">SCIM Agent Federation</td>
+<td class="right">September 2026</td>
+</tr></thead>
+<tfoot><tr>
+<td class="left">McGuinness</td>
+<td class="center">Expires 29 March 2027</td>
+<td class="right">[Page]</td>
+</tr></tfoot>
+</table>
+<div id="external-metadata" class="document-information"></div>
+<div id="internal-metadata" class="document-information">
+<dl id="identifiers">
+<dt class="label-workgroup">Workgroup:</dt>
+<dd class="workgroup">System for Cross-domain Identity Management</dd>
+<dt class="label-internet-draft">Internet-Draft:</dt>
+<dd class="internet-draft">draft-mcguinness-scim-agent-federation-latest</dd>
+<dt class="label-published">Published:</dt>
+<dd class="published">
+<time datetime="2026-09-25" class="published">25 September 2026</time>
+    </dd>
+<dt class="label-intended-status">Intended Status:</dt>
+<dd class="intended-status">Standards Track</dd>
+<dt class="label-expires">Expires:</dt>
+<dd class="expires"><time datetime="2027-03-29">29 March 2027</time></dd>
+<dt class="label-authors">Author:</dt>
+<dd class="authors">
+<div class="author">
+      <div class="author-name">K. McGuinness</div>
+<div class="org">Independent</div>
+</div>
+</dd>
+</dl>
+</div>
+<h1 id="title">SCIM Profile for Agent Federation Management</h1>
+<section id="section-abstract">
+      <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
+<p id="section-abstract-1">This document profiles the System for Cross-domain Identity Management
+(SCIM) for platform-to-identity-provider management of Agent Principals,
+Identity Bindings, and Client Associations. It extends the SCIM Agent
+resource with the principal's issuer-qualified identity and defines
+resources for identity and client-use relationships. A dedicated-client
+binding administers both decisions together; shared-client permissions
+use separate Client Associations. Both reference OAuthClient resources
+from the generic SCIM client-management profile. Shared clients use
+independent workload bindings to distinguish the agents they exercise.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+<p id="section-abstract-2">The profile reuses SCIM operations, discovery, and conditional updates.
+It defines how approved management changes affect new grant issuance; it
+does not establish credential-authority trust, grant user delegation, or
+revoke previously issued downstream authorization.<a href="#section-abstract-2" class="pilcrow">¶</a></p>
+</section>
+<section class="note rfcEditorRemove" id="section-note.1">
+      <h2 id="name-about-this-document">
+<a href="#name-about-this-document" class="section-name selfRef">About This Document</a>
+      </h2>
+<p id="section-note.1-1">This note is to be removed before publishing as an RFC.<a href="#section-note.1-1" class="pilcrow">¶</a></p>
+<p id="section-note.1-2">
+        The latest revision of this draft can be found at <span><a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html</a></span>.
+        Status information for this document may be found at <span><a href="https://datatracker.ietf.org/doc/draft-mcguinness-scim-agent-federation/">https://datatracker.ietf.org/doc/draft-mcguinness-scim-agent-federation/</a></span>.<a href="#section-note.1-2" class="pilcrow">¶</a></p>
+<p id="section-note.1-3">
+        Discussion of this document takes place on the
+        System for Cross-domain Identity Management Working Group mailing list (<span><a href="mailto:scim@ietf.org">mailto:scim@ietf.org</a></span>),
+        which is archived at <span><a href="https://mailarchive.ietf.org/arch/browse/scim/">https://mailarchive.ietf.org/arch/browse/scim/</a></span>.
+        Subscribe at <span><a href="https://www.ietf.org/mailman/listinfo/scim/">https://www.ietf.org/mailman/listinfo/scim/</a></span>.<a href="#section-note.1-3" class="pilcrow">¶</a></p>
+<p id="section-note.1-4">Source for this draft and an issue tracker can be found at
+        <span><a href="https://github.com/mcguinness/governed-agent-profiles">https://github.com/mcguinness/governed-agent-profiles</a></span>.<a href="#section-note.1-4" class="pilcrow">¶</a></p>
+</section>
+<div id="status-of-memo">
+<section id="section-boilerplate.1">
+        <h2 id="name-status-of-this-memo">
+<a href="#name-status-of-this-memo" class="section-name selfRef">Status of This Memo</a>
+        </h2>
+<p id="section-boilerplate.1-1">
+        This Internet-Draft is submitted in full conformance with the
+        provisions of BCP 78 and BCP 79.<a href="#section-boilerplate.1-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-2">
+        Internet-Drafts are working documents of the Internet Engineering Task
+        Force (IETF). Note that other groups may also distribute working
+        documents as Internet-Drafts. The list of current Internet-Drafts is
+        at <span><a href="https://datatracker.ietf.org/drafts/current/">https://datatracker.ietf.org/drafts/current/</a></span>.<a href="#section-boilerplate.1-2" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-3">
+        Internet-Drafts are draft documents valid for a maximum of six months
+        and may be updated, replaced, or obsoleted by other documents at any
+        time. It is inappropriate to use Internet-Drafts as reference
+        material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-4">
+        This Internet-Draft will expire on 29 March 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="copyright">
+<section id="section-boilerplate.2">
+        <h2 id="name-copyright-notice">
+<a href="#name-copyright-notice" class="section-name selfRef">Copyright Notice</a>
+        </h2>
+<p id="section-boilerplate.2-1">
+            Copyright (c) 2026 IETF Trust and the persons identified as the
+            document authors. All rights reserved.<a href="#section-boilerplate.2-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.2-2">
+            This document is subject to BCP 78 and the IETF Trust's Legal
+            Provisions Relating to IETF Documents
+            (<span><a href="https://trustee.ietf.org/license-info">https://trustee.ietf.org/license-info</a></span>) in effect on the date of
+            publication of this document. Please review these documents
+            carefully, as they describe your rights and restrictions with
+            respect to this document. Code Components extracted from this
+            document must include Revised BSD License text as described in
+            Section 4.e of the Trust Legal Provisions and are provided without
+            warranty as described in the Revised BSD License.<a href="#section-boilerplate.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="toc">
+<section id="section-toc.1">
+        <a href="#" onclick="scroll(0,0)" class="toplink">▲</a><h2 id="name-table-of-contents">
+<a href="#name-table-of-contents" class="section-name selfRef">Table of Contents</a>
+        </h2>
+<nav class="toc"><ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1">
+            <p id="section-toc.1-1.1.1" class="keepWithNext"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.1">
+                <p id="section-toc.1-1.1.2.1.1" class="keepWithNext"><a href="#section-1.1" class="auto internal xref">1.1</a>.  <a href="#name-scope" class="internal xref">Scope</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
+            <p id="section-toc.1-1.2.1" class="keepWithNext"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-conventions-and-terminology" class="internal xref">Conventions and Terminology</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
+            <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-conformance-and-administrat" class="internal xref">Conformance and Administrative Trust</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-resources-and-schemas" class="internal xref">Resources and Schemas</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1">
+                <p id="section-toc.1-1.4.2.1.1"><a href="#section-4.1" class="auto internal xref">4.1</a>.  <a href="#name-common-attributes-and-refer" class="internal xref">Common Attributes and References</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2">
+                <p id="section-toc.1-1.4.2.2.1"><a href="#section-4.2" class="auto internal xref">4.2</a>.  <a href="#name-agent-federation-extension" class="internal xref">Agent Federation Extension</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.3">
+                <p id="section-toc.1-1.4.2.3.1"><a href="#section-4.3" class="auto internal xref">4.3</a>.  <a href="#name-identity-binding" class="internal xref">Identity Binding</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.3.2.1">
+                    <p id="section-toc.1-1.4.2.3.2.1.1"><a href="#section-4.3.1" class="auto internal xref">4.3.1</a>.  <a href="#name-credential-classes" class="internal xref">Credential Classes</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.3.2.2">
+                    <p id="section-toc.1-1.4.2.3.2.2.1"><a href="#section-4.3.2" class="auto internal xref">4.3.2</a>.  <a href="#name-binding-uniqueness-and-chan" class="internal xref">Binding Uniqueness and Changes</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.4">
+                <p id="section-toc.1-1.4.2.4.1"><a href="#section-4.4" class="auto internal xref">4.4</a>.  <a href="#name-client-association" class="internal xref">Client Association</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
+            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-scim-operations" class="internal xref">SCIM Operations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1">
+                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-creation-and-retry-recovery" class="internal xref">Creation and Retry Recovery</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2">
+                <p id="section-toc.1-1.5.2.2.1"><a href="#section-5.2" class="auto internal xref">5.2</a>.  <a href="#name-updates-and-concurrency" class="internal xref">Updates and Concurrency</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.3">
+                <p id="section-toc.1-1.5.2.3.1"><a href="#section-5.3" class="auto internal xref">5.3</a>.  <a href="#name-deletion" class="internal xref">Deletion</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.4">
+                <p id="section-toc.1-1.5.2.4.1"><a href="#section-5.4" class="auto internal xref">5.4</a>.  <a href="#name-query-and-reconciliation" class="internal xref">Query and Reconciliation</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.5">
+                <p id="section-toc.1-1.5.2.5.1"><a href="#section-5.5" class="auto internal xref">5.5</a>.  <a href="#name-discovery" class="internal xref">Discovery</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.6">
+                <p id="section-toc.1-1.5.2.6.1"><a href="#section-5.6" class="auto internal xref">5.6</a>.  <a href="#name-errors" class="internal xref">Errors</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
+            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-effect-on-grant-issuance" class="internal xref">Effect on Grant Issuance</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.1">
+                <p id="section-toc.1-1.7.2.1.1"><a href="#section-7.1" class="auto internal xref">7.1</a>.  <a href="#name-administrative-privilege-an" class="internal xref">Administrative Privilege and Confused Deputies</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.2">
+                <p id="section-toc.1-1.7.2.2.1"><a href="#section-7.2" class="auto internal xref">7.2</a>.  <a href="#name-independent-controls-and-st" class="internal xref">Independent Controls and Stale State</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-privacy-considerations" class="internal xref">Privacy Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
+            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.1">
+                <p id="section-toc.1-1.9.2.1.1"><a href="#section-9.1" class="auto internal xref">9.1</a>.  <a href="#name-agent-federation-extension-2" class="internal xref">Agent Federation Extension</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.2">
+                <p id="section-toc.1-1.9.2.2.1"><a href="#section-9.2" class="auto internal xref">9.2</a>.  <a href="#name-agent-identity-binding" class="internal xref">Agent Identity Binding</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.3">
+                <p id="section-toc.1-1.9.2.3.1"><a href="#section-9.3" class="auto internal xref">9.3</a>.  <a href="#name-agent-client-association" class="internal xref">Agent Client Association</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-references" class="internal xref">References</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.1">
+                <p id="section-toc.1-1.10.2.1.1"><a href="#section-10.1" class="auto internal xref">10.1</a>.  <a href="#name-normative-references" class="internal xref">Normative References</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.2">
+                <p id="section-toc.1-1.10.2.2.1"><a href="#section-10.2" class="auto internal xref">10.2</a>.  <a href="#name-informative-references" class="internal xref">Informative References</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
+            <p id="section-toc.1-1.11.1"><a href="#appendix-A" class="auto internal xref">Appendix A</a>.  <a href="#name-example-platform-onboarding" class="internal xref">Example: Platform Onboarding</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.1">
+                <p id="section-toc.1-1.11.2.1.1"><a href="#appendix-A.1" class="auto internal xref">A.1</a>.  <a href="#name-obtain-the-oauthclient-refe" class="internal xref">Obtain the OAuthClient Reference</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.2">
+                <p id="section-toc.1-1.11.2.2.1"><a href="#appendix-A.2" class="auto internal xref">A.2</a>.  <a href="#name-create-an-inactive-agent" class="internal xref">Create an Inactive Agent</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.3">
+                <p id="section-toc.1-1.11.2.3.1"><a href="#appendix-A.3" class="auto internal xref">A.3</a>.  <a href="#name-bind-the-workload-identity" class="internal xref">Bind the Workload Identity</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.4">
+                <p id="section-toc.1-1.11.2.4.1"><a href="#appendix-A.4" class="auto internal xref">A.4</a>.  <a href="#name-authorize-client-use" class="internal xref">Authorize Client Use</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.5">
+                <p id="section-toc.1-1.11.2.5.1"><a href="#appendix-A.5" class="auto internal xref">A.5</a>.  <a href="#name-enable-the-agent" class="internal xref">Enable the Agent</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.6">
+                <p id="section-toc.1-1.11.2.6.1"><a href="#appendix-A.6" class="auto internal xref">A.6</a>.  <a href="#name-recover-a-lost-creation-res" class="internal xref">Recover a Lost Creation Response</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.7">
+                <p id="section-toc.1-1.11.2.7.1"><a href="#appendix-A.7" class="auto internal xref">A.7</a>.  <a href="#name-disable-one-binding" class="internal xref">Disable One Binding</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.8">
+                <p id="section-toc.1-1.11.2.8.1"><a href="#appendix-A.8" class="auto internal xref">A.8</a>.  <a href="#name-rejection-and-boundary-exam" class="internal xref">Rejection and Boundary Examples</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
+            <p id="section-toc.1-1.12.1"><a href="#appendix-B" class="auto internal xref">Appendix B</a>.  <a href="#name-example-dedicated-client" class="internal xref">Example: Dedicated Client</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
+            <p id="section-toc.1-1.13.1"><a href="#appendix-C" class="auto internal xref">Appendix C</a>.  <a href="#name-schema-and-resourcetype-rep" class="internal xref">Schema and ResourceType Representations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.1">
+                <p id="section-toc.1-1.13.2.1.1"><a href="#appendix-C.1" class="auto internal xref">C.1</a>.  <a href="#name-agentfederation-schema" class="internal xref">AgentFederation Schema</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.2">
+                <p id="section-toc.1-1.13.2.2.1"><a href="#appendix-C.2" class="auto internal xref">C.2</a>.  <a href="#name-agentidentitybinding-schema" class="internal xref">AgentIdentityBinding Schema</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.3">
+                <p id="section-toc.1-1.13.2.3.1"><a href="#appendix-C.3" class="auto internal xref">C.3</a>.  <a href="#name-agentclientassociation-sche" class="internal xref">AgentClientAssociation Schema</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.4">
+                <p id="section-toc.1-1.13.2.4.1"><a href="#appendix-C.4" class="auto internal xref">C.4</a>.  <a href="#name-resource-types" class="internal xref">Resource Types</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14">
+            <p id="section-toc.1-1.14.1"><a href="#appendix-D" class="auto internal xref">Appendix D</a>.  <a href="#name-document-history" class="internal xref">Document History</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15">
+            <p id="section-toc.1-1.15.1"><a href="#appendix-E" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.16">
+            <p id="section-toc.1-1.16.1"><a href="#appendix-F" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
+</li>
+        </ul>
+</nav>
+</section>
+</div>
+<div id="introduction">
+<section id="section-1">
+      <h2 id="name-introduction">
+<a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
+      </h2>
+<p id="section-1-1">Governed Agent Federation <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> separates the identity of an
+Agent Principal from its resolution inputs, permitted OAuth clients,
+user delegations, and resource permissions. Its token protocol assumes
+that the corresponding administrative relationships already exist. This
+document manages Agent Principals, Identity Bindings, and Client
+Associations at the IdP. OAuth client identity and configuration are
+managed separately through <span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span>.<a href="#section-1-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-1-2">
+<pre>
+ Dedicated client                     Shared client
+
+ OAuthClient                          External workload identity
+      |                                         |
+ Identity Binding                     Identity Binding
+      |                                         |
+      v                                         v
+    Agent                                     Agent
+
+ Dedicated binding: identity + client-use permission
+ Shared client: OAuthClient -- Client Association -&gt; Identity Binding
+</pre><a href="#section-1-2" class="pilcrow">¶</a>
+</div>
+<p id="section-1-3">A platform can administer only the identities and permissions delegated
+to its connector. The IdP remains the authority for the Agent Principal
+and the decision to accept each relationship. Approval can be
+established by administrative policy before provisioning; this profile
+defines no interactive approval workflow.<a href="#section-1-3" class="pilcrow">¶</a></p>
+<p id="section-1-4">The management resources correspond to existing federation concepts:<a href="#section-1-4" class="pilcrow">¶</a></p>
+<table class="center" id="table-1">
+        <caption><a href="#table-1" class="selfRef">Table 1</a></caption>
+<thead>
+          <tr>
+            <th class="text-left" rowspan="1" colspan="1">Resource</th>
+            <th class="text-left" rowspan="1" colspan="1">Question it answers</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">OAuthClient (<span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span>)</td>
+            <td class="text-left" rowspan="1" colspan="1">Which OAuth client is admitted at this IdP?</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Agent</td>
+            <td class="text-left" rowspan="1" colspan="1">Which stable principal does the enterprise govern?</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">AgentIdentityBinding</td>
+            <td class="text-left" rowspan="1" colspan="1">Which validated client or workload identity resolves to that principal?</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">AgentClientAssociation</td>
+            <td class="text-left" rowspan="1" colspan="1">May this OAuth client use this binding for delegated ID-JAG issuance?</td>
+          </tr>
+        </tbody>
+      </table>
+<p id="section-1-6">Successful provisioning does not authorize user delegation or resource
+access. Token processing continues to apply every applicable check in
+<span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>. The IdP-to-resource-domain provisioning and lifecycle
+composition in <span>[<a href="#LIFECYCLE" class="cite xref">LIFECYCLE</a>]</span> is separate from this platform-to-IdP interface.<a href="#section-1-6" class="pilcrow">¶</a></p>
+<p id="section-1-7">OAuthClient can represent a locally registered client or local admission
+of a CIMD client. This profile references that resource; it does not
+copy registration metadata, keys, or CIMD documents into Agent
+resources. An OAuthClient can participate in multiple Client
+Associations. An Agent can have multiple Identity Bindings. Neither
+relationship makes the OAuth client and Agent Principal the same
+identity.<a href="#section-1-7" class="pilcrow">¶</a></p>
+<div id="scope">
+<section id="section-1.1">
+        <h3 id="name-scope">
+<a href="#section-1.1" class="section-number selfRef">1.1. </a><a href="#name-scope" class="section-name selfRef">Scope</a>
+        </h3>
+<p id="section-1.1-1">This profile defines explicit bindings and associations for delegated
+ID-JAG issuance. It supports the federation draft's dedicated-client,
+SPIFFE, Client Attestation, and existing platform JWT resolution inputs.
+Implementations need only support the credential classes they accept
+under <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>.<a href="#section-1.1-1" class="pilcrow">¶</a></p>
+<p id="section-1.1-2">The following remain outside this profile:<a href="#section-1.1-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-1.1-3.1">
+            <p id="section-1.1-3.1.1">Establishing trust in a new credential authority. Trust remains a
+prerequisite, not an effect of a binding write. OAuth client registration
+is defined separately by <span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span>.<a href="#section-1.1-3.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.1-3.2">
+            <p id="section-1.1-3.2.1">User delegation, resource permissions, and cross-domain user linking.<a href="#section-1.1-3.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.1-3.3">
+            <p id="section-1.1-3.3.1">Runtime enrollment, credential issuance, key custody, and instance
+continuity.<a href="#section-1.1-3.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.1-3.4">
+            <p id="section-1.1-3.4.1">Relationship-change events and revocation of outstanding authorization.<a href="#section-1.1-3.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.1-3.5">
+            <p id="section-1.1-3.5.1">A portable policy language, automatic principal merging, and a WAG
+wire composition.<a href="#section-1.1-3.5.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+</section>
+</div>
+<div id="conventions-and-terminology">
+<section id="section-2">
+      <h2 id="name-conventions-and-terminology">
+<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-conventions-and-terminology" class="section-name selfRef">Conventions and Terminology</a>
+      </h2>
+<p id="section-2-1">The key words "<span class="bcp14">MUST</span>", "<span class="bcp14">MUST NOT</span>", "<span class="bcp14">REQUIRED</span>", "<span class="bcp14">SHALL</span>", "<span class="bcp14">SHALL NOT</span>", "<span class="bcp14">SHOULD</span>", "<span class="bcp14">SHOULD NOT</span>", "<span class="bcp14">RECOMMENDED</span>", "<span class="bcp14">NOT RECOMMENDED</span>",
+"<span class="bcp14">MAY</span>", and "<span class="bcp14">OPTIONAL</span>" in this document are to be interpreted as
+described in <span>[<a href="#BCP14" class="cite xref">BCP14</a>]</span> (<a href="#RFC2119" class="auto internal xref">RFC2119</a>) (<a href="#RFC8174" class="auto internal xref">RFC8174</a>) when, and only when, they
+appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶</a></p>
+<p id="section-2-2">SCIM attributes, resource types, and operations follow <span>[<a href="#RFC7643" class="cite xref">RFC7643</a>]</span> and
+<span>[<a href="#RFC7644" class="cite xref">RFC7644</a>]</span>. Agent Principal, Identity Binding, Client Association,
+credential class, and Governance Tenant follow <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>.<a href="#section-2-2" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-2-3">
+        <dt id="section-2-3.1">Provisioning Client:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.2">
+          <p id="section-2-3.2.1">A purpose-built platform SCIM connector for the resource types in this
+profile. Generic User/Group connectors do not imply support for these
+endpoints. It is not necessarily
+an OAuth client permitted to exercise an Agent Principal.<a href="#section-2-3.2.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.3">Service Provider:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.4">
+          <p id="section-2-3.4.1">The IdP's SCIM service, including the administration of configuration
+used by its grant issuer. <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> calls this role the IdP
+Service Provider; the resource-domain SCIM service that accepts IdP
+provisioning is the Receiver of <span>[<a href="#LIFECYCLE" class="cite xref">LIFECYCLE</a>]</span>, not a Service Provider
+in this document's sense.<a href="#section-2-3.4.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.5">Provisioning Domain:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.6">
+          <p id="section-2-3.6.1">The scope of one Provisioning Client's management authority within
+one Governance Tenant. The Service Provider establishes this scope
+from authenticated administrative context. Credential rotation need
+not change the Provisioning Domain.<a href="#section-2-3.6.1" class="pilcrow">¶</a></p>
+</dd>
+      <dd class="break"></dd>
+</dl>
+<p id="section-2-4">The federation identity is the pair (IdP issuer, Agent Principal
+subject). SCIM resource identifiers and connector correlation
+identifiers serve management purposes and do not replace that pair.<a href="#section-2-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="trust">
+<section id="section-3">
+      <h2 id="name-conformance-and-administrat">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-conformance-and-administrat" class="section-name selfRef">Conformance and Administrative Trust</a>
+      </h2>
+<p id="section-3-1">A conforming Service Provider supports the resources in <a href="#resources" class="auto internal xref">Section 4</a>,
+the operations in <a href="#operations" class="auto internal xref">Section 5</a>, and their effects in <a href="#issuance" class="auto internal xref">Section 6</a>. A
+conforming Provisioning Client uses those representations and operations
+within its administrative authorization.<a href="#section-3-1" class="pilcrow">¶</a></p>
+<p id="section-3-2">Before provisioning, administrators establish:<a href="#section-3-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-3-3.1">
+          <p id="section-3-3.1.1">The authenticated connector, Governance Tenant, and Provisioning Domain.<a href="#section-3-3.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-3-3.2">
+          <p id="section-3-3.2.1">The credential authorities, validation profiles, and source-identity
+ranges the connector may use in Identity Bindings.<a href="#section-3-3.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-3-3.3">
+          <p id="section-3-3.3.1">The IdP OAuthClient resources the connector may reference in bindings
+and associations, and any separate client-management permissions under
+<span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span>. Referencing an existing client does not require permission
+to create it or change its metadata. Client-management permission does
+not imply binding or association permission.<a href="#section-3-3.3.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-3-4">Authentication and authorization of SCIM requests follow
+<span><a href="https://rfc-editor.org/rfc/rfc7644#section-2" class="relref">Section 2</a> of [<a href="#RFC7644" class="cite xref">RFC7644</a>]</span>. This profile defines no new management-token
+format or OAuth scope vocabulary.<a href="#section-3-4" class="pilcrow">¶</a></p>
+<p id="section-3-5">The Service Provider <span class="bcp14">MUST</span> authorize each operation and security-relevant
+attribute against this administrative context. In particular:<a href="#section-3-5" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-3-6.1">
+          <p id="section-3-6.1.1">Authority to create or describe an Agent <span class="bcp14">MUST NOT</span> imply authority to
+establish its bindings or client permissions. A dedicated-client
+binding write requires both binding and client-use authority.<a href="#section-3-6.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-3-6.2">
+          <p id="section-3-6.2.1">Binding administration <span class="bcp14">MUST</span> be restricted to approved credential
+classes, authorities, source identities, and destination agents.<a href="#section-3-6.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-3-6.3">
+          <p id="section-3-6.3.1">Association administration <span class="bcp14">MUST</span> be restricted to approved OAuth
+clients and bindings for delegated ID-JAG issuance.<a href="#section-3-6.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-3-6.4">
+          <p id="section-3-6.4.1">Permission to disable a resource <span class="bcp14">MUST NOT</span> imply permission to enable
+it. An active resource is an approved relationship, not a pending request.<a href="#section-3-6.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-3-6.5">
+          <p id="section-3-6.5.1">Resource references <span class="bcp14">MUST</span> resolve within the authorized Governance
+Tenant. A request attribute, URI, or discovered key <span class="bcp14">MUST NOT</span> expand
+the caller's administrative scope.<a href="#section-3-6.5.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-3-7">These permissions can be delegated together, but each decision remains
+independent. Policy may authorize an operation automatically; no
+per-resource human approval is required by this profile. Rejection uses
+SCIM errors rather than a new approval state.<a href="#section-3-7" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="resources">
+<section id="section-4">
+      <h2 id="name-resources-and-schemas">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-resources-and-schemas" class="section-name selfRef">Resources and Schemas</a>
+      </h2>
+<p id="section-4-1">The SCIM service exposes the following resource types. This document
+defines only the Agent extension and the two relationship schemas;
+OAuthClient and the core Agent schema come from their respective
+profiles.<a href="#section-4-1" class="pilcrow">¶</a></p>
+<table class="center" id="table-2">
+        <caption><a href="#table-2" class="selfRef">Table 2</a></caption>
+<thead>
+          <tr>
+            <th class="text-left" rowspan="1" colspan="1">Resource type</th>
+            <th class="text-left" rowspan="1" colspan="1">Endpoint</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">OAuthClient (defined in <span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span>)</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>/OAuthClients</code>
+</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Agent</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>/Agents</code>
+</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">AgentIdentityBinding</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>/AgentIdentityBindings</code>
+</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">AgentClientAssociation</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>/AgentClientAssociations</code>
+</td>
+          </tr>
+        </tbody>
+      </table>
+<p id="section-4-3">The Service Provider <span class="bcp14">MUST</span> expose referenced OAuth clients under
+<span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span> in the same authorized SCIM service. Existing registrations
+can be represented without changing their OAuth client identifiers or keys.
+Connectors can discover an authorized resource by its issuer and <code>clientId</code>
+and then reference its SCIM <code>id</code>. They need not create a client for each
+Agent. Client creation and CIMD admission remain separately authorized.<a href="#section-4-3" class="pilcrow">¶</a></p>
+<p id="section-4-4">These are management representations, not requirements on an IdP's
+internal database. An existing principal <span class="bcp14">MAY</span> be exposed as the Agent
+resource without creating a second authorization principal. Establishing
+that representation for an existing principal requires explicit local
+administrative authorization; the API provides no automatic attachment
+based on names or credentials.<a href="#section-4-4" class="pilcrow">¶</a></p>
+<div id="common">
+<section id="section-4.1">
+        <h3 id="name-common-attributes-and-refer">
+<a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-common-attributes-and-refer" class="section-name selfRef">Common Attributes and References</a>
+        </h3>
+<p id="section-4.1-1">Agent, AgentIdentityBinding, and AgentClientAssociation use SCIM
+<code>schemas</code>, <code>id</code>, <code>externalId</code>, and <code>meta</code>. The rules below apply to
+those three types; OAuthClient attribute and operation rules remain
+those of <span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span>.<a href="#section-4.1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.1-2.1">
+            <p id="section-4.1-2.1.1"><strong>Common conventions:</strong> <code>externalId</code> correlation, identifiers,
+versions, conditional writes, explicit <code>active</code> state, incremental
+reads, and durable restriction follow the common provisioning
+conventions of <span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span>. Here <code>externalId</code> identifies the
+connector's record, not a principal, and remains readWrite.<a href="#section-4.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.1-2.2">
+            <p id="section-4.1-2.2.1"><strong>Stable identity:</strong> SCIM <code>id</code> and the federation subject remain
+server-assigned and non-reassignable. Changing <code>externalId</code> cannot
+redirect a reference or change the Agent Principal. Version changes
+cover all modifications visible through this interface.<a href="#section-4.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.1-2.3">
+            <p id="section-4.1-2.3.1"><strong>References:</strong> A relationship reference is a single-valued complex
+attribute. Its <span class="bcp14">REQUIRED</span> string <code>value</code> is the target resource's SCIM
+<code>id</code>; its <span class="bcp14">OPTIONAL</span> read-only <code>$ref</code> is a reference to that resource,
+with <code>referenceTypes</code> set to the named target type. The Service
+Provider resolves <code>value</code> locally and <span class="bcp14">MUST NOT</span> fetch a caller-supplied
+<code>$ref</code> to establish the relationship. An <span class="bcp14">OPTIONAL</span> read-only string
+<code>display</code> can supply a human-readable label; it is never a lookup key.<a href="#section-4.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-4.1-3">The schema tables below and JSON definitions in <a href="#schema-json" class="auto internal xref">Appendix C</a> are
+normative. Unless specified otherwise, attributes are required,
+immutable, single-valued, returned by default, and have uniqueness
+<code>none</code>. String values are case-exact. Exceptions appear with each table.
+<code>credentialClass</code> is a case-exact enumeration: <code>/Schemas</code> <span class="bcp14">MUST</span> publish
+accepted values from <a href="#classes" class="auto internal xref">Section 4.3.1</a> as <code>canonicalValues</code>. Values outside
+the advertised set are rejected with <code>invalidValue</code>. The common
+attributes retain SCIM's characteristics except for the <code>externalId</code>
+uniqueness rule in those conventions. Attribute-name processing remains that of SCIM,
+independently of case-exact identity values.<a href="#section-4.1-3" class="pilcrow">¶</a></p>
+<p id="section-4.1-4">Reference sub-attributes have <code>value</code> mutability <code>immutable</code>; <code>$ref</code> and
+<code>display</code> have mutability <code>readOnly</code>. They use uniqueness <code>none</code> and
+returned <code>default</code>. <code>display</code> has <code>caseExact: false</code>. A reference's
+requiredness is given in its resource table. Identity values <span class="bcp14">MUST NOT</span> be
+normalized, case-folded, or matched by prefix.<a href="#section-4.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="agent-schema">
+<section id="section-4.2">
+        <h3 id="name-agent-federation-extension">
+<a href="#section-4.2" class="section-number selfRef">4.2. </a><a href="#name-agent-federation-extension" class="section-name selfRef">Agent Federation Extension</a>
+        </h3>
+<p id="section-4.2-1">The Agent resource uses <span>[<a href="#SCIM-AGENT" class="cite xref">SCIM-AGENT</a>]</span>, including its <code>agentUserName</code>,
+<code>displayName</code>, and <code>active</code> attributes. It adds the required extension:<a href="#section-4.2-1" class="pilcrow">¶</a></p>
+<p id="section-4.2-2"><code>urn:ietf:params:scim:schemas:extension:agent-federation:2.0:Agent</code><a href="#section-4.2-2" class="pilcrow">¶</a></p>
+<p id="section-4.2-3">The extension name is <code>AgentFederation</code>. Both attributes are read-only
+strings. <code>subject</code> is required; <code>issuer</code> is optional.<a href="#section-4.2-3" class="pilcrow">¶</a></p>
+<table class="center" id="table-3">
+          <caption><a href="#table-3" class="selfRef">Table 3</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Attribute</th>
+              <th class="text-left" rowspan="1" colspan="1">Meaning</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>issuer</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Optional explicit copy of the IdP issuer from the authenticated Provisioning Domain</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>subject</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Agent Principal identifier within that issuer's namespace</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-4.2-5">The Service Provider assigns <code>subject</code> when creating the Agent. Its
+issuer is fixed by the SCIM service's authenticated Provisioning Domain;
+if returned explicitly, <code>issuer</code> <span class="bcp14">MUST</span> equal that configured value. The
+pair remains the federation identity even when <code>issuer</code> is omitted. The
+ResourceType declares this extension <code>required: true</code>. Creation requests
+<span class="bcp14">MUST</span> include its URI in <code>schemas</code> and an extension object; that object
+<span class="bcp14">MAY</span> be empty because its values are server-assigned. The server
+populates <code>subject</code> in the response. Supplied read-only values follow
+SCIM processing and <span class="bcp14">MUST NOT</span> select an existing principal. The subject
+<span class="bcp14">MUST</span> be unique and non-reassignable across all Governance Tenants
+sharing that issuer, as required by <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>. Changing the
+administrative authority represented by the principal is not an update
+of these attributes.<a href="#section-4.2-5" class="pilcrow">¶</a></p>
+<p id="section-4.2-6">For this profile, <code>active: false</code> prevents new grants involving the
+principal. <code>active: true</code> permits evaluation of the other required
+relationships; it does not bypass IdP policy, suspension, or delegation
+checks. The Service Provider <span class="bcp14">MUST</span> authorize changes to <code>active</code>
+separately from descriptive edits. Renaming the Agent, changing its
+owners, or changing its <code>externalId</code> in an upstream platform does not
+change the federation identity or grant permissions.<a href="#section-4.2-6" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="binding-schema">
+<section id="section-4.3">
+        <h3 id="name-identity-binding">
+<a href="#section-4.3" class="section-number selfRef">4.3. </a><a href="#name-identity-binding" class="section-name selfRef">Identity Binding</a>
+        </h3>
+<p id="section-4.3-1">An <code>AgentIdentityBinding</code> links one resolution identity to one Agent.
+For dedicated-client resolution it references an OAuthClient. For
+workload resolution it names an external identity under an approved
+credential authority. The credential class determines which
+representation applies. Its schema URI is:<a href="#section-4.3-1" class="pilcrow">¶</a></p>
+<p id="section-4.3-2"><code>urn:ietf:params:scim:schemas:core:2.0:AgentIdentityBinding</code><a href="#section-4.3-2" class="pilcrow">¶</a></p>
+<table class="center" id="table-4">
+          <caption><a href="#table-4" class="selfRef">Table 4</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Attribute</th>
+              <th class="text-left" rowspan="1" colspan="1">Type</th>
+              <th class="text-left" rowspan="1" colspan="1">Meaning</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>agent</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">complex</td>
+              <td class="text-left" rowspan="1" colspan="1">Reference to the Agent whose principal is resolved</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>credentialClass</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">string</td>
+              <td class="text-left" rowspan="1" colspan="1">Input class from <a href="#classes" class="auto internal xref">Section 4.3.1</a>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>client</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">complex</td>
+              <td class="text-left" rowspan="1" colspan="1">OAuthClient reference; required only for <code>dedicated-client</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>sourceAuthority</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">string</td>
+              <td class="text-left" rowspan="1" colspan="1">Approved authority; required for all other classes</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>sourceSubject</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">string</td>
+              <td class="text-left" rowspan="1" colspan="1">Exact external identity; required for all other classes</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>selectors</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">complex</td>
+              <td class="text-left" rowspan="1" colspan="1">Additional platform-JWT claim constraints</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>active</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">boolean</td>
+              <td class="text-left" rowspan="1" colspan="1">Whether the binding may be used</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-4.3-4"><code>selectors</code> is optional and multi-valued. <code>active</code> is required and
+readWrite. Creation and PUT <span class="bcp14">MUST</span> supply an explicit boolean; removal is
+invalid. Only true permits use, subject to the remaining checks. The
+reference target type of <code>agent</code> is Agent; that of <code>client</code> is
+OAuthClient. <code>client</code>, <code>sourceAuthority</code>, and <code>sourceSubject</code>
+have schema characteristic <code>required: false</code> with these conditional
+requirements:<a href="#section-4.3-4" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.3-5.1">
+            <p id="section-4.3-5.1.1">For <code>dedicated-client</code>, <code>client</code> <span class="bcp14">MUST</span> be present and <code>sourceAuthority</code>,
+<code>sourceSubject</code>, and <code>selectors</code> <span class="bcp14">MUST</span> be absent. The IdP resolves the
+authenticated client to the referenced OAuthClient using its configured
+authorization-server issuer and exact <code>client_id</code>.<a href="#section-4.3-5.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.3-5.2">
+            <p id="section-4.3-5.2.1">For all other classes, <code>sourceAuthority</code> and <code>sourceSubject</code> <span class="bcp14">MUST</span> be
+present and <code>client</code> <span class="bcp14">MUST</span> be absent. The external identity is validated
+and matched under <a href="#classes" class="auto internal xref">Section 4.3.1</a>; an OAuthClient reference cannot substitute
+for that evidence.<a href="#section-4.3-5.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-4.3-6">Every referenced OAuthClient's <code>authorizationServer</code> <span class="bcp14">MUST</span> equal the
+governing IdP issuer from the Provisioning Domain, and be authorized in
+the same Governance Tenant. A CIMD URL is taken from the referenced
+client's <code>clientId</code>; its document origin is not the IdP issuer. Client
+metadata and key changes follow <span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span> and do not change this
+binding.<a href="#section-4.3-6" class="pilcrow">¶</a></p>
+<p id="section-4.3-7">A dedicated-client binding explicitly administers identity resolution
+and Client Association together: <code>client</code> identifies the resolution
+source; the active binding permits that client to use it for delegated
+ID-JAG issuance. Creation and activation <span class="bcp14">MUST</span> be authorized for both
+decisions. <code>active</code> controls both. This is the combined administration
+permitted by <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>, not permission inferred from client
+authentication.
+No separate AgentClientAssociation is used for this class. Withdrawing
+client use deactivates the binding without changing the Agent Principal.
+Other input classes keep identity resolution and client-use permission
+in separate resources.<a href="#section-4.3-7" class="pilcrow">¶</a></p>
+<p id="section-4.3-8">Each <code>selectors</code> element has <span class="bcp14">REQUIRED</span> single-valued string attributes
+<code>path</code> and <code>value</code>, both immutable, case-exact, returned by default, and
+with uniqueness <code>none</code>. <code>path</code> is a JSON Pointer string under
+<span><a href="https://rfc-editor.org/rfc/rfc6901#section-5" class="relref">Section 5</a> of [<a href="#RFC6901" class="cite xref">RFC6901</a>]</span>. <code>value</code> is the expected claim value.
+Duplicate paths <span class="bcp14">MUST</span> be rejected. Selector order has no significance;
+all selectors participate in the match defined by <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>.
+Selectors are permitted only for <code>platform-jwt</code>; they cannot replace
+<code>sourceAuthority</code> or <code>sourceSubject</code>. Adding, removing, or changing
+selectors after creation requires a new binding, including when the
+original binding had no selectors. This narrows SCIM's permission to
+initially populate an unassigned immutable attribute.<a href="#section-4.3-8" class="pilcrow">¶</a></p>
+<div id="classes">
+<section id="section-4.3.1">
+          <h4 id="name-credential-classes">
+<a href="#section-4.3.1" class="section-number selfRef">4.3.1. </a><a href="#name-credential-classes" class="section-name selfRef">Credential Classes</a>
+          </h4>
+<p id="section-4.3.1-1">These names identify management input classes, not OAuth token types or
+new credential formats. Each class uses its validation and presentation
+rules from <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>. The following classes use external identity
+fields:<a href="#section-4.3.1-1" class="pilcrow">¶</a></p>
+<table class="center" id="table-5">
+            <caption><a href="#table-5" class="selfRef">Table 5</a></caption>
+<thead>
+              <tr>
+                <th class="text-left" rowspan="1" colspan="1">Credential class</th>
+                <th class="text-left" rowspan="1" colspan="1">Source authority</th>
+                <th class="text-left" rowspan="1" colspan="1">Source subject</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">
+                  <code>spiffe-jwt</code>
+</td>
+                <td class="text-left" rowspan="1" colspan="1">Approved SPIFFE trust domain name</td>
+                <td class="text-left" rowspan="1" colspan="1">Complete SPIFFE ID from the JWT-SVID <code>sub</code>
+</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">
+                  <code>spiffe-wit</code>
+</td>
+                <td class="text-left" rowspan="1" colspan="1">Approved SPIFFE trust domain name</td>
+                <td class="text-left" rowspan="1" colspan="1">Complete SPIFFE ID from the WIT-SVID <code>sub</code>
+</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">
+                  <code>spiffe-x509</code>
+</td>
+                <td class="text-left" rowspan="1" colspan="1">Approved SPIFFE trust domain name</td>
+                <td class="text-left" rowspan="1" colspan="1">Complete SPIFFE ID from the certificate URI Subject Alternative Name</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">
+                  <code>client-attestation</code>
+</td>
+                <td class="text-left" rowspan="1" colspan="1">Identifier of the trusted attester in IdP configuration</td>
+                <td class="text-left" rowspan="1" colspan="1">Validated Client Attestation <code>sub</code> identifying the OAuth client</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">
+                  <code>platform-jwt</code>
+</td>
+                <td class="text-left" rowspan="1" colspan="1">Exact approved JWT issuer</td>
+                <td class="text-left" rowspan="1" colspan="1">Exact JWT <code>sub</code>
+</td>
+              </tr>
+            </tbody>
+          </table>
+<p id="section-4.3.1-3"><code>dedicated-client</code> instead uses the OAuthClient reference defined in
+<a href="#binding-schema" class="auto internal xref">Section 4.3</a>. It retains the authentication requirements of
+<span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>; creating a reference neither configures a new
+authentication method nor supplies workload provenance.
+In that profile's <code>private_key_jwt</code> path, the validated assertion issuer
+and subject both identify the referenced OAuthClient's <code>clientId</code>.
+The reference does not replace those authentication checks.<a href="#section-4.3.1-3" class="pilcrow">¶</a></p>
+<p id="section-4.3.1-4">A trust domain name is the authority component of the SPIFFE ID; for
+example, <code>platform.example</code> for <code>spiffe://platform.example/agents/a7</code>.
+The Service Provider <span class="bcp14">MUST</span> require it to match the subject's trust
+domain. For <code>client-attestation</code>, the attester identifier references
+preconfigured trust; it need not be an <code>iss</code> claim in the credential.<a href="#section-4.3.1-4" class="pilcrow">¶</a></p>
+<p id="section-4.3.1-5">The Service Provider <span class="bcp14">MUST</span> resolve these values and the Governance Tenant
+to one approved validation configuration, including applicable
+client-registration context. Unknown, unsupported, or ambiguous
+configurations <span class="bcp14">MUST</span> be rejected. This interface does not create them. A
+signing-key identifier, URL, or possession of a credential is not
+administrative permission to establish a binding.<a href="#section-4.3.1-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="binding-uniqueness-and-changes">
+<section id="section-4.3.2">
+          <h4 id="name-binding-uniqueness-and-chan">
+<a href="#section-4.3.2" class="section-number selfRef">4.3.2. </a><a href="#name-binding-uniqueness-and-chan" class="section-name selfRef">Binding Uniqueness and Changes</a>
+          </h4>
+<p id="section-4.3.2-1">The Service Provider <span class="bcp14">MUST</span> reject duplicate bindings in the same
+Governance Tenant, regardless of active state. The uniqueness key is:<a href="#section-4.3.2-1" class="pilcrow">¶</a></p>
+<table class="center" id="table-6">
+            <caption><a href="#table-6" class="selfRef">Table 6</a></caption>
+<thead>
+              <tr>
+                <th class="text-left" rowspan="1" colspan="1">Input</th>
+                <th class="text-left" rowspan="1" colspan="1">Uniqueness key</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">Dedicated client</td>
+                <td class="text-left" rowspan="1" colspan="1">
+                  <code>credentialClass</code> and <code>client.value</code>
+</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">External identity</td>
+                <td class="text-left" rowspan="1" colspan="1">
+                  <code>credentialClass</code>, <code>sourceAuthority</code>, <code>sourceSubject</code>, and selector set</td>
+              </tr>
+            </tbody>
+          </table>
+<p id="section-4.3.2-3">The selector set is compared by decoded JSON Pointer paths and exact
+expected values, independent of array order. The Agent reference is not
+part of this uniqueness key: duplicating an identity does not authorize
+a second principal.<a href="#section-4.3.2-3" class="pilcrow">¶</a></p>
+<p id="section-4.3.2-4">Different selector sets can overlap. The runtime requirement to resolve
+exactly one active binding remains in force; an ambiguous match <span class="bcp14">MUST NOT</span>
+issue a grant. Management acceptance does not waive that check.<a href="#section-4.3.2-4" class="pilcrow">¶</a></p>
+<p id="section-4.3.2-5">Changing the client reference, source identity, or destination Agent
+requires a new binding; it is not an in-place credential rotation.
+Rotation of an authority's signing keys follows its preconfigured trust
+mechanism and need not change the binding. An authorized replacement
+binding receives a new SCIM <code>id</code>, so existing associations do not
+silently authorize its use.<a href="#section-4.3.2-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="association-schema">
+<section id="section-4.4">
+        <h3 id="name-client-association">
+<a href="#section-4.4" class="section-number selfRef">4.4. </a><a href="#name-client-association" class="section-name selfRef">Client Association</a>
+        </h3>
+<p id="section-4.4-1">An <code>AgentClientAssociation</code> permits one authenticated IdP OAuth client
+to use one external-identity binding for delegated ID-JAG issuance. A
+dedicated-client binding carries its own permission and <span class="bcp14">MUST NOT</span> be
+referenced here. Multiple resources can express an explicitly enumerated binding set.
+This is an explicit narrowing of Federation's policy-defined binding
+sets to one binding per resource. This profile defines no predicates
+that automatically cover future bindings. Its schema URI is:<a href="#section-4.4-1" class="pilcrow">¶</a></p>
+<p id="section-4.4-2"><code>urn:ietf:params:scim:schemas:core:2.0:AgentClientAssociation</code><a href="#section-4.4-2" class="pilcrow">¶</a></p>
+<table class="center" id="table-7">
+          <caption><a href="#table-7" class="selfRef">Table 7</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Attribute</th>
+              <th class="text-left" rowspan="1" colspan="1">Type</th>
+              <th class="text-left" rowspan="1" colspan="1">Meaning</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>binding</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">complex</td>
+              <td class="text-left" rowspan="1" colspan="1">Reference to the binding the client may use</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>client</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">complex</td>
+              <td class="text-left" rowspan="1" colspan="1">Reference to the OAuthClient registration at this IdP, not the RAS</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>active</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">boolean</td>
+              <td class="text-left" rowspan="1" colspan="1">Whether the permission may be used</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-4.4-4"><code>active</code> has the same characteristics as in <a href="#binding-schema" class="auto internal xref">Section 4.3</a>. The
+reference target type of <code>binding</code> is AgentIdentityBinding; that of <code>client</code>
+is OAuthClient. Each uses the <code>value</code> and <code>$ref</code> characteristics in
+<a href="#common" class="auto internal xref">Section 4.1</a>. The client reference carries a SCIM <code>id</code>, not <code>client_id</code>.<a href="#section-4.4-4" class="pilcrow">¶</a></p>
+<p id="section-4.4-5">The binding determines the Agent and permitted credential class. An
+association <span class="bcp14">MUST NOT</span> be interpreted as permission to use another binding
+to the same Agent, even with the same credential class. For
+external-identity resolution, the reference independently selects the
+client permitted to present that identity; it need not identify the
+workload credential's subject. The client's <code>authorizationServer</code> <span class="bcp14">MUST</span>
+equal the governing IdP issuer. A matching <code>client_id</code> at another
+authorization server does not qualify.<a href="#section-4.4-5" class="pilcrow">¶</a></p>
+<p id="section-4.4-6">For a CIMD client managed under <span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span>, <code>client.value</code> still
+references its SCIM <code>id</code>; its OAuth <code>client_id</code> remains the Client
+Identifier URL. Document discovery and local admission establish neither
+an Identity Binding nor a Client Association. Document metadata changes
+<span class="bcp14">MUST NOT</span> create or expand those relationships.<a href="#section-4.4-6" class="pilcrow">¶</a></p>
+<p id="section-4.4-7">The Service Provider <span class="bcp14">MUST</span> validate the referenced binding and client
+registration and authorize their use together. It <span class="bcp14">MUST</span> reject duplicate
+associations for the same binding and client in the Governance Tenant,
+regardless of active state. All client-use permissions in this profile
+apply only to delegated ID-JAG issuance. No per-resource flow attribute
+is needed; these permissions <span class="bcp14">MUST NOT</span> authorize WAG or another grant path.<a href="#section-4.4-7" class="pilcrow">¶</a></p>
+<p id="section-4.4-8">The association is necessary permission to use this binding.
+Target, scope, user delegation, and other policy constraints remain
+independently configured and evaluated by the IdP. This resource does
+not express or override them.<a href="#section-4.4-8" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="operations">
+<section id="section-5">
+      <h2 id="name-scim-operations">
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-scim-operations" class="section-name selfRef">SCIM Operations</a>
+      </h2>
+<p id="section-5-1">This section applies to Agent, AgentIdentityBinding, and
+AgentClientAssociation. OAuthClient operations follow <span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span>.<a href="#section-5-1" class="pilcrow">¶</a></p>
+<p id="section-5-2">The Service Provider <span class="bcp14">MUST</span> support SCIM POST creation, individual and
+collection GET, PUT, PATCH, and DELETE for these resources. Both update
+methods apply the same authorization, reference, and concurrency rules.
+SCIM Bulk and cross-resource transactions are not required. All requests
+and responses use existing SCIM message formats and status codes,
+including the conflict and precondition responses in <a href="#concurrency" class="auto internal xref">Section 5.2</a>.<a href="#section-5-2" class="pilcrow">¶</a></p>
+<div id="creation">
+<section id="section-5.1">
+        <h3 id="name-creation-and-retry-recovery">
+<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-creation-and-retry-recovery" class="section-name selfRef">Creation and Retry Recovery</a>
+        </h3>
+<p id="section-5.1-1">An Agent creation allocates a new principal unless an administrator has
+already established its representation outside this creation operation.
+POST <span class="bcp14">MUST NOT</span> attach to an existing principal by matching
+<code>agentUserName</code>, <code>displayName</code>, <code>externalId</code>, or source credentials. To
+manage an existing Agent, the connector needs explicit access to that
+existing resource.<a href="#section-5.1-1" class="pilcrow">¶</a></p>
+<p id="section-5.1-2">For relationships, the referenced resource <span class="bcp14">MUST</span> exist in the authorized
+Governance Tenant. It need not yet be active: the connector can stage an
+inactive Agent, its bindings, and its associations before enabling
+issuance. Each write is independently authorized; creation with <code>active:
+true</code> additionally requires enabling permission.<a href="#section-5.1-2" class="pilcrow">¶</a></p>
+<p id="section-5.1-3">If a creation response is lost and <code>externalId</code> was supplied, the
+connector queries the same resource type by that value before retrying.
+Without it, the connector reconciles through authorized resource
+discovery before retrying; a repeat POST is not an idempotent operation.
+A duplicate POST uses <code>409</code> with <code>scimType</code> <code>uniqueness</code>; it is not an
+upsert. The Service Provider <span class="bcp14">MUST</span> serialize the uniqueness check with
+creation. The client <span class="bcp14">MUST</span> retrieve and compare the existing resource
+before treating a conflict as success. It <span class="bcp14">MUST NOT</span> silently overwrite a
+different existing relationship.<a href="#section-5.1-3" class="pilcrow">¶</a></p>
+<p id="section-5.1-4">This profile's externalId uniqueness narrows generic SCIM behavior.
+It applies to live resources. Deletion and stale-writer handling follow
+<a href="#deletion" class="auto internal xref">Section 5.3</a>; no exactly-once delivery guarantee is implied.<a href="#section-5.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="concurrency">
+<section id="section-5.2">
+        <h3 id="name-updates-and-concurrency">
+<a href="#section-5.2" class="section-number selfRef">5.2. </a><a href="#name-updates-and-concurrency" class="section-name selfRef">Updates and Concurrency</a>
+        </h3>
+<p id="section-5.2-1">ETags, <code>If-Match</code>, the conditional requirement for activating an
+inactive resource, and PUT handling of immutable values follow the
+common provisioning conventions of <span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span>. They apply to
+Agent, AgentIdentityBinding, and AgentClientAssociation alike.<a href="#section-5.2-1" class="pilcrow">¶</a></p>
+<p id="section-5.2-2">SCIM PATCH is atomic for one resource. An authorization or validation
+failure <span class="bcp14">MUST</span> leave that resource unchanged. Clients <span class="bcp14">MUST NOT</span> retry a
+stale update by fetching the new ETag and blindly overwriting the
+resource; they first reconcile the current state with the intended
+change. This prevents an old enablement from undoing a newer
+disablement.<a href="#section-5.2-2" class="pilcrow">¶</a></p>
+<p id="section-5.2-3">Removing an optional value does not make an existing immutable
+identity replaceable. Changing a relationship's identity requires a new
+resource. Ordinary descriptive Agent edits do not change bindings,
+associations, or delegation.<a href="#section-5.2-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="deletion">
+<section id="section-5.3">
+        <h3 id="name-deletion">
+<a href="#section-5.3" class="section-number selfRef">5.3. </a><a href="#name-deletion" class="section-name selfRef">Deletion</a>
+        </h3>
+<p id="section-5.3-1">DELETE of an agent-management resource prevents its use for new grant
+issuance under <a href="#issuance" class="auto internal xref">Section 6</a>. It does not revoke already-issued tokens.
+The Service Provider <span class="bcp14">MUST NOT</span> reuse a deleted SCIM <code>id</code> or an Agent
+Principal's qualified identity.<a href="#section-5.3-1" class="pilcrow">¶</a></p>
+<p id="section-5.3-2">Deletion has the following dependency effects:<a href="#section-5.3-2" class="pilcrow">¶</a></p>
+<table class="center" id="table-8">
+          <caption><a href="#table-8" class="selfRef">Table 8</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Deleted resource</th>
+              <th class="text-left" rowspan="1" colspan="1">Effect on dependent relationships</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Agent</td>
+              <td class="text-left" rowspan="1" colspan="1">Its bindings and their associations are unusable</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">OAuthClient</td>
+              <td class="text-left" rowspan="1" colspan="1">Dedicated-client bindings and associations referencing it are unusable; external-identity bindings remain independent</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">AgentIdentityBinding</td>
+              <td class="text-left" rowspan="1" colspan="1">Its associations are unusable</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">AgentClientAssociation</td>
+              <td class="text-left" rowspan="1" colspan="1">Its permission is removed; client, binding, and Agent remain</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-5.3-4">OAuthClient deletion follows <span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span>, including CIMD
+readmission controls and the treatment of outstanding authorization. The
+rules here do not weaken that behavior. The Service Provider <span class="bcp14">MAY</span> retain
+dependent resources as non-effective references or cascade their deletion
+under documented administrative policy. Cascading deletion <span class="bcp14">MUST</span> be
+authorized for the affected dependents; otherwise they remain unusable.
+A new target receives a new SCIM <code>id</code> and <span class="bcp14">MUST NOT</span> inherit or repair the
+deleted resource's bindings or associations.<a href="#section-5.3-4" class="pilcrow">¶</a></p>
+<p id="section-5.3-5">GET of a retained dependent returns its original immutable <code>value</code>,
+omits <code>$ref</code> and <code>display</code> for a missing target, and retains its
+administrative <code>active</code> value. That value does not assert effective
+eligibility. GET of a deleted target or cascaded dependent returns 404.
+Direct and filtered reads allow authorized connectors to find and remove
+retained references. A missing target <span class="bcp14">MUST NOT</span> prevent an authorized
+disablement or deletion of a dependent resource. Creation or activation
+with a missing target <span class="bcp14">MUST</span> be rejected.<a href="#section-5.3-5" class="pilcrow">¶</a></p>
+<p id="section-5.3-6">A later POST with a previously used <code>externalId</code> is a new creation,
+requiring current authorization and receiving a new <code>id</code>. Clients that
+need reversible disablement use <code>active: false</code>, not
+DELETE. To prevent an old connector from recreating deleted records,
+administrators withdraw that connector's create authority; DELETE alone
+does not revoke its management credentials.<a href="#section-5.3-6" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="query">
+<section id="section-5.4">
+        <h3 id="name-query-and-reconciliation">
+<a href="#section-5.4" class="section-number selfRef">5.4. </a><a href="#name-query-and-reconciliation" class="section-name selfRef">Query and Reconciliation</a>
+        </h3>
+<p id="section-5.4-1">The Service Provider <span class="bcp14">MUST</span> support paginated collection reads and the
+following <code>eq</code> filters, together with <code>and</code> combinations:<a href="#section-5.4-1" class="pilcrow">¶</a></p>
+<table class="center" id="table-9">
+          <caption><a href="#table-9" class="selfRef">Table 9</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Resource</th>
+              <th class="text-left" rowspan="1" colspan="1">Required filter attributes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">The three agent-management types</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>id</code>, <code>externalId</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Agent</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>active</code>, extension <code>subject</code>; <code>issuer</code> when exposed</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">AgentIdentityBinding</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>agent.value</code>, <code>client.value</code>, <code>credentialClass</code>, <code>active</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">AgentClientAssociation</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>binding.value</code>, <code>client.value</code>, <code>active</code>
+</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-5.4-3">OAuthClient queries follow <span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span>. Collection reads <span class="bcp14">MUST</span>
+return only resources within the caller's read permission. For a
+platform connector, an <code>externalId</code> lookup is scoped to its Provisioning
+Domain and resource type; another connector's correlation value cannot
+select its resource. An administrative reader spanning several domains
+cannot assume that externalId alone is unique.<a href="#section-5.4-3" class="pilcrow">¶</a></p>
+<p id="section-5.4-4">A binding lookup can use <code>agent.value eq "a17" and active eq true</code>. To
+find dependencies of OAuthClient <code>oc7</code>, query both relationship
+collections with <code>client.value eq "oc7"</code>. This finds dedicated-client
+bindings and all associations naming that client. External-identity
+bindings have no <code>client</code> attribute; their client permissions are found
+through associations. For an Agent subject lookup, the attribute name is
+the extension schema URI followed by <code>:subject</code>, with the expression <code>eq
+"agent-42"</code>. The connector URI-encodes the complete filter under SCIM's
+query rules.<a href="#section-5.4-4" class="pilcrow">¶</a></p>
+<p id="section-5.4-5">Incremental reads on <code>meta.lastModified</code> follow the common provisioning
+conventions of <span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span>. A connector <span class="bcp14">MUST NOT</span> delete records
+solely because they were absent from an incomplete or failed listing.
+This profile defines no change feed or event type.<a href="#section-5.4-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="discovery">
+<section id="section-5.5">
+        <h3 id="name-discovery">
+<a href="#section-5.5" class="section-number selfRef">5.5. </a><a href="#name-discovery" class="section-name selfRef">Discovery</a>
+        </h3>
+<p id="section-5.5-1">The Service Provider <span class="bcp14">MUST</span> expose <code>/ServiceProviderConfig</code>,
+<code>/ResourceTypes</code>, and <code>/Schemas</code> under <span><a href="https://rfc-editor.org/rfc/rfc7644#section-4" class="relref">Section 4</a> of [<a href="#RFC7644" class="cite xref">RFC7644</a>]</span>. It
+advertises PATCH, filtering, and ETag support. Each
+ResourceType gives the endpoint in <a href="#resources" class="auto internal xref">Section 4</a> and the schema defined
+for that resource; Agent includes the federation extension in
+<code>schemaExtensions</code> with <code>required: true</code>.<a href="#section-5.5-1" class="pilcrow">¶</a></p>
+<p id="section-5.5-2">The <code>/Schemas</code> representations <span class="bcp14">MUST</span> describe the characteristics in
+<a href="#common" class="auto internal xref">Section 4.1</a>, <a href="#agent-schema" class="auto internal xref">Section 4.2</a>, <a href="#binding-schema" class="auto internal xref">Section 4.3</a>, and
+<a href="#association-schema" class="auto internal xref">Section 4.4</a>. Discovery advertises syntax and capabilities;
+it does not approve a connector, credential authority, or relationship.
+Unsupported credential classes remain subject to <a href="#classes" class="auto internal xref">Section 4.3.1</a>. The
+connector and IdP agree on usable input classes during trust setup.<a href="#section-5.5-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="errors">
+<section id="section-5.6">
+        <h3 id="name-errors">
+<a href="#section-5.6" class="section-number selfRef">5.6. </a><a href="#name-errors" class="section-name selfRef">Errors</a>
+        </h3>
+<p id="section-5.6-1">Errors follow <span><a href="https://rfc-editor.org/rfc/rfc7644#section-3.12" class="relref">Section 3.12</a> of [<a href="#RFC7644" class="cite xref">RFC7644</a>]</span>. The following mappings make
+the profile's failures predictable:<a href="#section-5.6-1" class="pilcrow">¶</a></p>
+<table class="center" id="table-10">
+          <caption><a href="#table-10" class="selfRef">Table 10</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Failure</th>
+              <th class="text-left" rowspan="1" colspan="1">Response</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Unauthorized operation, tenant, or protected attribute</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>403</code>; no new <code>scimType</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Duplicate externalId in its scope, binding key, or association key</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>409</code>, <code>uniqueness</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Unsupported class, invalid combination of binding fields, ambiguous authority configuration, malformed selector, or missing/invalid reference</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>400</code>, <code>invalidValue</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Attempt to change an immutable identity or reference</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>400</code>, <code>mutability</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Reactivation without a version ETag, including <code>If-Match: *</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>409</code>; retrieve and use the current ETag</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Failed conditional-write precondition</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>412</code>; no new <code>scimType</code>
+</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-5.6-3">Standard SCIM request syntax, filter, authentication, and not-found
+errors retain their meanings. Responses <span class="bcp14">MUST NOT</span> reveal cross-tenant
+resource existence. Authorized administrators need sufficient
+diagnostics to distinguish configuration and permission failures without
+exposing credentials or key material.<a href="#section-5.6-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="issuance">
+<section id="section-6">
+      <h2 id="name-effect-on-grant-issuance">
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-effect-on-grant-issuance" class="section-name selfRef">Effect on Grant Issuance</a>
+      </h2>
+<p id="section-6-1">For new issuance, the IdP evaluates the conjunction of:<a href="#section-6-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-6-2.1">
+          <p id="section-6-2.1.1">An active OAuthClient whose issuer-qualified <code>clientId</code> matches the
+authenticated client.<a href="#section-6-2.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-6-2.2">
+          <p id="section-6-2.2.1">An eligible Agent Principal represented by an active Agent.<a href="#section-6-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-6-2.3">
+          <p id="section-6-2.3.1">Exactly one matching, active Identity Binding whose Agent exists.
+Dedicated-client matching uses the authenticated OAuthClient reference;
+other classes use the independently validated external identity.<a href="#section-6-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-6-2.4">
+          <p id="section-6-2.4.1">Client-use permission for delegated ID-JAG issuance: either the active
+dedicated-client binding's <code>client</code>, or an active
+AgentClientAssociation referencing the matched external-identity
+binding and authenticated OAuthClient.<a href="#section-6-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-6-2.5">
+          <p id="section-6-2.5.1">All remaining credential, delegation, target, and policy checks in
+<span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>.<a href="#section-6-2.5.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-6-3">Missing configuration is not implicit permission. Disabling an Agent
+blocks every path to that principal. Disabling one binding or
+association blocks only its use; independent approved relationships
+remain available. Disabling an OAuthClient blocks dedicated-client
+resolution through it and its use of every association, without
+disabling the associated Agent Principals or independent workload
+bindings. Client registration alone establishes neither an Identity
+Binding nor a Client Association. Re-enabling a parent does not change a
+child's explicit disabled state.<a href="#section-6-3" class="pilcrow">¶</a></p>
+<p id="section-6-4">The durable restriction rule of <span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span> applies with the IdP
+grant decision point as the decision point: an inactive resource or a
+deny marker <span class="bcp14">MUST</span> be observable there before a restrictive write is
+reported successful. After a failed write the connector reconciles
+current state before retrying.<a href="#section-6-4" class="pilcrow">¶</a></p>
+<p id="section-6-5">This is a new-issuance guarantee, not a downstream revocation bound. The
+IdP's refresh-token subject processing still makes a new issuance
+decision and therefore applies these restrictions. Previously issued
+ID-JAGs, resource access tokens, and RAS refresh authorizations require
+their own validation and revocation processing. <span>[<a href="#LIFECYCLE" class="cite xref">LIFECYCLE</a>]</span> addresses
+agent-wide propagation; this document defines no selective relationship
+revocation event or automatic cancellation of existing work.<a href="#section-6-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="security-considerations">
+<section id="section-7">
+      <h2 id="name-security-considerations">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
+      </h2>
+<div id="administrative-privilege-and-confused-deputies">
+<section id="section-7.1">
+        <h3 id="name-administrative-privilege-an">
+<a href="#section-7.1" class="section-number selfRef">7.1. </a><a href="#name-administrative-privilege-an" class="section-name selfRef">Administrative Privilege and Confused Deputies</a>
+        </h3>
+<p id="section-7.1-1">Binding and association writes can enable impersonation of an Agent
+Principal. The Service Provider <span class="bcp14">MUST</span> check the connector's authority
+over both ends of each relationship, including on creation with disabled
+state and on later enablement. Permission to manage a platform catalog
+is not permission to bind its records to arbitrary enterprise
+principals.<a href="#section-7.1-1" class="pilcrow">¶</a></p>
+<p id="section-7.1-2">Credential-authority trust remains preconfigured. <code>sourceAuthority</code> is
+an identifier to match, not a URL to fetch or an instruction to trust a
+new issuer. A valid workload credential or control of an OAuth client
+key cannot authorize an administrative write by itself. References do
+not permit cross-tenant attachment or SSRF.<a href="#section-7.1-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="independent-controls-and-stale-state">
+<section id="section-7.2">
+        <h3 id="name-independent-controls-and-st">
+<a href="#section-7.2" class="section-number selfRef">7.2. </a><a href="#name-independent-controls-and-st" class="section-name selfRef">Independent Controls and Stale State</a>
+        </h3>
+<p id="section-7.2-1">OAuthClient, Agent, binding, and association enablement have distinct
+effects. An owner, group, or display-name update <span class="bcp14">MUST NOT</span> implicitly
+enable any of them. All writers to the underlying relationships,
+including local administrative interfaces, need to preserve the same
+semantics and invalidate the SCIM resource version when visible state
+changes.<a href="#section-7.2-1" class="pilcrow">¶</a></p>
+<p id="section-7.2-2">A client key rotation or CIMD metadata update does not create a new
+Agent Principal or expand its bindings and associations. A shared
+client's authentication credential cannot select among agents without
+the resolution input required by <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>. Dedicated-client
+resolution proves the authenticated client identity, not an independent
+runtime.<a href="#section-7.2-2" class="pilcrow">¶</a></p>
+<p id="section-7.2-3">ETags prevent stale conditional writes; they are not lifecycle versions
+and do not revoke previously issued tokens. A connector that retains
+create or enable permission can request new access after earlier
+disablement, subject to current policy. Administrators <span class="bcp14">SHOULD</span> withdraw
+that authority when the connector itself is compromised.<a href="#section-7.2-3" class="pilcrow">¶</a></p>
+<p id="section-7.2-4">Management changes <span class="bcp14">SHOULD</span> be audited with the administrative actor,
+Provisioning Domain, affected resource, and changed relationships. Audit
+records <span class="bcp14">SHOULD</span> identify principals and configuration changes without
+retaining reusable workload credentials.<a href="#section-7.2-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="privacy-considerations">
+<section id="section-8">
+      <h2 id="name-privacy-considerations">
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-privacy-considerations" class="section-name selfRef">Privacy Considerations</a>
+      </h2>
+<p id="section-8-1">The profile correlates platform records, workload identities, enterprise
+principals, and OAuth clients. SCIM readers <span class="bcp14">SHOULD</span> receive only the
+attributes and resources needed for their management role. Stable
+correlation identifiers and selectors <span class="bcp14">SHOULD</span> avoid personal data when
+opaque platform identifiers suffice. Read authorization is independent
+of permission to exercise the agent at a token endpoint.<a href="#section-8-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="iana">
+<section id="section-9">
+      <h2 id="name-iana-considerations">
+<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+      </h2>
+<p id="section-9-1">This document requests the following entries in the SCIM Schema URIs
+registry using <span><a href="https://rfc-editor.org/rfc/rfc7643#section-10.3.2" class="relref">Section 10.3.2</a> of [<a href="#RFC7643" class="cite xref">RFC7643</a>]</span>. The proposed <code>core:2.0</code>
+namespace registrations require Expert Review and RFC publication under
+<span><a href="https://rfc-editor.org/rfc/rfc7643#section-10.3.1" class="relref">Section 10.3.1</a> of [<a href="#RFC7643" class="cite xref">RFC7643</a>]</span>.<a href="#section-9-1" class="pilcrow">¶</a></p>
+<div id="agent-federation-extension">
+<section id="section-9.1">
+        <h3 id="name-agent-federation-extension-2">
+<a href="#section-9.1" class="section-number selfRef">9.1. </a><a href="#name-agent-federation-extension-2" class="section-name selfRef">Agent Federation Extension</a>
+        </h3>
+<ul class="normal">
+<li class="normal" id="section-9.1-1.1">
+            <p id="section-9.1-1.1.1">Schema URI:
+<code>urn:ietf:params:scim:schemas:extension:agent-federation:2.0:Agent</code><a href="#section-9.1-1.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.1-1.2">
+            <p id="section-9.1-1.2.1">Schema Name: Agent Federation<a href="#section-9.1-1.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.1-1.3">
+            <p id="section-9.1-1.3.1">Intended or Associated Resource Type: Agent<a href="#section-9.1-1.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.1-1.4">
+            <p id="section-9.1-1.4.1">Purpose: Expose the IdP-qualified Agent Principal represented by a
+SCIM Agent resource.<a href="#section-9.1-1.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.1-1.5">
+            <p id="section-9.1-1.5.1">Single-value Attributes: <code>issuer</code>, <code>subject</code>, defined in <a href="#agent-schema" class="auto internal xref">Section 4.2</a>.<a href="#section-9.1-1.5.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.1-1.6">
+            <p id="section-9.1-1.6.1">Multi-valued Attributes: None.<a href="#section-9.1-1.6.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="agent-identity-binding">
+<section id="section-9.2">
+        <h3 id="name-agent-identity-binding">
+<a href="#section-9.2" class="section-number selfRef">9.2. </a><a href="#name-agent-identity-binding" class="section-name selfRef">Agent Identity Binding</a>
+        </h3>
+<ul class="normal">
+<li class="normal" id="section-9.2-1.1">
+            <p id="section-9.2-1.1.1">Schema URI:
+<code>urn:ietf:params:scim:schemas:core:2.0:AgentIdentityBinding</code><a href="#section-9.2-1.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.2-1.2">
+            <p id="section-9.2-1.2.1">Schema Name: Agent Identity Binding<a href="#section-9.2-1.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.2-1.3">
+            <p id="section-9.2-1.3.1">Intended or Associated Resource Type: AgentIdentityBinding<a href="#section-9.2-1.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.2-1.4">
+            <p id="section-9.2-1.4.1">Purpose: Manage an approved resolution identity's binding to an Agent
+Principal.<a href="#section-9.2-1.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.2-1.5">
+            <p id="section-9.2-1.5.1">Single-value Attributes: <code>agent</code>, <code>credentialClass</code>, <code>client</code>,
+<code>sourceAuthority</code>,
+<code>sourceSubject</code>, <code>active</code>, defined in <a href="#binding-schema" class="auto internal xref">Section 4.3</a>.<a href="#section-9.2-1.5.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.2-1.6">
+            <p id="section-9.2-1.6.1">Multi-valued Attributes: <code>selectors</code>, defined in <a href="#binding-schema" class="auto internal xref">Section 4.3</a>.<a href="#section-9.2-1.6.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="agent-client-association">
+<section id="section-9.3">
+        <h3 id="name-agent-client-association">
+<a href="#section-9.3" class="section-number selfRef">9.3. </a><a href="#name-agent-client-association" class="section-name selfRef">Agent Client Association</a>
+        </h3>
+<ul class="normal">
+<li class="normal" id="section-9.3-1.1">
+            <p id="section-9.3-1.1.1">Schema URI:
+<code>urn:ietf:params:scim:schemas:core:2.0:AgentClientAssociation</code><a href="#section-9.3-1.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.3-1.2">
+            <p id="section-9.3-1.2.1">Schema Name: Agent Client Association<a href="#section-9.3-1.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.3-1.3">
+            <p id="section-9.3-1.3.1">Intended or Associated Resource Type: AgentClientAssociation<a href="#section-9.3-1.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.3-1.4">
+            <p id="section-9.3-1.4.1">Purpose: Manage an OAuth client's permission to use an Identity
+Binding for delegated ID-JAG issuance.<a href="#section-9.3-1.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.3-1.5">
+            <p id="section-9.3-1.5.1">Single-value Attributes: <code>binding</code>, <code>client</code>, <code>active</code>,
+defined in <a href="#association-schema" class="auto internal xref">Section 4.4</a>.<a href="#section-9.3-1.5.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.3-1.6">
+            <p id="section-9.3-1.6.1">Multi-valued Attributes: None.<a href="#section-9.3-1.6.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-9.3-2">No new OAuth token type, event type, HTTP method, or SCIM error type is
+registered. Credential-class names are local to this profile's schema.<a href="#section-9.3-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="sec-combined-references">
+<section id="section-10">
+      <h2 id="name-references">
+<a href="#section-10" class="section-number selfRef">10. </a><a href="#name-references" class="section-name selfRef">References</a>
+      </h2>
+<div id="sec-normative-references">
+<section id="section-10.1">
+        <h3 id="name-normative-references">
+<a href="#section-10.1" class="section-number selfRef">10.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
+        </h3>
+<dl class="references">
+<dt id="OAUTH-CLIENT">[OAUTH-CLIENT]</dt>
+        <dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"SCIM Profile for OAuth 2.0 Client Management"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-scim-oauth-client-management</span>, <time datetime="2026-09-18" class="refDate">18 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-oauth-client-management.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-oauth-client-management.html</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="FEDERATION">[FEDERATION]</dt>
+        <dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Profile for Governed Agent Federation"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-governed-agent-federation</span>, <time datetime="2026-09-18" class="refDate">18 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="SCIM-AGENT">[SCIM-AGENT]</dt>
+        <dd>
+<span class="refAuthor">Wahl, M.</span>, <span class="refAuthor">Zollner, D.</span>, <span class="refAuthor">Dingle, P.</span>, and <span class="refAuthor">I. Kazzouzi</span>, <span class="refTitle">"AI Agent Resource Extension for the System for Cross-domain Identity Management (SCIM)"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-wzdk-scim-agent-resource-00</span>, <time datetime="2026-06-05" class="refDate">5 June 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-wzdk-scim-agent-resource-00">https://datatracker.ietf.org/doc/html/draft-wzdk-scim-agent-resource-00</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7643">[RFC7643]</dt>
+        <dd>
+<span class="refAuthor">Hunt, P., Ed.</span>, <span class="refAuthor">Grizzle, K.</span>, <span class="refAuthor">Wahlstroem, E.</span>, and <span class="refAuthor">C. Mortimore</span>, <span class="refTitle">"System for Cross-domain Identity Management: Core Schema"</span>, <span class="seriesInfo">RFC 7643</span>, <span class="seriesInfo">DOI 10.17487/RFC7643</span>, <time datetime="2015-09" class="refDate">September 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7643">https://www.rfc-editor.org/rfc/rfc7643</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7644">[RFC7644]</dt>
+        <dd>
+<span class="refAuthor">Hunt, P., Ed.</span>, <span class="refAuthor">Grizzle, K.</span>, <span class="refAuthor">Ansari, M.</span>, <span class="refAuthor">Wahlstroem, E.</span>, and <span class="refAuthor">C. Mortimore</span>, <span class="refTitle">"System for Cross-domain Identity Management: Protocol"</span>, <span class="seriesInfo">RFC 7644</span>, <span class="seriesInfo">DOI 10.17487/RFC7644</span>, <time datetime="2015-09" class="refDate">September 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7644">https://www.rfc-editor.org/rfc/rfc7644</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC6901">[RFC6901]</dt>
+        <dd>
+<span class="refAuthor">Bryan, P., Ed.</span>, <span class="refAuthor">Zyp, K.</span>, and <span class="refAuthor">M. Nottingham, Ed.</span>, <span class="refTitle">"JavaScript Object Notation (JSON) Pointer"</span>, <span class="seriesInfo">RFC 6901</span>, <span class="seriesInfo">DOI 10.17487/RFC6901</span>, <time datetime="2013-04" class="refDate">April 2013</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc6901">https://www.rfc-editor.org/rfc/rfc6901</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="BCP14">[BCP14]</dt>
+      <dd>
+<div class="refInstance">Best Current Practice 14, <span>&lt;<a href="https://www.rfc-editor.org/info/bcp14">https://www.rfc-editor.org/info/bcp14</a>&gt;</span>.<br><span>At the time of writing, this BCP comprises the following:</span>
+</div>
+<div class="refInstance" id="RFC2119">
+            <span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Key words for use in RFCs to Indicate Requirement Levels"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 2119</span>, <span class="seriesInfo">DOI 10.17487/RFC2119</span>, <time datetime="1997-03" class="refDate">March 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc2119">https://www.rfc-editor.org/info/rfc2119</a>&gt;</span>. </div>
+<div class="refInstance" id="RFC8174">
+            <span class="refAuthor">Leiba, B.</span>, <span class="refTitle">"Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 8174</span>, <span class="seriesInfo">DOI 10.17487/RFC8174</span>, <time datetime="2017-05" class="refDate">May 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8174">https://www.rfc-editor.org/info/rfc8174</a>&gt;</span>. </div>
+</dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="sec-informative-references">
+<section id="section-10.2">
+        <h3 id="name-informative-references">
+<a href="#section-10.2" class="section-number selfRef">10.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
+        </h3>
+<dl class="references">
+<dt id="LIFECYCLE">[LIFECYCLE]</dt>
+      <dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Governed Agent Lifecycle Profile for SCIM and OAuth"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-governed-agent-lifecycle</span>, <time datetime="2026-09-18" class="refDate">18 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+</section>
+</div>
+<div id="example">
+<section id="appendix-A">
+      <h2 id="name-example-platform-onboarding">
+<a href="#appendix-A" class="section-number selfRef">Appendix A. </a><a href="#name-example-platform-onboarding" class="section-name selfRef">Example: Platform Onboarding</a>
+      </h2>
+<p id="appendix-A-1">These non-normative examples show a shared platform client.
+Administrative policy has already authorized the connector for
+Governance Tenant <code>acme</code>, the platform JWT issuer
+<code>https://platform.example/</code>, its permitted workload subjects, and
+permission to reference and associate the platform's existing IdP
+OAuthClient. The token value is a placeholder. Content-Length and
+repeated authorization headers are omitted for readability.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+<p id="appendix-A-2">The IdP preconfigures the platform credential's validation rules,
+including the audience and key source. None are established by these
+SCIM requests.<a href="#appendix-A-2" class="pilcrow">¶</a></p>
+<div id="obtain-the-oauthclient-reference">
+<section id="appendix-A.1">
+        <h3 id="name-obtain-the-oauthclient-refe">
+<a href="#appendix-A.1" class="section-number selfRef">A.1. </a><a href="#name-obtain-the-oauthclient-refe" class="section-name selfRef">Obtain the OAuthClient Reference</a>
+        </h3>
+<p id="appendix-A.1-1">The connector first obtains an authorized OAuthClient under
+<span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span>. It can reference an existing registration, create one
+with separate permission, or admit a CIMD client. Client authentication
+and token-exchange metadata are established by that profile, not by the
+agent-management requests below.<a href="#appendix-A.1-1" class="pilcrow">¶</a></p>
+<p id="appendix-A.1-2">For this example, the client is already active and has:<a href="#appendix-A.1-2" class="pilcrow">¶</a></p>
+<table class="center" id="table-11">
+          <caption><a href="#table-11" class="selfRef">Table 11</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Attribute</th>
+              <th class="text-left" rowspan="1" colspan="1">Value used here</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">SCIM <code>id</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>oc7</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>authorizationServer</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>https://idp.example/</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">SCIM <code>clientId</code> (OAuth <code>client_id</code>)</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>platform-sso</code>
+</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="appendix-A.1-4">The connector can find an existing resource with the filter
+<code>authorizationServer eq "https://idp.example/" and clientId eq
+"platform-sso"</code>, URI-encoded in a collection request. It uses <code>oc7</code> in
+relationships and <code>platform-sso</code> at the token endpoint. For a CIMD
+client, the filter and OAuth requests use the Client Identifier URL
+instead; relationship requests still use the returned SCIM <code>id</code>.<a href="#appendix-A.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="create-an-inactive-agent">
+<section id="appendix-A.2">
+        <h3 id="name-create-an-inactive-agent">
+<a href="#appendix-A.2" class="section-number selfRef">A.2. </a><a href="#name-create-an-inactive-agent" class="section-name selfRef">Create an Inactive Agent</a>
+        </h3>
+<div class="lang-http-message sourcecode" id="appendix-A.2-1">
+<pre>
+POST /scim/acme/Agents HTTP/1.1
+Host: idp.example
+Authorization: Bearer CONNECTOR_ACCESS_TOKEN
+Content-Type: application/scim+json
+Accept: application/scim+json
+
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:Agent",
+  "urn:ietf:params:scim:schemas:extension:agent-federation:2.0:Agent"
+  ],
+ "urn:ietf:params:scim:schemas:extension:agent-federation:2.0:Agent":
+    {},
+  "externalId": "agent-7",
+  "agentUserName": "analysis-agent-7",
+  "displayName": "Analysis agent",
+  "active": false
+}
+</pre><a href="#appendix-A.2-1" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A.2-2">The required extension is populated by the server:<a href="#appendix-A.2-2" class="pilcrow">¶</a></p>
+<div class="lang-http-message sourcecode" id="appendix-A.2-3">
+<pre>
+HTTP/1.1 201 Created
+Location: https://idp.example/scim/acme/Agents/a17
+ETag: W/"a1"
+Content-Type: application/scim+json
+
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:Agent",
+  "urn:ietf:params:scim:schemas:extension:agent-federation:2.0:Agent"
+  ],
+  "id": "a17",
+  "externalId": "agent-7",
+  "agentUserName": "analysis-agent-7",
+  "displayName": "Analysis agent",
+  "active": false,
+ "urn:ietf:params:scim:schemas:extension:agent-federation:2.0:Agent":
+    {
+    "issuer": "https://idp.example/",
+    "subject": "agent-42"
+  },
+  "meta": {
+    "resourceType": "Agent",
+    "created": "2026-09-18T12:00:00Z",
+    "lastModified": "2026-09-18T12:00:00Z",
+    "version": "W/\"a1\"",
+    "location": "https://idp.example/scim/acme/Agents/a17"
+  }
+}
+</pre><a href="#appendix-A.2-3" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A.2-4">The platform's <code>agent-7</code>, SCIM's <code>a17</code>, and the IdP's <code>agent-42</code> have
+separate roles. Only (<code>https://idp.example/</code>, <code>agent-42</code>) is the
+federated Agent Principal identity.<a href="#appendix-A.2-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="bind-the-workload-identity">
+<section id="appendix-A.3">
+        <h3 id="name-bind-the-workload-identity">
+<a href="#appendix-A.3" class="section-number selfRef">A.3. </a><a href="#name-bind-the-workload-identity" class="section-name selfRef">Bind the Workload Identity</a>
+        </h3>
+<div class="lang-http-message sourcecode" id="appendix-A.3-1">
+<pre>
+POST /scim/acme/AgentIdentityBindings HTTP/1.1
+Host: idp.example
+Content-Type: application/scim+json
+
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:AgentIdentityBinding"
+  ],
+  "externalId": "platform-binding-7",
+  "agent": {"value": "a17"},
+  "credentialClass": "platform-jwt",
+  "sourceAuthority": "https://platform.example/",
+  "sourceSubject": "workload-7",
+  "active": true
+}
+</pre><a href="#appendix-A.3-1" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A.3-2">The IdP authorizes the relationship and returns <code>201 Created</code> with the
+resource representation, <code>id: b9</code>, ETag <code>W/"b1"</code>, and its Location. The
+binding is active, but the inactive Agent prevents issuance.<a href="#appendix-A.3-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="authorize-client-use">
+<section id="appendix-A.4">
+        <h3 id="name-authorize-client-use">
+<a href="#appendix-A.4" class="section-number selfRef">A.4. </a><a href="#name-authorize-client-use" class="section-name selfRef">Authorize Client Use</a>
+        </h3>
+<div class="lang-http-message sourcecode" id="appendix-A.4-1">
+<pre>
+POST /scim/acme/AgentClientAssociations HTTP/1.1
+Host: idp.example
+Content-Type: application/scim+json
+
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:AgentClientAssociation"
+  ],
+  "externalId": "platform-association-7",
+  "binding": {"value": "b9"},
+  "client": {"value": "oc7"},
+  "active": true
+}
+</pre><a href="#appendix-A.4-1" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A.4-2">The IdP returns <code>201 Created</code> with the resource representation, <code>id:
+c3</code>, ETag <code>W/"c1"</code>, and its Location. The reference <code>oc7</code> resolves to
+OAuth client <code>platform-sso</code>; it does not replace that client's identity
+at the token endpoint. This permission does not supply a user subject
+credential, consent, or target-resource authority.<a href="#appendix-A.4-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="enable-the-agent">
+<section id="appendix-A.5">
+        <h3 id="name-enable-the-agent">
+<a href="#appendix-A.5" class="section-number selfRef">A.5. </a><a href="#name-enable-the-agent" class="section-name selfRef">Enable the Agent</a>
+        </h3>
+<div class="lang-http-message sourcecode" id="appendix-A.5-1">
+<pre>
+PATCH /scim/acme/Agents/a17 HTTP/1.1
+Host: idp.example
+Content-Type: application/scim+json
+If-Match: W/"a1"
+
+{
+  "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+  "Operations": [
+    {"op": "replace", "path": "active", "value": true}
+  ]
+}
+</pre><a href="#appendix-A.5-1" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A.5-2">The IdP returns <code>204 No Content</code> with ETag <code>W/"a2"</code> after applying the
+authorized change. Subsequent token exchanges can now resolve
+<code>workload-7</code> through <code>b9</code> to <code>agent-42</code>, and verify client permission
+through <code>c3</code>. The IdP still checks user delegation and target authority
+before issuing an ID-JAG with <code>act.iss</code> equal to <code>https://idp.example/</code>
+and <code>act.sub</code> equal to <code>agent-42</code>.<a href="#appendix-A.5-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="recover-a-lost-creation-response">
+<section id="appendix-A.6">
+        <h3 id="name-recover-a-lost-creation-res">
+<a href="#appendix-A.6" class="section-number selfRef">A.6. </a><a href="#name-recover-a-lost-creation-res" class="section-name selfRef">Recover a Lost Creation Response</a>
+        </h3>
+<p id="appendix-A.6-1">The connector can recover the Agent resource using its correlation
+value:<a href="#appendix-A.6-1" class="pilcrow">¶</a></p>
+<div class="lang-http-message sourcecode" id="appendix-A.6-2">
+<pre>
+GET /scim/acme/Agents?filter=externalId%20eq%20%22agent-7%22 HTTP/1.1
+Host: idp.example
+Accept: application/scim+json
+</pre><a href="#appendix-A.6-2" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A.6-3">An authorized query returns a SCIM ListResponse containing <code>a17</code>. The
+connector verifies the record before continuing. A racing duplicate POST
+receives <code>409</code> with <code>scimType: uniqueness</code>, not another principal.<a href="#appendix-A.6-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="disable-one-binding">
+<section id="appendix-A.7">
+        <h3 id="name-disable-one-binding">
+<a href="#appendix-A.7" class="section-number selfRef">A.7. </a><a href="#name-disable-one-binding" class="section-name selfRef">Disable One Binding</a>
+        </h3>
+<div class="lang-http-message sourcecode" id="appendix-A.7-1">
+<pre>
+PATCH /scim/acme/AgentIdentityBindings/b9 HTTP/1.1
+Host: idp.example
+Content-Type: application/scim+json
+If-Match: W/"b1"
+
+{
+  "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+  "Operations": [
+    {"op": "replace", "path": "active", "value": false}
+  ]
+}
+</pre><a href="#appendix-A.7-1" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A.7-2">After a successful response, new grant-authorization decisions cannot
+use <code>b9</code>. Association <code>c3</code> remains recorded but cannot override the
+disabled binding. Another independently approved binding can still
+resolve <code>agent-42</code>. Previously issued tokens are not revoked by this
+SCIM operation.<a href="#appendix-A.7-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="rejection-and-boundary-examples">
+<section id="appendix-A.8">
+        <h3 id="name-rejection-and-boundary-exam">
+<a href="#appendix-A.8" class="section-number selfRef">A.8. </a><a href="#name-rejection-and-boundary-exam" class="section-name selfRef">Rejection and Boundary Examples</a>
+        </h3>
+<table class="center" id="table-12">
+          <caption><a href="#table-12" class="selfRef">Table 12</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Operation</th>
+              <th class="text-left" rowspan="1" colspan="1">Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Retry Agent POST with the same externalId in the same Provisioning Domain</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>409</code>, <code>uniqueness</code>; query and compare</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Add a binding to an unapproved issuer or another tenant's Agent</td>
+              <td class="text-left" rowspan="1" colspan="1">Rejected; no trust or cross-tenant attachment</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Create another binding for the same source key and selector set</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>409</code>, <code>uniqueness</code>, even if disabled</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Supply both <code>client</code> and <code>sourceSubject</code> on a dedicated-client binding</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>400</code>, <code>invalidValue</code>; the client reference supplies the resolution identity</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Create an association for a dedicated-client binding</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>400</code>, <code>invalidValue</code>; its permission is carried by the binding</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Change a binding's Agent or source subject</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>400</code>, <code>mutability</code>; create a separately authorized replacement</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Enable an association while its binding is disabled</td>
+              <td class="text-left" rowspan="1" colspan="1">Permission can be recorded but cannot authorize issuance</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Change displayName with a connector lacking enable permission</td>
+              <td class="text-left" rowspan="1" colspan="1">Descriptive change can succeed; eligibility is unchanged</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">PUT would reactivate without a version ETag, including <code>If-Match: *</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>409</code>; retrieve and use the current ETag</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">PATCH with a stale version</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>412</code>; reconcile before retrying</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Delete a binding and create another with the same externalId</td>
+              <td class="text-left" rowspan="1" colspan="1">New id; old association does not attach to the replacement</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Delete a CIMD OAuthClient and readmit the same URL</td>
+              <td class="text-left" rowspan="1" colspan="1">New SCIM id; prior bindings and associations remain unusable</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Disable the Agent</td>
+              <td class="text-left" rowspan="1" colspan="1">All new issuance paths for that principal are blocked</td>
+            </tr>
+          </tbody>
+        </table>
+</section>
+</div>
+</section>
+</div>
+<div id="dedicated-example">
+<section id="appendix-B">
+      <h2 id="name-example-dedicated-client">
+<a href="#appendix-B" class="section-number selfRef">Appendix B. </a><a href="#name-example-dedicated-client" class="section-name selfRef">Example: Dedicated Client</a>
+      </h2>
+<p id="appendix-B-1">This variant uses the same Agent <code>a17</code> but a dedicated OAuthClient
+<code>oc9</code>. Its <code>authorizationServer</code> is <code>https://idp.example/</code> and runtime
+<code>client_id</code> is <code>analysis-client</code>. One binding administers identity and
+client use:<a href="#appendix-B-1" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="appendix-B-2">
+<pre>
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:AgentIdentityBinding"
+  ],
+  "externalId": "dedicated-binding-7",
+  "agent": {"value": "a17"},
+  "credentialClass": "dedicated-client",
+  "client": {"value": "oc9"},
+  "active": true
+}
+</pre><a href="#appendix-B-2" class="pilcrow">¶</a>
+</div>
+<p id="appendix-B-3">The connector needs authorization for both binding and client use. No
+AgentClientAssociation is created. At issuance, the IdP authenticates
+<code>analysis-client</code>, matches <code>oc9</code>, resolves the binding to <code>a17</code>, and
+applies the delegated ID-JAG permission and remaining policy. The actor remains
+(<code>https://idp.example/</code>, <code>agent-42</code>). Deactivating this binding
+withdraws both its resolution path and its client-use permission; it
+does not change the Agent Principal.<a href="#appendix-B-3" class="pilcrow">¶</a></p>
+<p id="appendix-B-4">For a CIMD client the runtime <code>client_id</code> is its URL; the relationship
+body is unchanged. Key rotation also leaves the relationship unchanged.
+Replacing <code>oc9</code> requires a separately authorized binding.<a href="#appendix-B-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="schema-json">
+<section id="appendix-C">
+      <h2 id="name-schema-and-resourcetype-rep">
+<a href="#appendix-C" class="section-number selfRef">Appendix C. </a><a href="#name-schema-and-resourcetype-rep" class="section-name selfRef">Schema and ResourceType Representations</a>
+      </h2>
+<p id="appendix-C-1">These JSON definitions specify the new schema characteristics. Common
+attributes retain RFC 7643 definitions; profile-level conditional
+requirements and uniqueness constraints still apply. A Service Provider
+advertises only the supported subset of <code>credentialClass</code> canonical
+values. Service-specific <code>meta</code> values are omitted from these definitions.<a href="#appendix-C-1" class="pilcrow">¶</a></p>
+<div id="agentfederation-schema">
+<section id="appendix-C.1">
+        <h3 id="name-agentfederation-schema">
+<a href="#appendix-C.1" class="section-number selfRef">C.1. </a><a href="#name-agentfederation-schema" class="section-name selfRef">AgentFederation Schema</a>
+        </h3>
+<div class="lang-json sourcecode" id="appendix-C.1-1">
+<pre>
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:Schema"
+  ],
+  "id":
+ "urn:ietf:params:scim:schemas:extension:agent-federation:2.0:Agent",
+  "name": "AgentFederation",
+  "attributes": [
+    {
+      "name": "issuer",
+      "description":
+        "Governing IdP issuer from the provisioning context.",
+      "type": "string",
+      "multiValued": false,
+      "required": false,
+      "mutability": "readOnly",
+      "returned": "default",
+      "caseExact": true,
+      "uniqueness": "none"
+    },
+    {
+      "name": "subject",
+      "description":
+        "Stable Agent Principal identifier in the IdP namespace.",
+      "type": "string",
+      "multiValued": false,
+      "required": true,
+      "mutability": "readOnly",
+      "returned": "default",
+      "caseExact": true,
+      "uniqueness": "none"
+    }
+  ]
+}
+</pre><a href="#appendix-C.1-1" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="agentidentitybinding-schema">
+<section id="appendix-C.2">
+        <h3 id="name-agentidentitybinding-schema">
+<a href="#appendix-C.2" class="section-number selfRef">C.2. </a><a href="#name-agentidentitybinding-schema" class="section-name selfRef">AgentIdentityBinding Schema</a>
+        </h3>
+<div class="breakable lang-json sourcecode" id="appendix-C.2-1">
+<pre>
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:Schema"
+  ],
+  "id": "urn:ietf:params:scim:schemas:core:2.0:AgentIdentityBinding",
+  "name": "AgentIdentityBinding",
+  "attributes": [
+    {
+      "name": "agent",
+      "description": "Agent resolved through this identity binding.",
+      "type": "complex",
+      "multiValued": false,
+      "required": true,
+      "mutability": "immutable",
+      "returned": "default",
+      "subAttributes": [
+        {
+          "name": "value",
+          "description": "SCIM id of the referenced resource.",
+          "type": "string",
+          "multiValued": false,
+          "required": true,
+          "mutability": "immutable",
+          "returned": "default",
+          "caseExact": true,
+          "uniqueness": "none"
+        },
+        {
+          "name": "$ref",
+          "description":
+           "Service-provider reference to the target SCIM resource.",
+          "type": "reference",
+          "multiValued": false,
+          "required": false,
+          "mutability": "readOnly",
+          "returned": "default",
+          "caseExact": true,
+          "uniqueness": "none",
+          "referenceTypes": [
+            "Agent"
+          ]
+        },
+        {
+          "name": "display",
+          "description":
+            "Human-readable label; never an identity lookup key.",
+          "type": "string",
+          "multiValued": false,
+          "required": false,
+          "mutability": "readOnly",
+          "returned": "default",
+          "caseExact": false,
+          "uniqueness": "none"
+        }
+      ]
+    },
+    {
+      "name": "credentialClass",
+      "description":
+        "Credential class used to resolve the Agent Principal.",
+      "type": "string",
+      "multiValued": false,
+      "required": true,
+      "mutability": "immutable",
+      "returned": "default",
+      "caseExact": true,
+      "uniqueness": "none",
+      "canonicalValues": [
+        "dedicated-client",
+        "spiffe-jwt",
+        "spiffe-wit",
+        "spiffe-x509",
+        "client-attestation",
+        "platform-jwt"
+      ]
+    },
+    {
+      "name": "client",
+      "description":
+        "OAuthClient authorized to use this identity binding.",
+      "type": "complex",
+      "multiValued": false,
+      "required": false,
+      "mutability": "immutable",
+      "returned": "default",
+      "subAttributes": [
+        {
+          "name": "value",
+          "description": "SCIM id of the referenced resource.",
+          "type": "string",
+          "multiValued": false,
+          "required": true,
+          "mutability": "immutable",
+          "returned": "default",
+          "caseExact": true,
+          "uniqueness": "none"
+        },
+        {
+          "name": "$ref",
+          "description":
+           "Service-provider reference to the target SCIM resource.",
+          "type": "reference",
+          "multiValued": false,
+          "required": false,
+          "mutability": "readOnly",
+          "returned": "default",
+          "caseExact": true,
+          "uniqueness": "none",
+          "referenceTypes": [
+            "OAuthClient"
+          ]
+        },
+        {
+          "name": "display",
+          "description":
+            "Human-readable label; never an identity lookup key.",
+          "type": "string",
+          "multiValued": false,
+          "required": false,
+          "mutability": "readOnly",
+          "returned": "default",
+          "caseExact": false,
+          "uniqueness": "none"
+        }
+      ]
+    },
+    {
+      "name": "sourceAuthority",
+      "description":
+        "Preconfigured authority for the external identity.",
+      "type": "string",
+      "multiValued": false,
+      "required": false,
+      "mutability": "immutable",
+      "returned": "default",
+      "caseExact": true,
+      "uniqueness": "none"
+    },
+    {
+      "name": "sourceSubject",
+      "description":
+        "Exact external identity under the source authority.",
+      "type": "string",
+      "multiValued": false,
+      "required": false,
+      "mutability": "immutable",
+      "returned": "default",
+      "caseExact": true,
+      "uniqueness": "none"
+    },
+    {
+      "name": "selectors",
+      "description":
+        "Additional exact platform-JWT claim constraints.",
+      "type": "complex",
+      "multiValued": true,
+      "required": false,
+      "mutability": "immutable",
+      "returned": "default",
+      "subAttributes": [
+        {
+          "name": "path",
+          "description":
+            "JSON Pointer to a claim in the JWT Claims Set.",
+          "type": "string",
+          "multiValued": false,
+          "required": true,
+          "mutability": "immutable",
+          "returned": "default",
+          "caseExact": true,
+          "uniqueness": "none"
+        },
+        {
+          "name": "value",
+          "description":
+            "Expected exact string value of the selected JWT claim.",
+          "type": "string",
+          "multiValued": false,
+          "required": true,
+          "mutability": "immutable",
+          "returned": "default",
+          "caseExact": true,
+          "uniqueness": "none"
+        }
+      ]
+    },
+    {
+      "name": "active",
+      "description":
+       "Administrative enablement; other policy checks still apply.",
+      "type": "boolean",
+      "multiValued": false,
+      "required": true,
+      "mutability": "readWrite",
+      "returned": "default"
+    }
+  ]
+}
+</pre><a href="#appendix-C.2-1" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="agentclientassociation-schema">
+<section id="appendix-C.3">
+        <h3 id="name-agentclientassociation-sche">
+<a href="#appendix-C.3" class="section-number selfRef">C.3. </a><a href="#name-agentclientassociation-sche" class="section-name selfRef">AgentClientAssociation Schema</a>
+        </h3>
+<div class="breakable lang-json sourcecode" id="appendix-C.3-1">
+<pre>
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:Schema"
+  ],
+  "id":
+    "urn:ietf:params:scim:schemas:core:2.0:AgentClientAssociation",
+  "name": "AgentClientAssociation",
+  "attributes": [
+    {
+      "name": "binding",
+      "description":
+        "External-identity binding the client may use for ID-JAG.",
+      "type": "complex",
+      "multiValued": false,
+      "required": true,
+      "mutability": "immutable",
+      "returned": "default",
+      "subAttributes": [
+        {
+          "name": "value",
+          "description": "SCIM id of the referenced resource.",
+          "type": "string",
+          "multiValued": false,
+          "required": true,
+          "mutability": "immutable",
+          "returned": "default",
+          "caseExact": true,
+          "uniqueness": "none"
+        },
+        {
+          "name": "$ref",
+          "description":
+           "Service-provider reference to the target SCIM resource.",
+          "type": "reference",
+          "multiValued": false,
+          "required": false,
+          "mutability": "readOnly",
+          "returned": "default",
+          "caseExact": true,
+          "uniqueness": "none",
+          "referenceTypes": [
+            "AgentIdentityBinding"
+          ]
+        },
+        {
+          "name": "display",
+          "description":
+            "Human-readable label; never an identity lookup key.",
+          "type": "string",
+          "multiValued": false,
+          "required": false,
+          "mutability": "readOnly",
+          "returned": "default",
+          "caseExact": false,
+          "uniqueness": "none"
+        }
+      ]
+    },
+    {
+      "name": "client",
+      "description":
+        "OAuthClient authorized to use this identity binding.",
+      "type": "complex",
+      "multiValued": false,
+      "required": true,
+      "mutability": "immutable",
+      "returned": "default",
+      "subAttributes": [
+        {
+          "name": "value",
+          "description": "SCIM id of the referenced resource.",
+          "type": "string",
+          "multiValued": false,
+          "required": true,
+          "mutability": "immutable",
+          "returned": "default",
+          "caseExact": true,
+          "uniqueness": "none"
+        },
+        {
+          "name": "$ref",
+          "description":
+           "Service-provider reference to the target SCIM resource.",
+          "type": "reference",
+          "multiValued": false,
+          "required": false,
+          "mutability": "readOnly",
+          "returned": "default",
+          "caseExact": true,
+          "uniqueness": "none",
+          "referenceTypes": [
+            "OAuthClient"
+          ]
+        },
+        {
+          "name": "display",
+          "description":
+            "Human-readable label; never an identity lookup key.",
+          "type": "string",
+          "multiValued": false,
+          "required": false,
+          "mutability": "readOnly",
+          "returned": "default",
+          "caseExact": false,
+          "uniqueness": "none"
+        }
+      ]
+    },
+    {
+      "name": "active",
+      "description":
+       "Administrative enablement; other policy checks still apply.",
+      "type": "boolean",
+      "multiValued": false,
+      "required": true,
+      "mutability": "readWrite",
+      "returned": "default"
+    }
+  ]
+}
+</pre><a href="#appendix-C.3-1" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="resource-types">
+<section id="appendix-C.4">
+        <h3 id="name-resource-types">
+<a href="#appendix-C.4" class="section-number selfRef">C.4. </a><a href="#name-resource-types" class="section-name selfRef">Resource Types</a>
+        </h3>
+<div class="lang-json sourcecode" id="appendix-C.4-1">
+<pre>
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:ResourceType"
+  ],
+  "id": "Agent",
+  "name": "Agent",
+  "endpoint": "/Agents",
+  "schema": "urn:ietf:params:scim:schemas:core:2.0:Agent",
+  "schemaExtensions": [
+    {
+      "schema":
+ "urn:ietf:params:scim:schemas:extension:agent-federation:2.0:Agent",
+      "required": true
+    }
+  ]
+}
+</pre><a href="#appendix-C.4-1" class="pilcrow">¶</a>
+</div>
+<div class="lang-json sourcecode" id="appendix-C.4-2">
+<pre>
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:ResourceType"
+  ],
+  "id": "AgentIdentityBinding",
+  "name": "AgentIdentityBinding",
+  "endpoint": "/AgentIdentityBindings",
+  "schema":
+    "urn:ietf:params:scim:schemas:core:2.0:AgentIdentityBinding"
+}
+</pre><a href="#appendix-C.4-2" class="pilcrow">¶</a>
+</div>
+<div class="lang-json sourcecode" id="appendix-C.4-3">
+<pre>
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:ResourceType"
+  ],
+  "id": "AgentClientAssociation",
+  "name": "AgentClientAssociation",
+  "endpoint": "/AgentClientAssociations",
+  "schema":
+    "urn:ietf:params:scim:schemas:core:2.0:AgentClientAssociation"
+}
+</pre><a href="#appendix-C.4-3" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="document-history">
+<section id="appendix-D">
+      <h2 id="name-document-history">
+<a href="#appendix-D" class="section-number selfRef">Appendix D. </a><a href="#name-document-history" class="section-name selfRef">Document History</a>
+      </h2>
+<p id="appendix-D-1">RFC Editor: Remove this section before publication.<a href="#appendix-D-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="appendix-D-2.1">
+          <p id="appendix-D-2.1.1">Initial version.<a href="#appendix-D-2.1.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+</section>
+</div>
+<div id="acknowledgments">
+<section id="appendix-E">
+      <h2 id="name-acknowledgments">
+<a href="#name-acknowledgments" class="section-name selfRef">Acknowledgments</a>
+      </h2>
+<p id="appendix-E-1">TBD.<a href="#appendix-E-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="authors-addresses">
+<section id="appendix-F">
+      <h2 id="name-authors-address">
+<a href="#name-authors-address" class="section-name selfRef">Author's Address</a>
+      </h2>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Karl McGuinness</span></div>
+<div dir="auto" class="left"><span class="org">Independent</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:public@karlmcguinness.com" class="email">public@karlmcguinness.com</a>
+</div>
+</address>
+</section>
+</div>
+<script>const toc = document.getElementById("toc");
+toc.querySelector("h2").addEventListener("click", e => {
+  toc.classList.toggle("active");
+});
+toc.querySelector("nav").addEventListener("click", e => {
+  toc.classList.remove("active");
+});
+</script>
+</body>
+</html>

@@ -1918,13 +1918,13 @@ Client Associations:<a href="#section-3-2" class="pilcrow">¶</a></p>
  (one stable identity in the IdP issuer's namespace)
    |
    |  Identity Bindings        keyed by qualified input identity
-   +-- B1  dedicated client  https://idp.example/clients/c1
-   +-- B2  SPIFFE workload   spiffe://acme.example/ns/ml/sa/bot
-   +-- B3  platform JWT      https://platform.example  agent/7
+   +-- B1  JWT-SVID          trust domain + SPIFFE ID
+   +-- B2  platform JWT      issuer + sub + selector
+   +-- B3  dedicated client  assertion iss + sub
    |
    |  Client Associations      permit a client to use bindings
-   +-- A1  client C1 -&gt; B1        delegated
-   +-- A2  client C2 -&gt; B2, B3    self-acting
+   +-- A1  client C1 -&gt; B1, B2    delegated
+   +-- A2  client C2 -&gt; B3        self-acting
 </pre><a href="#section-3-3" class="pilcrow">¶</a>
 </div>
 <p id="section-3-4">A binding maps one qualified identity to the Agent Principal. An
@@ -2471,20 +2471,39 @@ mechanism here. Profile metadata does not establish acceptance policy
 (<a href="#discovery" class="auto internal xref">Section 9.3</a>).<a href="#section-4.3-7.3.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-4.3-8">Existing workload-federation configuration can supply credential trust
+<p id="section-4.3-8">These validations occur while a request is processed, not when an Agent
+Principal, Identity Binding, or Client Association is created. Keys and
+metadata may already be held; their retrieval and refresh follow the
+rules of the source that supplies them:<a href="#section-4.3-8" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.3-9.1">
+            <p id="section-4.3-9.1.1">The IdP validates a platform JWT or an SVID under the approved key
+source configured for that input (<a href="#evidence" class="auto internal xref">Section 5</a>).<a href="#section-4.3-9.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.3-9.2">
+            <p id="section-4.3-9.2.1">The RAS validates an ID-JAG at redemption under the governing IdP's
+keys, with trust configured for the asserted namespace
+(<a href="#redemption-validation" class="auto internal xref">Section 8.5.2</a>).<a href="#section-4.3-9.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.3-9.3">
+            <p id="section-4.3-9.3.1">A client uses server metadata to locate endpoints and to confirm which
+grants and profiles each server accepts (<a href="#metadata" class="auto internal xref">Section 9</a>).<a href="#section-4.3-9.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-4.3-10">Existing workload-federation configuration can supply credential trust
 and exact identity selectors. The Agent Principal mapping and separate
 Client Association are still required, but no new configuration object
 types are prescribed. <a href="#identity-example" class="auto internal xref">Section 4.4</a> illustrates the shared-client
 case; <a href="#aws-example" class="auto internal xref">Appendix C.3</a> applies the model to an AWS Security Token Service
-(STS) workload credential.<a href="#section-4.3-8" class="pilcrow">¶</a></p>
-<p id="section-4.3-9">Request hints, discovered client metadata, and unverified JWT claims
+(STS) workload credential.<a href="#section-4.3-10" class="pilcrow">¶</a></p>
+<p id="section-4.3-11">Request hints, discovered client metadata, and unverified JWT claims
 <span class="bcp14">MUST NOT</span> by themselves establish credential-authority trust or change
 an approved Identity Binding or Client Association. Creating and changing
 bindings
 and associations, including imports from platform registries, is an
 administrative act outside this profile (<a href="#operational-guidance" class="auto internal xref">Appendix A.3</a>). The
 SCIM companion <span>[<a href="#AGENT-MANAGEMENT" class="cite xref">AGENT-MANAGEMENT</a>]</span> defines a proposed platform-to-IdP
-management interface for those relationships.<a href="#section-4.3-9" class="pilcrow">¶</a></p>
+management interface for those relationships.<a href="#section-4.3-11" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="identity-example">
@@ -2526,7 +2545,23 @@ file permission, and resource policy permits this agent to act for
 her. In this example, the agent needs no file permission of its own.<a href="#section-4.4-3.4.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
-<p id="section-4.4-4">The resulting tokens show which identities change across the boundary:<a href="#section-4.4-4" class="pilcrow">¶</a></p>
+<p id="section-4.4-4">The two identities move differently across the three namespaces:<a href="#section-4.4-4" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.4-5">
+<pre>
+           Input credential   ID-JAG          Access token
+           ----------------   ------          ------------
+
+ user      alice-app    --&gt;   alice-ras  --&gt;  user-108
+                              (sub)           (sub)
+
+ agent     workload-7   --&gt;   agent-42   ==&gt;  agent-42
+           (SPIFFE ID)        (act.sub)       (act.sub)
+
+ --&gt;  translated into the next namespace
+ ==&gt;  preserved unchanged across the boundary
+</pre><a href="#section-4.4-5" class="pilcrow">¶</a>
+</div>
+<p id="section-4.4-6">The resulting tokens show which identities change across the boundary:<a href="#section-4.4-6" class="pilcrow">¶</a></p>
 <span id="name-identity-claims-across-the-"></span><table class="center" id="table-5">
           <caption>
 <a href="#table-5" class="selfRef">Table 5</a>:
@@ -2593,17 +2628,17 @@ her. In this example, the agent needs no file permission of its own.<a href="#se
             </tr>
           </tbody>
         </table>
-<p id="section-4.4-6"><code>alice-ras</code> is Alice's identifier in the target SSO namespace;
+<p id="section-4.4-8"><code>alice-ras</code> is Alice's identifier in the target SSO namespace;
 <code>platform-api</code> is the registration corresponding to <code>platform-sso</code> at
 the RAS. The RAS translates the user and preserves the agent. Its local
 agent record supports authorization; <code>service-principal-42</code> does not
-replace <code>act.sub</code>.<a href="#section-4.4-6" class="pilcrow">¶</a></p>
-<p id="section-4.4-7">If the agent later runs under another approved workload identity, a
+replace <code>act.sub</code>.<a href="#section-4.4-8" class="pilcrow">¶</a></p>
+<p id="section-4.4-9">If the agent later runs under another approved workload identity, a
 second Identity Binding can resolve it to the same <code>agent-42</code>. A Client
 Association also needs to permit that binding. The downstream agent identity
-then stays unchanged, and either binding can be disabled independently.<a href="#section-4.4-7" class="pilcrow">¶</a></p>
-<p id="section-4.4-8"><a href="#shared-client-example" class="auto internal xref">Appendix C.1</a> supplies the credential and request details
-for this scenario, using the complete message sequence in <a href="#walkthrough" class="auto internal xref">Appendix B</a>.<a href="#section-4.4-8" class="pilcrow">¶</a></p>
+then stays unchanged, and either binding can be disabled independently.<a href="#section-4.4-9" class="pilcrow">¶</a></p>
+<p id="section-4.4-10"><a href="#shared-client-example" class="auto internal xref">Appendix C.1</a> supplies the credential and request details
+for this scenario, using the complete message sequence in <a href="#walkthrough" class="auto internal xref">Appendix B</a>.<a href="#section-4.4-10" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="profile-requirements">
@@ -3390,20 +3425,34 @@ their identity and authorization semantics remain distinct.<a href="#section-6.1
 preserving identity continuity across policy changes. Credential class
 constrains the authorized resolution path even when several classes
 can resolve to the same Agent Principal.<a href="#section-6.1-9" class="pilcrow">¶</a></p>
-<p id="section-6.1-10">For example, one Agent Principal can carry three bindings at once:<a href="#section-6.1-10" class="pilcrow">¶</a></p>
+<p id="section-6.1-10">For example, one Agent Principal can carry a binding for each platform
+the same agent runs on, each keyed by its own issuer and selectors:<a href="#section-6.1-10" class="pilcrow">¶</a></p>
 <div class="alignLeft art-text artwork" id="section-6.1-11">
 <pre>
- Agent Principal  agent-42
- B1  dedicated client  https://idp.example/clients/c1      enabled
- B2  SPIFFE workload   spiffe://acme.example/ns/ml/sa/bot  enabled
- B3  platform JWT      https://platform.example  agent/7   disabled
+ Agent Principal: agent-42
+
+ B1  JWT-SVID, orchestrated runtime                     enabled
+     trust domain  acme.example
+     SPIFFE ID     spiffe://acme.example/ns/ml/sa/bot
+
+ B2  platform JWT, managed container service            enabled
+     issuer        https://sts.amazonaws.com/
+     sub           arn:aws:iam::123456789012:role/agent-42-runtime
+     selector      /https:~1~1sts.amazonaws.com~1/aws_account
+                     = 123456789012
+
+ B3  dedicated client, private_key_jwt                 disabled
+     assertion iss  https://idp.example/clients/c1
+     assertion sub  https://idp.example/clients/c1
 </pre><a href="#section-6.1-11" class="pilcrow">¶</a>
 </div>
-<p id="section-6.1-12">The agent resolves through B1 when it runs as its own OAuth client and
-through B2 when it runs behind a shared platform client. Disabling B3
-prevents new issuance through that binding. It does not change the
-Client Association's configured permissions: A2 may still authorize
-use of B2, subject to the remaining checks.<a href="#section-6.1-12" class="pilcrow">¶</a></p>
+<p id="section-6.1-12">The same agent resolves through B1 on the orchestrated runtime and
+through B2 on the managed container service (<a href="#aws-example" class="auto internal xref">Appendix C.3</a>). Neither
+the SPIFFE ID nor the role identifies the agent downstream; both
+resolve to agent-42, and the issued grant names that principal.
+Disabling B3 prevents new issuance through that binding. It does not
+change what a Client Association permits: an association naming B1 and
+B2 continues to authorize them, subject to the remaining checks.<a href="#section-6.1-12" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="subject-resolution">
@@ -7344,7 +7393,8 @@ outside the scope of this document (<a href="#access-token-subject-gap" class="a
       <h2 id="name-acknowledgments">
 <a href="#name-acknowledgments" class="section-name selfRef">Acknowledgments</a>
       </h2>
-<p id="appendix-E-1">TBD.<a href="#appendix-E-1" class="pilcrow">¶</a></p>
+<p id="appendix-E-1">The author thanks Jeff Malnick for review and discussion of this
+profile.<a href="#appendix-E-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="authors-addresses">

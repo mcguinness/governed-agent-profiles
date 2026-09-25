@@ -4097,9 +4097,9 @@ Table of Contents
 14.2.  Informative References
 
    [AGENT-MANAGEMENT]
-              McGuinness, K., "SCIM Profile for Agent Federation
-              Management", Work in Progress, Internet-Draft, draft-
-              mcguinness-scim-agent-federation, 18 September 2026,
+              McGuinness, K., "SCIM Profile for Governed Agent
+              Federation Management", Work in Progress, Internet-Draft,
+              draft-mcguinness-scim-agent-federation, 18 September 2026,
               <https://mcguinness.github.io/governed-agent-profiles/
               draft-mcguinness-scim-agent-federation.html>.
 

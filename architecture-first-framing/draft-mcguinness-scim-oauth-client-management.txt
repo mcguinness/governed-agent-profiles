@@ -871,9 +871,9 @@ Table of Contents
               scim-client-reg-00>.
 
    [AGENT-MANAGEMENT]
-              McGuinness, K., "SCIM Profile for Agent Federation
-              Management", Work in Progress, Internet-Draft, draft-
-              mcguinness-scim-agent-federation, 18 September 2026,
+              McGuinness, K., "SCIM Profile for Governed Agent
+              Federation Management", Work in Progress, Internet-Draft,
+              draft-mcguinness-scim-agent-federation, 18 September 2026,
               <https://datatracker.ietf.org/doc/html/draft-mcguinness-
               scim-agent-federation>.
 

@@ -309,6 +309,12 @@ API (resource server):
 
 One service can implement several roles.
 
+Two companion profiles complete the family: {{AGENT-MANAGEMENT}}
+establishes the relationships at the IdP, this document exercises them
+to obtain authorization, and {{AGENT-LIFECYCLE}} carries the
+principal's administrative state into the resource domain and revokes
+what depends on it.
+
 The companion profiles add two administrative roles. The Provisioning
 Client is a platform connector that manages Agent Principals and their
 relationships at the IdP, whose System for Cross-domain

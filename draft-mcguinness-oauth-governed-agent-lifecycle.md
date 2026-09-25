@@ -106,6 +106,11 @@ For delegated access, the Identity Assertion JWT Authorization Grant
 (ID-JAG) {{ID-JAG}} carries that principal as the actor. The resource
 domain correlates the actor with its local agent record.
 
+Across the family, {{AGENT-MANAGEMENT}} establishes the relationships
+at the IdP, {{FEDERATION}} exercises them to obtain authorization, and
+this document carries the principal's administrative state into the
+resource domain and revokes what depends on it.
+
 This companion defines how a resource domain provisions that principal
 and applies changes to its administrative status. The responsibilities
 are:

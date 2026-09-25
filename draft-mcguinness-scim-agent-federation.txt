@@ -8,7 +8,7 @@ Intended status: Standards Track                       25 September 2026
 Expires: 29 March 2027
 
 
-              SCIM Profile for Agent Federation Management
+         SCIM Profile for Governed Agent Federation Management
              draft-mcguinness-scim-agent-federation-latest
 
 Abstract

@@ -115,6 +115,7 @@ Table of Contents
      6.1.  Identity Binding
      6.2.  Subject Resolution and Linking
      6.3.  Agent Principal Correlation
+       6.3.1.  Just-in-Time Correlation
    7.  Authorization Relationship
      7.1.  Agent Authorization
      7.2.  Delegation Authorization
@@ -836,7 +837,7 @@ Table of Contents
    issuers or automatically create Identity Bindings from presented
    credentials.  A resource domain creates an Agent Principal
    Correlation from a validated grant only where its own policy permits
-   just-in-time correlation ([AGENT-LIFECYCLE]).
+   just-in-time correlation (Section 6.3.1).
 
     +============+============================+=======================+
     | Adoption   | Required addition          | Grant protection      |
@@ -1897,7 +1898,7 @@ Table of Contents
 
    *  Deny authorization that depends on a missing agent record, whether
       that record is provisioned in advance or created just in time
-      where resource policy permits ([AGENT-LIFECYCLE]).
+      under Section 6.3.1.
 
    User-account and agent-record links are distinct.  A changed Identity
    Binding or local agent link MUST NOT transfer an existing delegation
@@ -1924,6 +1925,35 @@ Table of Contents
    principal keyed by the same pair and SHOULD propagate activation and
    deactivation.  Once deactivation is applied, the RAS enforces
    Section 8.5.8.  No provisioning protocol is required (Appendix A.3).
+
+6.3.1.  Just-in-Time Correlation
+
+   Where the RAS requires a local agent record and none exists for the
+   qualified pair in the authorized Target Tenant, resource policy MAY
+   permit the RAS to create one from a validated grant: from (act.iss,
+   act.sub) of an ID-JAG, or from (iss, sub) of a WAG under
+   Section 10.5.  The policy is disabled by default and enabled per
+   governing issuer and Target Tenant.  It serves resource domains that
+   do not accept provisioning and deployments in which the first grant
+   can arrive before provisioning completes.  When it applies, the RAS:
+
+   *  MUST key the created record by that exact pair and MUST NOT attach
+      the pair to an existing record by name or other descriptive match;
+
+   *  MUST apply local restrictions, retained revocation state under
+      Section 8.5.8, and local policy before issuance; and
+
+   *  sets the record's initial eligibility by local policy; a record
+      created ineligible denies the triggering request.
+
+   Creating the record is correlation, not authorization: the actor gate
+   (Section 7.4) and resource policy still apply.  A grant does not
+   carry the IdP's administrative status, so creation does not
+   substitute for propagating disablement; without provisioning, the RAS
+   learns of disablement only through local action or another signal
+   (Section 11.6).  Provisioning and reconciliation of a created record
+   are outside this document; [AGENT-LIFECYCLE] defines them for
+   Receivers that conform to it.
 
 7.  Authorization Relationship
 
@@ -3573,8 +3603,7 @@ Table of Contents
        that authorized correlation before issuance; for governed agents
        this replaces the required acceptance of previously unseen
        identifiers in Section 7 of [WAG].  Just-in-time correlation,
-       where resource policy permits it, is defined by
-       [AGENT-LIFECYCLE].
+       where resource policy permits it, is defined in Section 6.3.1.
 
    3.  Validate resource, scope, and authorization details as in
        Section 8.5.2, and apply current RAS policy for the agent,
@@ -4404,9 +4433,8 @@ A.3.  Operational Dependencies
       control of both accounts in a user-linking flow.
 
    *  Authorize just-in-time creation of user accounts and agent
-      correlations by issuer and tenant, the latter under
-      [AGENT-LIFECYCLE]; avoid silent merges and reactivation of
-      disabled accounts.
+      correlations by issuer and tenant, the latter under Section 6.3.1;
+      avoid silent merges and reactivation of disabled accounts.
 
    *  Retain ownership, groups, and entitlements with their principal;
       audit link and binding changes.

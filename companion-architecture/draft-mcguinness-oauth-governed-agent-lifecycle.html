@@ -1625,34 +1625,34 @@ principal, not a second authorization identity.<a href="#section-4-9" class="pil
 requirement: the RAS <span class="bcp14">MUST</span> have the authorized local correlation before
 accepting a grant involving the agent. A missing or ambiguous
 correlation fails under Federation's identity-resolution error rules.
-<a href="#jit" class="auto internal xref">Section 4.1</a> defines the one optional way to establish that correlation
-without a prior SCIM write.<a href="#section-4-10" class="pilcrow">¶</a></p>
+<span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> lets resource policy establish that correlation just in
+time from a validated grant; <a href="#jit" class="auto internal xref">Section 4.1</a> states what a conforming Receiver
+adds.<a href="#section-4-10" class="pilcrow">¶</a></p>
 <div id="jit">
 <section id="section-4.1">
         <h3 id="name-just-in-time-correlation">
 <a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-just-in-time-correlation" class="section-name selfRef">Just-in-Time Correlation</a>
         </h3>
-<p id="section-4.1-1">A Receiver <span class="bcp14">MAY</span> be configured to establish the local correlation from a
-validated ID-JAG instead of a prior SCIM write. This option is disabled
-by default and enabled per governing issuer and Target Tenant.<a href="#section-4.1-1" class="pilcrow">¶</a></p>
-<p id="section-4.1-2">When enabled, on a validated grant whose <code>act.iss</code> is that issuer and
-whose <code>act.sub</code> has no correlation in that tenant, the RAS <span class="bcp14">MAY</span> create
-the local agent principal and its correlation keyed by the pair, with an
-initial local <code>active</code> state set by local policy. The RAS <span class="bcp14">MUST NOT</span>
-attach the pair to an existing principal by name or other descriptive
-match, <span class="bcp14">MUST</span> apply Local Suspension, retained revocation state, and local
-policy before issuance, and <span class="bcp14">MUST</span> subject the created principal to the
-same provisioning, reconciliation, and disablement rules as a
-provisioned one. A grant does not carry the IdP's administrative
-status; just-in-time correlation therefore does not replace SCIM
-provisioning for disablement. If local policy sets the initial state
-to inactive, the triggering grant is denied.<a href="#section-4.1-2" class="pilcrow">¶</a></p>
-<p id="section-4.1-3">Where the Receiver supports this interface, the created principal
-appears in the Provisioning Domain with <code>externalId</code> set to the agent
-identifier. A later SCIM create for the same pair therefore fails with
+<p id="section-4.1-1"><span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> defines just-in-time correlation: the resource-policy
+gate per governing issuer and Target Tenant, exact keying by the pair,
+and the local restrictions and retained revocation state applied before
+issuance. A Receiver that correlates agents that way without
+supporting this interface uses those rules alone and does not conform
+to this profile.<a href="#section-4.1-1" class="pilcrow">¶</a></p>
+<p id="section-4.1-2">A conforming Receiver that permits just-in-time correlation <span class="bcp14">MUST</span> expose
+the created principal in its Provisioning Domain with <code>externalId</code> set
+to the agent identifier, and <span class="bcp14">MUST</span> subject it to the same provisioning,
+reconciliation, and disablement rules as a provisioned one. Local
+Suspension is among the local restrictions Federation requires it to
+apply, and the initial <code>active</code> value reflects the initial eligibility
+set by local policy.<a href="#section-4.1-2" class="pilcrow">¶</a></p>
+<p id="section-4.1-3">A later SCIM create for the same pair therefore fails with
 <code>uniqueness</code>; the connector finds the record with the <code>externalId</code>
 query in <a href="#scim" class="auto internal xref">Section 5</a> and updates it. Provisioning that lags the first
-grant thus converges on one principal rather than creating a second.<a href="#section-4.1-3" class="pilcrow">¶</a></p>
+grant thus converges on one principal rather than creating a second.
+A grant does not carry the IdP's administrative status, so
+just-in-time correlation does not replace SCIM provisioning for
+disablement.<a href="#section-4.1-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>

@@ -1285,6 +1285,11 @@ with WAG; its identifiers are provisional.<a href="#section-abstract-2" class="p
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.3">
                 <p id="section-toc.1-1.6.2.3.1"><a href="#section-6.3" class="auto internal xref">6.3</a>.  <a href="#name-agent-principal-correlation" class="internal xref">Agent Principal Correlation</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.3.2.1">
+                    <p id="section-toc.1-1.6.2.3.2.1.1"><a href="#section-6.3.1" class="auto internal xref">6.3.1</a>.  <a href="#name-just-in-time-correlation" class="internal xref">Just-in-Time Correlation</a></p>
+</li>
+                </ul>
 </li>
             </ul>
 </li>
@@ -2355,7 +2360,7 @@ binding. The names identify deployment profiles, not assurance ratings.<a href="
 or automatically create Identity Bindings from presented credentials. A
 resource domain creates an Agent Principal Correlation from a validated
 grant only where its own policy permits just-in-time correlation
-(<span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span>).<a href="#section-4.2-2" class="pilcrow">¶</a></p>
+(<a href="#jit-correlation" class="auto internal xref">Section 6.3.1</a>).<a href="#section-4.2-2" class="pilcrow">¶</a></p>
 <span id="name-adoption-profiles"></span><table class="center" id="table-5">
           <caption>
 <a href="#table-5" class="selfRef">Table 5</a>:
@@ -3649,8 +3654,8 @@ replace it.<a href="#section-6.3-2.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-6.3-2.2">
             <p id="section-6.3-2.2.1">Deny authorization that depends on a missing agent record, whether
-that record is provisioned in advance or created just in time where
-resource policy permits (<span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span>).<a href="#section-6.3-2.2.1" class="pilcrow">¶</a></p>
+that record is provisioned in advance or created just in time under
+<a href="#jit-correlation" class="auto internal xref">Section 6.3.1</a>.<a href="#section-6.3-2.2.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 <p id="section-6.3-3">User-account and agent-record links are distinct. A changed Identity
@@ -3673,6 +3678,43 @@ authorized directory connector <span class="bcp14">SHOULD</span> provision and s
 principal keyed by the same pair and <span class="bcp14">SHOULD</span> propagate activation and
 deactivation. Once deactivation is applied, the RAS enforces <a href="#applied-changes" class="auto internal xref">Section 8.5.8</a>. No provisioning protocol is required
 (<a href="#operational-guidance" class="auto internal xref">Appendix A.3</a>).<a href="#section-6.3-7" class="pilcrow">¶</a></p>
+<div id="jit-correlation">
+<section id="section-6.3.1">
+          <h4 id="name-just-in-time-correlation">
+<a href="#section-6.3.1" class="section-number selfRef">6.3.1. </a><a href="#name-just-in-time-correlation" class="section-name selfRef">Just-in-Time Correlation</a>
+          </h4>
+<p id="section-6.3.1-1">Where the RAS requires a local agent record and none exists for the
+qualified pair in the authorized Target Tenant, resource policy <span class="bcp14">MAY</span>
+permit the RAS to create one from a validated grant: from (<code>act.iss</code>,
+<code>act.sub</code>) of an ID-JAG, or from (<code>iss</code>, <code>sub</code>) of a WAG under
+<a href="#wag-redemption" class="auto internal xref">Section 10.5</a>. The policy is disabled by default and enabled per
+governing issuer and Target Tenant. It serves resource domains that do
+not accept provisioning and deployments in which the first grant can
+arrive before provisioning completes. When it applies, the RAS:<a href="#section-6.3.1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-6.3.1-2.1">
+              <p id="section-6.3.1-2.1.1"><span class="bcp14">MUST</span> key the created record by that exact pair and <span class="bcp14">MUST NOT</span> attach
+the pair to an existing record by name or other descriptive match;<a href="#section-6.3.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-6.3.1-2.2">
+              <p id="section-6.3.1-2.2.1"><span class="bcp14">MUST</span> apply local restrictions, retained revocation state under
+<a href="#applied-changes" class="auto internal xref">Section 8.5.8</a>, and local policy before issuance; and<a href="#section-6.3.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-6.3.1-2.3">
+              <p id="section-6.3.1-2.3.1">sets the record's initial eligibility by local policy; a record
+created ineligible denies the triggering request.<a href="#section-6.3.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<p id="section-6.3.1-3">Creating the record is correlation, not authorization: the actor gate
+(<a href="#actor-authorization" class="auto internal xref">Section 7.4</a>) and resource policy still apply. A grant does
+not carry the IdP's administrative status, so creation does not
+substitute for propagating disablement; without provisioning, the RAS
+learns of disablement only through local action or another signal
+(<a href="#status-changes" class="auto internal xref">Section 11.6</a>). Provisioning and reconciliation of a created
+record are outside this document; <span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span> defines them for
+Receivers that conform to it.<a href="#section-6.3.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
 </section>
 </div>
 </section>
@@ -5842,7 +5884,7 @@ local agent principal in the authorized Target Tenant. The RAS <span class="bcp1
 have that authorized correlation before issuance; for governed agents
 this replaces the required acceptance of previously unseen
 identifiers in <span><a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-01#section-7" class="relref">Section 7</a> of [<a href="#WAG" class="cite xref">WAG</a>]</span>. Just-in-time correlation, where
-resource policy permits it, is defined by <span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span>.<a href="#section-10.5-2.2.1" class="pilcrow">¶</a></p>
+resource policy permits it, is defined in <a href="#jit-correlation" class="auto internal xref">Section 6.3.1</a>.<a href="#section-10.5-2.2.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-10.5-2.3">
             <p id="section-10.5-2.3.1">Validate resource, scope, and authorization details as in
@@ -6779,7 +6821,7 @@ control of both accounts in a user-linking flow.<a href="#appendix-A.3-2.1.1" cl
           <li class="normal" id="appendix-A.3-2.2">
             <p id="appendix-A.3-2.2.1">Authorize just-in-time creation of user accounts and agent
 correlations by issuer and tenant, the latter under
-<span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span>; avoid silent merges and reactivation of disabled
+<a href="#jit-correlation" class="auto internal xref">Section 6.3.1</a>; avoid silent merges and reactivation of disabled
 accounts.<a href="#appendix-A.3-2.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="appendix-A.3-2.3">

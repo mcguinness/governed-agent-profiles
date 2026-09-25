@@ -477,10 +477,22 @@ another. A local principal link identifies the agent; resource policy
 still determines whether to accept its delegated access.
 
 
-External workload identity, Agent Principal identity, and OAuth client
-identity are distinct. Identity Binding resolves the agent identity;
+Three identities meet in one request, and each answers a different
+question:
+
+| Identity | Question it answers | Established by |
+|---|---|---|
+| Workload | Which computational principal presented the accepted evidence? | Credential validation ({{evidence}}) |
+| OAuth client | Which software is requesting the grant? | Client authentication |
+| Agent Principal | Which independently governed principal does that input resolve to? | Identity Binding ({{identity-binding}}) |
+{: title="Distinct identities in a request"}
+
+They can coincide in a deployment, as when a dedicated client's
+identity is the resolution input, but none is inferred from another.
+The relationship between workloads and Agent Principals can be
+one-to-one; this profile does not require it ({{governance-boundary}}).
 Client Association authorizes client use through the binding, acting
-relationship, and credential class. Its coverage is explicit under {{identity-binding}}.
+relationship, and credential class under {{identity-binding}}.
 
 The IdP is the authority for the Agent Principal: the ID-JAG's `act.iss`
 equals its `iss`, and `act.sub` comes from the IdP's mapping rather than

@@ -501,17 +501,20 @@ Without a bound on propagation and enforcement, this profile claims no
 finite end-to-end denial bound. A local stale-state restriction can
 limit new issuance; it does not by itself revoke already-issued tokens.
 
-# Relationship Boundaries {#relationship-changes}
+# Revocation Boundaries {#relationship-changes}
 
 | Change | Boundary |
 |---|---|
+| Disable the Agent Principal | Stop new grants through every binding and client; once applied at the Receiver, deny redemption and refresh and revoke its sessions ({{application}}) |
 | Disable an Identity Binding | Stop new grants through that binding; other bindings remain independent |
 | Withdraw a Client Association | Stop that client use; do not infer agent-wide disablement |
 | Revoke a user's delegation | Affect that delegation, not unrelated users or self-acting authority |
 | Revoke a workload credential | Apply credential validation and IdP policy; do not automatically retire the Agent Principal |
 | Revoke a known ID-JAG | Invalidate its derived sessions; do not change principal eligibility |
+| Apply Local Suspension | Deny the agent in this resource domain regardless of upstream state; upstream activation cannot clear it |
 
-{{FEDERATION}} defines the first three authorization relationships.
+{{FEDERATION}} defines the binding, association, and delegation
+relationships.
 Grant-derived revocation under {{grant-revocation}} can target known
 ID-JAGs. Determining all grants affected by withdrawal of a binding or
 delegation remains an IdP responsibility; the agent identity alone

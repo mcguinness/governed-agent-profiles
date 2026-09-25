@@ -1,0 +1,2813 @@
+<!DOCTYPE html>
+<html lang="en" class="Internet-Draft">
+<head>
+<meta charset="utf-8">
+<meta content="Common,Latin" name="scripts">
+<meta content="initial-scale=1.0" name="viewport">
+<title>SCIM Profile for OAuth 2.0 Client Management</title>
+<meta content="Karl McGuinness" name="author">
+<meta content="
+       This document defines a SCIM 2.0 resource for provisioning and managing
+OAuth client registrations. It develops the approach proposed by Hunt,
+Ansari, and Nadalin in the original OAuth 2.0 SCIM Client Registration
+Profile, using the final SCIM and OAuth registration specifications. 
+       The resource maps OAuth registration metadata to SCIM attributes and
+uses SCIM operations, discovery, authorization, and conditional updates.
+It can share a registration with OAuth dynamic registration interfaces.
+It also manages local admission of clients using Client ID Metadata
+Documents, preserving their URL identifiers and document-owned metadata.
+The profile does not define a new client-authentication method or infer
+an authorization principal from a client registration. 
+    " name="description">
+<meta content="xml2rfc 3.34.1" name="generator">
+<meta content="OAuth" name="keyword">
+<meta content="SCIM" name="keyword">
+<meta content="client registration" name="keyword">
+<meta content="draft-mcguinness-scim-oauth-client-management-latest" name="ietf.draft">
+<!-- Generator version information:
+  xml2rfc 3.34.1
+    Python 3.14.7
+    ConfigArgParse 1.7.7
+    google-i18n-address 3.1.1
+    intervaltree 3.2.1
+    Jinja2 3.1.6
+    lxml 6.1.1
+    natsort 8.4.0
+    platformdirs 4.11.10
+    pycountry 24.6.1
+    PyYAML 6.0.3
+    requests 2.33.1
+    wcwidth 0.8.4
+-->
+<link href="draft-mcguinness-scim-oauth-client-management.xml" rel="alternate" type="application/rfc+xml">
+<link href="#copyright" rel="license">
+<style type="text/css">@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Lora SemiBold'), local('Lora-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-semibold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-greek.woff2') format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-greek.woff2') format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  color-scheme: light dark;
+  --background-color: #fff;
+  --text-color: #222;
+  --title-color: #191919;
+  --link-color: #2a6496;
+  --highlight-color: #f9f9f9;
+  --line-color: #eee;
+  --pilcrow-weak: #ddd;
+  --pilcrow-strong: #bbb;
+  --small-font-size: 14.5px;
+  --font-mono: 'Oxygen Mono', monospace;
+  --font-title: "Sofia Sans Semi Condensed", sans-serif;
+  scrollbar-color: #bbb #eee;
+}
+body {
+  max-width: 600px;
+  margin: 75px auto;
+  padding: 0 5px;
+  color: var(--text-color);
+  background-color: var(--background-color);
+  font: 16px/22px "Lora", serif;
+  scroll-behavior: smooth;
+}
+
+.ears {
+  display: none;
+}
+
+/* headings */
+section {
+  clear: both;
+}
+.section-number {
+  padding-right: 0.5em;
+}
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-title);
+  font-weight: 680;
+  margin: 0.8em 0 0.3em;
+  font-size-adjust: 0.5;
+  color: var(--title-color);
+}
+h1 {
+  &#title {
+    font-size: 32px;
+    line-height: 40px;
+    clear: both;
+    margin: 1.5em 0 0.2em;
+  }
+  &#rfcnum {
+    margin: 1.5em 0 0.2em;
+    & + h1#title {
+      margin: 0.2em 0;
+    }
+  }
+}
+
+h1, h2, h3 {
+  font-size: 22px;
+  line-height: 27px;
+}
+h4, h5, h6 {
+  font-size: 20px;
+  line-height: 24px;
+}
+
+/* general structure */
+.author {
+  padding-bottom: 0.3em;
+  vertical-align: top;
+}
+#abstract+p {
+  font-size: 18px;
+  line-height: 24px;
+  & code, & samp, & tt {
+    font-size: 16px;
+    line-height: 0;
+  }
+}
+
+p {
+  padding: 0;
+  margin: 0.5em 0;
+  text-align: left;
+}
+div {
+  margin: 0;
+}
+.alignRight {
+  margin: 1em 0;
+  &.art-text {
+    background-color: var(--highlight-color);
+    border: 1px solid var(--line-color);
+    border-radius: 3px;
+    padding: 0.5em 1em 0;
+    margin-bottom: 0.5em;
+    & pre {
+      padding: 0;
+      width: auto;
+    }
+  }
+  & > *:first-child {
+    border: none;
+    margin: 0;
+    float: right;
+    clear: both;
+  }
+  & > *:nth-child(2) {
+    clear: both;
+    display: block;
+    border: none;
+  }
+}
+svg {
+  display: block;
+  /* font-family isn't space-separated, but =~ will have to do */
+  &[font-family~="monospace" i], & [font-family~="monospace" i] {
+    font-family: var(--font-mono);
+  }
+}
+.alignCenter {
+  margin: 1em 0;
+  &.art-text {
+    background-color: var(--highlight-color);
+    border: 1px solid var(--line-color);
+    border-radius: 3px;
+    padding: 0.5em 1em 0;
+    margin-bottom: 0.5em;
+    & pre {
+      padding: 0;
+      width: auto;
+    }
+  }
+  & > *:first-child {
+    border: none;
+    /* this isn't optimal, but it's an existence proof.  PrinceXML doesn't
+       support flexbox yet.
+    */
+    display: table;
+    margin: 0 auto;
+  }
+}
+
+/* lists */
+ol, ul {
+  padding: 0;
+  margin: 0 0 0.5em 2em;
+  & :is(ol, ul) {
+    margin-left: 1em;
+  }
+}
+li {
+  margin: 0 0 0.25em 0;
+}
+ul.empty, .ulEmpty {
+  list-style-type: none;
+  & li {
+    margin-top: 0.5em;
+  }
+}
+:is(ul, ol).compact, .ulCompact, .olCompact {
+  margin: 0 0 0 2em;
+  & li {
+    margin: 0;
+    & :first-child { margin-top: 0; }
+    & :last-child { margin-bottom: 0; }
+  }
+}
+
+/* definition lists */
+dl {
+  clear: left;
+  --indent: 3ch;
+  /* --indent: attr(indent ch); not supported in any browser, but we can dream */
+  &.olPercent {
+    --indent: 5ch;
+    & > dt {
+      min-width: calc(var(--indent) - 2ch);
+      float: none;
+    }
+  }
+
+  dl > dd > & {
+    margin-top: 0.5em;
+    margin-bottom: 0;
+  }
+
+  &:not(.dlNewline) > dt {
+    float: left;
+    margin-right: 2ch;
+    min-width: 8ch;
+  }
+  & > dd {
+    margin-bottom: .8em;
+    margin-left: var(--indent) !important; /* stupid element overrides */
+    min-height: 2ex;
+  }
+}
+:is(dl.compact, .dlCompact) > dd {
+  margin-bottom: 0;
+  & > :is(:first-child, .break:first-child + *) {
+    margin-top: 0;
+  }
+  & > :is(:last-child) {
+    margin-bottom: 0;
+  }
+}
+:is(dd, span).break {
+  display: none;
+}
+
+/* links */
+a {
+  text-decoration: none;
+  &[href] {
+    color: var(--link-color);
+    &:hover { text-decoration: underline; }
+    &.selfRef {
+      color: var(--text-color);
+      &:hover {
+        text-decoration: none;
+        background-color: var(--highlight-color);
+      }
+    }
+  }
+}
+.iref + a[href].internal {
+  color: var(--text-color);
+}
+a.xref:is(.cite, .auto), :is(#status-of-memo, #copyright) a {
+  white-space: nowrap;
+}
+
+/* Figures */
+tt, code, pre {
+  background-color: var(--highlight-color);
+  font: 14px/22px var(--font-mono);
+}
+tt, code {
+  /* changing the font for inline elements leads to different ascender
+     and descender heights; as we want to retain baseline alignment,
+     remove leading to avoid altering the final height of lines
+     note: this fails if these blocks take an entire line,
+     a different solution would be great */
+  line-height: 0;
+}
+:is(h1, h2, h3, h4, h5, h6) :is(tt, code) {
+  font-size: 84%;
+}
+pre {
+  border: 1px solid var(--line-color);
+  font-size: 13.5px;
+  line-height: 16px;
+  letter-spacing: -0.2px;
+  margin: 5px;
+  padding: 5px;
+}
+img {
+  max-width: 100%;
+}
+figure {
+  margin: 0.5em 0;
+  padding: 0;
+  & blockquote {
+    margin: 0.8em 0.4em 0.4em;
+  }
+}
+figcaption, caption {
+  font-style: italic;
+  margin: 0.5em 1.5em;
+  text-align: left;
+  caption-side: bottom;
+}
+@media screen {
+  /* Auto-collapse boilerplate. */
+  :is(#status-of-memo, #copyright) {
+    & p {
+      margin: -2px 0;
+      max-height: 0;
+      transition: max-height 2s ease, margin 0.5s ease 0.5s;
+      overflow: hidden;
+    }
+    &:hover p,
+    & h2:target ~ p {
+      margin: 0.5em 0;
+      max-height: 500px;
+      overflow: auto;
+    }
+  }
+  pre, svg {
+    display: inline-block;
+    /* In the horizontal direction, sometimes people make over-sized figures.
+       Scrollbars for those is therefore necessary: auto adds them as necessary..
+       In the vertical direction, the line-height can combine with the font
+       asender/descender height to produce scrollbars: hidden avoids that. */
+    overflow: auto hidden;
+  }
+  pre {
+    max-width: 100%;
+    width: calc(100% - 22px - 1em);
+  }
+  svg {
+    max-width: calc(100% - 22px - 1em);
+  }
+  figure pre {
+    display: block;
+    width: calc(100% - 25px);
+  }
+  :is(pre, svg) + .pilcrow {
+    display: inline-block;
+    vertical-align: text-bottom;
+    padding-bottom: 8px;
+  }
+}
+
+/* aside, blockquote */
+aside, blockquote {
+  margin-left: 0;
+  padding: 0 2em;
+  font-style: italic;
+}
+blockquote {
+  margin: 1em 0;
+  border-left: 2px var(--pilcrow-strong) solid;
+}
+cite {
+  display: block;
+  text-align: right;
+  font-style: italic;
+}
+
+/* tables */
+table {
+  width: auto;
+  max-width: 100%;
+  margin: 0 0 1em;
+  border-collapse: collapse;
+  &.right { margin-left: auto; }
+  &.center { margin-left: auto; margin-right: auto; }
+  &.left { margin-right: auto; }
+  & .text-left { text-align: left; }
+  & .text-center { text-align: center; }
+  & .text-right { text-align: right; }
+  & caption {
+    margin: 0;
+    padding: 3px 0 3px 1em;
+  }
+  & p { margin: 0; }
+}
+
+thead, tbody {
+  border: 1px solid var(--line-color);
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 5px 10px;
+}
+th {
+  background-color: var(--line-color);
+}
+:is(tr:nth-child(2n), thead+tbody > tr:nth-child(2n+1)) > td {
+  background-color: var(--background-color);
+}
+:is(tr:nth-child(2n+1), thead+tbody > tr:nth-child(2n)) > td {
+  background-color: var(--highlight-color);
+}
+
+/* pilcrow */
+a.pilcrow {
+  margin-left: 3px;
+  opacity: 0.2;
+  user-select: none;
+  &[href] {
+    color: var(--pilcrow-weak);
+    &:hover { text-decoration: none; }
+  }
+  @media not print {
+    :hover > &, &:focus {
+      opacity: 1;
+    }
+    &[href]:hover {
+      color: var(--pilcrow-strong);
+      background-color: transparent;
+    }
+  }
+  @media print {
+    display: none;
+  }
+}
+
+/* misc */
+hr {
+  border: 0;
+  border-top: 1px solid var(--line-color);
+}
+.bcp14 {
+  font-variant: small-caps;
+  font-weight: 600;
+  font-size: var(--small-font-size);
+}
+.role {
+  font-variant: all-small-caps;
+}
+sub, sup {
+  line-height: 1;
+  font-size: 80%;
+}
+
+/* info block */
+#identifiers {
+  margin: 0;
+  font-size: var(--small-font-size);
+  line-height: 18px;
+  --identifier-width: 15ch;
+  & dt {
+    width: var(--identifier-width);
+    min-width: var(--identifier-width);
+    clear: left;
+    float: left;
+    text-align: right;
+    margin-right: 1ch;
+  }
+  & dd {
+    margin: 0;
+    margin-left: calc(1em + var(--identifier-width)) !important;
+    min-width: 5em;
+  }
+  & .authors {
+    & .author {
+      display: inline-block;
+      margin-right: 1.5em;
+    }
+    & .org {
+      font-style: italic;
+    }
+  }
+}
+
+/* The prepared/rendered info at the very bottom of the page */
+.docInfo {
+  color: #999;
+  font-size: 0.9em;
+  font-style: italic;
+  margin-top: 2em;
+  & .prepared {
+    float: right;
+  }
+}
+
+/* table of contents */
+#toc {
+  padding: 0.75em 0 2em 0;
+  margin-bottom: 1em;
+
+  & nav {
+    & ul {
+      margin: 0 0.5em 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    & li {
+      line-height: 1.3em;
+      margin: 2px 0;
+      padding-left: 1.2em;
+      text-indent: -1.2em;
+    }
+  }
+  & a.xref {
+    white-space: normal;
+  }
+}
+
+.references {
+  & > dt {
+    text-align: right;
+    font-weight: bold;
+    min-width: 10ch;
+    margin-right: 1.5ch;
+    &:target::before {
+      content: "⇒";
+      margin: 0 10px 0 -25px;
+    }
+  }
+  & > dd {
+    margin-left: 12ch !important;
+    overflow: visible;
+    & .refInstance {
+      margin-bottom: 0.8em;
+    }
+    & .ascii {
+      margin-bottom: 0.25em;
+    }
+  }
+}
+
+#rfc\.index\.index + ul {
+  margin-left: 0;
+}
+
+/* authors */
+address.vcard {
+  font-style: normal;
+  max-width: 20em;
+  margin: 1em auto 1em 0;
+
+  & .nameRole {
+    font-weight: 700;
+    margin-left: 0;
+  }
+  & .label {
+    margin: 0.5em 0;
+  }
+  & .type {
+    display: none;
+  }
+  & .alternative-contact {
+    margin: 0.5em 0 0.25em 0;
+  }
+  & .non-ascii {
+    margin: 0 0 0 2em;
+  }
+  & div.left {
+    text-align: left;
+  }
+  & div.right {
+    text-align: right;
+  }
+}
+
+hr.addr {
+  border-top: 1px dashed;
+  margin: 0;
+  color: #ddd;
+  max-width: calc(100% - 16px);
+}
+@media (min-width: 500px) {
+  #authors-addresses {
+    & > section {
+      column-count: 2;
+      column-gap: 20px;
+    }
+    & > section > h2 {
+      column-span: all;
+    }
+    /* hack for break-inside: avoid-column */
+    & address {
+      display: inline-block;
+      break-inside: avoid-column;
+    }
+  }
+}
+
+/* Comments */
+.rfcEditorRemove {
+  & p:first-of-type {
+    font-style: italic;
+  }
+}
+.cref {
+  background-color: rgba(249, 232, 105, 0.3);
+  padding: 2px 4px;
+}
+.crefSource {
+  font-style: italic;
+}
+
+@media screen {
+  #toc {
+    & nav {
+      font-family: var(--font-title);
+      font-weight: 360;
+      & > ul { margin-bottom: 2em; }
+      & ul {
+        margin: 0 0 0 4px;
+        & :is(p, li) {
+          margin: 2px 0;
+        }
+      }
+    }
+    & a.toplink {
+      float: right;
+    }
+  }
+}
+@media not screen {
+  #toc a.toplink {
+    display: none;
+  }
+}
+
+
+/* TOC layout for smaller screens */
+@media screen and (max-width: 929px) {
+  #toc {
+    position: fixed;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    padding: 1px 0 0 0;
+    margin: 0;
+    border-bottom: 1px solid #ccc;
+    opacity: 0.6;
+    & h2 {
+      margin: 0;
+      padding: 2px 0 2px 6px;
+      padding-right: 1em;
+      font-size: 18px;
+      line-height: 24px;
+      min-width: 190px;
+      text-align: right;
+      background-color: #444;
+      color: white;
+      cursor: pointer;
+      &::before { /* css hamburger */
+        float: right;
+        position: relative;
+        width: 1em;
+        height: 1px;
+        left: -164px;
+        margin: 8px 0 0 0;
+        background: white none repeat scroll 0 0;
+        box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
+        content: "";
+      }
+    }
+    & nav {
+      display: none;
+      background-color: var(--background-color);
+      padding: 0.5em 1em 1em;
+      overflow: auto;
+      overscroll-behavior: contain;
+      height: calc(100vh - 48px);
+      border-left: 1px solid #ddd;
+    }
+    &.active {
+      opacity: 1;
+      & nav { display: block; }
+    }
+    /* Make the collapsed ToC header render white on gray also when it's a link */
+    & h2 a,
+    & h2 a:is(:link, :focus, :hover),
+    & a.toplink,
+    & a.toplink:hover {
+      color: white;
+      background-color: #444;
+      text-decoration: none;
+    }
+    & a.toplink {
+      margin: 2px 0.5em 0;
+    }
+  }
+}
+
+/* TOC layout for wide screens */
+@media screen and (min-width: 930px) {
+  body {
+    padding-right: 360px;
+    padding-right: calc(min(180px + 20%, 500px));
+  }
+  #toc {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    right: calc(50vw - 480px);
+    width: 312px;
+    margin: 0;
+    padding: 0;
+    z-index: 1;
+    & h2 {
+      margin: 0;
+      padding: 0.25em 1em 1em 0;
+    }
+    & nav {
+      display: block;
+      height: calc(90vh - 84px);
+      bottom: 0;
+      padding: 0.5em 0 2em;
+      overflow: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+    }
+    & a.toplink {
+      margin: 8px 0.5em 0;
+    }
+  }
+  img { /* future proofing */
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* pagination */
+@media print {
+  body {
+    width: 100%;
+  }
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+  #n-copyright-notice {
+    border-bottom: none;
+  }
+  #toc {
+    page-break-before: always;
+    border-top: none;
+    padding-top: 0;
+  }
+  #n-introduction {
+    page-break-before: always;
+  }
+  figure, pre, .vcard {
+    page-break-inside: avoid;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+  :is(h2, h3, h4, h5, h6)+*, dd {
+    page-break-before: avoid;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 10pt;
+  }
+  table {
+    border: 1px solid #ddd;
+  }
+  td {
+    border-top: 1px solid #ddd;
+  }
+}
+
+@page :first {
+  padding-top: 0;
+  @top-left {
+    content: normal;
+    border: none;
+  }
+  @top-center {
+    content: normal;
+    border: none;
+  }
+  @top-right {
+    content: normal;
+    border: none;
+  }
+}
+
+@page {
+  size: A4;
+  margin-bottom: 45mm;
+  padding-top: 20px;
+}
+
+/* Dark mode. */
+@media (prefers-color-scheme: dark) {
+:root {
+  --background-color: #121212;
+  --text-color: #f0f0f0;
+  --title-color: #fff;
+  --link-color: #4da4f0;
+  --highlight-color: #282828;
+  --line-color: #444;
+  --pilcrow-weak: #444;
+  --pilcrow-strong: #666;
+  scrollbar-color: #777 #333;
+}
+}
+
+/* SVG Trick: a prefix match works because only black and white are allowed */
+svg {
+  & :is([stroke="black"], [stroke^="#000"]) {
+    stroke: var(--text-color);
+  }
+  & :is([stroke="white"], [stroke^="#fff"]) {
+    stroke: var(--background-color);
+  }
+  & :is([fill="black"], [fill^="#000"], :not([fill])) {
+    fill: var(--text-color);
+  }
+  & :is([fill="white"], [fill^="#fff"]) {
+    fill: var(--background-color);
+  }
+}
+</style>
+
+</head>
+<body class="xml2rfc">
+<table class="ears">
+<thead><tr>
+<td class="left">Internet-Draft</td>
+<td class="center">SCIM OAuth Client Management</td>
+<td class="right">September 2026</td>
+</tr></thead>
+<tfoot><tr>
+<td class="left">McGuinness</td>
+<td class="center">Expires 29 March 2027</td>
+<td class="right">[Page]</td>
+</tr></tfoot>
+</table>
+<div id="external-metadata" class="document-information"></div>
+<div id="internal-metadata" class="document-information">
+<dl id="identifiers">
+<dt class="label-workgroup">Workgroup:</dt>
+<dd class="workgroup">System for Cross-domain Identity Management</dd>
+<dt class="label-internet-draft">Internet-Draft:</dt>
+<dd class="internet-draft">draft-mcguinness-scim-oauth-client-management-latest</dd>
+<dt class="label-published">Published:</dt>
+<dd class="published">
+<time datetime="2026-09-25" class="published">25 September 2026</time>
+    </dd>
+<dt class="label-intended-status">Intended Status:</dt>
+<dd class="intended-status">Standards Track</dd>
+<dt class="label-expires">Expires:</dt>
+<dd class="expires"><time datetime="2027-03-29">29 March 2027</time></dd>
+<dt class="label-authors">Author:</dt>
+<dd class="authors">
+<div class="author">
+      <div class="author-name">K. McGuinness</div>
+<div class="org">Independent</div>
+</div>
+</dd>
+</dl>
+</div>
+<h1 id="title">SCIM Profile for OAuth 2.0 Client Management</h1>
+<section id="section-abstract">
+      <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
+<p id="section-abstract-1">This document defines a SCIM 2.0 resource for provisioning and managing
+OAuth client registrations. It develops the approach proposed by Hunt,
+Ansari, and Nadalin in the original OAuth 2.0 SCIM Client Registration
+Profile, using the final SCIM and OAuth registration specifications.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+<p id="section-abstract-2">The resource maps OAuth registration metadata to SCIM attributes and
+uses SCIM operations, discovery, authorization, and conditional updates.
+It can share a registration with OAuth dynamic registration interfaces.
+It also manages local admission of clients using Client ID Metadata
+Documents, preserving their URL identifiers and document-owned metadata.
+The profile does not define a new client-authentication method or infer
+an authorization principal from a client registration.<a href="#section-abstract-2" class="pilcrow">¶</a></p>
+</section>
+<section class="note rfcEditorRemove" id="section-note.1">
+      <h2 id="name-about-this-document">
+<a href="#name-about-this-document" class="section-name selfRef">About This Document</a>
+      </h2>
+<p id="section-note.1-1">This note is to be removed before publishing as an RFC.<a href="#section-note.1-1" class="pilcrow">¶</a></p>
+<p id="section-note.1-2">
+        The latest revision of this draft can be found at <span><a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-oauth-client-management.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-oauth-client-management.html</a></span>.
+        Status information for this document may be found at <span><a href="https://datatracker.ietf.org/doc/draft-mcguinness-scim-oauth-client-management/">https://datatracker.ietf.org/doc/draft-mcguinness-scim-oauth-client-management/</a></span>.<a href="#section-note.1-2" class="pilcrow">¶</a></p>
+<p id="section-note.1-3">
+        Discussion of this document takes place on the
+        System for Cross-domain Identity Management Working Group mailing list (<span><a href="mailto:scim@ietf.org">mailto:scim@ietf.org</a></span>),
+        which is archived at <span><a href="https://mailarchive.ietf.org/arch/browse/scim/">https://mailarchive.ietf.org/arch/browse/scim/</a></span>.
+        Subscribe at <span><a href="https://www.ietf.org/mailman/listinfo/scim/">https://www.ietf.org/mailman/listinfo/scim/</a></span>.<a href="#section-note.1-3" class="pilcrow">¶</a></p>
+<p id="section-note.1-4">Source for this draft and an issue tracker can be found at
+        <span><a href="https://github.com/mcguinness/governed-agent-profiles">https://github.com/mcguinness/governed-agent-profiles</a></span>.<a href="#section-note.1-4" class="pilcrow">¶</a></p>
+</section>
+<div id="status-of-memo">
+<section id="section-boilerplate.1">
+        <h2 id="name-status-of-this-memo">
+<a href="#name-status-of-this-memo" class="section-name selfRef">Status of This Memo</a>
+        </h2>
+<p id="section-boilerplate.1-1">
+        This Internet-Draft is submitted in full conformance with the
+        provisions of BCP 78 and BCP 79.<a href="#section-boilerplate.1-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-2">
+        Internet-Drafts are working documents of the Internet Engineering Task
+        Force (IETF). Note that other groups may also distribute working
+        documents as Internet-Drafts. The list of current Internet-Drafts is
+        at <span><a href="https://datatracker.ietf.org/drafts/current/">https://datatracker.ietf.org/drafts/current/</a></span>.<a href="#section-boilerplate.1-2" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-3">
+        Internet-Drafts are draft documents valid for a maximum of six months
+        and may be updated, replaced, or obsoleted by other documents at any
+        time. It is inappropriate to use Internet-Drafts as reference
+        material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-4">
+        This Internet-Draft will expire on 29 March 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="copyright">
+<section id="section-boilerplate.2">
+        <h2 id="name-copyright-notice">
+<a href="#name-copyright-notice" class="section-name selfRef">Copyright Notice</a>
+        </h2>
+<p id="section-boilerplate.2-1">
+            Copyright (c) 2026 IETF Trust and the persons identified as the
+            document authors. All rights reserved.<a href="#section-boilerplate.2-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.2-2">
+            This document is subject to BCP 78 and the IETF Trust's Legal
+            Provisions Relating to IETF Documents
+            (<span><a href="https://trustee.ietf.org/license-info">https://trustee.ietf.org/license-info</a></span>) in effect on the date of
+            publication of this document. Please review these documents
+            carefully, as they describe your rights and restrictions with
+            respect to this document. Code Components extracted from this
+            document must include Revised BSD License text as described in
+            Section 4.e of the Trust Legal Provisions and are provided without
+            warranty as described in the Revised BSD License.<a href="#section-boilerplate.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="toc">
+<section id="section-toc.1">
+        <a href="#" onclick="scroll(0,0)" class="toplink">▲</a><h2 id="name-table-of-contents">
+<a href="#name-table-of-contents" class="section-name selfRef">Table of Contents</a>
+        </h2>
+<nav class="toc"><ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1">
+            <p id="section-toc.1-1.1.1" class="keepWithNext"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.1">
+                <p id="section-toc.1-1.1.2.1.1" class="keepWithNext"><a href="#section-1.1" class="auto internal xref">1.1</a>.  <a href="#name-scope" class="internal xref">Scope</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
+            <p id="section-toc.1-1.2.1" class="keepWithNext"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-conventions-and-administrat" class="internal xref">Conventions and Administrative Authority</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
+            <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-common-provisioning-convent" class="internal xref">Common Provisioning Conventions</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-oauthclient-resource" class="internal xref">OAuthClient Resource</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1">
+                <p id="section-toc.1-1.4.2.1.1"><a href="#section-4.1" class="auto internal xref">4.1</a>.  <a href="#name-identity-and-administrative" class="internal xref">Identity and Administrative Attributes</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2">
+                <p id="section-toc.1-1.4.2.2.1"><a href="#section-4.2" class="auto internal xref">4.2</a>.  <a href="#name-registration-metadata" class="internal xref">Registration Metadata</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.3">
+                <p id="section-toc.1-1.4.2.3.1"><a href="#section-4.3" class="auto internal xref">4.3</a>.  <a href="#name-client-id-metadata-document" class="internal xref">Client ID Metadata Documents</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.4">
+                <p id="section-toc.1-1.4.2.4.1"><a href="#section-4.4" class="auto internal xref">4.4</a>.  <a href="#name-credentials-and-extensions" class="internal xref">Credentials and Extensions</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
+            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-scim-operations" class="internal xref">SCIM Operations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1">
+                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-creation-and-existing-regis" class="internal xref">Creation and Existing Registrations</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2">
+                <p id="section-toc.1-1.5.2.2.1"><a href="#section-5.2" class="auto internal xref">5.2</a>.  <a href="#name-read-query-and-update" class="internal xref">Read, Query, and Update</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.3">
+                <p id="section-toc.1-1.5.2.3.1"><a href="#section-5.3" class="auto internal xref">5.3</a>.  <a href="#name-disablement-and-deletion" class="internal xref">Disablement and Deletion</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.4">
+                <p id="section-toc.1-1.5.2.4.1"><a href="#section-5.4" class="auto internal xref">5.4</a>.  <a href="#name-errors" class="internal xref">Errors</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
+            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-coexistence-with-dynamic-re" class="internal xref">Coexistence with Dynamic Registration</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-privacy-considerations" class="internal xref">Privacy Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
+            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.1">
+                <p id="section-toc.1-1.9.2.1.1"><a href="#section-9.1" class="auto internal xref">9.1</a>.  <a href="#name-oauthclient-resource-2" class="internal xref">OAuthClient Resource</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.2">
+                <p id="section-toc.1-1.9.2.2.1"><a href="#section-9.2" class="auto internal xref">9.2</a>.  <a href="#name-registration-metadata-exten" class="internal xref">Registration Metadata Extension</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-references" class="internal xref">References</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.1">
+                <p id="section-toc.1-1.10.2.1.1"><a href="#section-10.1" class="auto internal xref">10.1</a>.  <a href="#name-normative-references" class="internal xref">Normative References</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.2">
+                <p id="section-toc.1-1.10.2.2.1"><a href="#section-10.2" class="auto internal xref">10.2</a>.  <a href="#name-informative-references" class="internal xref">Informative References</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
+            <p id="section-toc.1-1.11.1"><a href="#appendix-A" class="auto internal xref">Appendix A</a>.  <a href="#name-example-provision-and-disab" class="internal xref">Example: Provision and Disable a Client</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.1">
+                <p id="section-toc.1-1.11.2.1.1"><a href="#appendix-A.1" class="auto internal xref">A.1</a>.  <a href="#name-register" class="internal xref">Register</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.2">
+                <p id="section-toc.1-1.11.2.2.1"><a href="#appendix-A.2" class="auto internal xref">A.2</a>.  <a href="#name-disable" class="internal xref">Disable</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
+            <p id="section-toc.1-1.12.1"><a href="#appendix-B" class="auto internal xref">Appendix B</a>.  <a href="#name-example-admit-a-cimd-client" class="internal xref">Example: Admit a CIMD Client</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
+            <p id="section-toc.1-1.13.1"><a href="#appendix-C" class="auto internal xref">Appendix C</a>.  <a href="#name-relationship-to-the-origina" class="internal xref">Relationship to the Original Proposal</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14">
+            <p id="section-toc.1-1.14.1"><a href="#appendix-D" class="auto internal xref">Appendix D</a>.  <a href="#name-schema-and-resourcetype-rep" class="internal xref">Schema and ResourceType Representations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.1">
+                <p id="section-toc.1-1.14.2.1.1"><a href="#appendix-D.1" class="auto internal xref">D.1</a>.  <a href="#name-oauthclient-schema" class="internal xref">OAuthClient Schema</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.2">
+                <p id="section-toc.1-1.14.2.2.1"><a href="#appendix-D.2" class="auto internal xref">D.2</a>.  <a href="#name-oauthclientmetadata-schema" class="internal xref">OAuthClientMetadata Schema</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.3">
+                <p id="section-toc.1-1.14.2.3.1"><a href="#appendix-D.3" class="auto internal xref">D.3</a>.  <a href="#name-oauthclient-resourcetype" class="internal xref">OAuthClient ResourceType</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15">
+            <p id="section-toc.1-1.15.1"><a href="#appendix-E" class="auto internal xref">Appendix E</a>.  <a href="#name-document-history" class="internal xref">Document History</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.16">
+            <p id="section-toc.1-1.16.1"><a href="#appendix-F" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.17">
+            <p id="section-toc.1-1.17.1"><a href="#appendix-G" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
+</li>
+        </ul>
+</nav>
+</section>
+</div>
+<div id="introduction">
+<section id="section-1">
+      <h2 id="name-introduction">
+<a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
+      </h2>
+<p id="section-1-1">An enterprise provisioning service needs to create, find, update, and
+decommission OAuth client registrations. OAuth Dynamic Client Registration
+<span>[<a href="#RFC7591" class="cite xref">RFC7591</a>]</span> and Client Registration Management <span>[<a href="#RFC7592" class="cite xref">RFC7592</a>]</span> define the
+registration model and their own HTTP interfaces. SCIM <span>[<a href="#RFC7643" class="cite xref">RFC7643</a>]</span>
+        <span>[<a href="#RFC7644" class="cite xref">RFC7644</a>]</span> supplies a management interface with resource discovery,
+collection queries, attribute-level updates, and concurrency controls.<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-2"><span>[<a href="#HUNT" class="cite xref">HUNT</a>]</span> first proposed representing OAuth registrations as SCIM resources.
+This document is a modernized successor proposal, retaining that resource
+model and management approach. It uses current OAuth metadata and SCIM 2.0
+semantics instead of the earlier draft formats. <a href="#changes" class="auto internal xref">Appendix C</a> describes
+its relationship to that work; this proposal does not imply participation
+or endorsement by the original authors.<a href="#section-1-2" class="pilcrow">¶</a></p>
+<p id="section-1-3">The managed object is one client registration at one authorization
+server:<a href="#section-1-3" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-1-4">
+<pre>
+ SCIM provisioning client          Authorization server
+          |                       +---------------------+
+          +---- /OAuthClients ---&gt;| Client registration |
+                                  +----------+----------+
+                                             |
+                                  OAuth protocol use
+</pre><a href="#section-1-4" class="pilcrow">¶</a>
+</div>
+<p id="section-1-5">SCIM <code>id</code> identifies the management resource. OAuth <code>client_id</code>
+identifies the client at its authorization server. Neither automatically
+identifies a workload, runtime instance, or Agent Principal.<a href="#section-1-5" class="pilcrow">¶</a></p>
+<p id="section-1-6">For Client ID Metadata Document (CIMD) clients <span>[<a href="#CIMD" class="cite xref">CIMD</a>]</span>, the resource
+manages local admission at the authorization server. It retains the
+Client Identifier URL; it does not allocate a replacement OAuth
+identity. The document supplies client metadata, while SCIM supplies
+administrative state and a stable reference for local relationships.
+This management option does not make SCIM provisioning a prerequisite
+for CIMD use outside this profile.<a href="#section-1-6" class="pilcrow">¶</a></p>
+<div id="scope">
+<section id="section-1.1">
+        <h3 id="name-scope">
+<a href="#section-1.1" class="section-number selfRef">1.1. </a><a href="#name-scope" class="section-name selfRef">Scope</a>
+        </h3>
+<p id="section-1.1-1">This profile supports authenticated administrative provisioning. A
+client may manage its own registration when explicitly authorized, or a
+connector may manage a bounded collection of registrations.<a href="#section-1.1-1" class="pilcrow">¶</a></p>
+<p id="section-1.1-2">The representation covers locally managed registration metadata and
+public key configuration by <code>jwks_uri</code>, or a reference to CIMD metadata
+under <a href="#cimd" class="auto internal xref">Section 4.3</a>. It does not define:<a href="#section-1.1-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-1.1-3.1">
+            <p id="section-1.1-3.1.1">Anonymous registration or a new registration access-token format.<a href="#section-1.1-3.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.1-3.2">
+            <p id="section-1.1-3.2.1">Generation, export, or rotation of shared secrets or private keys.<a href="#section-1.1-3.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.1-3.3">
+            <p id="section-1.1-3.3.1">Embedded <code>jwks</code>, localized metadata names, or software-statement
+submission through SCIM. These require explicit SCIM mappings beyond
+this document. Their use within a CIMD document or through RFC 7591
+is unaffected.<a href="#section-1.1-3.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.1-3.4">
+            <p id="section-1.1-3.4.1">Agent identity, workload trust, consent, user delegation, or a policy
+language. <span>[<a href="#AGENT-MANAGEMENT" class="cite xref">AGENT-MANAGEMENT</a>]</span> separately consumes client references.<a href="#section-1.1-3.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-1.1-4">An authorization server can continue to expose RFC 7591 and RFC 7592
+interfaces for those deployments and features. SCIM support does not
+require exposing either interface.<a href="#section-1.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="trust">
+<section id="section-2">
+      <h2 id="name-conventions-and-administrat">
+<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-conventions-and-administrat" class="section-name selfRef">Conventions and Administrative Authority</a>
+      </h2>
+<p id="section-2-1">The key words "<span class="bcp14">MUST</span>", "<span class="bcp14">MUST NOT</span>", "<span class="bcp14">REQUIRED</span>", "<span class="bcp14">SHALL</span>", "<span class="bcp14">SHALL NOT</span>", "<span class="bcp14">SHOULD</span>", "<span class="bcp14">SHOULD NOT</span>", "<span class="bcp14">RECOMMENDED</span>", "<span class="bcp14">NOT RECOMMENDED</span>",
+"<span class="bcp14">MAY</span>", and "<span class="bcp14">OPTIONAL</span>" in this document are to be interpreted as
+described in <span>[<a href="#BCP14" class="cite xref">BCP14</a>]</span> (<a href="#RFC2119" class="auto internal xref">RFC2119</a>) (<a href="#RFC8174" class="auto internal xref">RFC8174</a>) when, and only when, they
+appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶</a></p>
+<p id="section-2-2">OAuth terms follow <span>[<a href="#RFC6749" class="cite xref">RFC6749</a>]</span>. Registration metadata follows
+<span>[<a href="#RFC7591" class="cite xref">RFC7591</a>]</span>; SCIM terms follow <span>[<a href="#RFC7643" class="cite xref">RFC7643</a>]</span> and <span>[<a href="#RFC7644" class="cite xref">RFC7644</a>]</span>. A
+Provisioning Domain is one connector's authorized management scope
+within a tenant. Provisioning clients for this profile are purpose-built
+OAuthClient connectors; support for SCIM User and Group endpoints alone
+is insufficient.<a href="#section-2-2" class="pilcrow">¶</a></p>
+<p id="section-2-3">The SCIM Service Provider manages registrations for a configured
+authorization server. Its authenticated administrative context <span class="bcp14">MUST</span>
+identify the permitted authorization server, tenant, and management
+scope. Request attributes <span class="bcp14">MUST NOT</span> expand that scope.<a href="#section-2-3" class="pilcrow">¶</a></p>
+<p id="section-2-4">The Service Provider <span class="bcp14">MUST</span> authorize creation, metadata changes,
+key-source changes, activation, and deletion against that context.
+Permission to read or describe a client does not imply permission to
+change its keys, redirect URIs, grants, or eligibility. A
+client-authentication credential <span class="bcp14">MUST NOT</span> by itself establish permission
+to manage the registration.<a href="#section-2-4" class="pilcrow">¶</a></p>
+<p id="section-2-5">SCIM request authorization uses <span><a href="https://rfc-editor.org/rfc/rfc7644#section-2" class="relref">Section 2</a> of [<a href="#RFC7644" class="cite xref">RFC7644</a>]</span>. This profile
+defines no management scope names and issues no registration access
+token. An RFC 7592 registration access token is not automatically
+accepted by the SCIM interface; such use requires separately configured
+authorization.<a href="#section-2-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="conventions">
+<section id="section-3">
+      <h2 id="name-common-provisioning-convent">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-common-provisioning-convent" class="section-name selfRef">Common Provisioning Conventions</a>
+      </h2>
+<p id="section-3-1">The conventions below apply to the OAuthClient resource. The companion
+profiles for agent management and lifecycle reference them and state
+their own narrowings.<a href="#section-3-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-3-2.1">
+          <p id="section-3-2.1.1"><strong>Correlation:</strong> Provisioning clients <span class="bcp14">SHOULD</span> supply <code>externalId</code> for
+reconciliation and retry recovery. When present, it <span class="bcp14">MUST</span> be non-empty
+and unique within the authenticated Provisioning Domain and resource
+type, including concurrent writes. It retains SCIM readWrite
+mutability unless a profile states otherwise, and it is an
+administrative correlation value, not a protocol identifier. A
+duplicate uses <code>409</code> with <code>uniqueness</code>. POST is never an upsert: after
+a lost response, the client queries by exact <code>externalId</code> before
+retrying. Without a correlation value, repeating POST is not
+idempotent.<a href="#section-3-2.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-3-2.2">
+          <p id="section-3-2.2.1"><strong>Identifiers:</strong> SCIM <code>id</code> is server-assigned and <span class="bcp14">MUST NOT</span> be
+reassigned after deletion. Supplied read-only values are processed
+under SCIM's read-only rules and <span class="bcp14">MUST NOT</span> select an existing resource.<a href="#section-3-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-3-2.3">
+          <p id="section-3-2.3.1"><strong>Versions:</strong> Complete representations <span class="bcp14">MUST</span> carry <code>meta.created</code>,
+<code>meta.lastModified</code>, and <code>meta.version</code>; individual responses <span class="bcp14">MUST</span>
+carry the corresponding ETag. The Service Provider <span class="bcp14">MUST</span> support ETags
+under <span><a href="https://rfc-editor.org/rfc/rfc7644#section-3.14" class="relref">Section 3.14</a> of [<a href="#RFC7644" class="cite xref">RFC7644</a>]</span> and advertise ETag, PATCH, and
+filtering support in <code>/ServiceProviderConfig</code>. <code>meta.version</code> is an
+opaque validator, not a lifecycle counter, and <code>meta.lastModified</code> is
+a modification time, not a decision time.<a href="#section-3-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-3-2.4">
+          <p id="section-3-2.4.1"><strong>Conditional writes:</strong> Clients <span class="bcp14">SHOULD</span> use <code>If-Match</code> on PUT, PATCH,
+and DELETE. A failed precondition receives HTTP 412 under
+<span><a href="https://rfc-editor.org/rfc/rfc7644#section-3.12" class="relref">Section 3.12</a> of [<a href="#RFC7644" class="cite xref">RFC7644</a>]</span>; the client retrieves and reconciles its
+intended change before retrying. Changing an existing inactive
+resource to active <span class="bcp14">MUST</span> use <code>If-Match</code> with a resource-version ETag
+matching the current representation. An absent header or
+<code>If-Match: *</code> receives HTTP 409 with a <code>detail</code> directing the client
+to retrieve current state and use its ETag; no <code>scimType</code> is
+assigned. The wildcard tests existence, not version, under
+<span><a href="https://rfc-editor.org/rfc/rfc9110#section-13.1.1" class="relref">Section 13.1.1</a> of [<a href="#RFC9110" class="cite xref">RFC9110</a>]</span>. Other authorized unconditional writes
+remain permitted.<a href="#section-3-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-3-2.5">
+          <p id="section-3-2.5.1"><strong>Explicit state:</strong> Creation and PUT <span class="bcp14">MUST</span> supply an explicit boolean
+<code>active</code>; removing it is invalid. PUT <span class="bcp14">MUST</span> include required
+attributes. Optional immutable values omitted from PUT retain their
+stored values; supplied different values receive <code>400</code> with
+<code>mutability</code>.<a href="#section-3-2.5.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-3-2.6">
+          <p id="section-3-2.6.1"><strong>Incremental reads:</strong> The Service Provider <span class="bcp14">MUST</span> support <code>gt</code> and <code>ge</code>
+filters on <code>meta.lastModified</code>, combinable with the required equality
+filters. For example, <code>meta.lastModified ge "2026-09-18T12:00:00Z"</code>
+selects records changed since a checkpoint. A client <span class="bcp14">SHOULD</span> overlap
+successive windows and deduplicate by <code>id</code> and <code>meta.version</code>;
+timestamps are not unique sequence numbers. Incremental queries cannot
+discover deletions and do not form a transactional snapshot. Periodic
+complete reconciliation remains necessary, and an incomplete listing
+cannot establish absence.<a href="#section-3-2.6.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-3-2.7">
+          <p id="section-3-2.7.1"><strong>Durable restriction:</strong> Before returning success for a restrictive
+change, the Service Provider <span class="bcp14">MUST</span> persist the restriction in durable
+state consulted by its decision points. Decisions beginning after the
+response <span class="bcp14">MUST</span> observe it. If a decision point cannot observe it, the
+write <span class="bcp14">MUST NOT</span> be reported successful; queuing an update alone is
+insufficient. An in-flight decision made before the restriction can
+still complete.<a href="#section-3-2.7.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+</section>
+</div>
+<div id="schema">
+<section id="section-4">
+      <h2 id="name-oauthclient-resource">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-oauthclient-resource" class="section-name selfRef">OAuthClient Resource</a>
+      </h2>
+<p id="section-4-1">The resource type is <code>OAuthClient</code>, exposed at <code>/OAuthClients</code>, with
+schema:<a href="#section-4-1" class="pilcrow">¶</a></p>
+<p id="section-4-2"><code>urn:ietf:params:scim:schemas:core:2.0:OAuthClient</code><a href="#section-4-2" class="pilcrow">¶</a></p>
+<p id="section-4-3">The Service Provider <span class="bcp14">MUST</span> advertise the resource and attribute
+definitions through <code>/ResourceTypes</code> and <code>/Schemas</code>, and supported
+operations through <code>/ServiceProviderConfig</code>, advertising PATCH,
+filtering, and ETag support. <a href="#schema-json" class="auto internal xref">Appendix D</a> provides the schema
+definitions. The core namespace registration follows <a href="#iana" class="auto internal xref">Section 9</a>.<a href="#section-4-3" class="pilcrow">¶</a></p>
+<div id="identity">
+<section id="section-4.1">
+        <h3 id="name-identity-and-administrative">
+<a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-identity-and-administrative" class="section-name selfRef">Identity and Administrative Attributes</a>
+        </h3>
+<p id="section-4.1-1">Common attributes <code>id</code>, <code>externalId</code>, and <code>meta</code> follow <span>[<a href="#RFC7643" class="cite xref">RFC7643</a>]</span>. The
+additional attributes are:<a href="#section-4.1-1" class="pilcrow">¶</a></p>
+<table class="center" id="table-1">
+          <caption><a href="#table-1" class="selfRef">Table 1</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Attribute</th>
+              <th class="text-left" rowspan="1" colspan="1">Type</th>
+              <th class="text-left" rowspan="1" colspan="1">Mutability</th>
+              <th class="text-left" rowspan="1" colspan="1">Required</th>
+              <th class="text-left" rowspan="1" colspan="1">Meaning</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>authorizationServer</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">string</td>
+              <td class="text-left" rowspan="1" colspan="1">readOnly</td>
+              <td class="text-left" rowspan="1" colspan="1">true</td>
+              <td class="text-left" rowspan="1" colspan="1">Authorization-server issuer identifier under <span>[<a href="#RFC8414" class="cite xref">RFC8414</a>]</span>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>clientId</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">string</td>
+              <td class="text-left" rowspan="1" colspan="1">readOnly</td>
+              <td class="text-left" rowspan="1" colspan="1">true</td>
+              <td class="text-left" rowspan="1" colspan="1">OAuth client identifier: server-assigned or the CIMD Client Identifier URL</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>clientIdMetadataDocument</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">string</td>
+              <td class="text-left" rowspan="1" colspan="1">immutable</td>
+              <td class="text-left" rowspan="1" colspan="1">false</td>
+              <td class="text-left" rowspan="1" colspan="1">Client Identifier URL selecting CIMD metadata, as defined in <a href="#cimd" class="auto internal xref">Section 4.3</a>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>active</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">boolean</td>
+              <td class="text-left" rowspan="1" colspan="1">readWrite</td>
+              <td class="text-left" rowspan="1" colspan="1">true</td>
+              <td class="text-left" rowspan="1" colspan="1">Whether this registration is enabled for OAuth use</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-4.1-3">All are single-valued, returned by default, and have uniqueness <code>none</code>.
+String comparisons are case-exact. The server populates both read-only
+values on creation; request values are processed under SCIM's read-only
+rules and <span class="bcp14">MUST NOT</span> select an existing registration.<a href="#section-4.1-3" class="pilcrow">¶</a></p>
+<p id="section-4.1-4">The pair (<code>authorizationServer</code>, <code>clientId</code>) <span class="bcp14">MUST</span> identify exactly one
+registration and <span class="bcp14">MUST</span> remain unchanged for the resource's lifetime. The
+issuer comes from configured server context, not from a URL supplied by
+the provisioning client. SCIM <code>clientId</code> carries the OAuth <code>client_id</code>
+unchanged; neither need equal SCIM <code>id</code>.<a href="#section-4.1-4" class="pilcrow">¶</a></p>
+<p id="section-4.1-5">The Service Provider <span class="bcp14">MUST NOT</span> reassign a deleted resource's <code>id</code> or
+assign its issuer-qualified <code>clientId</code> to a different client. Explicit
+readmission of the same CIMD client uses a new SCIM <code>id</code>; old references
+<span class="bcp14">MUST NOT</span> become effective again. This prevents stale administrative
+references from authorizing a replacement resource.<a href="#section-4.1-5" class="pilcrow">¶</a></p>
+<p id="section-4.1-6"><code>externalId</code> and <code>active</code> handling follow <a href="#conventions" class="auto internal xref">Section 3</a>; <code>externalId</code>
+remains an administrative correlation value, not an OAuth identifier.
+<code>active: true</code> is necessary for use but does not override local
+suspension, metadata validation, or OAuth policy.<a href="#section-4.1-6" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="metadata">
+<section id="section-4.2">
+        <h3 id="name-registration-metadata">
+<a href="#section-4.2" class="section-number selfRef">4.2. </a><a href="#name-registration-metadata" class="section-name selfRef">Registration Metadata</a>
+        </h3>
+<p id="section-4.2-1">Locally managed metadata uses this schema extension:<a href="#section-4.2-1" class="pilcrow">¶</a></p>
+<p id="section-4.2-2"><code>urn:ietf:params:scim:schemas:extension:oauth:2.0:OAuthClient</code><a href="#section-4.2-2" class="pilcrow">¶</a></p>
+<p id="section-4.2-3">The ResourceType advertises it in <code>schemaExtensions</code> with <code>required:
+false</code>. For a locally managed registration, the extension URI and object
+<span class="bcp14">MUST</span> be present. A CIMD resource omits both because its document
+supplies metadata. The two representations are mutually exclusive and
+cannot be switched by PUT or PATCH. This condition is evaluated in
+addition to schema validation. Core SCIM attributes use camelCase; OAuth
+metadata names retain their registered spelling inside this extension.<a href="#section-4.2-3" class="pilcrow">¶</a></p>
+<p id="section-4.2-4">The following attributes retain the metadata value syntax and meaning
+specified in <span><a href="https://rfc-editor.org/rfc/rfc7591#section-2" class="relref">Section 2</a> of [<a href="#RFC7591" class="cite xref">RFC7591</a>]</span>. They are SCIM string attributes
+with mutability <code>readWrite</code>, returned <code>default</code>, uniqueness <code>none</code>, and
+<code>caseExact: true</code>. They have no SCIM canonical-value enumeration;
+accepted OAuth values remain subject to the relevant specifications and
+server policy.<a href="#section-4.2-4" class="pilcrow">¶</a></p>
+<table class="center" id="table-2">
+          <caption><a href="#table-2" class="selfRef">Table 2</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Attribute</th>
+              <th class="text-left" rowspan="1" colspan="1">Multi-valued</th>
+              <th class="text-left" rowspan="1" colspan="1">Required</th>
+              <th class="text-left" rowspan="1" colspan="1">Purpose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>token_endpoint_auth_method</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">false</td>
+              <td class="text-left" rowspan="1" colspan="1">true</td>
+              <td class="text-left" rowspan="1" colspan="1">Registered client-authentication method</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>grant_types</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">true</td>
+              <td class="text-left" rowspan="1" colspan="1">true</td>
+              <td class="text-left" rowspan="1" colspan="1">Permitted OAuth grant types</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>response_types</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">true</td>
+              <td class="text-left" rowspan="1" colspan="1">false</td>
+              <td class="text-left" rowspan="1" colspan="1">Permitted authorization-endpoint response types</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>redirect_uris</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">true</td>
+              <td class="text-left" rowspan="1" colspan="1">false</td>
+              <td class="text-left" rowspan="1" colspan="1">Registered redirect URIs</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>scope</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">false</td>
+              <td class="text-left" rowspan="1" colspan="1">false</td>
+              <td class="text-left" rowspan="1" colspan="1">Space-separated registration scope configuration</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>jwks_uri</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">false</td>
+              <td class="text-left" rowspan="1" colspan="1">false</td>
+              <td class="text-left" rowspan="1" colspan="1">Public JWK Set location</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>client_name</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">false</td>
+              <td class="text-left" rowspan="1" colspan="1">false</td>
+              <td class="text-left" rowspan="1" colspan="1">Display name of the client</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>client_uri</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">false</td>
+              <td class="text-left" rowspan="1" colspan="1">false</td>
+              <td class="text-left" rowspan="1" colspan="1">Client information URL</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>logo_uri</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">false</td>
+              <td class="text-left" rowspan="1" colspan="1">false</td>
+              <td class="text-left" rowspan="1" colspan="1">Client logo URL</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>tos_uri</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">false</td>
+              <td class="text-left" rowspan="1" colspan="1">false</td>
+              <td class="text-left" rowspan="1" colspan="1">Terms-of-service URL</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>policy_uri</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">false</td>
+              <td class="text-left" rowspan="1" colspan="1">false</td>
+              <td class="text-left" rowspan="1" colspan="1">Privacy-policy URL</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>contacts</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">true</td>
+              <td class="text-left" rowspan="1" colspan="1">false</td>
+              <td class="text-left" rowspan="1" colspan="1">Client contacts</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>software_id</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">false</td>
+              <td class="text-left" rowspan="1" colspan="1">false</td>
+              <td class="text-left" rowspan="1" colspan="1">Software identifier</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>software_version</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">false</td>
+              <td class="text-left" rowspan="1" colspan="1">false</td>
+              <td class="text-left" rowspan="1" colspan="1">Software version</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-4.2-6">Multi-valued attributes use arrays of strings, preserving the OAuth
+metadata representation rather than adding SCIM complex-value wrappers.
+SCIM attribute-name matching is case-insensitive; values use their OAuth
+comparison rules. Responses <span class="bcp14">SHOULD</span> use the spelling in this table.<a href="#section-4.2-6" class="pilcrow">¶</a></p>
+<p id="section-4.2-7">For locally managed metadata, creation <span class="bcp14">MUST</span> explicitly supply
+<code>token_endpoint_auth_method</code> and a non-empty <code>grant_types</code>. This profile
+therefore does not apply RFC 7591's omission defaults for those
+attributes. For flows using the authorization endpoint, the request <span class="bcp14">MUST</span>
+also supply the required <code>response_types</code> and <code>redirect_uris</code>. For other
+flows, omission of <code>response_types</code> means no authorization-endpoint
+response is enabled. These are explicit profile narrowings, not changes
+to RFC 7591 endpoints.<a href="#section-4.2-7" class="pilcrow">¶</a></p>
+<p id="section-4.2-8">The Service Provider <span class="bcp14">MUST</span> validate the effective registration against
+<span>[<a href="#RFC7591" class="cite xref">RFC7591</a>]</span>, applicable grant and authentication profiles, and OAuth
+security requirements in <span>[<a href="#RFC9700" class="cite xref">RFC9700</a>]</span>. Registration does not enable a grant
+or response type prohibited by those requirements. An inactive resource
+is not permission to store an invalid registration.<a href="#section-4.2-8" class="pilcrow">¶</a></p>
+<p id="section-4.2-9">Accepted metadata is the authoritative configuration returned by the
+server. A provisioning client <span class="bcp14">MUST</span> inspect that configuration before
+relying on requested capabilities. Registration <code>scope</code> does not itself
+supply user consent, delegation, or resource authorization.<a href="#section-4.2-9" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="cimd">
+<section id="section-4.3">
+        <h3 id="name-client-id-metadata-document">
+<a href="#section-4.3" class="section-number selfRef">4.3. </a><a href="#name-client-id-metadata-document" class="section-name selfRef">Client ID Metadata Documents</a>
+        </h3>
+<p id="section-4.3-1">When the authorization server supports <span>[<a href="#CIMD" class="cite xref">CIMD</a>]</span>, the Service Provider
+<span class="bcp14">MUST</span> support its management through the following representation:<a href="#section-4.3-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.3-2.1">
+            <p id="section-4.3-2.1.1">Creation supplies <code>clientIdMetadataDocument</code> with the Client Identifier
+URL. The returned <code>clientId</code> <span class="bcp14">MUST</span> equal that value exactly. The
+authorization-server issuer remains the server's configured issuer,
+not the document's origin.<a href="#section-4.3-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.3-2.2">
+            <p id="section-4.3-2.2.1">The URL and document are validated under <span>[<a href="#CIMD" class="cite xref">CIMD</a>]</span>, including the exact
+match of the document's <code>client_id</code>. Creation and activation require
+successfully validated metadata, which <span class="bcp14">MAY</span> come from a valid CIMD cache.<a href="#section-4.3-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.3-2.3">
+            <p id="section-4.3-2.3.1">The registration metadata extension <span class="bcp14">MUST</span> be absent from both <code>schemas</code>
+and the resource. Supplying it receives <code>400</code> with <code>invalidValue</code>.
+Its required-attribute rules do not apply to the CIMD document.<a href="#section-4.3-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.3-2.4">
+            <p id="section-4.3-2.4.1">The metadata source is fixed at creation. Updates <span class="bcp14">MUST NOT</span> add, change,
+or remove <code>clientIdMetadataDocument</code>; such changes receive <code>400</code> with
+<code>mutability</code>. A URL-shaped <code>clientId</code> alone does not select CIMD.
+Omitting the immutable attribute from a PUT preserves its value.<a href="#section-4.3-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-4.3-3">This separates two authorities:<a href="#section-4.3-3" class="pilcrow">¶</a></p>
+<table class="center" id="table-3">
+          <caption><a href="#table-3" class="selfRef">Table 3</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Authority</th>
+              <th class="text-left" rowspan="1" colspan="1">Managed values</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">CIMD document publisher</td>
+              <td class="text-left" rowspan="1" colspan="1">OAuth metadata, including authentication method, keys, and redirect URIs</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Authorization-server administrator through SCIM</td>
+              <td class="text-left" rowspan="1" colspan="1">Local admission, <code>active</code>, <code>externalId</code>, and authorized administrative extensions</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-4.3-5">CIMD retrieval, validation, caching, and client authentication continue
+to follow <span>[<a href="#CIMD" class="cite xref">CIMD</a>]</span> during OAuth use. SCIM neither freezes a metadata
+snapshot nor supplies an alternative when document validation fails.
+Public <code>jwks</code>, <code>jwks_uri</code>, and software statements in the document need
+no SCIM mapping because they are not copied into this resource. CIMD's
+prohibition on shared-secret authentication remains applicable.<a href="#section-4.3-5" class="pilcrow">¶</a></p>
+<p id="section-4.3-6">Document metadata remains subject to authorization-server policy;
+<code>active: true</code> does not approve every future metadata change or confer
+agent, user, or resource authority. A document update cannot alter local
+SCIM administrative state. The SCIM ETag versions that state, not the
+remote document or its cache entry.<a href="#section-4.3-6" class="pilcrow">¶</a></p>
+<p id="section-4.3-7">CIMD capability uses <code>client_id_metadata_document_supported</code> under
+<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-02#section-6" class="relref">Section 6</a> of [<a href="#CIMD" class="cite xref">CIMD</a>]</span>. This profile defines no additional OAuth discovery
+parameter and does not require the SCIM service to host CIMD documents.<a href="#section-4.3-7" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="credentials">
+<section id="section-4.4">
+        <h3 id="name-credentials-and-extensions">
+<a href="#section-4.4" class="section-number selfRef">4.4. </a><a href="#name-credentials-and-extensions" class="section-name selfRef">Credentials and Extensions</a>
+        </h3>
+<p id="section-4.4-1"><code>jwks_uri</code> configures public key discovery under RFC 7591. Keys and
+their use remain subject to the configured authentication profile. This
+SCIM interface <span class="bcp14">MUST NOT</span> return or generate private keys,
+<code>client_secret</code>, or <code>registration_access_token</code>, including in collection
+results, diagnostics, and events. Reads <span class="bcp14">MUST NOT</span> rotate credentials.<a href="#section-4.4-1" class="pilcrow">¶</a></p>
+<p id="section-4.4-2">For locally managed metadata, creation <span class="bcp14">MUST</span> fail if the requested
+authentication method needs credential material that has neither been
+configured through this interface nor established through an
+independently authorized mechanism. For example, <code>private_key_jwt</code> can
+use an approved <code>jwks_uri</code>; an existing secret-based registration can
+have its public metadata managed without exposing its secret. This
+document requires no new credential-issuance endpoint.<a href="#section-4.4-2" class="pilcrow">¶</a></p>
+<p id="section-4.4-3">Further OAuth metadata requires a defined SCIM schema extension with
+attribute types, mutability, and an explicit mapping to its OAuth
+meaning. A name's presence in an OAuth registry does not alone define a
+SCIM schema. Unrecognized attributes follow SCIM processing rules.
+Unsupported metadata <span class="bcp14">MUST NOT</span> be silently reported as accepted
+configuration.<a href="#section-4.4-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="operations">
+<section id="section-5">
+      <h2 id="name-scim-operations">
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-scim-operations" class="section-name selfRef">SCIM Operations</a>
+      </h2>
+<p id="section-5-1">The Service Provider <span class="bcp14">MUST</span> support POST, individual and paginated
+collection GET, PUT, PATCH, and DELETE under <span>[<a href="#RFC7644" class="cite xref">RFC7644</a>]</span>. SCIM request
+and response formats apply, including <code>application/scim+json</code>,
+ListResponse, and Error. SCIM Bulk is not required.<a href="#section-5-1" class="pilcrow">¶</a></p>
+<div id="creation-and-existing-registrations">
+<section id="section-5.1">
+        <h3 id="name-creation-and-existing-regis">
+<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-creation-and-existing-regis" class="section-name selfRef">Creation and Existing Registrations</a>
+        </h3>
+<p id="section-5.1-1">POST creates one registration and returns its SCIM representation,
+Location, and ETag. Creation <span class="bcp14">MUST</span> be authorized for the effective
+metadata and any requested activation. Supplied read-only identifiers
+cannot attach the request to an existing registration.<a href="#section-5.1-1" class="pilcrow">¶</a></p>
+<p id="section-5.1-2">For CIMD, POST instead establishes local management of the identified
+client, including one previously discovered during OAuth use. It does
+not change that client's identity. A second SCIM resource for the same
+(<code>authorizationServer</code>, <code>clientId</code>) receives <code>409</code> with <code>uniqueness</code>. If
+the identifier already belongs to a locally managed registration, the
+server rejects the conflicting creation with <code>409</code> and <code>uniqueness</code>; it
+<span class="bcp14">MUST NOT</span> convert that registration to CIMD.<a href="#section-5.1-2" class="pilcrow">¶</a></p>
+<p id="section-5.1-3">Existing registrations, including registrations created through RFC
+7591, <span class="bcp14">MAY</span> be exposed as OAuthClient resources after administrative
+authorization. They retain their OAuth <code>client_id</code> and credentials.
+Establishing this management representation <span class="bcp14">MUST NOT</span> create a second
+OAuth registration or merge clients based on names, redirect URIs, or
+keys. Attachment and read permission are administrative decisions, not
+an unauthenticated discovery mechanism.<a href="#section-5.1-3" class="pilcrow">¶</a></p>
+<p id="section-5.1-4">When exposing an existing locally managed registration, the Service
+Provider <span class="bcp14">MUST</span> represent its effective supported metadata, including
+values established by RFC 7591 omission defaults. This materializes
+configuration without changing OAuth behavior; it does not require the
+original registration request to have supplied those values. Unmapped
+metadata and credentials remain subject to <a href="#coexistence" class="auto internal xref">Section 6</a>.<a href="#section-5.1-4" class="pilcrow">¶</a></p>
+<p id="section-5.1-5">An existing CIMD client's representation includes
+<code>clientIdMetadataDocument</code>. When exposing an existing registration
+without a creation request, <code>active</code> reflects its administrative
+enablement; exposure <span class="bcp14">MUST NOT</span> itself enable or disable it. An explicit
+CIMD POST instead applies the requested <code>active</code> state under the
+caller's administrative authority.<a href="#section-5.1-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="read-query-and-update">
+<section id="section-5.2">
+        <h3 id="name-read-query-and-update">
+<a href="#section-5.2" class="section-number selfRef">5.2. </a><a href="#name-read-query-and-update" class="section-name selfRef">Read, Query, and Update</a>
+        </h3>
+<p id="section-5.2-1">The Service Provider <span class="bcp14">MUST</span> support <code>eq</code> filters on <code>id</code>, <code>externalId</code>,
+<code>authorizationServer</code>, <code>clientId</code>, and <code>active</code>, including <code>and</code>
+combinations. Results <span class="bcp14">MUST</span> remain within the caller's management scope.
+An authorized reader spanning provisioning domains cannot assume
+<code>externalId</code> alone is unique.<a href="#section-5.2-1" class="pilcrow">¶</a></p>
+<p id="section-5.2-2">Versions, conditional writes, explicit <code>active</code> state, PUT handling of
+immutable values, and incremental reads follow <a href="#conventions" class="auto internal xref">Section 3</a>.<a href="#section-5.2-2" class="pilcrow">¶</a></p>
+<p id="section-5.2-3">PATCH and PUT retain their SCIM semantics. The Service Provider <span class="bcp14">MUST</span>
+validate and authorize the resulting registration before committing the
+atomic resource change. Removal of a required attribute, including one
+conditionally required under <a href="#metadata" class="auto internal xref">Section 4.2</a>, is invalid; read-only
+attributes follow SCIM's read-only processing. A mutation <span class="bcp14">MUST NOT</span>
+change unrelated agent bindings, consent, or resource permissions.<a href="#section-5.2-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="disablement">
+<section id="section-5.3">
+        <h3 id="name-disablement-and-deletion">
+<a href="#section-5.3" class="section-number selfRef">5.3. </a><a href="#name-disablement-and-deletion" class="section-name selfRef">Disablement and Deletion</a>
+        </h3>
+<p id="section-5.3-1">Setting <code>active: false</code> disables the registration. The durable
+restriction rule in <a href="#conventions" class="auto internal xref">Section 3</a> applies with the authorization and
+token endpoints as the decision points: they <span class="bcp14">MUST</span> deny new authorization
+and issuance, including refresh decisions beginning after the response.
+Reactivation requires separate administrative authorization.<a href="#section-5.3-1" class="pilcrow">¶</a></p>
+<p id="section-5.3-2">DELETE de-registers the underlying client; it is not merely removal of
+its SCIM representation. The server <span class="bcp14">MUST</span> invalidate any RFC 7592
+registration access token for that registration. The recommendation to
+invalidate outstanding grants and tokens in <span><a href="https://rfc-editor.org/rfc/rfc7592#section-2.3" class="relref">Section 2.3</a> of [<a href="#RFC7592" class="cite xref">RFC7592</a>]</span>
+also applies; HTTP processing and error responses remain SCIM's. The
+server <span class="bcp14">MUST</span> document the treatment of outstanding authorization on
+reversible disablement as well.<a href="#section-5.3-2" class="pilcrow">¶</a></p>
+<p id="section-5.3-3">For a CIMD client, disablement and deletion apply to its local
+admission, not the publisher's document. Neither operation requires
+successful document retrieval. The authorization server <span class="bcp14">MUST</span> retain an
+administrative denial for the issuer-qualified client identifier after
+deletion so that CIMD rediscovery cannot bypass the decision. Restoring
+admission requires explicit administrative authorization; fetching valid
+metadata is not such authorization. Deletion does not disable the client
+at other servers.<a href="#section-5.3-3" class="pilcrow">¶</a></p>
+<p id="section-5.3-4">Neither response implies immediate rejection by offline resource
+servers. Reactivation <span class="bcp14">MUST NOT</span> restore authorization already revoked.
+Client eligibility is separate from any Agent Principal's eligibility:
+disabling a shared client does not declare its associated agents
+disabled.<a href="#section-5.3-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="errors">
+<section id="section-5.4">
+        <h3 id="name-errors">
+<a href="#section-5.4" class="section-number selfRef">5.4. </a><a href="#name-errors" class="section-name selfRef">Errors</a>
+        </h3>
+<table class="center" id="table-4">
+          <caption><a href="#table-4" class="selfRef">Table 4</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Failure</th>
+              <th class="text-left" rowspan="1" colspan="1">Response</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Malformed SCIM message</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>400</code>, <code>invalidSyntax</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Invalid metadata, missing required value, or inconsistent configuration</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>400</code>, <code>invalidValue</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Duplicate connector correlation value or managed OAuth client</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>409</code>, <code>uniqueness</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Attempt to change the metadata source</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>400</code>, <code>mutability</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">CIMD requested at a server without CIMD support</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>400</code>, <code>invalidValue</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">CIMD metadata temporarily unavailable when creation or activation requires retrieval</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>503</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Unauthorized administrative change</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>403</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Reactivation without a version ETag, including <code>If-Match: *</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>409</code> with explanatory <code>detail</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Failed conditional-write precondition</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>412</code>
+</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-5.4-2">Other errors retain SCIM meanings. OAuth DCR errors such as
+<code>invalid_client_metadata</code> are not substituted for SCIM error responses.
+Error details <span class="bcp14">MUST NOT</span> expose secrets or resources outside the caller's
+administrative scope.<a href="#section-5.4-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="coexistence">
+<section id="section-6">
+      <h2 id="name-coexistence-with-dynamic-re">
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-coexistence-with-dynamic-re" class="section-name selfRef">Coexistence with Dynamic Registration</a>
+      </h2>
+<p id="section-6-1">For locally managed metadata, the following coexistence rules apply.
+CIMD metadata remains document-owned under <a href="#cimd" class="auto internal xref">Section 4.3</a>; an RFC 7592
+endpoint <span class="bcp14">MUST NOT</span> replace it with an independent, locally editable copy.<a href="#section-6-1" class="pilcrow">¶</a></p>
+<p id="section-6-2">When SCIM and RFC 7591/7592 manage the same registration, they <span class="bcp14">MUST</span>
+share one authoritative configuration. A change through any
+administrative interface that alters the SCIM representation <span class="bcp14">MUST</span> change
+its ETag. An update cannot leave different effective keys, redirect
+URIs, or grants behind the two representations.<a href="#section-6-2" class="pilcrow">¶</a></p>
+<p id="section-6-3">Each interface retains its own protocol:<a href="#section-6-3" class="pilcrow">¶</a></p>
+<table class="center" id="table-5">
+        <caption><a href="#table-5" class="selfRef">Table 5</a></caption>
+<thead>
+          <tr>
+            <th class="text-left" rowspan="1" colspan="1">Interface</th>
+            <th class="text-left" rowspan="1" colspan="1">Representation and management authority</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">SCIM</td>
+            <td class="text-left" rowspan="1" colspan="1">OAuthClient resource, SCIM authorization, queries, PATCH, and ETags</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">RFC 7591</td>
+            <td class="text-left" rowspan="1" colspan="1">OAuth client-registration request and response</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">RFC 7592</td>
+            <td class="text-left" rowspan="1" colspan="1">Client configuration endpoint and registration access token</td>
+          </tr>
+        </tbody>
+      </table>
+<p id="section-6-5">SCIM <code>meta.location</code> is not RFC 7592's <code>registration_client_uri</code>. A
+registration access token and a SCIM management token are not implicitly
+interchangeable. Supporting one interface does not advertise support for
+the other, and this profile defines no additional RFC 8414 metadata.<a href="#section-6-5" class="pilcrow">¶</a></p>
+<p id="section-6-6">Update omission rules apply to the attributes managed by that interface.
+An RFC 7592 update <span class="bcp14">MUST NOT</span> clear SCIM-only <code>active</code>, <code>externalId</code>, or
+administrative extension values merely because they have no RFC 7592
+representation. Conversely, a SCIM update <span class="bcp14">MUST</span> preserve credentials and
+unmapped metadata that its schema does not manage. Changes to supported
+metadata still require validation against the complete registration,
+including RFC 7591's exclusivity of <code>jwks</code> and <code>jwks_uri</code>.<a href="#section-6-6" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="security-considerations">
+<section id="section-7">
+      <h2 id="name-security-considerations">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
+      </h2>
+<p id="section-7-1">Key-source and redirect-URI changes can transfer control of a
+registration. Servers <span class="bcp14">MUST</span> authorize them as security-sensitive changes,
+independently of descriptive metadata edits. A software name,
+<code>software_id</code>, or client identifier is not proof of software integrity
+or runtime provenance. Public and confidential client classification
+follows <span><a href="https://rfc-editor.org/rfc/rfc6749#section-2.1" class="relref">Section 2.1</a> of [<a href="#RFC6749" class="cite xref">RFC6749</a>]</span>; allocating an identifier does not
+change that classification.<a href="#section-7-1" class="pilcrow">¶</a></p>
+<p id="section-7-2">Fetching CIMD documents, <code>jwks_uri</code>, and other URLs needs SSRF controls,
+trusted transport, and restrictions on redirects and credential
+forwarding. Descriptive URLs are not credential-authority trust. Public
+key replacement affects client authentication but does not necessarily
+revoke previously issued tokens.<a href="#section-7-2" class="pilcrow">¶</a></p>
+<p id="section-7-3">CIMD URL or domain ownership can change independently of SCIM state.
+Administrators <span class="bcp14">SHOULD</span> reassess admission and associated permissions when
+control changes. A valid document does not prove continuity of the party
+previously admitted, and local management does not remove this CIMD
+risk.<a href="#section-7-3" class="pilcrow">¶</a></p>
+<p id="section-7-4">Administrative access can be broader than runtime client authority.
+Servers <span class="bcp14">SHOULD</span> audit the writer, affected registration, and
+security-relevant changes without logging secrets. All writers <span class="bcp14">MUST</span>
+preserve disablement, read-only identifiers, and concurrency behavior
+across administrative APIs.<a href="#section-7-4" class="pilcrow">¶</a></p>
+<p id="section-7-5">SCIM change events under <span>[<a href="#RFC9967" class="cite xref">RFC9967</a>]</span> <span class="bcp14">MAY</span> report resource changes. They
+retain their existing meanings and <span class="bcp14">MUST NOT</span> contain secret material.
+This document defines no client-specific event or delivery guarantee.<a href="#section-7-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="privacy-considerations">
+<section id="section-8">
+      <h2 id="name-privacy-considerations">
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-privacy-considerations" class="section-name selfRef">Privacy Considerations</a>
+      </h2>
+<p id="section-8-1">Client metadata can expose application deployments, contacts, redirect
+locations, and tenant relationships. Query and event access <span class="bcp14">SHOULD</span> be
+limited to authorized management scopes. Public key discovery does not
+justify exposing the complete registration to unauthenticated readers.<a href="#section-8-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="iana">
+<section id="section-9">
+      <h2 id="name-iana-considerations">
+<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+      </h2>
+<p id="section-9-1">This document requests registrations in the SCIM Schema URIs registry
+using <span><a href="https://rfc-editor.org/rfc/rfc7643#section-10.3.2" class="relref">Section 10.3.2</a> of [<a href="#RFC7643" class="cite xref">RFC7643</a>]</span>. Registration under <code>core:2.0</code>
+requires Expert Review and RFC publication under <span><a href="https://rfc-editor.org/rfc/rfc7643#section-10.3.1" class="relref">Section 10.3.1</a> of [<a href="#RFC7643" class="cite xref">RFC7643</a>]</span>.<a href="#section-9-1" class="pilcrow">¶</a></p>
+<div id="oauthclient-resource">
+<section id="section-9.1">
+        <h3 id="name-oauthclient-resource-2">
+<a href="#section-9.1" class="section-number selfRef">9.1. </a><a href="#name-oauthclient-resource-2" class="section-name selfRef">OAuthClient Resource</a>
+        </h3>
+<ul class="normal">
+<li class="normal" id="section-9.1-1.1">
+            <p id="section-9.1-1.1.1">Schema URI: <code>urn:ietf:params:scim:schemas:core:2.0:OAuthClient</code><a href="#section-9.1-1.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.1-1.2">
+            <p id="section-9.1-1.2.1">Schema Name: OAuth Client<a href="#section-9.1-1.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.1-1.3">
+            <p id="section-9.1-1.3.1">Intended or Associated Resource Type: OAuthClient<a href="#section-9.1-1.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.1-1.4">
+            <p id="section-9.1-1.4.1">Purpose: Manage an OAuth client's identity and local admission using SCIM.<a href="#section-9.1-1.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.1-1.5">
+            <p id="section-9.1-1.5.1">Single-value Attributes: <code>authorizationServer</code>, <code>clientId</code>,
+<code>clientIdMetadataDocument</code>, and <code>active</code>, defined in <a href="#identity" class="auto internal xref">Section 4.1</a>.<a href="#section-9.1-1.5.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.1-1.6">
+            <p id="section-9.1-1.6.1">Multi-valued Attributes: None.<a href="#section-9.1-1.6.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="registration-metadata-extension">
+<section id="section-9.2">
+        <h3 id="name-registration-metadata-exten">
+<a href="#section-9.2" class="section-number selfRef">9.2. </a><a href="#name-registration-metadata-exten" class="section-name selfRef">Registration Metadata Extension</a>
+        </h3>
+<ul class="normal">
+<li class="normal" id="section-9.2-1.1">
+            <p id="section-9.2-1.1.1">Schema URI: <code>urn:ietf:params:scim:schemas:extension:oauth:2.0:OAuthClient</code><a href="#section-9.2-1.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.2-1.2">
+            <p id="section-9.2-1.2.1">Schema Name: OAuth Client Metadata<a href="#section-9.2-1.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.2-1.3">
+            <p id="section-9.2-1.3.1">Intended or Associated Resource Type: OAuthClient<a href="#section-9.2-1.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.2-1.4">
+            <p id="section-9.2-1.4.1">Purpose: Manage locally registered OAuth metadata separately from CIMD.<a href="#section-9.2-1.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.2-1.5">
+            <p id="section-9.2-1.5.1">Single-value Attributes: <code>token_endpoint_auth_method</code>, <code>scope</code>,
+<code>jwks_uri</code>, <code>client_name</code>, <code>client_uri</code>, <code>logo_uri</code>, <code>tos_uri</code>,
+<code>policy_uri</code>, <code>software_id</code>, and <code>software_version</code>, defined in <a href="#metadata" class="auto internal xref">Section 4.2</a>.<a href="#section-9.2-1.5.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.2-1.6">
+            <p id="section-9.2-1.6.1">Multi-valued Attributes: <code>grant_types</code>, <code>response_types</code>, <code>redirect_uris</code>,
+and <code>contacts</code>, defined in <a href="#metadata" class="auto internal xref">Section 4.2</a>.<a href="#section-9.2-1.6.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-9.2-2">No OAuth client metadata, token-endpoint authentication method, or event
+type is registered by this document.<a href="#section-9.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="sec-combined-references">
+<section id="section-10">
+      <h2 id="name-references">
+<a href="#section-10" class="section-number selfRef">10. </a><a href="#name-references" class="section-name selfRef">References</a>
+      </h2>
+<div id="sec-normative-references">
+<section id="section-10.1">
+        <h3 id="name-normative-references">
+<a href="#section-10.1" class="section-number selfRef">10.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
+        </h3>
+<dl class="references">
+<dt id="CIMD">[CIMD]</dt>
+        <dd>
+<span class="refAuthor">Parecki, A.</span> and <span class="refAuthor">E. Smith</span>, <span class="refTitle">"OAuth Client ID Metadata Document"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-client-id-metadata-document-02</span>, <time datetime="2026-07-06" class="refDate">6 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-02">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-02</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC6749">[RFC6749]</dt>
+        <dd>
+<span class="refAuthor">Hardt, D., Ed.</span>, <span class="refTitle">"The OAuth 2.0 Authorization Framework"</span>, <span class="seriesInfo">RFC 6749</span>, <span class="seriesInfo">DOI 10.17487/RFC6749</span>, <time datetime="2012-10" class="refDate">October 2012</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc6749">https://www.rfc-editor.org/rfc/rfc6749</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7591">[RFC7591]</dt>
+        <dd>
+<span class="refAuthor">Richer, J., Ed.</span>, <span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Bradley, J.</span>, <span class="refAuthor">Machulak, M.</span>, and <span class="refAuthor">P. Hunt</span>, <span class="refTitle">"OAuth 2.0 Dynamic Client Registration Protocol"</span>, <span class="seriesInfo">RFC 7591</span>, <span class="seriesInfo">DOI 10.17487/RFC7591</span>, <time datetime="2015-07" class="refDate">July 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7591">https://www.rfc-editor.org/rfc/rfc7591</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7592">[RFC7592]</dt>
+        <dd>
+<span class="refAuthor">Richer, J., Ed.</span>, <span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Bradley, J.</span>, and <span class="refAuthor">M. Machulak</span>, <span class="refTitle">"OAuth 2.0 Dynamic Client Registration Management Protocol"</span>, <span class="seriesInfo">RFC 7592</span>, <span class="seriesInfo">DOI 10.17487/RFC7592</span>, <time datetime="2015-07" class="refDate">July 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7592">https://www.rfc-editor.org/rfc/rfc7592</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7643">[RFC7643]</dt>
+        <dd>
+<span class="refAuthor">Hunt, P., Ed.</span>, <span class="refAuthor">Grizzle, K.</span>, <span class="refAuthor">Wahlstroem, E.</span>, and <span class="refAuthor">C. Mortimore</span>, <span class="refTitle">"System for Cross-domain Identity Management: Core Schema"</span>, <span class="seriesInfo">RFC 7643</span>, <span class="seriesInfo">DOI 10.17487/RFC7643</span>, <time datetime="2015-09" class="refDate">September 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7643">https://www.rfc-editor.org/rfc/rfc7643</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7644">[RFC7644]</dt>
+        <dd>
+<span class="refAuthor">Hunt, P., Ed.</span>, <span class="refAuthor">Grizzle, K.</span>, <span class="refAuthor">Ansari, M.</span>, <span class="refAuthor">Wahlstroem, E.</span>, and <span class="refAuthor">C. Mortimore</span>, <span class="refTitle">"System for Cross-domain Identity Management: Protocol"</span>, <span class="seriesInfo">RFC 7644</span>, <span class="seriesInfo">DOI 10.17487/RFC7644</span>, <time datetime="2015-09" class="refDate">September 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7644">https://www.rfc-editor.org/rfc/rfc7644</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9110">[RFC9110]</dt>
+        <dd>
+<span class="refAuthor">Fielding, R., Ed.</span>, <span class="refAuthor">Nottingham, M., Ed.</span>, and <span class="refAuthor">J. Reschke, Ed.</span>, <span class="refTitle">"HTTP Semantics"</span>, <span class="seriesInfo">STD 97</span>, <span class="seriesInfo">RFC 9110</span>, <span class="seriesInfo">DOI 10.17487/RFC9110</span>, <time datetime="2022-06" class="refDate">June 2022</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9110">https://www.rfc-editor.org/rfc/rfc9110</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8414">[RFC8414]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Sakimura, N.</span>, and <span class="refAuthor">J. Bradley</span>, <span class="refTitle">"OAuth 2.0 Authorization Server Metadata"</span>, <span class="seriesInfo">RFC 8414</span>, <span class="seriesInfo">DOI 10.17487/RFC8414</span>, <time datetime="2018-06" class="refDate">June 2018</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8414">https://www.rfc-editor.org/rfc/rfc8414</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9700">[RFC9700]</dt>
+        <dd>
+<span class="refAuthor">Lodderstedt, T.</span>, <span class="refAuthor">Bradley, J.</span>, <span class="refAuthor">Labunets, A.</span>, and <span class="refAuthor">D. Fett</span>, <span class="refTitle">"Best Current Practice for OAuth 2.0 Security"</span>, <span class="seriesInfo">BCP 240</span>, <span class="seriesInfo">RFC 9700</span>, <span class="seriesInfo">DOI 10.17487/RFC9700</span>, <time datetime="2025-01" class="refDate">January 2025</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9700">https://www.rfc-editor.org/rfc/rfc9700</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="BCP14">[BCP14]</dt>
+      <dd>
+<div class="refInstance">Best Current Practice 14, <span>&lt;<a href="https://www.rfc-editor.org/info/bcp14">https://www.rfc-editor.org/info/bcp14</a>&gt;</span>.<br><span>At the time of writing, this BCP comprises the following:</span>
+</div>
+<div class="refInstance" id="RFC2119">
+            <span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Key words for use in RFCs to Indicate Requirement Levels"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 2119</span>, <span class="seriesInfo">DOI 10.17487/RFC2119</span>, <time datetime="1997-03" class="refDate">March 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc2119">https://www.rfc-editor.org/info/rfc2119</a>&gt;</span>. </div>
+<div class="refInstance" id="RFC8174">
+            <span class="refAuthor">Leiba, B.</span>, <span class="refTitle">"Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 8174</span>, <span class="seriesInfo">DOI 10.17487/RFC8174</span>, <time datetime="2017-05" class="refDate">May 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8174">https://www.rfc-editor.org/info/rfc8174</a>&gt;</span>. </div>
+</dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="sec-informative-references">
+<section id="section-10.2">
+        <h3 id="name-informative-references">
+<a href="#section-10.2" class="section-number selfRef">10.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
+        </h3>
+<dl class="references">
+<dt id="HUNT">[HUNT]</dt>
+        <dd>
+<span class="refAuthor">Hunt, P.</span>, <span class="refAuthor">Ansari, M.</span>, and <span class="refAuthor">A. Nadalin</span>, <span class="refTitle">"OAuth 2.0 SCIM Client Registration Profile"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-hunt-oauth-scim-client-reg-00</span>, <time datetime="2013-07-05" class="refDate">5 July 2013</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-hunt-oauth-scim-client-reg-00">https://datatracker.ietf.org/doc/html/draft-hunt-oauth-scim-client-reg-00</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="AGENT-MANAGEMENT">[AGENT-MANAGEMENT]</dt>
+        <dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"SCIM Profile for Governed Agent Federation Management"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-scim-agent-federation</span>, <time datetime="2026-09-18" class="refDate">18 September 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-scim-agent-federation">https://datatracker.ietf.org/doc/html/draft-mcguinness-scim-agent-federation</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9967">[RFC9967]</dt>
+      <dd>
+<span class="refAuthor">Hunt, P., Ed.</span>, <span class="refAuthor">Cam-Winget, N.</span>, <span class="refAuthor">Kiser, M.</span>, and <span class="refAuthor">J. Schreiber</span>, <span class="refTitle">"System for Cross-Domain Identity Management (SCIM) Profile for Security Event Tokens (SETs)"</span>, <span class="seriesInfo">RFC 9967</span>, <span class="seriesInfo">DOI 10.17487/RFC9967</span>, <time datetime="2026-05" class="refDate">May 2026</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9967">https://www.rfc-editor.org/rfc/rfc9967</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+</section>
+</div>
+<div id="example-provision-and-disable-a-client">
+<section id="appendix-A">
+      <h2 id="name-example-provision-and-disab">
+<a href="#appendix-A" class="section-number selfRef">Appendix A. </a><a href="#name-example-provision-and-disab" class="section-name selfRef">Example: Provision and Disable a Client</a>
+      </h2>
+<p id="appendix-A-1">These non-normative examples assume a connector authorized to manage
+registrations at <code>https://idp.example/</code>. Tokens and identifiers are
+illustrative, not test credentials. The authorization server accepts
+<code>private_key_jwt</code> using the configured public JWK Set.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+<div id="register">
+<section id="appendix-A.1">
+        <h3 id="name-register">
+<a href="#appendix-A.1" class="section-number selfRef">A.1. </a><a href="#name-register" class="section-name selfRef">Register</a>
+        </h3>
+<div class="lang-http-message sourcecode" id="appendix-A.1-1">
+<pre>
+POST /scim/acme/OAuthClients HTTP/1.1
+Host: idp.example
+Authorization: Bearer CONNECTOR_ACCESS_TOKEN
+Content-Type: application/scim+json
+Accept: application/scim+json
+
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:OAuthClient",
+    "urn:ietf:params:scim:schemas:extension:oauth:2.0:OAuthClient"
+  ],
+  "externalId": "platform-registration-7",
+  "active": false,
+  "urn:ietf:params:scim:schemas:extension:oauth:2.0:OAuthClient": {
+    "token_endpoint_auth_method": "private_key_jwt",
+    "grant_types": [
+      "client_credentials"
+    ],
+    "jwks_uri": "https://platform.example/oauth/jwks.json",
+    "client_name": "Analysis platform"
+  }
+}
+</pre><a href="#appendix-A.1-1" class="pilcrow">¶</a>
+</div>
+<div class="lang-http-message sourcecode" id="appendix-A.1-2">
+<pre>
+HTTP/1.1 201 Created
+Location: https://idp.example/scim/acme/OAuthClients/oc7
+ETag: W/"c1"
+Content-Type: application/scim+json
+
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:OAuthClient",
+    "urn:ietf:params:scim:schemas:extension:oauth:2.0:OAuthClient"
+  ],
+  "id": "oc7",
+  "externalId": "platform-registration-7",
+  "authorizationServer": "https://idp.example/",
+  "active": false,
+  "meta": {
+    "resourceType": "OAuthClient",
+    "version": "W/\"c1\"",
+    "location": "https://idp.example/scim/acme/OAuthClients/oc7",
+    "created": "2026-09-18T12:00:00Z",
+    "lastModified": "2026-09-18T12:00:00Z"
+  },
+  "clientId": "platform-client-7",
+  "urn:ietf:params:scim:schemas:extension:oauth:2.0:OAuthClient": {
+    "token_endpoint_auth_method": "private_key_jwt",
+    "grant_types": [
+      "client_credentials"
+    ],
+    "jwks_uri": "https://platform.example/oauth/jwks.json",
+    "client_name": "Analysis platform"
+  }
+}
+</pre><a href="#appendix-A.1-2" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A.1-3">The connector uses <code>oc7</code> for management and the assigned
+<code>platform-client-7</code> for OAuth. Registration has created neither an Agent
+Principal nor user delegation. An authorized PATCH can enable <code>active</code>
+before runtime use.<a href="#appendix-A.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="disable">
+<section id="appendix-A.2">
+        <h3 id="name-disable">
+<a href="#appendix-A.2" class="section-number selfRef">A.2. </a><a href="#name-disable" class="section-name selfRef">Disable</a>
+        </h3>
+<p id="appendix-A.2-1">After activation, the connector retrieves the current ETag, shown here
+as <code>W/"c2"</code>, and applies:<a href="#appendix-A.2-1" class="pilcrow">¶</a></p>
+<div class="lang-http-message sourcecode" id="appendix-A.2-2">
+<pre>
+PATCH /scim/acme/OAuthClients/oc7 HTTP/1.1
+Host: idp.example
+Authorization: Bearer CONNECTOR_ACCESS_TOKEN
+Content-Type: application/scim+json
+If-Match: W/"c2"
+
+{
+  "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+  "Operations": [{"op": "replace", "path": "active", "value": false}]
+}
+</pre><a href="#appendix-A.2-2" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A.2-3">The server returns success after blocking new client use as specified in
+<a href="#disablement" class="auto internal xref">Section 5.3</a>. Existing resource access follows the documented token
+revocation policy; it is not inferred from the SCIM response.<a href="#appendix-A.2-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="example-admit-a-cimd-client">
+<section id="appendix-B">
+      <h2 id="name-example-admit-a-cimd-client">
+<a href="#appendix-B" class="section-number selfRef">Appendix B. </a><a href="#name-example-admit-a-cimd-client" class="section-name selfRef">Example: Admit a CIMD Client</a>
+      </h2>
+<p id="appendix-B-1">The same connector can admit a client whose metadata remains at its
+Client Identifier URL. This non-normative example assumes the document
+at <code>https://platform.example/oauth/client.json</code> validates under
+<span>[<a href="#CIMD" class="cite xref">CIMD</a>]</span>.<a href="#appendix-B-1" class="pilcrow">¶</a></p>
+<div class="lang-http-message sourcecode" id="appendix-B-2">
+<pre>
+POST /scim/acme/OAuthClients HTTP/1.1
+Host: idp.example
+Authorization: Bearer CONNECTOR_ACCESS_TOKEN
+Content-Type: application/scim+json
+Accept: application/scim+json
+
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:OAuthClient"
+  ],
+  "externalId": "platform-cimd-7",
+  "clientIdMetadataDocument":
+    "https://platform.example/oauth/client.json",
+  "active": false
+}
+</pre><a href="#appendix-B-2" class="pilcrow">¶</a>
+</div>
+<div class="lang-http-message sourcecode" id="appendix-B-3">
+<pre>
+HTTP/1.1 201 Created
+Location: https://idp.example/scim/acme/OAuthClients/oc8
+ETag: W/"c1"
+Content-Type: application/scim+json
+
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:OAuthClient"
+  ],
+  "id": "oc8",
+  "externalId": "platform-cimd-7",
+  "authorizationServer": "https://idp.example/",
+  "clientIdMetadataDocument":
+    "https://platform.example/oauth/client.json",
+  "active": false,
+  "meta": {
+    "resourceType": "OAuthClient",
+    "version": "W/\"c1\"",
+    "location": "https://idp.example/scim/acme/OAuthClients/oc8",
+    "created": "2026-09-18T12:00:00Z",
+    "lastModified": "2026-09-18T12:00:00Z"
+  },
+  "clientId": "https://platform.example/oauth/client.json"
+}
+</pre><a href="#appendix-B-3" class="pilcrow">¶</a>
+</div>
+<p id="appendix-B-4">The connector uses <code>oc8</code> in SCIM references. OAuth requests use the URL
+as <code>client_id</code>. Keys and redirect URIs come from the CIMD document;
+activation, disablement, and agent associations remain local
+administrative decisions. Another authorization server can admit the
+same URL under its own independent policy and SCIM resource.<a href="#appendix-B-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="changes">
+<section id="appendix-C">
+      <h2 id="name-relationship-to-the-origina">
+<a href="#appendix-C" class="section-number selfRef">Appendix C. </a><a href="#name-relationship-to-the-origina" class="section-name selfRef">Relationship to the Original Proposal</a>
+      </h2>
+<p id="appendix-C-1">This work builds on <span>[<a href="#HUNT" class="cite xref">HUNT</a>]</span> by Phil Hunt, Morteza Ansari, and Anthony
+Nadalin. It retains SCIM registration resources, CRUD management, and
+resource/schema discovery. It updates that approach as follows:<a href="#appendix-C-1" class="pilcrow">¶</a></p>
+<table class="center" id="table-6">
+        <caption><a href="#table-6" class="selfRef">Table 6</a></caption>
+<thead>
+          <tr>
+            <th class="text-left" rowspan="1" colspan="1">Area</th>
+            <th class="text-left" rowspan="1" colspan="1">This proposal</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">SCIM model</td>
+            <td class="text-left" rowspan="1" colspan="1">Final SCIM 2.0 schemas and operations; <code>OAuthClient</code> at <code>/OAuthClients</code>
+</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">OAuth metadata</td>
+            <td class="text-left" rowspan="1" colspan="1">Final RFC 7591 definitions and existing registries</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Management coexistence</td>
+            <td class="text-left" rowspan="1" colspan="1">Explicit relationship to the RFC 7592 interface</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">CIMD</td>
+            <td class="text-left" rowspan="1" colspan="1">Local admission of URL-identified clients without copying document metadata</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Client identity</td>
+            <td class="text-left" rowspan="1" colspan="1">Registration identity, without requiring one identifier per execution</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Administrative access</td>
+            <td class="text-left" rowspan="1" colspan="1">Authenticated, scoped provisioning; client authentication is separate</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Credentials</td>
+            <td class="text-left" rowspan="1" colspan="1">Public metadata and <code>jwks_uri</code>; secret distribution and rotation are outside the interface</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Software assertions</td>
+            <td class="text-left" rowspan="1" colspan="1">No replacement format; RFC 7591 software statements remain available through their defined interface</td>
+          </tr>
+        </tbody>
+      </table>
+<p id="appendix-C-3">The earlier schema and endpoint formats are not claimed to be wire
+compatible with this proposal. Deployment migration needs explicit
+mapping of existing registrations; it does not implicitly allocate new
+client IDs. Coordination with the original authors and the OAuth and
+SCIM communities is intended. This document does not claim to update an
+adopted standard or to be an agreed continuation under the earlier draft
+name.<a href="#appendix-C-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="schema-json">
+<section id="appendix-D">
+      <h2 id="name-schema-and-resourcetype-rep">
+<a href="#appendix-D" class="section-number selfRef">Appendix D. </a><a href="#name-schema-and-resourcetype-rep" class="section-name selfRef">Schema and ResourceType Representations</a>
+      </h2>
+<p id="appendix-D-1">The following JSON specifies the schemas and ResourceType. Common
+attributes follow RFC 7643. Locally managed registrations require the
+metadata extension; CIMD clients omit it. That conditional rule remains
+applicable even though ResourceType marks the extension optional.<a href="#appendix-D-1" class="pilcrow">¶</a></p>
+<div id="oauthclient-schema">
+<section id="appendix-D.1">
+        <h3 id="name-oauthclient-schema">
+<a href="#appendix-D.1" class="section-number selfRef">D.1. </a><a href="#name-oauthclient-schema" class="section-name selfRef">OAuthClient Schema</a>
+        </h3>
+<div class="breakable lang-json sourcecode" id="appendix-D.1-1">
+<pre>
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:Schema"
+  ],
+  "id": "urn:ietf:params:scim:schemas:core:2.0:OAuthClient",
+  "name": "OAuthClient",
+  "attributes": [
+    {
+      "name": "authorizationServer",
+      "description":
+        "Configured authorization-server issuer identifier.",
+      "type": "string",
+      "multiValued": false,
+      "required": true,
+      "mutability": "readOnly",
+      "returned": "default",
+      "caseExact": true,
+      "uniqueness": "none"
+    },
+    {
+      "name": "clientId",
+      "description":
+        "OAuth client_id at the configured authorization server.",
+      "type": "string",
+      "multiValued": false,
+      "required": true,
+      "mutability": "readOnly",
+      "returned": "default",
+      "caseExact": true,
+      "uniqueness": "none"
+    },
+    {
+      "name": "clientIdMetadataDocument",
+      "description":
+        "Immutable Client Identifier URL selecting CIMD metadata.",
+      "type": "string",
+      "multiValued": false,
+      "required": false,
+      "mutability": "immutable",
+      "returned": "default",
+      "caseExact": true,
+      "uniqueness": "none"
+    },
+    {
+      "name": "active",
+      "description":
+       "Administrative enablement; other policy checks still apply.",
+      "type": "boolean",
+      "multiValued": false,
+      "required": true,
+      "mutability": "readWrite",
+      "returned": "default"
+    }
+  ]
+}
+</pre><a href="#appendix-D.1-1" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="oauthclientmetadata-schema">
+<section id="appendix-D.2">
+        <h3 id="name-oauthclientmetadata-schema">
+<a href="#appendix-D.2" class="section-number selfRef">D.2. </a><a href="#name-oauthclientmetadata-schema" class="section-name selfRef">OAuthClientMetadata Schema</a>
+        </h3>
+<div class="breakable lang-json sourcecode" id="appendix-D.2-1">
+<pre>
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:Schema"
+  ],
+  "id":
+    "urn:ietf:params:scim:schemas:extension:oauth:2.0:OAuthClient",
+  "name": "OAuthClientMetadata",
+  "attributes": [
+    {
+      "name": "token_endpoint_auth_method",
+      "description":
+        "Registered token-endpoint client-authentication method.",
+      "type": "string",
+      "multiValued": false,
+      "required": true,
+      "mutability": "readWrite",
+      "returned": "default",
+      "caseExact": true,
+      "uniqueness": "none"
+    },
+    {
+      "name": "grant_types",
+      "description": "Permitted OAuth grant types.",
+      "type": "string",
+      "multiValued": true,
+      "required": true,
+      "mutability": "readWrite",
+      "returned": "default",
+      "caseExact": true,
+      "uniqueness": "none"
+    },
+    {
+      "name": "response_types",
+      "description":
+        "Permitted authorization-endpoint response types.",
+      "type": "string",
+      "multiValued": true,
+      "required": false,
+      "mutability": "readWrite",
+      "returned": "default",
+      "caseExact": true,
+      "uniqueness": "none"
+    },
+    {
+      "name": "redirect_uris",
+      "description": "Registered OAuth redirect URIs.",
+      "type": "string",
+      "multiValued": true,
+      "required": false,
+      "mutability": "readWrite",
+      "returned": "default",
+      "caseExact": true,
+      "uniqueness": "none"
+    },
+    {
+      "name": "scope",
+      "description":
+     "Space-separated registration scopes; not delegated authority.",
+      "type": "string",
+      "multiValued": false,
+      "required": false,
+      "mutability": "readWrite",
+      "returned": "default",
+      "caseExact": true,
+      "uniqueness": "none"
+    },
+    {
+      "name": "jwks_uri",
+      "description": "URL of the public JWK Set used by the client.",
+      "type": "string",
+      "multiValued": false,
+      "required": false,
+      "mutability": "readWrite",
+      "returned": "default",
+      "caseExact": true,
+      "uniqueness": "none"
+    },
+    {
+      "name": "client_name",
+      "description": "OAuth client name for display to users.",
+      "type": "string",
+      "multiValued": false,
+      "required": false,
+      "mutability": "readWrite",
+      "returned": "default",
+      "caseExact": true,
+      "uniqueness": "none"
+    },
+    {
+      "name": "client_uri",
+      "description": "URL of information about the OAuth client.",
+      "type": "string",
+      "multiValued": false,
+      "required": false,
+      "mutability": "readWrite",
+      "returned": "default",
+      "caseExact": true,
+      "uniqueness": "none"
+    },
+    {
+      "name": "logo_uri",
+      "description": "URL of the OAuth client logo.",
+      "type": "string",
+      "multiValued": false,
+      "required": false,
+      "mutability": "readWrite",
+      "returned": "default",
+      "caseExact": true,
+      "uniqueness": "none"
+    },
+    {
+      "name": "tos_uri",
+      "description": "URL of the client terms of service.",
+      "type": "string",
+      "multiValued": false,
+      "required": false,
+      "mutability": "readWrite",
+      "returned": "default",
+      "caseExact": true,
+      "uniqueness": "none"
+    },
+    {
+      "name": "policy_uri",
+      "description": "URL of the client privacy policy.",
+      "type": "string",
+      "multiValued": false,
+      "required": false,
+      "mutability": "readWrite",
+      "returned": "default",
+      "caseExact": true,
+      "uniqueness": "none"
+    },
+    {
+      "name": "contacts",
+      "description": "Contact addresses for the client.",
+      "type": "string",
+      "multiValued": true,
+      "required": false,
+      "mutability": "readWrite",
+      "returned": "default",
+      "caseExact": true,
+      "uniqueness": "none"
+    },
+    {
+      "name": "software_id",
+      "description": "Identifier for the client software.",
+      "type": "string",
+      "multiValued": false,
+      "required": false,
+      "mutability": "readWrite",
+      "returned": "default",
+      "caseExact": true,
+      "uniqueness": "none"
+    },
+    {
+      "name": "software_version",
+      "description": "Version of the client software.",
+      "type": "string",
+      "multiValued": false,
+      "required": false,
+      "mutability": "readWrite",
+      "returned": "default",
+      "caseExact": true,
+      "uniqueness": "none"
+    }
+  ]
+}
+</pre><a href="#appendix-D.2-1" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="oauthclient-resourcetype">
+<section id="appendix-D.3">
+        <h3 id="name-oauthclient-resourcetype">
+<a href="#appendix-D.3" class="section-number selfRef">D.3. </a><a href="#name-oauthclient-resourcetype" class="section-name selfRef">OAuthClient ResourceType</a>
+        </h3>
+<div class="lang-json sourcecode" id="appendix-D.3-1">
+<pre>
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:ResourceType"
+  ],
+  "id": "OAuthClient",
+  "name": "OAuthClient",
+  "endpoint": "/OAuthClients",
+  "schema": "urn:ietf:params:scim:schemas:core:2.0:OAuthClient",
+  "schemaExtensions": [
+    {
+      "schema":
+      "urn:ietf:params:scim:schemas:extension:oauth:2.0:OAuthClient",
+      "required": false
+    }
+  ]
+}
+</pre><a href="#appendix-D.3-1" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="document-history">
+<section id="appendix-E">
+      <h2 id="name-document-history">
+<a href="#appendix-E" class="section-number selfRef">Appendix E. </a><a href="#name-document-history" class="section-name selfRef">Document History</a>
+      </h2>
+<p id="appendix-E-1">RFC Editor: Remove this section before publication.<a href="#appendix-E-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="appendix-E-2.1">
+          <p id="appendix-E-2.1.1">Initial version.<a href="#appendix-E-2.1.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+</section>
+</div>
+<div id="acknowledgments">
+<section id="appendix-F">
+      <h2 id="name-acknowledgments">
+<a href="#name-acknowledgments" class="section-name selfRef">Acknowledgments</a>
+      </h2>
+<p id="appendix-F-1">The original SCIM client-registration design by Phil Hunt, Morteza
+Ansari, and Anthony Nadalin provides the foundation for this proposal.<a href="#appendix-F-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="authors-addresses">
+<section id="appendix-G">
+      <h2 id="name-authors-address">
+<a href="#name-authors-address" class="section-name selfRef">Author's Address</a>
+      </h2>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Karl McGuinness</span></div>
+<div dir="auto" class="left"><span class="org">Independent</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:public@karlmcguinness.com" class="email">public@karlmcguinness.com</a>
+</div>
+</address>
+</section>
+</div>
+<script>const toc = document.getElementById("toc");
+toc.querySelector("h2").addEventListener("click", e => {
+  toc.classList.toggle("active");
+});
+toc.querySelector("nav").addEventListener("click", e => {
+  toc.classList.remove("active");
+});
+</script>
+</body>
+</html>

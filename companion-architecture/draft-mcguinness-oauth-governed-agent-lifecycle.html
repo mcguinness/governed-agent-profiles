@@ -1,0 +1,2634 @@
+<!DOCTYPE html>
+<html lang="en" class="Internet-Draft">
+<head>
+<meta charset="utf-8">
+<meta content="Common,Latin" name="scripts">
+<meta content="initial-scale=1.0" name="viewport">
+<title>Governed Agent Lifecycle Profile for SCIM and OAuth</title>
+<meta content="Karl McGuinness" name="author">
+<meta content="
+       This document profiles SCIM for provisioning issuer-qualified Agent
+Principals into a resource domain and applying administrative disablement
+to OAuth authorization. Existing SCIM Events can accelerate reconciliation;
+existing session-revocation events can invalidate identified authorization
+sessions independently of principal state. 
+       The profile defines identity correlation, receiver actions, and the
+limits of propagation and resource enforcement. It defines no new SCIM
+schema, event type, eligibility lease, or authorization timestamp.
+Current administrative state does not establish a history of revocation. 
+    " name="description">
+<meta content="xml2rfc 3.34.1" name="generator">
+<meta content="OAuth" name="keyword">
+<meta content="agent provisioning" name="keyword">
+<meta content="SCIM" name="keyword">
+<meta content="lifecycle" name="keyword">
+<meta content="shared signals" name="keyword">
+<meta content="draft-mcguinness-oauth-governed-agent-lifecycle-latest" name="ietf.draft">
+<!-- Generator version information:
+  xml2rfc 3.34.1
+    Python 3.14.7
+    ConfigArgParse 1.7.7
+    google-i18n-address 3.1.1
+    intervaltree 3.2.1
+    Jinja2 3.1.6
+    lxml 6.1.1
+    natsort 8.4.0
+    platformdirs 4.11.10
+    pycountry 24.6.1
+    PyYAML 6.0.3
+    requests 2.33.1
+    wcwidth 0.8.4
+-->
+<link href="draft-mcguinness-oauth-governed-agent-lifecycle.xml" rel="alternate" type="application/rfc+xml">
+<link href="#copyright" rel="license">
+<style type="text/css">@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Lora SemiBold'), local('Lora-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-semibold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-greek.woff2') format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-greek.woff2') format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  color-scheme: light dark;
+  --background-color: #fff;
+  --text-color: #222;
+  --title-color: #191919;
+  --link-color: #2a6496;
+  --highlight-color: #f9f9f9;
+  --line-color: #eee;
+  --pilcrow-weak: #ddd;
+  --pilcrow-strong: #bbb;
+  --small-font-size: 14.5px;
+  --font-mono: 'Oxygen Mono', monospace;
+  --font-title: "Sofia Sans Semi Condensed", sans-serif;
+  scrollbar-color: #bbb #eee;
+}
+body {
+  max-width: 600px;
+  margin: 75px auto;
+  padding: 0 5px;
+  color: var(--text-color);
+  background-color: var(--background-color);
+  font: 16px/22px "Lora", serif;
+  scroll-behavior: smooth;
+}
+
+.ears {
+  display: none;
+}
+
+/* headings */
+section {
+  clear: both;
+}
+.section-number {
+  padding-right: 0.5em;
+}
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-title);
+  font-weight: 680;
+  margin: 0.8em 0 0.3em;
+  font-size-adjust: 0.5;
+  color: var(--title-color);
+}
+h1 {
+  &#title {
+    font-size: 32px;
+    line-height: 40px;
+    clear: both;
+    margin: 1.5em 0 0.2em;
+  }
+  &#rfcnum {
+    margin: 1.5em 0 0.2em;
+    & + h1#title {
+      margin: 0.2em 0;
+    }
+  }
+}
+
+h1, h2, h3 {
+  font-size: 22px;
+  line-height: 27px;
+}
+h4, h5, h6 {
+  font-size: 20px;
+  line-height: 24px;
+}
+
+/* general structure */
+.author {
+  padding-bottom: 0.3em;
+  vertical-align: top;
+}
+#abstract+p {
+  font-size: 18px;
+  line-height: 24px;
+  & code, & samp, & tt {
+    font-size: 16px;
+    line-height: 0;
+  }
+}
+
+p {
+  padding: 0;
+  margin: 0.5em 0;
+  text-align: left;
+}
+div {
+  margin: 0;
+}
+.alignRight {
+  margin: 1em 0;
+  &.art-text {
+    background-color: var(--highlight-color);
+    border: 1px solid var(--line-color);
+    border-radius: 3px;
+    padding: 0.5em 1em 0;
+    margin-bottom: 0.5em;
+    & pre {
+      padding: 0;
+      width: auto;
+    }
+  }
+  & > *:first-child {
+    border: none;
+    margin: 0;
+    float: right;
+    clear: both;
+  }
+  & > *:nth-child(2) {
+    clear: both;
+    display: block;
+    border: none;
+  }
+}
+svg {
+  display: block;
+  /* font-family isn't space-separated, but =~ will have to do */
+  &[font-family~="monospace" i], & [font-family~="monospace" i] {
+    font-family: var(--font-mono);
+  }
+}
+.alignCenter {
+  margin: 1em 0;
+  &.art-text {
+    background-color: var(--highlight-color);
+    border: 1px solid var(--line-color);
+    border-radius: 3px;
+    padding: 0.5em 1em 0;
+    margin-bottom: 0.5em;
+    & pre {
+      padding: 0;
+      width: auto;
+    }
+  }
+  & > *:first-child {
+    border: none;
+    /* this isn't optimal, but it's an existence proof.  PrinceXML doesn't
+       support flexbox yet.
+    */
+    display: table;
+    margin: 0 auto;
+  }
+}
+
+/* lists */
+ol, ul {
+  padding: 0;
+  margin: 0 0 0.5em 2em;
+  & :is(ol, ul) {
+    margin-left: 1em;
+  }
+}
+li {
+  margin: 0 0 0.25em 0;
+}
+ul.empty, .ulEmpty {
+  list-style-type: none;
+  & li {
+    margin-top: 0.5em;
+  }
+}
+:is(ul, ol).compact, .ulCompact, .olCompact {
+  margin: 0 0 0 2em;
+  & li {
+    margin: 0;
+    & :first-child { margin-top: 0; }
+    & :last-child { margin-bottom: 0; }
+  }
+}
+
+/* definition lists */
+dl {
+  clear: left;
+  --indent: 3ch;
+  /* --indent: attr(indent ch); not supported in any browser, but we can dream */
+  &.olPercent {
+    --indent: 5ch;
+    & > dt {
+      min-width: calc(var(--indent) - 2ch);
+      float: none;
+    }
+  }
+
+  dl > dd > & {
+    margin-top: 0.5em;
+    margin-bottom: 0;
+  }
+
+  &:not(.dlNewline) > dt {
+    float: left;
+    margin-right: 2ch;
+    min-width: 8ch;
+  }
+  & > dd {
+    margin-bottom: .8em;
+    margin-left: var(--indent) !important; /* stupid element overrides */
+    min-height: 2ex;
+  }
+}
+:is(dl.compact, .dlCompact) > dd {
+  margin-bottom: 0;
+  & > :is(:first-child, .break:first-child + *) {
+    margin-top: 0;
+  }
+  & > :is(:last-child) {
+    margin-bottom: 0;
+  }
+}
+:is(dd, span).break {
+  display: none;
+}
+
+/* links */
+a {
+  text-decoration: none;
+  &[href] {
+    color: var(--link-color);
+    &:hover { text-decoration: underline; }
+    &.selfRef {
+      color: var(--text-color);
+      &:hover {
+        text-decoration: none;
+        background-color: var(--highlight-color);
+      }
+    }
+  }
+}
+.iref + a[href].internal {
+  color: var(--text-color);
+}
+a.xref:is(.cite, .auto), :is(#status-of-memo, #copyright) a {
+  white-space: nowrap;
+}
+
+/* Figures */
+tt, code, pre {
+  background-color: var(--highlight-color);
+  font: 14px/22px var(--font-mono);
+}
+tt, code {
+  /* changing the font for inline elements leads to different ascender
+     and descender heights; as we want to retain baseline alignment,
+     remove leading to avoid altering the final height of lines
+     note: this fails if these blocks take an entire line,
+     a different solution would be great */
+  line-height: 0;
+}
+:is(h1, h2, h3, h4, h5, h6) :is(tt, code) {
+  font-size: 84%;
+}
+pre {
+  border: 1px solid var(--line-color);
+  font-size: 13.5px;
+  line-height: 16px;
+  letter-spacing: -0.2px;
+  margin: 5px;
+  padding: 5px;
+}
+img {
+  max-width: 100%;
+}
+figure {
+  margin: 0.5em 0;
+  padding: 0;
+  & blockquote {
+    margin: 0.8em 0.4em 0.4em;
+  }
+}
+figcaption, caption {
+  font-style: italic;
+  margin: 0.5em 1.5em;
+  text-align: left;
+  caption-side: bottom;
+}
+@media screen {
+  /* Auto-collapse boilerplate. */
+  :is(#status-of-memo, #copyright) {
+    & p {
+      margin: -2px 0;
+      max-height: 0;
+      transition: max-height 2s ease, margin 0.5s ease 0.5s;
+      overflow: hidden;
+    }
+    &:hover p,
+    & h2:target ~ p {
+      margin: 0.5em 0;
+      max-height: 500px;
+      overflow: auto;
+    }
+  }
+  pre, svg {
+    display: inline-block;
+    /* In the horizontal direction, sometimes people make over-sized figures.
+       Scrollbars for those is therefore necessary: auto adds them as necessary..
+       In the vertical direction, the line-height can combine with the font
+       asender/descender height to produce scrollbars: hidden avoids that. */
+    overflow: auto hidden;
+  }
+  pre {
+    max-width: 100%;
+    width: calc(100% - 22px - 1em);
+  }
+  svg {
+    max-width: calc(100% - 22px - 1em);
+  }
+  figure pre {
+    display: block;
+    width: calc(100% - 25px);
+  }
+  :is(pre, svg) + .pilcrow {
+    display: inline-block;
+    vertical-align: text-bottom;
+    padding-bottom: 8px;
+  }
+}
+
+/* aside, blockquote */
+aside, blockquote {
+  margin-left: 0;
+  padding: 0 2em;
+  font-style: italic;
+}
+blockquote {
+  margin: 1em 0;
+  border-left: 2px var(--pilcrow-strong) solid;
+}
+cite {
+  display: block;
+  text-align: right;
+  font-style: italic;
+}
+
+/* tables */
+table {
+  width: auto;
+  max-width: 100%;
+  margin: 0 0 1em;
+  border-collapse: collapse;
+  &.right { margin-left: auto; }
+  &.center { margin-left: auto; margin-right: auto; }
+  &.left { margin-right: auto; }
+  & .text-left { text-align: left; }
+  & .text-center { text-align: center; }
+  & .text-right { text-align: right; }
+  & caption {
+    margin: 0;
+    padding: 3px 0 3px 1em;
+  }
+  & p { margin: 0; }
+}
+
+thead, tbody {
+  border: 1px solid var(--line-color);
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 5px 10px;
+}
+th {
+  background-color: var(--line-color);
+}
+:is(tr:nth-child(2n), thead+tbody > tr:nth-child(2n+1)) > td {
+  background-color: var(--background-color);
+}
+:is(tr:nth-child(2n+1), thead+tbody > tr:nth-child(2n)) > td {
+  background-color: var(--highlight-color);
+}
+
+/* pilcrow */
+a.pilcrow {
+  margin-left: 3px;
+  opacity: 0.2;
+  user-select: none;
+  &[href] {
+    color: var(--pilcrow-weak);
+    &:hover { text-decoration: none; }
+  }
+  @media not print {
+    :hover > &, &:focus {
+      opacity: 1;
+    }
+    &[href]:hover {
+      color: var(--pilcrow-strong);
+      background-color: transparent;
+    }
+  }
+  @media print {
+    display: none;
+  }
+}
+
+/* misc */
+hr {
+  border: 0;
+  border-top: 1px solid var(--line-color);
+}
+.bcp14 {
+  font-variant: small-caps;
+  font-weight: 600;
+  font-size: var(--small-font-size);
+}
+.role {
+  font-variant: all-small-caps;
+}
+sub, sup {
+  line-height: 1;
+  font-size: 80%;
+}
+
+/* info block */
+#identifiers {
+  margin: 0;
+  font-size: var(--small-font-size);
+  line-height: 18px;
+  --identifier-width: 15ch;
+  & dt {
+    width: var(--identifier-width);
+    min-width: var(--identifier-width);
+    clear: left;
+    float: left;
+    text-align: right;
+    margin-right: 1ch;
+  }
+  & dd {
+    margin: 0;
+    margin-left: calc(1em + var(--identifier-width)) !important;
+    min-width: 5em;
+  }
+  & .authors {
+    & .author {
+      display: inline-block;
+      margin-right: 1.5em;
+    }
+    & .org {
+      font-style: italic;
+    }
+  }
+}
+
+/* The prepared/rendered info at the very bottom of the page */
+.docInfo {
+  color: #999;
+  font-size: 0.9em;
+  font-style: italic;
+  margin-top: 2em;
+  & .prepared {
+    float: right;
+  }
+}
+
+/* table of contents */
+#toc {
+  padding: 0.75em 0 2em 0;
+  margin-bottom: 1em;
+
+  & nav {
+    & ul {
+      margin: 0 0.5em 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    & li {
+      line-height: 1.3em;
+      margin: 2px 0;
+      padding-left: 1.2em;
+      text-indent: -1.2em;
+    }
+  }
+  & a.xref {
+    white-space: normal;
+  }
+}
+
+.references {
+  & > dt {
+    text-align: right;
+    font-weight: bold;
+    min-width: 10ch;
+    margin-right: 1.5ch;
+    &:target::before {
+      content: "⇒";
+      margin: 0 10px 0 -25px;
+    }
+  }
+  & > dd {
+    margin-left: 12ch !important;
+    overflow: visible;
+    & .refInstance {
+      margin-bottom: 0.8em;
+    }
+    & .ascii {
+      margin-bottom: 0.25em;
+    }
+  }
+}
+
+#rfc\.index\.index + ul {
+  margin-left: 0;
+}
+
+/* authors */
+address.vcard {
+  font-style: normal;
+  max-width: 20em;
+  margin: 1em auto 1em 0;
+
+  & .nameRole {
+    font-weight: 700;
+    margin-left: 0;
+  }
+  & .label {
+    margin: 0.5em 0;
+  }
+  & .type {
+    display: none;
+  }
+  & .alternative-contact {
+    margin: 0.5em 0 0.25em 0;
+  }
+  & .non-ascii {
+    margin: 0 0 0 2em;
+  }
+  & div.left {
+    text-align: left;
+  }
+  & div.right {
+    text-align: right;
+  }
+}
+
+hr.addr {
+  border-top: 1px dashed;
+  margin: 0;
+  color: #ddd;
+  max-width: calc(100% - 16px);
+}
+@media (min-width: 500px) {
+  #authors-addresses {
+    & > section {
+      column-count: 2;
+      column-gap: 20px;
+    }
+    & > section > h2 {
+      column-span: all;
+    }
+    /* hack for break-inside: avoid-column */
+    & address {
+      display: inline-block;
+      break-inside: avoid-column;
+    }
+  }
+}
+
+/* Comments */
+.rfcEditorRemove {
+  & p:first-of-type {
+    font-style: italic;
+  }
+}
+.cref {
+  background-color: rgba(249, 232, 105, 0.3);
+  padding: 2px 4px;
+}
+.crefSource {
+  font-style: italic;
+}
+
+@media screen {
+  #toc {
+    & nav {
+      font-family: var(--font-title);
+      font-weight: 360;
+      & > ul { margin-bottom: 2em; }
+      & ul {
+        margin: 0 0 0 4px;
+        & :is(p, li) {
+          margin: 2px 0;
+        }
+      }
+    }
+    & a.toplink {
+      float: right;
+    }
+  }
+}
+@media not screen {
+  #toc a.toplink {
+    display: none;
+  }
+}
+
+
+/* TOC layout for smaller screens */
+@media screen and (max-width: 929px) {
+  #toc {
+    position: fixed;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    padding: 1px 0 0 0;
+    margin: 0;
+    border-bottom: 1px solid #ccc;
+    opacity: 0.6;
+    & h2 {
+      margin: 0;
+      padding: 2px 0 2px 6px;
+      padding-right: 1em;
+      font-size: 18px;
+      line-height: 24px;
+      min-width: 190px;
+      text-align: right;
+      background-color: #444;
+      color: white;
+      cursor: pointer;
+      &::before { /* css hamburger */
+        float: right;
+        position: relative;
+        width: 1em;
+        height: 1px;
+        left: -164px;
+        margin: 8px 0 0 0;
+        background: white none repeat scroll 0 0;
+        box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
+        content: "";
+      }
+    }
+    & nav {
+      display: none;
+      background-color: var(--background-color);
+      padding: 0.5em 1em 1em;
+      overflow: auto;
+      overscroll-behavior: contain;
+      height: calc(100vh - 48px);
+      border-left: 1px solid #ddd;
+    }
+    &.active {
+      opacity: 1;
+      & nav { display: block; }
+    }
+    /* Make the collapsed ToC header render white on gray also when it's a link */
+    & h2 a,
+    & h2 a:is(:link, :focus, :hover),
+    & a.toplink,
+    & a.toplink:hover {
+      color: white;
+      background-color: #444;
+      text-decoration: none;
+    }
+    & a.toplink {
+      margin: 2px 0.5em 0;
+    }
+  }
+}
+
+/* TOC layout for wide screens */
+@media screen and (min-width: 930px) {
+  body {
+    padding-right: 360px;
+    padding-right: calc(min(180px + 20%, 500px));
+  }
+  #toc {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    right: calc(50vw - 480px);
+    width: 312px;
+    margin: 0;
+    padding: 0;
+    z-index: 1;
+    & h2 {
+      margin: 0;
+      padding: 0.25em 1em 1em 0;
+    }
+    & nav {
+      display: block;
+      height: calc(90vh - 84px);
+      bottom: 0;
+      padding: 0.5em 0 2em;
+      overflow: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+    }
+    & a.toplink {
+      margin: 8px 0.5em 0;
+    }
+  }
+  img { /* future proofing */
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* pagination */
+@media print {
+  body {
+    width: 100%;
+  }
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+  #n-copyright-notice {
+    border-bottom: none;
+  }
+  #toc {
+    page-break-before: always;
+    border-top: none;
+    padding-top: 0;
+  }
+  #n-introduction {
+    page-break-before: always;
+  }
+  figure, pre, .vcard {
+    page-break-inside: avoid;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+  :is(h2, h3, h4, h5, h6)+*, dd {
+    page-break-before: avoid;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 10pt;
+  }
+  table {
+    border: 1px solid #ddd;
+  }
+  td {
+    border-top: 1px solid #ddd;
+  }
+}
+
+@page :first {
+  padding-top: 0;
+  @top-left {
+    content: normal;
+    border: none;
+  }
+  @top-center {
+    content: normal;
+    border: none;
+  }
+  @top-right {
+    content: normal;
+    border: none;
+  }
+}
+
+@page {
+  size: A4;
+  margin-bottom: 45mm;
+  padding-top: 20px;
+}
+
+/* Dark mode. */
+@media (prefers-color-scheme: dark) {
+:root {
+  --background-color: #121212;
+  --text-color: #f0f0f0;
+  --title-color: #fff;
+  --link-color: #4da4f0;
+  --highlight-color: #282828;
+  --line-color: #444;
+  --pilcrow-weak: #444;
+  --pilcrow-strong: #666;
+  scrollbar-color: #777 #333;
+}
+}
+
+/* SVG Trick: a prefix match works because only black and white are allowed */
+svg {
+  & :is([stroke="black"], [stroke^="#000"]) {
+    stroke: var(--text-color);
+  }
+  & :is([stroke="white"], [stroke^="#fff"]) {
+    stroke: var(--background-color);
+  }
+  & :is([fill="black"], [fill^="#000"], :not([fill])) {
+    fill: var(--text-color);
+  }
+  & :is([fill="white"], [fill^="#fff"]) {
+    fill: var(--background-color);
+  }
+}
+</style>
+
+</head>
+<body class="xml2rfc">
+<table class="ears">
+<thead><tr>
+<td class="left">Internet-Draft</td>
+<td class="center">Governed Agent Lifecycle</td>
+<td class="right">September 2026</td>
+</tr></thead>
+<tfoot><tr>
+<td class="left">McGuinness</td>
+<td class="center">Expires 29 March 2027</td>
+<td class="right">[Page]</td>
+</tr></tfoot>
+</table>
+<div id="external-metadata" class="document-information"></div>
+<div id="internal-metadata" class="document-information">
+<dl id="identifiers">
+<dt class="label-workgroup">Workgroup:</dt>
+<dd class="workgroup">System for Cross-domain Identity Management</dd>
+<dt class="label-internet-draft">Internet-Draft:</dt>
+<dd class="internet-draft">draft-mcguinness-oauth-governed-agent-lifecycle-latest</dd>
+<dt class="label-published">Published:</dt>
+<dd class="published">
+<time datetime="2026-09-25" class="published">25 September 2026</time>
+    </dd>
+<dt class="label-intended-status">Intended Status:</dt>
+<dd class="intended-status">Standards Track</dd>
+<dt class="label-expires">Expires:</dt>
+<dd class="expires"><time datetime="2027-03-29">29 March 2027</time></dd>
+<dt class="label-authors">Author:</dt>
+<dd class="authors">
+<div class="author">
+      <div class="author-name">K. McGuinness</div>
+<div class="org">Independent</div>
+</div>
+</dd>
+</dl>
+</div>
+<h1 id="title">Governed Agent Lifecycle Profile for SCIM and OAuth</h1>
+<section id="section-abstract">
+      <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
+<p id="section-abstract-1">This document profiles SCIM for provisioning issuer-qualified Agent
+Principals into a resource domain and applying administrative disablement
+to OAuth authorization. Existing SCIM Events can accelerate reconciliation;
+existing session-revocation events can invalidate identified authorization
+sessions independently of principal state.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+<p id="section-abstract-2">The profile defines identity correlation, receiver actions, and the
+limits of propagation and resource enforcement. It defines no new SCIM
+schema, event type, eligibility lease, or authorization timestamp.
+Current administrative state does not establish a history of revocation.<a href="#section-abstract-2" class="pilcrow">¶</a></p>
+</section>
+<section class="note rfcEditorRemove" id="section-note.1">
+      <h2 id="name-about-this-document">
+<a href="#name-about-this-document" class="section-name selfRef">About This Document</a>
+      </h2>
+<p id="section-note.1-1">This note is to be removed before publishing as an RFC.<a href="#section-note.1-1" class="pilcrow">¶</a></p>
+<p id="section-note.1-2">
+        The latest revision of this draft can be found at <span><a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html</a></span>.
+        Status information for this document may be found at <span><a href="https://datatracker.ietf.org/doc/draft-mcguinness-oauth-governed-agent-lifecycle/">https://datatracker.ietf.org/doc/draft-mcguinness-oauth-governed-agent-lifecycle/</a></span>.<a href="#section-note.1-2" class="pilcrow">¶</a></p>
+<p id="section-note.1-3">
+        Discussion of this document takes place on the
+        System for Cross-domain Identity Management Working Group mailing list (<span><a href="mailto:scim@ietf.org">mailto:scim@ietf.org</a></span>),
+        which is archived at <span><a href="https://mailarchive.ietf.org/arch/browse/scim/">https://mailarchive.ietf.org/arch/browse/scim/</a></span>.
+        Subscribe at <span><a href="https://www.ietf.org/mailman/listinfo/scim/">https://www.ietf.org/mailman/listinfo/scim/</a></span>.<a href="#section-note.1-3" class="pilcrow">¶</a></p>
+<p id="section-note.1-4">Source for this draft and an issue tracker can be found at
+        <span><a href="https://github.com/mcguinness/governed-agent-profiles">https://github.com/mcguinness/governed-agent-profiles</a></span>.<a href="#section-note.1-4" class="pilcrow">¶</a></p>
+</section>
+<div id="status-of-memo">
+<section id="section-boilerplate.1">
+        <h2 id="name-status-of-this-memo">
+<a href="#name-status-of-this-memo" class="section-name selfRef">Status of This Memo</a>
+        </h2>
+<p id="section-boilerplate.1-1">
+        This Internet-Draft is submitted in full conformance with the
+        provisions of BCP 78 and BCP 79.<a href="#section-boilerplate.1-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-2">
+        Internet-Drafts are working documents of the Internet Engineering Task
+        Force (IETF). Note that other groups may also distribute working
+        documents as Internet-Drafts. The list of current Internet-Drafts is
+        at <span><a href="https://datatracker.ietf.org/drafts/current/">https://datatracker.ietf.org/drafts/current/</a></span>.<a href="#section-boilerplate.1-2" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-3">
+        Internet-Drafts are draft documents valid for a maximum of six months
+        and may be updated, replaced, or obsoleted by other documents at any
+        time. It is inappropriate to use Internet-Drafts as reference
+        material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-4">
+        This Internet-Draft will expire on 29 March 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="copyright">
+<section id="section-boilerplate.2">
+        <h2 id="name-copyright-notice">
+<a href="#name-copyright-notice" class="section-name selfRef">Copyright Notice</a>
+        </h2>
+<p id="section-boilerplate.2-1">
+            Copyright (c) 2026 IETF Trust and the persons identified as the
+            document authors. All rights reserved.<a href="#section-boilerplate.2-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.2-2">
+            This document is subject to BCP 78 and the IETF Trust's Legal
+            Provisions Relating to IETF Documents
+            (<span><a href="https://trustee.ietf.org/license-info">https://trustee.ietf.org/license-info</a></span>) in effect on the date of
+            publication of this document. Please review these documents
+            carefully, as they describe your rights and restrictions with
+            respect to this document. Code Components extracted from this
+            document must include Revised BSD License text as described in
+            Section 4.e of the Trust Legal Provisions and are provided without
+            warranty as described in the Revised BSD License.<a href="#section-boilerplate.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="toc">
+<section id="section-toc.1">
+        <a href="#" onclick="scroll(0,0)" class="toplink">▲</a><h2 id="name-table-of-contents">
+<a href="#name-table-of-contents" class="section-name selfRef">Table of Contents</a>
+        </h2>
+<nav class="toc"><ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1">
+            <p id="section-toc.1-1.1.1" class="keepWithNext"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.1">
+                <p id="section-toc.1-1.1.2.1.1" class="keepWithNext"><a href="#section-1.1" class="auto internal xref">1.1</a>.  <a href="#name-scope" class="internal xref">Scope</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
+            <p id="section-toc.1-1.2.1" class="keepWithNext"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-conventions-and-terminology" class="internal xref">Conventions and Terminology</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
+            <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-conformance-and-configurati" class="internal xref">Conformance and Configuration</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-identity-and-local-correlat" class="internal xref">Identity and Local Correlation</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
+            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-scim-provisioning" class="internal xref">SCIM Provisioning</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1">
+                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-creation-and-updates" class="internal xref">Creation and Updates</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2">
+                <p id="section-toc.1-1.5.2.2.1"><a href="#section-5.2" class="auto internal xref">5.2</a>.  <a href="#name-applying-administrative-sta" class="internal xref">Applying Administrative State</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.3">
+                <p id="section-toc.1-1.5.2.3.1"><a href="#section-5.3" class="auto internal xref">5.3</a>.  <a href="#name-effective-eligibility" class="internal xref">Effective Eligibility</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
+            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-signals-and-reconciliation" class="internal xref">Signals and Reconciliation</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.1">
+                <p id="section-toc.1-1.6.2.1.1"><a href="#section-6.1" class="auto internal xref">6.1</a>.  <a href="#name-missed-transitions-and-reac" class="internal xref">Missed Transitions and Reactivation</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-oauth-enforcement" class="internal xref">OAuth Enforcement</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.1">
+                <p id="section-toc.1-1.7.2.1.1"><a href="#section-7.1" class="auto internal xref">7.1</a>.  <a href="#name-resource-enforcement-and-de" class="internal xref">Resource Enforcement and Delay</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-revocation-boundaries" class="internal xref">Revocation Boundaries</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.1">
+                <p id="section-toc.1-1.8.2.1.1"><a href="#section-8.1" class="auto internal xref">8.1</a>.  <a href="#name-self-acting-access" class="internal xref">Self-Acting Access</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
+            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-privacy-considerations" class="internal xref">Privacy Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
+            <p id="section-toc.1-1.11.1"><a href="#section-11" class="auto internal xref">11</a>. <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
+            <p id="section-toc.1-1.12.1"><a href="#section-12" class="auto internal xref">12</a>. <a href="#name-references" class="internal xref">References</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.1">
+                <p id="section-toc.1-1.12.2.1.1"><a href="#section-12.1" class="auto internal xref">12.1</a>.  <a href="#name-normative-references" class="internal xref">Normative References</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.2">
+                <p id="section-toc.1-1.12.2.2.1"><a href="#section-12.2" class="auto internal xref">12.2</a>.  <a href="#name-informative-references" class="internal xref">Informative References</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
+            <p id="section-toc.1-1.13.1"><a href="#appendix-A" class="auto internal xref">Appendix A</a>.  <a href="#name-optional-shared-signals-pro" class="internal xref">Optional Shared Signals Profile</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.1">
+                <p id="section-toc.1-1.13.2.1.1"><a href="#appendix-A.1" class="auto internal xref">A.1</a>.  <a href="#name-trust-and-delivery" class="internal xref">Trust and Delivery</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.2">
+                <p id="section-toc.1-1.13.2.2.1"><a href="#appendix-A.2" class="auto internal xref">A.2</a>.  <a href="#name-scim-reconciliation-trigger" class="internal xref">SCIM Reconciliation Triggers</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.3">
+                <p id="section-toc.1-1.13.2.3.1"><a href="#appendix-A.3" class="auto internal xref">A.3</a>.  <a href="#name-grant-derived-session-revoc" class="internal xref">Grant-Derived Session Revocation</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.4">
+                <p id="section-toc.1-1.13.2.4.1"><a href="#appendix-A.4" class="auto internal xref">A.4</a>.  <a href="#name-unit-of-revocation" class="internal xref">Unit of Revocation</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14">
+            <p id="section-toc.1-1.14.1"><a href="#appendix-B" class="auto internal xref">Appendix B</a>.  <a href="#name-shared-delegated-federation" class="internal xref">Shared Delegated Federation Walkthrough</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.1">
+                <p id="section-toc.1-1.14.2.1.1"><a href="#appendix-B.1" class="auto internal xref">B.1</a>.  <a href="#name-correlate-and-provision" class="internal xref">Correlate and Provision</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.2">
+                <p id="section-toc.1-1.14.2.2.1"><a href="#appendix-B.2" class="auto internal xref">B.2</a>.  <a href="#name-activate-and-exchange" class="internal xref">Activate and Exchange</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.3">
+                <p id="section-toc.1-1.14.2.3.1"><a href="#appendix-B.3" class="auto internal xref">B.3</a>.  <a href="#name-disable-and-re-enable" class="internal xref">Disable and Re-enable</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.4">
+                <p id="section-toc.1-1.14.2.4.1"><a href="#appendix-B.4" class="auto internal xref">B.4</a>.  <a href="#name-acceptance-checklist" class="internal xref">Acceptance Checklist</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15">
+            <p id="section-toc.1-1.15.1"><a href="#appendix-C" class="auto internal xref">Appendix C</a>.  <a href="#name-signal-examples" class="internal xref">Signal Examples</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.1">
+                <p id="section-toc.1-1.15.2.1.1"><a href="#appendix-C.1" class="auto internal xref">C.1</a>.  <a href="#name-provisioning-change-notice" class="internal xref">Provisioning Change Notice</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.2">
+                <p id="section-toc.1-1.15.2.2.1"><a href="#appendix-C.2" class="auto internal xref">C.2</a>.  <a href="#name-revoke-authorization-derive" class="internal xref">Revoke Authorization Derived from an ID-JAG</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.16">
+            <p id="section-toc.1-1.16.1"><a href="#appendix-D" class="auto internal xref">Appendix D</a>.  <a href="#name-document-history" class="internal xref">Document History</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.17">
+            <p id="section-toc.1-1.17.1"><a href="#appendix-E" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.18">
+            <p id="section-toc.1-1.18.1"><a href="#appendix-F" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
+</li>
+        </ul>
+</nav>
+</section>
+</div>
+<div id="introduction">
+<section id="section-1">
+      <h2 id="name-introduction">
+<a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
+      </h2>
+<p id="section-1-1">Governed Agent Federation <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> separates agent identity,
+client authority, user delegation, and resource authorization. It
+identifies an Agent Principal by the pair (IdP issuer, agent
+identifier), independently of the client or workload credential used to
+resolve it.<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-2">For delegated access, the Identity Assertion JWT Authorization Grant
+(ID-JAG) <span>[<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span> carries that principal as the actor. The resource
+domain correlates the actor with its local agent record.<a href="#section-1-2" class="pilcrow">¶</a></p>
+<p id="section-1-3">Across the family, <span>[<a href="#AGENT-MANAGEMENT" class="cite xref">AGENT-MANAGEMENT</a>]</span> establishes the relationships
+at the IdP, <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> exercises them to obtain authorization, and
+this document carries the principal's administrative state into the
+resource domain and revokes what depends on it.<a href="#section-1-3" class="pilcrow">¶</a></p>
+<p id="section-1-4">This companion defines how a resource domain provisions that principal
+and applies changes to its administrative status. The responsibilities
+are:<a href="#section-1-4" class="pilcrow">¶</a></p>
+<table class="center" id="table-1">
+        <caption><a href="#table-1" class="selfRef">Table 1</a></caption>
+<thead>
+          <tr>
+            <th class="text-left" rowspan="1" colspan="1">Mechanism</th>
+            <th class="text-left" rowspan="1" colspan="1">Responsibility</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">SCIM Agent <span>[<a href="#SCIM-AGENT" class="cite xref">SCIM-AGENT</a>]</span>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Provision and update the local representation, including <code>active</code>
+</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">SCIM Events <span>[<a href="#RFC9967" class="cite xref">RFC9967</a>]</span>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Notify the receiver that authoritative provisioning state changed</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Session revocation</td>
+            <td class="text-left" rowspan="1" colspan="1">Invalidate identified authorization sessions without changing the principal's administrative status</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">OAuth enforcement</td>
+            <td class="text-left" rowspan="1" colspan="1">Apply local eligibility and revocation at issuance, refresh, introspection, and API access</td>
+          </tr>
+        </tbody>
+      </table>
+<span id="name-administrative-state-and-au"></span><div id="lifecycle-model">
+<figure id="figure-1">
+        <div class="alignLeft art-text artwork" id="section-1-6.1">
+<pre>
+ Enterprise IdP / connector                  Resource domain
+ +------------------------+                 +----------------------+
+ | Agent Principal        | ---- SCIM ----&gt;  | Local agent principal|
+ | Administrative state   |                  | Correlation + active |
+ +------------------------+                 +-----------+----------+
+       |                                                |
+       +---- change notice --&gt; reconciliation           v
+                                             RAS issuance / refresh
+       +---- session revocation ------------&gt; session invalidation
+                                                        |
+                                                        v
+                                            API token enforcement
+</pre>
+</div>
+<figcaption><a href="#figure-1" class="selfRef">Figure 1</a>:
+<a href="#name-administrative-state-and-au" class="selfRef">Administrative state and authorization revocation</a>
+        </figcaption></figure>
+</div>
+<p id="section-1-7">SCIM is the provisioning baseline. Shared Signals is an optional
+addition, profiled in <a href="#signals" class="auto internal xref">Appendix A</a> using existing event types. A
+deployment can use direct SCIM updates, event-driven reconciliation, or
+both, provided that they apply the same authoritative administrative
+decisions. Events trigger retrieval of current state rather than
+carrying it: a late notice resolves to the current decision, whereas a
+late activation applied as an instruction would revive a principal that
+was since disabled. That asymmetry is the design's safety property.<a href="#section-1-7" class="pilcrow">¶</a></p>
+<p id="section-1-8">Disabling a principal and revoking a session are separate actions. Once
+applied, disablement prevents new authorization and invalidates existing
+RAS authorization for that principal. Re-enablement permits new
+decisions; it does not restore revoked sessions. Neither an event
+acknowledgment nor a SCIM response proves that every API has stopped
+accepting issued tokens.<a href="#section-1-8" class="pilcrow">¶</a></p>
+<p id="section-1-9">Disablement is one of several revocation boundaries. Disabling the
+principal, disabling an Identity Binding, withdrawing a Client
+Association or a delegation, revoking a workload credential, and
+revoking one grant each reach different authorization
+(<a href="#relationship-changes" class="auto internal xref">Section 8</a>). The resource domain also keeps its own
+authority: a Local Suspension denies the agent there regardless of
+upstream state, and upstream activation cannot clear it.<a href="#section-1-9" class="pilcrow">¶</a></p>
+<div id="scope">
+<section id="section-1.1">
+        <h3 id="name-scope">
+<a href="#section-1.1" class="section-number selfRef">1.1. </a><a href="#name-scope" class="section-name selfRef">Scope</a>
+        </h3>
+<p id="section-1.1-1">This profile covers IdP-to-resource-domain provisioning for delegated
+Federation. It does not define:<a href="#section-1.1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-1.1-2.1">
+            <p id="section-1.1-2.1.1">Platform enrollment or administration of Identity Bindings and Client
+Associations; <span>[<a href="#AGENT-MANAGEMENT" class="cite xref">AGENT-MANAGEMENT</a>]</span> defines that separate interface.<a href="#section-1.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.1-2.2">
+            <p id="section-1.1-2.2.1">A new lifecycle state machine, signed eligibility lease, authorization
+cutoff, or distributed ordering protocol.<a href="#section-1.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.1-2.3">
+            <p id="section-1.1-2.3.1">Automatic translation of binding or delegation withdrawal into all
+affected grants, or a WAG wire profile. A known ID-JAG can be revoked
+selectively under <a href="#grant-revocation" class="auto internal xref">Appendix A.3</a>.<a href="#section-1.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.1-2.4">
+            <p id="section-1.1-2.4.1">A guarantee that an unobserved disable-and-reenable cycle invalidates
+all previously issued grants or sessions.<a href="#section-1.1-2.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.1-2.5">
+            <p id="section-1.1-2.5.1">Runtime containment: stopping executions, tool calls, or network
+access, or rejecting offline tokens before they expire. Administrative
+disablement stops new authorization and revokes RAS sessions;
+immediate containment needs complementary runtime enforcement
+(<a href="#api-enforcement" class="auto internal xref">Section 7.1</a>).<a href="#section-1.1-2.5.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-1.1-3"><a href="#recovery" class="auto internal xref">Section 6</a> and <a href="#enforcement" class="auto internal xref">Section 7</a> state the recovery and enforcement
+limits. Deployments requiring stronger revocation-history guarantees need
+an additional composition; timestamps in ordinary resource metadata do
+not provide those guarantees.<a href="#section-1.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="conventions-and-terminology">
+<section id="section-2">
+      <h2 id="name-conventions-and-terminology">
+<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-conventions-and-terminology" class="section-name selfRef">Conventions and Terminology</a>
+      </h2>
+<p id="section-2-1">The key words "<span class="bcp14">MUST</span>", "<span class="bcp14">MUST NOT</span>", "<span class="bcp14">REQUIRED</span>", "<span class="bcp14">SHALL</span>", "<span class="bcp14">SHALL NOT</span>", "<span class="bcp14">SHOULD</span>", "<span class="bcp14">SHOULD NOT</span>", "<span class="bcp14">RECOMMENDED</span>", "<span class="bcp14">NOT RECOMMENDED</span>",
+"<span class="bcp14">MAY</span>", and "<span class="bcp14">OPTIONAL</span>" in this document are to be interpreted as
+described in <span>[<a href="#BCP14" class="cite xref">BCP14</a>]</span> (<a href="#RFC2119" class="auto internal xref">RFC2119</a>) (<a href="#RFC8174" class="auto internal xref">RFC8174</a>) when, and only when, they
+appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶</a></p>
+<p id="section-2-2">Agent Principal, Governance Tenant, Target Tenant, and resource
+authorization server (RAS) follow <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>. SCIM terms follow
+<span>[<a href="#RFC7643" class="cite xref">RFC7643</a>]</span> and <span>[<a href="#RFC7644" class="cite xref">RFC7644</a>]</span>.<a href="#section-2-2" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-2-3">
+        <dt id="section-2-3.1">Governing IdP:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.2">
+          <p id="section-2-3.2.1">The IdP governing the Agent Principal. An authorized connector can
+provision its decisions into the resource domain.<a href="#section-2-3.2.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.3">Receiver:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.4">
+          <p id="section-2-3.4.1">The resource-domain SCIM service provider and the components applying
+accepted changes at the RAS. They form one administrative deployment;
+they need not run in one process. It is the resource-domain
+counterpart of the IdP Service Provider in <span>[<a href="#AGENT-MANAGEMENT" class="cite xref">AGENT-MANAGEMENT</a>]</span>.<a href="#section-2-3.4.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.5">Provisioning Domain:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.6">
+          <p id="section-2-3.6.1">Trusted configuration identifying one governing IdP issuer and one
+receiving Target Tenant, together with the connectors authorized to
+manage their correlation and administrative state. This is the
+resource-domain counterpart of the IdP-side Provisioning Domain.<a href="#section-2-3.6.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.7">Authorization Session:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.8">
+          <p id="section-2-3.8.1">RAS state retaining the identity and authority derived from a grant,
+including any associated refresh authorization and access tokens. This
+is a processing concept, not a new token or wire identifier.<a href="#section-2-3.8.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.9">Local Suspension:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.10">
+          <p id="section-2-3.10.1">A resource-domain restriction independent of the Governing IdP's
+administrative state. Upstream activation cannot clear it.<a href="#section-2-3.10.1" class="pilcrow">¶</a></p>
+</dd>
+      <dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="conformance">
+<section id="section-3">
+      <h2 id="name-conformance-and-configurati">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-conformance-and-configurati" class="section-name selfRef">Conformance and Configuration</a>
+      </h2>
+<p id="section-3-1">Conformance requires the SCIM provisioning and OAuth receiver behavior in
+this document. Events are optional; a deployment using them <span class="bcp14">MUST</span> apply
+<a href="#signals" class="auto internal xref">Appendix A</a>. Support for events alone is not conformance to this
+lifecycle profile.<a href="#section-3-1" class="pilcrow">¶</a></p>
+<p id="section-3-2">Before provisioning, the parties <span class="bcp14">MUST</span> establish:<a href="#section-3-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-3-3.1">
+          <p id="section-3-3.1.1">The Provisioning Domain and authenticated connectors authorized for it.<a href="#section-3-3.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-3-3.2">
+          <p id="section-3-3.2.1">The SCIM base URI and access controls that select that context.<a href="#section-3-3.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-3-3.3">
+          <p id="section-3-3.3.1">The RAS and API token populations to which lifecycle enforcement applies.<a href="#section-3-3.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-3-3.4">
+          <p id="section-3-3.4.1">Reconciliation responsibilities, stale-state policy, and resource
+enforcement settings under <a href="#recovery" class="auto internal xref">Section 6</a> and <a href="#enforcement" class="auto internal xref">Section 7</a>.<a href="#section-3-3.4.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-3-4">A connector authorized for one context <span class="bcp14">MUST NOT</span> modify another context's
+principal or correlation. Multiple writers <span class="bcp14">MAY</span> represent the same
+Governing IdP, but <span class="bcp14">MUST</span> reconcile against its current decisions rather
+than replay queued activation writes after newer disablement. SCIM
+conditional updates protect receiver resource versions; they do not
+order independent source decisions.<a href="#section-3-4" class="pilcrow">¶</a></p>
+<p id="section-3-5">The IdP continues to enforce current eligibility when issuing grants under
+<span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>. This profile adds resource-domain application of that
+state; it does not make SCIM availability or event delivery part of client
+authentication.<a href="#section-3-5" class="pilcrow">¶</a></p>
+<p id="section-3-6">The Governing IdP, directly or through its connector, <span class="bcp14">MUST</span> apply each
+change to a provisioned Agent Principal's administrative status to every
+resource domain it has provisioned for that principal, by a SCIM write
+or by a subscribed event that triggers reconciliation, and <span class="bcp14">SHOULD</span> do so
+promptly after the decision. Where grant-derived revocation under
+<a href="#grant-revocation" class="auto internal xref">Appendix A.3</a> is enabled, the IdP <span class="bcp14">MUST</span> retain the identifiers of
+the ID-JAGs it issued under each delegation, Identity Binding, and Client
+Association, so that withdrawing any of them can be propagated to the
+authorization derived from those grants.<a href="#section-3-6" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="identity">
+<section id="section-4">
+      <h2 id="name-identity-and-local-correlat">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-identity-and-local-correlat" class="section-name selfRef">Identity and Local Correlation</a>
+      </h2>
+<p id="section-4-1">The federation identity remains the exact pair (IdP issuer, Agent
+Principal identifier). A Target Tenant scopes local policy and
+correlation; it is not an additional component of that identity.<a href="#section-4-1" class="pilcrow">¶</a></p>
+<p id="section-4-2">For this provisioning interface:<a href="#section-4-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4-3.1">
+          <p id="section-4-3.1.1">The governing issuer <span class="bcp14">MUST</span> come from the authenticated Provisioning
+Domain, not from a caller-selected attribute.<a href="#section-4-3.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-4-3.2">
+          <p id="section-4-3.2.1">The connector <span class="bcp14">MUST</span> set the Agent's <code>externalId</code> to the exact Agent
+Principal identifier in that issuer's namespace.<a href="#section-4-3.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-4-3.3">
+          <p id="section-4-3.3.1">The Receiver <span class="bcp14">MUST</span> enforce uniqueness of <code>externalId</code> within that
+context, including concurrent creates. This is an explicit narrowing
+of SCIM's client-scoped <code>externalId</code> behavior.<a href="#section-4-3.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-4-3.4">
+          <p id="section-4-3.4.1">Once established, the pair <span class="bcp14">MUST NOT</span> change through a resource update.
+Attempts to change <code>externalId</code> use SCIM's <code>mutability</code> error.<a href="#section-4-3.4.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-4-4">Thus, <code>externalId</code> alone is not a globally qualified identity. A
+deployment with multiple IdPs <span class="bcp14">MUST</span> retain the context with each
+resource; it cannot merge records on equal <code>externalId</code> values across
+issuers. This use of <code>externalId</code> is specific to the IdP-to-resource
+interface. A platform's <code>externalId</code> at the IdP remains its own
+provisioning correlation value.
+The mutability differs for the same reason: at the platform-to-IdP
+interface of <span>[<a href="#AGENT-MANAGEMENT" class="cite xref">AGENT-MANAGEMENT</a>]</span> it is the connector's record key and
+stays readWrite; here it carries the principal identifier and is
+immutable once established.<a href="#section-4-4" class="pilcrow">¶</a></p>
+<p id="section-4-5">When the source uses <span>[<a href="#AGENT-MANAGEMENT" class="cite xref">AGENT-MANAGEMENT</a>]</span>, the connector maps the
+interfaces as follows; it does not copy the source Agent unchanged:<a href="#section-4-5" class="pilcrow">¶</a></p>
+<table class="center" id="table-2">
+        <caption><a href="#table-2" class="selfRef">Table 2</a></caption>
+<thead>
+          <tr>
+            <th class="text-left" rowspan="1" colspan="1">IdP-side source</th>
+            <th class="text-left" rowspan="1" colspan="1">Resource-domain use</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Configured governing issuer</td>
+            <td class="text-left" rowspan="1" colspan="1">Issuer established by the authenticated Provisioning Domain</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>AgentFederation.subject</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Exact value of the destination Agent's <code>externalId</code>
+</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Agent <code>active</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Upstream administrative state; local restrictions remain independent</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Agent <code>id</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Source-resource correlation, not the destination SCIM <code>id</code>
+</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Platform-assigned <code>externalId</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Platform correlation only; not the federated principal identifier</td>
+          </tr>
+        </tbody>
+      </table>
+<p id="section-4-7">This mapping applies equally to direct provisioning and event-driven
+reconciliation. It introduces no additional destination attributes.<a href="#section-4-7" class="pilcrow">¶</a></p>
+<p id="section-4-8">For delegated access, the RAS <span class="bcp14">MUST</span> resolve the validated ID-JAG's
+<code>act.iss</code> and <code>act.sub</code> to this pair within the authorized Target
+Tenant. It <span class="bcp14">MUST NOT</span> use the user subject, OAuth client, display name, or
+token issuer as a substitute. Comparisons are exact, without case
+folding or URI rewriting.<a href="#section-4-8" class="pilcrow">¶</a></p>
+<p id="section-4-9">The Receiver <span class="bcp14">MUST</span> correlate the pair with at most one local agent
+principal in the Target Tenant. An existing service principal <span class="bcp14">MAY</span> supply
+that local representation, but attaching it requires explicit local
+authorization. The SCIM Agent is then a management view of that same
+principal, not a second authorization identity.<a href="#section-4-9" class="pilcrow">¶</a></p>
+<p id="section-4-10">This profile raises Federation's provisioning recommendation to a
+requirement: the RAS <span class="bcp14">MUST</span> have the authorized local correlation before
+accepting a grant involving the agent. A missing or ambiguous
+correlation fails under Federation's identity-resolution error rules.
+A validated grant does not by itself create that correlation.<a href="#section-4-10" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="scim">
+<section id="section-5">
+      <h2 id="name-scim-provisioning">
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-scim-provisioning" class="section-name selfRef">SCIM Provisioning</a>
+      </h2>
+<p id="section-5-1">The interface uses <code>/Agents</code> and the attributes of <span>[<a href="#SCIM-AGENT" class="cite xref">SCIM-AGENT</a>]</span>,
+including required <code>agentUserName</code>, plus the common attributes of
+<span>[<a href="#RFC7643" class="cite xref">RFC7643</a>]</span>. It defines no extension schema. Receivers <span class="bcp14">MUST</span> support
+creation, retrieval, filtering by <code>externalId</code>, PUT, PATCH, and deletion using
+<span>[<a href="#RFC7644" class="cite xref">RFC7644</a>]</span>. The Receiver <span class="bcp14">MUST</span> advertise filtering, PATCH, and ETag
+support in <code>/ServiceProviderConfig</code>. Connectors for <code>/Agents</code> are
+purpose-built for this resource; User/Group support alone is insufficient.<a href="#section-5-1" class="pilcrow">¶</a></p>
+<div id="creation-and-updates">
+<section id="section-5.1">
+        <h3 id="name-creation-and-updates">
+<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-creation-and-updates" class="section-name selfRef">Creation and Updates</a>
+        </h3>
+<p id="section-5.1-1">Creation and PUT requests <span class="bcp14">MUST</span> contain <code>externalId</code> and an explicit
+boolean <code>active</code>; PATCH removal of either is invalid. Only <code>active:
+true</code> permits authorization evaluation. Missing required values use
+<code>invalidValue</code>; conflicting correlation values use <code>uniqueness</code>,
+following SCIM's error model.<a href="#section-5.1-1" class="pilcrow">¶</a></p>
+<p id="section-5.1-2">Within the authenticated Provisioning Domain, a connector can reconcile
+using:<a href="#section-5.1-2" class="pilcrow">¶</a></p>
+<div class="lang-http sourcecode" id="section-5.1-3">
+<pre>
+GET /scim/v2/Agents?filter=externalId%20eq%20%22agent-42%22
+</pre><a href="#section-5.1-3" class="pilcrow">¶</a>
+</div>
+<p id="section-5.1-4">The Receiver <span class="bcp14">MUST</span> restrict the result to that context. Names, owners,
+groups, and other descriptive attributes do not select the governed
+identity or grant delegation.<a href="#section-5.1-4" class="pilcrow">¶</a></p>
+<p id="section-5.1-5">Versions, ETags, <code>If-Match</code>, the conditional requirement for activating
+an inactive resource, and incremental reads on <code>meta.lastModified</code>
+follow the common provisioning conventions of <span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span>. In this
+interface, <code>meta.version</code> is not a lifecycle counter and
+<code>meta.lastModified</code> is not a source decision time or a grant-revocation
+boundary; a descriptive edit can change both without affecting
+authorization.<a href="#section-5.1-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="application">
+<section id="section-5.2">
+        <h3 id="name-applying-administrative-sta">
+<a href="#section-5.2" class="section-number selfRef">5.2. </a><a href="#name-applying-administrative-sta" class="section-name selfRef">Applying Administrative State</a>
+        </h3>
+<p id="section-5.2-1">The Receiver <span class="bcp14">MUST</span> authorize changes to <code>active</code> separately from
+permission to edit descriptive attributes. It <span class="bcp14">MUST</span> preserve Local
+Suspension and resource permissions independently of upstream
+administrative updates.<a href="#section-5.2-1" class="pilcrow">¶</a></p>
+<table class="center" id="table-3">
+          <caption><a href="#table-3" class="selfRef">Table 3</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Applied action</th>
+              <th class="text-left" rowspan="1" colspan="1">New RAS authorization</th>
+              <th class="text-left" rowspan="1" colspan="1">Existing RAS authorization</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Create or set <code>active: true</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Evaluate correlation, local status, and all Federation checks</td>
+              <td class="text-left" rowspan="1" colspan="1">Does not restore previously revoked sessions</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Set <code>active: false</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Deny grant redemption and refresh involving this principal</td>
+              <td class="text-left" rowspan="1" colspan="1">Revoke associated authorization sessions</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Delete the local Agent</td>
+              <td class="text-left" rowspan="1" colspan="1">Deny because the authorized correlation is absent</td>
+              <td class="text-left" rowspan="1" colspan="1">Revoke associated authorization sessions</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Change display name, owner, or other descriptive data</td>
+              <td class="text-left" rowspan="1" colspan="1">No implicit change to eligibility or delegation</td>
+              <td class="text-left" rowspan="1" colspan="1">No implicit revocation or grant of authority</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-5.2-3">The durable restriction rule of <span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span> applies to disablement
+and deletion with the RAS decision point as the decision point; an
+inactive record or a separate deny marker can provide that state. If
+session invalidation is asynchronous, a local restriction <span class="bcp14">MUST</span> deny use
+of the affected sessions until invalidation completes. API observation
+of revocation follows <a href="#enforcement" class="auto internal xref">Section 7</a>.<a href="#section-5.2-3" class="pilcrow">¶</a></p>
+<p id="section-5.2-4">Reactivation <span class="bcp14">MUST NOT</span> cancel pending invalidation or restore revoked
+sessions. Recreating a deleted representation likewise does not restore
+revoked authorization. Receivers <span class="bcp14">MUST</span> retain revocation state for as
+long as affected tokens or refresh authorizations could otherwise be
+accepted. This does not require retaining the deleted SCIM resource.<a href="#section-5.2-4" class="pilcrow">¶</a></p>
+<p id="section-5.2-5">Deleting a local representation does not prove that the IdP retired the
+Agent Principal globally. Permanent retirement and non-reassignment
+remain authority responsibilities under <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>.<a href="#section-5.2-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="effective-eligibility">
+<section id="section-5.3">
+        <h3 id="name-effective-eligibility">
+<a href="#section-5.3" class="section-number selfRef">5.3. </a><a href="#name-effective-eligibility" class="section-name selfRef">Effective Eligibility</a>
+        </h3>
+<p id="section-5.3-1">The SCIM <code>active</code> value reports administrative state received through
+this interface. Effective eligibility also requires an authorized
+correlation, no Local Suspension, and applicable resource policy. Local
+Suspension need not be exposed through this SCIM interface.<a href="#section-5.3-1" class="pilcrow">¶</a></p>
+<p id="section-5.3-2">Owners provide accountability; they are not automatically user
+delegators. Group membership has only the meaning assigned by local
+policy. Neither provisioning nor a successful administrative write opens
+the actor gate.<a href="#section-5.3-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="recovery">
+<section id="section-6">
+      <h2 id="name-signals-and-reconciliation">
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-signals-and-reconciliation" class="section-name selfRef">Signals and Reconciliation</a>
+      </h2>
+<p id="section-6-1">SCIM events trigger authoritative reconciliation; CAEP events revoke
+identified authorization. <a href="#signals" class="auto internal xref">Appendix A</a> defines their optional
+composition. Neither event delivery nor current SCIM state supplies a
+complete history.<a href="#section-6-1" class="pilcrow">¶</a></p>
+<p id="section-6-2">For event-driven reconciliation, the parties <span class="bcp14">MUST</span> configure the source
+SCIM service, retrieval authorization, and mapping from its resource
+identifier to the qualified agent and Target Tenant. The source and
+receiver SCIM <code>id</code> values need not match. A GET of the receiver's own
+replica does not establish the governing IdP's current state.<a href="#section-6-2" class="pilcrow">¶</a></p>
+<p id="section-6-3">Direct SCIM connectors and event-driven workers <span class="bcp14">MUST</span> coordinate local
+writes through the same correlation and conditional-update rules. A
+reconciliation worker reads the receiver's ETag before retrieving source
+state, then uses that ETag for its conditional write. After a conflict,
+it retrieves both again. This prevents an in-flight fetch from
+overwriting a later local restriction; it does not create a cross-domain
+transaction or establish that a remote source replica is current.<a href="#section-6-3" class="pilcrow">¶</a></p>
+<p id="section-6-4">Deployments <span class="bcp14">SHOULD</span> periodically reconcile managed principals even when
+an event stream appears operational. They <span class="bcp14">MUST</span> document how source
+outages and incomplete reconciliation affect continued reliance on local
+state. A deployment claiming a maximum stale-state interval needs an
+authoritative revalidation mechanism and a policy that denies new
+authorization and refresh when that interval expires. Receiving traffic
+or reading the Receiver's replica alone does not satisfy such a
+revalidation policy.<a href="#section-6-4" class="pilcrow">¶</a></p>
+<p id="section-6-5">Transport failure, access denial, and partial list results <span class="bcp14">MUST NOT</span> be
+interpreted as authoritative deletion. They leave reconciliation
+incomplete. An authoritative absence for a previously mapped resource
+requires disablement or deletion of its local representation; the
+Receiver <span class="bcp14">MUST</span> distinguish that absence from a visibility or
+authorization failure.<a href="#section-6-5" class="pilcrow">¶</a></p>
+<p id="section-6-6">A stream verification event proves neither an individual agent's status
+nor completion of resource enforcement. A delivery acknowledgment
+confirms acceptance under the transport, not API denial.<a href="#section-6-6" class="pilcrow">¶</a></p>
+<div id="missed-transitions">
+<section id="section-6.1">
+        <h3 id="name-missed-transitions-and-reac">
+<a href="#section-6.1" class="section-number selfRef">6.1. </a><a href="#name-missed-transitions-and-reac" class="section-name selfRef">Missed Transitions and Reactivation</a>
+        </h3>
+<p id="section-6.1-1">Current state does not establish transition history. If disablement and
+reactivation both occur between successful observations, a later active
+resource does not reveal the missed revocation. A different ETag can
+also result from an ordinary descriptive edit; it does not identify that
+history.<a href="#section-6.1-1" class="pilcrow">¶</a></p>
+<p id="section-6.1-2">Consequently, this profile does not guarantee rejection after
+reactivation of an old unredeemed ID-JAG or an authorization session
+whose revocation was never observed. Grant validation, replay
+prevention, and expiration still apply. Sessions actually revoked by the
+RAS remain revoked.<a href="#section-6.1-2" class="pilcrow">¶</a></p>
+<p id="section-6.1-3">Deployments requiring revocation to survive every missed transition need
+retained revocation history, an authoritative authorization check, or a
+separately specified authorization-generation mechanism. That mechanism
+is a deferred composition rather than a prohibition: it would carry an
+authenticated authorization generation in the grant, agreed with ID-JAG,
+and define the comparison the RAS applies. SCIM modification times, SET
+issuance times, and event timestamps <span class="bcp14">MUST NOT</span> be treated as
+interchangeable grant-issuance cutoffs under this profile.<a href="#section-6.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="enforcement">
+<section id="section-7">
+      <h2 id="name-oauth-enforcement">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-oauth-enforcement" class="section-name selfRef">OAuth Enforcement</a>
+      </h2>
+<p id="section-7-1">The RAS requirements that apply administrative state to authorization
+are specified in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>: checking current locally applied
+eligibility at redemption and refresh, retaining the association needed
+to invalidate authorization by qualified agent and Target Tenant, not
+letting refresh bypass a restriction or restore revoked authorization,
+and reporting revoked or disabled authorization as inactive under
+<span>[<a href="#RFC7662" class="cite xref">RFC7662</a>]</span>. This document supplies the provisioning and signals that
+feed those decisions and adds no grant issuance-time claim or timestamp
+comparison. The optional capability in <a href="#grant-revocation" class="auto internal xref">Appendix A.3</a> additionally
+retains the ID-JAG issuer and <code>jti</code>. Once reactivated, the principal may
+establish new authorization under ordinary Federation processing,
+subject to <a href="#missed-transitions" class="auto internal xref">Section 6.1</a>. Existing tokens whose agent
+correlation cannot be established <span class="bcp14">MUST NOT</span> be represented as covered by
+this profile.<a href="#section-7-1" class="pilcrow">¶</a></p>
+<div id="api-enforcement">
+<section id="section-7.1">
+        <h3 id="name-resource-enforcement-and-de">
+<a href="#section-7.1" class="section-number selfRef">7.1. </a><a href="#name-resource-enforcement-and-de" class="section-name selfRef">Resource Enforcement and Delay</a>
+        </h3>
+<p id="section-7.1-1">The API applies Federation's token validation, actor gate, tenant, and
+sender-constraint rules. The following are deployment choices, not new
+conformance levels:<a href="#section-7.1-1" class="pilcrow">¶</a></p>
+<table class="center" id="table-4">
+          <caption><a href="#table-4" class="selfRef">Table 4</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Resource processing</th>
+              <th class="text-left" rowspan="1" colspan="1">When an applied RAS revocation becomes visible</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Introspection on each request</td>
+              <td class="text-left" rowspan="1" colspan="1">On the next successful authorization check; a failed or timed-out check cannot authorize the request</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Cached introspection</td>
+              <td class="text-left" rowspan="1" colspan="1">After any permitted active-response cache entry expires or is invalidated</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Offline JWT validation</td>
+              <td class="text-left" rowspan="1" colspan="1">At token expiration, unless an independent local restriction takes effect earlier</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-7.1-3">Caching follows Federation and <span><a href="https://rfc-editor.org/rfc/rfc7662#section-4" class="relref">Section 4</a> of [<a href="#RFC7662" class="cite xref">RFC7662</a>]</span>. In particular,
+cached active responses cannot outlive token expiration or the
+configured freshness limit. Offline validation does not consult
+principal lifecycle state by itself. The RAS and API <span class="bcp14">MUST</span> configure
+token lifetimes, expiry leeway, and caching consistently with their
+accepted revocation delay.<a href="#section-7.1-3" class="pilcrow">¶</a></p>
+<p id="section-7.1-4">Deployments <span class="bcp14">SHOULD</span> document their expected and maximum disablement
+delays, including propagation, reconciliation, local application, token
+lifetime, and caching. A SCIM acknowledgment is not the starting point
+of an end-to-end guarantee from the governing IdP's original decision.
+Without a bound on propagation and enforcement, this profile claims no
+finite end-to-end denial bound. A local stale-state restriction can
+limit new issuance; it does not by itself revoke already-issued tokens.<a href="#section-7.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="relationship-changes">
+<section id="section-8">
+      <h2 id="name-revocation-boundaries">
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-revocation-boundaries" class="section-name selfRef">Revocation Boundaries</a>
+      </h2>
+<table class="center" id="table-5">
+        <caption><a href="#table-5" class="selfRef">Table 5</a></caption>
+<thead>
+          <tr>
+            <th class="text-left" rowspan="1" colspan="1">Change</th>
+            <th class="text-left" rowspan="1" colspan="1">Boundary</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Disable the Agent Principal</td>
+            <td class="text-left" rowspan="1" colspan="1">Stop new grants through every binding and client; once applied at the Receiver, deny redemption and refresh and revoke its sessions (<a href="#application" class="auto internal xref">Section 5.2</a>)</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Disable an Identity Binding</td>
+            <td class="text-left" rowspan="1" colspan="1">Stop new grants through that binding; other bindings remain independent</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Withdraw a Client Association</td>
+            <td class="text-left" rowspan="1" colspan="1">Stop that client use; do not infer agent-wide disablement</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Revoke a user's delegation</td>
+            <td class="text-left" rowspan="1" colspan="1">Affect that delegation, not unrelated users or self-acting authority</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Revoke a workload credential</td>
+            <td class="text-left" rowspan="1" colspan="1">Apply credential validation and IdP policy; do not automatically retire the Agent Principal</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Revoke a known ID-JAG</td>
+            <td class="text-left" rowspan="1" colspan="1">Invalidate its derived sessions; do not change principal eligibility</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Apply Local Suspension</td>
+            <td class="text-left" rowspan="1" colspan="1">Deny the agent in this resource domain regardless of upstream state; upstream activation cannot clear it</td>
+          </tr>
+        </tbody>
+      </table>
+<p id="section-8-2"><span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> defines the binding, association, and delegation
+relationships.
+Grant-derived revocation under <a href="#grant-revocation" class="auto internal xref">Appendix A.3</a> can target known
+ID-JAGs. Determining all grants affected by withdrawal of a binding or
+delegation remains an IdP responsibility; the agent identity alone
+cannot identify that set. OAuth token revocation <span>[<a href="#RFC7009" class="cite xref">RFC7009</a>]</span> can revoke a known token at its
+issuing server but is not a principal-provisioning or cross-domain
+notification protocol.<a href="#section-8-2" class="pilcrow">¶</a></p>
+<p id="section-8-3"><span>[<a href="#WISE" class="cite xref">WISE</a>]</span> can inform the IdP about workloads and credentials. The IdP evaluates those changes against its Identity Bindings before deciding on
+agent-wide action. Sharing a credential source does not merge principals;
+losing one credential does not necessarily disable a principal with other
+valid bindings.<a href="#section-8-3" class="pilcrow">¶</a></p>
+<div id="self-acting-access">
+<section id="section-8.1">
+        <h3 id="name-self-acting-access">
+<a href="#section-8.1" class="section-number selfRef">8.1. </a><a href="#name-self-acting-access" class="section-name selfRef">Self-Acting Access</a>
+        </h3>
+<p id="section-8.1-1">The self-acting WAG realization in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> correlates the same
+Agent Principal with the same local principal. Delegated access preserves the qualified
+actor in <code>act</code>; self-acting access represents the correlated agent as a
+local subject. Their authority remains distinct. This document defines
+no <span>[<a href="#WAG" class="cite xref">WAG</a>]</span> wire composition or additional WAG claim.<a href="#section-8.1-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="security-considerations">
+<section id="section-9">
+      <h2 id="name-security-considerations">
+<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
+      </h2>
+<p id="section-9-1">Provisioning writers can enable principals and change eligibility. Their
+authority <span class="bcp14">MUST</span> remain scoped to the configured issuer and Target Tenant.
+An event signature, matching display name, or equal <code>externalId</code> outside
+that context does not establish permission to correlate a principal.<a href="#section-9-1" class="pilcrow">¶</a></p>
+<p id="section-9-2">Conditional writes prevent stale updates to a known receiver version;
+they do not prove that a connector consulted current source state.
+Compromised or stale connectors can re-enable principals if their write
+permission remains valid. Administrative authorization, reconciliation,
+and local suspension therefore remain separate controls.<a href="#section-9-2" class="pilcrow">¶</a></p>
+<p id="section-9-3">Event trust, provisioning permission, and session-revocation authority
+remain separate. Receivers <span class="bcp14">MUST</span> constrain source retrieval and
+credential forwarding to authorized endpoints. A signed subject does not
+authorize arbitrary URL retrieval or cross-tenant revocation.<a href="#section-9-3" class="pilcrow">¶</a></p>
+<p id="section-9-4">Event loss and reordering can delay enforcement. Receivers <span class="bcp14">SHOULD</span> retry
+reconciliation, monitor failures, and retain revoked-session state across
+restarts. Recovery from lost revocation state <span class="bcp14">MUST NOT</span> silently restore
+sessions represented as revoked. The explicit limit in
+<a href="#missed-transitions" class="auto internal xref">Section 6.1</a> is particularly relevant to unattended refresh.<a href="#section-9-4" class="pilcrow">¶</a></p>
+<p id="section-9-5">A disabled principal may still have tokens accepted by an offline API.
+Token expiry and cached responses <span class="bcp14">MUST</span> be included in operational
+claims; stopping issuance alone does not terminate ongoing work or
+retract operations already performed.<a href="#section-9-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="privacy-considerations">
+<section id="section-10">
+      <h2 id="name-privacy-considerations">
+<a href="#section-10" class="section-number selfRef">10. </a><a href="#name-privacy-considerations" class="section-name selfRef">Privacy Considerations</a>
+      </h2>
+<p id="section-10-1">The qualified identity permits correlation across users and resources.
+Provisioning and event access <span class="bcp14">SHOULD</span> be limited to the receiving domains
+that need it. Logs <span class="bcp14">SHOULD</span> retain administrative actions and affected
+identities without copying reusable grants, access tokens, or
+credentials.<a href="#section-10-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="iana-considerations">
+<section id="section-11">
+      <h2 id="name-iana-considerations">
+<a href="#section-11" class="section-number selfRef">11. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+      </h2>
+<p id="section-11-1">This document requests no IANA actions.<a href="#section-11-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-combined-references">
+<section id="section-12">
+      <h2 id="name-references">
+<a href="#section-12" class="section-number selfRef">12. </a><a href="#name-references" class="section-name selfRef">References</a>
+      </h2>
+<div id="sec-normative-references">
+<section id="section-12.1">
+        <h3 id="name-normative-references">
+<a href="#section-12.1" class="section-number selfRef">12.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
+        </h3>
+<dl class="references">
+<dt id="CAEP">[CAEP]</dt>
+        <dd>
+<span class="refAuthor">OpenID Foundation</span>, <span class="refTitle">"OpenID Continuous Access Evaluation Profile 1.0"</span>, <time datetime="2025-08-29" class="refDate">29 August 2025</time>, <span>&lt;<a href="https://openid.net/specs/openid-caep-1_0-final.html">https://openid.net/specs/openid-caep-1_0-final.html</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="SSF">[SSF]</dt>
+        <dd>
+<span class="refAuthor">OpenID Foundation</span>, <span class="refTitle">"OpenID Shared Signals Framework Specification 1.0"</span>, <time datetime="2025-08-29" class="refDate">29 August 2025</time>, <span>&lt;<a href="https://openid.net/specs/openid-sharedsignals-framework-1_0-final.html">https://openid.net/specs/openid-sharedsignals-framework-1_0-final.html</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8417">[RFC8417]</dt>
+        <dd>
+<span class="refAuthor">Hunt, P., Ed.</span>, <span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Denniss, W.</span>, and <span class="refAuthor">M. Ansari</span>, <span class="refTitle">"Security Event Token (SET)"</span>, <span class="seriesInfo">RFC 8417</span>, <span class="seriesInfo">DOI 10.17487/RFC8417</span>, <time datetime="2018-07" class="refDate">July 2018</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8417">https://www.rfc-editor.org/rfc/rfc8417</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9493">[RFC9493]</dt>
+        <dd>
+<span class="refAuthor">Backman, A., Ed.</span>, <span class="refAuthor">Scurtescu, M.</span>, and <span class="refAuthor">P. Jain</span>, <span class="refTitle">"Subject Identifiers for Security Event Tokens"</span>, <span class="seriesInfo">RFC 9493</span>, <span class="seriesInfo">DOI 10.17487/RFC9493</span>, <time datetime="2023-12" class="refDate">December 2023</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9493">https://www.rfc-editor.org/rfc/rfc9493</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9967">[RFC9967]</dt>
+        <dd>
+<span class="refAuthor">Hunt, P., Ed.</span>, <span class="refAuthor">Cam-Winget, N.</span>, <span class="refAuthor">Kiser, M.</span>, and <span class="refAuthor">J. Schreiber</span>, <span class="refTitle">"System for Cross-Domain Identity Management (SCIM) Profile for Security Event Tokens (SETs)"</span>, <span class="seriesInfo">RFC 9967</span>, <span class="seriesInfo">DOI 10.17487/RFC9967</span>, <time datetime="2026-05" class="refDate">May 2026</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9967">https://www.rfc-editor.org/rfc/rfc9967</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8935">[RFC8935]</dt>
+        <dd>
+<span class="refAuthor">Backman, A., Ed.</span>, <span class="refAuthor">Jones, M., Ed.</span>, <span class="refAuthor">Scurtescu, M.</span>, <span class="refAuthor">Ansari, M.</span>, and <span class="refAuthor">A. Nadalin</span>, <span class="refTitle">"Push-Based Security Event Token (SET) Delivery Using HTTP"</span>, <span class="seriesInfo">RFC 8935</span>, <span class="seriesInfo">DOI 10.17487/RFC8935</span>, <time datetime="2020-11" class="refDate">November 2020</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8935">https://www.rfc-editor.org/rfc/rfc8935</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8936">[RFC8936]</dt>
+        <dd>
+<span class="refAuthor">Backman, A., Ed.</span>, <span class="refAuthor">Jones, M., Ed.</span>, <span class="refAuthor">Scurtescu, M.</span>, <span class="refAuthor">Ansari, M.</span>, and <span class="refAuthor">A. Nadalin</span>, <span class="refTitle">"Poll-Based Security Event Token (SET) Delivery Using HTTP"</span>, <span class="seriesInfo">RFC 8936</span>, <span class="seriesInfo">DOI 10.17487/RFC8936</span>, <time datetime="2020-11" class="refDate">November 2020</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8936">https://www.rfc-editor.org/rfc/rfc8936</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="ID-JAG">[ID-JAG]</dt>
+        <dd>
+<span class="refAuthor">Parecki, A.</span>, <span class="refAuthor">McGuinness, K.</span>, and <span class="refAuthor">B. Campbell</span>, <span class="refTitle">"Identity Assertion JWT Authorization Grant"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-identity-assertion-authz-grant-04</span>, <time datetime="2026-05-21" class="refDate">21 May 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="FEDERATION">[FEDERATION]</dt>
+        <dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Profile for Governed Agent Federation"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-governed-agent-federation</span>, <time datetime="2026-09-18" class="refDate">18 September 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-governed-agent-federation">https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-governed-agent-federation</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="SCIM-AGENT">[SCIM-AGENT]</dt>
+        <dd>
+<span class="refAuthor">Wahl, M.</span>, <span class="refAuthor">Zollner, D.</span>, <span class="refAuthor">Dingle, P.</span>, and <span class="refAuthor">I. Kazzouzi</span>, <span class="refTitle">"AI Agent Resource Extension for the System for Cross-domain Identity Management (SCIM)"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-wzdk-scim-agent-resource-00</span>, <time datetime="2026-06-05" class="refDate">5 June 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-wzdk-scim-agent-resource-00">https://datatracker.ietf.org/doc/html/draft-wzdk-scim-agent-resource-00</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="OAUTH-CLIENT">[OAUTH-CLIENT]</dt>
+        <dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"SCIM Profile for OAuth 2.0 Client Management"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-scim-oauth-client-management</span>, <time datetime="2026-09-18" class="refDate">18 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-oauth-client-management.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-oauth-client-management.html</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7643">[RFC7643]</dt>
+        <dd>
+<span class="refAuthor">Hunt, P., Ed.</span>, <span class="refAuthor">Grizzle, K.</span>, <span class="refAuthor">Wahlstroem, E.</span>, and <span class="refAuthor">C. Mortimore</span>, <span class="refTitle">"System for Cross-domain Identity Management: Core Schema"</span>, <span class="seriesInfo">RFC 7643</span>, <span class="seriesInfo">DOI 10.17487/RFC7643</span>, <time datetime="2015-09" class="refDate">September 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7643">https://www.rfc-editor.org/rfc/rfc7643</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7644">[RFC7644]</dt>
+        <dd>
+<span class="refAuthor">Hunt, P., Ed.</span>, <span class="refAuthor">Grizzle, K.</span>, <span class="refAuthor">Ansari, M.</span>, <span class="refAuthor">Wahlstroem, E.</span>, and <span class="refAuthor">C. Mortimore</span>, <span class="refTitle">"System for Cross-domain Identity Management: Protocol"</span>, <span class="seriesInfo">RFC 7644</span>, <span class="seriesInfo">DOI 10.17487/RFC7644</span>, <time datetime="2015-09" class="refDate">September 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7644">https://www.rfc-editor.org/rfc/rfc7644</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7662">[RFC7662]</dt>
+        <dd>
+<span class="refAuthor">Richer, J., Ed.</span>, <span class="refTitle">"OAuth 2.0 Token Introspection"</span>, <span class="seriesInfo">RFC 7662</span>, <span class="seriesInfo">DOI 10.17487/RFC7662</span>, <time datetime="2015-10" class="refDate">October 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7662">https://www.rfc-editor.org/rfc/rfc7662</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="BCP14">[BCP14]</dt>
+      <dd>
+<div class="refInstance">Best Current Practice 14, <span>&lt;<a href="https://www.rfc-editor.org/info/bcp14">https://www.rfc-editor.org/info/bcp14</a>&gt;</span>.<br><span>At the time of writing, this BCP comprises the following:</span>
+</div>
+<div class="refInstance" id="RFC2119">
+            <span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Key words for use in RFCs to Indicate Requirement Levels"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 2119</span>, <span class="seriesInfo">DOI 10.17487/RFC2119</span>, <time datetime="1997-03" class="refDate">March 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc2119">https://www.rfc-editor.org/info/rfc2119</a>&gt;</span>. </div>
+<div class="refInstance" id="RFC8174">
+            <span class="refAuthor">Leiba, B.</span>, <span class="refTitle">"Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 8174</span>, <span class="seriesInfo">DOI 10.17487/RFC8174</span>, <time datetime="2017-05" class="refDate">May 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8174">https://www.rfc-editor.org/info/rfc8174</a>&gt;</span>. </div>
+</dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="sec-informative-references">
+<section id="section-12.2">
+        <h3 id="name-informative-references">
+<a href="#section-12.2" class="section-number selfRef">12.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
+        </h3>
+<dl class="references">
+<dt id="AGENT-MANAGEMENT">[AGENT-MANAGEMENT]</dt>
+        <dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"SCIM Profile for Governed Agent Federation Management"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-scim-agent-federation</span>, <time datetime="2026-09-18" class="refDate">18 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7009">[RFC7009]</dt>
+        <dd>
+<span class="refAuthor">Lodderstedt, T., Ed.</span>, <span class="refAuthor">Dronia, S.</span>, and <span class="refAuthor">M. Scurtescu</span>, <span class="refTitle">"OAuth 2.0 Token Revocation"</span>, <span class="seriesInfo">RFC 7009</span>, <span class="seriesInfo">DOI 10.17487/RFC7009</span>, <time datetime="2013-08" class="refDate">August 2013</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7009">https://www.rfc-editor.org/rfc/rfc7009</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="WISE">[WISE]</dt>
+        <dd>
+<span class="refAuthor">WISE Contributors</span>, <span class="refTitle">"Workload Identity Security Events (WISE) Profile"</span>, <span>n.d.</span>, <span>&lt;<a href="https://github.com/identitymonk/openid-wise/blob/main/openid-wise-profile-1_0.md">https://github.com/identitymonk/openid-wise/blob/main/openid-wise-profile-1_0.md</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="WAG">[WAG]</dt>
+      <dd>
+<span class="refAuthor">Carleton, P.</span>, <span class="refAuthor">Steele, N.</span>, <span class="refAuthor">Parecki, A.</span>, <span class="refAuthor">Schwenkschuster, A.</span>, and <span class="refAuthor">B. Campbell</span>, <span class="refTitle">"Workload Authorization Grant"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-carleton-workload-authz-grant-01</span>, <time datetime="2026-09-22" class="refDate">22 September 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-01">https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-01</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+</section>
+</div>
+<div id="signals">
+<section id="appendix-A">
+      <h2 id="name-optional-shared-signals-pro">
+<a href="#appendix-A" class="section-number selfRef">Appendix A. </a><a href="#name-optional-shared-signals-pro" class="section-name selfRef">Optional Shared Signals Profile</a>
+      </h2>
+<p id="appendix-A-1">This appendix profiles existing SCIM Events <span>[<a href="#RFC9967" class="cite xref">RFC9967</a>]</span> and CAEP
+session-revocation events <span>[<a href="#CAEP" class="cite xref">CAEP</a>]</span> over Shared Signals <span>[<a href="#SSF" class="cite xref">SSF</a>]</span>. It is
+normative for deployments that enable either capability and defines no
+new event type or subject format. SCIM event reconciliation
+and CAEP revocation are independently optional capabilities. A deployment
+<span class="bcp14">MAY</span> use either or both; it <span class="bcp14">MUST</span> apply the requirements for each enabled
+capability. Direct SCIM provisioning with CAEP revocation does not
+require SCIM event subscription or source-resource retrieval.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+<div id="signal-trust">
+<section id="appendix-A.1">
+        <h3 id="name-trust-and-delivery">
+<a href="#appendix-A.1" class="section-number selfRef">A.1. </a><a href="#name-trust-and-delivery" class="section-name selfRef">Trust and Delivery</a>
+        </h3>
+<p id="appendix-A.1-1">Trusted stream configuration <span class="bcp14">MUST</span> establish:<a href="#appendix-A.1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="appendix-A.1-2.1">
+            <p id="appendix-A.1-2.1.1">The Transmitter, receiving Target Tenant, and audience.<a href="#appendix-A.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-A.1-2.2">
+            <p id="appendix-A.1-2.2.1">For SCIM event reconciliation, the source SCIM service, retrieval
+authority, and source-resource correlation under <a href="#recovery" class="auto internal xref">Section 6</a>.<a href="#appendix-A.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-A.1-2.3">
+            <p id="appendix-A.1-2.3.1">For grant-derived revocation, the governing ID-JAG issuer whose grants
+the Transmitter may revoke, and agreement to apply <a href="#grant-revocation" class="auto internal xref">Appendix A.3</a>.<a href="#appendix-A.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-A.1-2.4">
+            <p id="appendix-A.1-2.4.1">For coarse user-and-tenant revocation, the authorized user namespace
+and revocation scope defined in <a href="#grant-revocation" class="auto internal xref">Appendix A.3</a>.<a href="#appendix-A.1-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="appendix-A.1-3">The SET issuer can differ from the IdP issuer. Their trust relationship
+comes from configuration; a subject identifier or matching host name
+cannot establish it.<a href="#appendix-A.1-3" class="pilcrow">¶</a></p>
+<p id="appendix-A.1-4">The authenticated delivery context selects the stream. SET issuer and
+audience validation, including audience arrays, follows <span>[<a href="#SSF" class="cite xref">SSF</a>]</span> and
+<span>[<a href="#RFC8417" class="cite xref">RFC8417</a>]</span>. SSF uses <code>secevent+jwt</code> and does not use SET <code>exp</code>.
+Push delivery follows <span>[<a href="#RFC8935" class="cite xref">RFC8935</a>]</span>; poll delivery follows <span>[<a href="#RFC8936" class="cite xref">RFC8936</a>]</span>.
+The selected transport defines acknowledgment, duplicate handling, and
+errors. Neither transport is mandatory here. Acceptance acknowledges
+delivery, not completed reconciliation or API enforcement.<a href="#appendix-A.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="scim-events">
+<section id="appendix-A.2">
+        <h3 id="name-scim-reconciliation-trigger">
+<a href="#appendix-A.2" class="section-number selfRef">A.2. </a><a href="#name-scim-reconciliation-trigger" class="section-name selfRef">SCIM Reconciliation Triggers</a>
+        </h3>
+<p id="appendix-A.2-1">Receivers <span class="bcp14">MUST</span> accept every provisioning and feed event defined in
+Sections 2.3 and 2.4 of <span>[<a href="#RFC9967" class="cite xref">RFC9967</a>]</span> as a reconciliation trigger when
+subscribed to that event type. SCIM event capability is exposed through
+<code>securityEvents.eventUris</code> in <code>/ServiceProviderConfig</code> under
+<span><a href="https://rfc-editor.org/rfc/rfc9967#section-4" class="relref">Section 4</a> of [<a href="#RFC9967" class="cite xref">RFC9967</a>]</span>. SSF stream configuration uses
+<code>events_supported</code>, <code>events_requested</code>, and <code>events_delivered</code> to
+establish event delivery. These lists do not authorize a provisioning action
+or establishes the grant-revocation composition. This profile adds no
+discovery field. The table uses suffixes under
+<code>urn:ietf:params:scim:event:</code>.<a href="#appendix-A.2-1" class="pilcrow">¶</a></p>
+<table class="center" id="table-6">
+          <caption><a href="#table-6" class="selfRef">Table 6</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Event suffix</th>
+              <th class="text-left" rowspan="1" colspan="1">Reconciliation behavior</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>prov:create:notice</code>, <code>prov:patch:notice</code>, <code>prov:put:notice</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Retrieve current authoritative state</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>prov:create:full</code>, <code>prov:patch:full</code>, <code>prov:put:full</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Retrieve current state; the included snapshot does not override it</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>prov:activate</code>, <code>prov:deactivate</code>, <code>prov:delete</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Reconcile current state or authoritative absence</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>feed:add</code>, <code>feed:remove</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Reconcile the resource and feed coverage; removal from a feed does not establish deletion or disablement</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="appendix-A.2-3">Transmitters <span class="bcp14">MUST</span> report administrative changes for resources covered by
+an agreed stream using an appropriate subscribed event. Event payloads
+retain their base meanings. The top-level <code>sub_id</code> uses the RFC 9967
+<code>scim</code> format and resource <code>uri</code>. When present, <code>version</code> is the source
+ETag, not an ordered counter or the Receiver's ETag.<a href="#appendix-A.2-3" class="pilcrow">¶</a></p>
+<p id="appendix-A.2-4">After validating the event and authority for its subject, the Receiver
+<span class="bcp14">MUST</span>:<a href="#appendix-A.2-4" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="appendix-A.2-5">
+<li id="appendix-A.2-5.1">
+            <p id="appendix-A.2-5.1.1">Resolve the source service and resource URI to an authorized correlation
+or provisioning workflow in the configured Target Tenant.<a href="#appendix-A.2-5.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="appendix-A.2-5.2">
+            <p id="appendix-A.2-5.2.1">Retrieve current source state and reconcile under <a href="#recovery" class="auto internal xref">Section 6</a>. Source
+URI resolution <span class="bcp14">MUST</span> remain within the configured service; it cannot
+redirect retrieval credentials to a caller-selected endpoint.<a href="#appendix-A.2-5.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="appendix-A.2-5.3">
+            <p id="appendix-A.2-5.3.1">Retain failed reconciliation as pending and retry or resolve it
+administratively. Acknowledgment <span class="bcp14">MUST NOT</span> discard pending work.<a href="#appendix-A.2-5.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<p id="appendix-A.2-6">An authenticated <code>prov:deactivate</code> or <code>prov:delete</code> <span class="bcp14">MAY</span> cause a
+provisional Local Suspension pending reconciliation. An activation event
+<span class="bcp14">MUST NOT</span> activate the principal directly. This asymmetry is deliberate:
+provisional denial can contain risk; granting access requires current
+authoritative state and local authorization. Successful reconciliation
+can clear that provisional restriction under local policy, but not an
+independent Local Suspension. Feed removal and inaccessible sources
+follow the incomplete reconciliation rules; they are not deletion
+instructions.<a href="#appendix-A.2-6" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="grant-revocation">
+<section id="appendix-A.3">
+        <h3 id="name-grant-derived-session-revoc">
+<a href="#appendix-A.3" class="section-number selfRef">A.3. </a><a href="#name-grant-derived-session-revoc" class="section-name selfRef">Grant-Derived Session Revocation</a>
+        </h3>
+<p id="appendix-A.3-1">The optional capability uses CAEP's existing event type
+<code>https://schemas.openid.net/secevent/caep/event-type/session-revoked</code>.
+CAEP permits session properties to identify affected sessions; here the
+property is the ID-JAG that established their authorization. This
+composition additionally requires denial before redemption and rejection
+of later redemption. Ordinary CAEP support or advertisement of the
+event URI alone does not establish these receiver semantics.<a href="#appendix-A.3-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="appendix-A.3-2.1">
+            <p id="appendix-A.3-2.1.1">The Transmitter <span class="bcp14">MUST</span> use the <code>jwt_id</code> subject format from
+Section 3.5.1 of <span>[<a href="#SSF" class="cite xref">SSF</a>]</span>, with <code>iss</code> and <code>jti</code> equal to the issued
+ID-JAG's corresponding claims. It <span class="bcp14">MUST</span> name a grant it is authorized
+to revoke. The SET's own <code>jti</code> identifies the event, not the grant.<a href="#appendix-A.3-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-A.3-2.2">
+            <p id="appendix-A.3-2.2.1">The Receiver <span class="bcp14">MUST</span> verify that the subject's <code>iss</code> matches the
+governing ID-JAG issuer authorized in the stream configuration. That
+configuration supplies the Target Tenant. The revocation key is
+(ID-JAG issuer, ID-JAG <code>jti</code>, Target Tenant); it <span class="bcp14">MUST NOT</span> be matched as
+a bare RAS session identifier or used outside that tenant.<a href="#appendix-A.3-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-A.3-2.3">
+            <p id="appendix-A.3-2.3.1">On redemption, a participating RAS <span class="bcp14">MUST</span> retain that key with every
+derived authorization session, access token, and refresh authorization.
+The Receiver <span class="bcp14">MUST</span> invalidate all authorization derived from that grant
+in the tenant, including all redemptions, and reject later redemption
+of the revoked grant.<a href="#appendix-A.3-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-A.3-2.4">
+            <p id="appendix-A.3-2.4.1">A valid event received before redemption <span class="bcp14">MUST</span> retain a denial for that
+grant. The Receiver retains it until neither the grant nor derived
+authorization can be accepted. For an unknown grant, this requires a
+configured maximum grant acceptance window, including clock leeway;
+receipt before redemption <span class="bcp14">MUST NOT</span> be treated as a no-op.<a href="#appendix-A.3-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="appendix-A.3-3">This identifies the same grant at both parties without registration of a
+RAS-generated session ID. Parties <span class="bcp14">MUST NOT</span> enable this composition
+unless the RAS retains the required correlation and enforces the grant
+denial. Existing sessions need trustworthy backfilled correlation or
+remain outside its coverage.<a href="#appendix-A.3-3" class="pilcrow">¶</a></p>
+<p id="appendix-A.3-4">A deployment <span class="bcp14">MAY</span> additionally configure CAEP's complex subject with
+<code>user</code> in <code>iss_sub</code> format and <code>tenant</code> in <code>opaque</code> format under
+<span>[<a href="#RFC9493" class="cite xref">RFC9493</a>]</span> to revoke existing sessions for that user and tenant. The
+parties <span class="bcp14">MUST</span> agree on
+the user namespace and map it authoritatively to the RAS user, and the
+tenant <span class="bcp14">MUST</span> match the stream's Target Tenant. All supplied subject
+conditions <span class="bcp14">MUST</span> match; an unmappable component <span class="bcp14">MUST NOT</span> broaden the
+revocation. This coarse mode is distinct from grant-derived revocation
+and does not revoke future grants or unrelated users' sessions.<a href="#appendix-A.3-4" class="pilcrow">¶</a></p>
+<p id="appendix-A.3-5">Neither mode changes Agent <code>active</code>. Revoked authorization remains
+revoked after activation. CAEP <code>event_timestamp</code>, <code>initiating_entity</code>,
+and localized reasons retain their meanings; event time is not a cutoff
+against grant <code>iat</code>. No new claims are introduced.<a href="#appendix-A.3-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="unit-of-revocation">
+<section id="appendix-A.4">
+        <h3 id="name-unit-of-revocation">
+<a href="#appendix-A.4" class="section-number selfRef">A.4. </a><a href="#name-unit-of-revocation" class="section-name selfRef">Unit of Revocation</a>
+        </h3>
+<table class="center" id="table-7">
+          <caption><a href="#table-7" class="selfRef">Table 7</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Action</th>
+              <th class="text-left" rowspan="1" colspan="1">Affected authorization</th>
+              <th class="text-left" rowspan="1" colspan="1">Principal state</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Apply Agent disablement or deletion</td>
+              <td class="text-left" rowspan="1" colspan="1">Every RAS session for the qualified agent in the Target Tenant</td>
+              <td class="text-left" rowspan="1" colspan="1">Inactive or absent</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Revoke an ID-JAG by issuer-qualified <code>jti</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">All authorization derived from that grant, plus later redemption of it</td>
+              <td class="text-left" rowspan="1" colspan="1">Unchanged</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Configured CAEP user-and-tenant revocation</td>
+              <td class="text-left" rowspan="1" colspan="1">Existing sessions matching that user and tenant</td>
+              <td class="text-left" rowspan="1" colspan="1">Unchanged</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="appendix-A.4-2">None establishes a shorter API enforcement delay than
+<a href="#api-enforcement" class="auto internal xref">Section 7.1</a>.<a href="#appendix-A.4-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="example">
+<section id="appendix-B">
+      <h2 id="name-shared-delegated-federation">
+<a href="#appendix-B" class="section-number selfRef">Appendix B. </a><a href="#name-shared-delegated-federation" class="section-name selfRef">Shared Delegated Federation Walkthrough</a>
+      </h2>
+<p id="appendix-B-1">This non-normative walkthrough uses the dedicated-client exchange in
+<span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>. It is a specification walkthrough, not an executed
+implementation test.<a href="#appendix-B-1" class="pilcrow">¶</a></p>
+<div id="correlate-and-provision">
+<section id="appendix-B.1">
+        <h3 id="name-correlate-and-provision">
+<a href="#appendix-B.1" class="section-number selfRef">B.1. </a><a href="#name-correlate-and-provision" class="section-name selfRef">Correlate and Provision</a>
+        </h3>
+<p id="appendix-B.1-1">The authenticated provisioning context binds <code>https://idp.example/</code> to
+Target Tenant <code>acme-data</code>. The RAS resource is
+<code>https://api.example/tenants/acme-data/</code>. The connector creates this
+Agent:<a href="#appendix-B.1-1" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="appendix-B.1-2">
+<pre>
+{
+  "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Agent"],
+  "externalId": "agent-42",
+  "agentUserName": "analysis-agent",
+  "displayName": "Data analysis agent",
+  "active": false
+}
+</pre><a href="#appendix-B.1-2" class="pilcrow">¶</a>
+</div>
+<p id="appendix-B.1-3">The RAS assigns SCIM <code>id</code> <code>local-108</code> to the management representation
+of local principal <code>service-principal-42</code> and correlates the context's
+<code>(https://idp.example/, agent-42)</code> with that principal. The SCIM <code>id</code>
+is not the principal identifier.
+Alice is separately represented as <code>user-108</code>; the client is
+<code>analysis-api</code>. Neither is the agent's correlation identifier.<a href="#appendix-B.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="activate-and-exchange">
+<section id="appendix-B.2">
+        <h3 id="name-activate-and-exchange">
+<a href="#appendix-B.2" class="section-number selfRef">B.2. </a><a href="#name-activate-and-exchange" class="section-name selfRef">Activate and Exchange</a>
+        </h3>
+<p id="appendix-B.2-1">The connector reads the resource and receives ETag <code>W/"a1"</code>. At 12:01
+UTC on September 17, 2026, it applies:<a href="#appendix-B.2-1" class="pilcrow">¶</a></p>
+<div class="lang-http sourcecode" id="appendix-B.2-2">
+<pre>
+PATCH /scim/v2/Agents/local-108 HTTP/1.1
+Host: ras.example
+Authorization: Bearer CONNECTOR_ACCESS_TOKEN
+Content-Type: application/scim+json
+If-Match: W/"a1"
+
+{
+  "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+  "Operations": [{"op": "replace", "path": "active", "value": true}]
+}
+</pre><a href="#appendix-B.2-2" class="pilcrow">¶</a>
+</div>
+<p id="appendix-B.2-3">The placeholder connector token is not a test credential. The Receiver
+returns a new ETag. At 12:01:03, the IdP issues ID-JAG <code>grant-7</code> for
+Alice with <code>act.iss</code> <code>https://idp.example/</code> and <code>act.sub</code> <code>agent-42</code>. No
+lifecycle timestamp is added to the grant or compared with its <code>iat</code>.<a href="#appendix-B.2-3" class="pilcrow">¶</a></p>
+<p id="appendix-B.2-4">At redemption, the RAS correlates that pair in <code>acme-data</code>, checks local
+eligibility and Federation policy, and issues an access token. This
+example uses introspection. A policy-permitted refresh retains the same
+user, agent, client, tenant, resource, and authority constraints.<a href="#appendix-B.2-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="disable-and-re-enable">
+<section id="appendix-B.3">
+        <h3 id="name-disable-and-re-enable">
+<a href="#appendix-B.3" class="section-number selfRef">B.3. </a><a href="#name-disable-and-re-enable" class="section-name selfRef">Disable and Re-enable</a>
+        </h3>
+<p id="appendix-B.3-1">At 12:02, an authorized connector sets <code>active: false</code> using the current
+ETag. Before returning success, the Receiver blocks new RAS
+authorization and makes existing sessions unusable at the RAS.
+Subsequent introspection reports those tokens inactive. An API using a
+previously cached response can continue to accept it only within its
+configured cache policy.<a href="#appendix-B.3-1" class="pilcrow">¶</a></p>
+<p id="appendix-B.3-2">Alternatively, a SCIM change notice can trigger an authoritative GET and
+the same local update. <a href="#signal-examples" class="auto internal xref">Appendix C</a> shows that notice and a CAEP
+revocation targeting one ID-JAG; revocation need not disable the
+principal.<a href="#appendix-B.3-2" class="pilcrow">¶</a></p>
+<p id="appendix-B.3-3">At 12:03, reactivation permits new authorization decisions. It does not
+restore the sessions revoked at 12:02. If the Receiver missed the entire
+disable-and-reenable cycle, a later active GET alone cannot establish
+that those sessions were revoked. An old unredeemed grant is likewise
+subject to normal grant validation, not a new lifecycle cutoff.<a href="#appendix-B.3-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="acceptance-checklist">
+<section id="appendix-B.4">
+        <h3 id="name-acceptance-checklist">
+<a href="#appendix-B.4" class="section-number selfRef">B.4. </a><a href="#name-acceptance-checklist" class="section-name selfRef">Acceptance Checklist</a>
+        </h3>
+<table class="center" id="table-8">
+          <caption><a href="#table-8" class="selfRef">Table 8</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Case</th>
+              <th class="text-left" rowspan="1" colspan="1">Expected result</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Equal <code>externalId</code> under a different IdP context</td>
+              <td class="text-left" rowspan="1" colspan="1">Distinct qualified identity; no automatic correlation</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Stale <code>If-Match</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">HTTP 412; retrieve and reconcile before retrying</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Descriptive edit</td>
+              <td class="text-left" rowspan="1" colspan="1">Resource ETag may change; no implicit authorization change</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Applied disablement</td>
+              <td class="text-left" rowspan="1" colspan="1">New redemption and refresh denied; existing RAS sessions revoked</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Reactivation after applied disablement</td>
+              <td class="text-left" rowspan="1" colspan="1">New decisions allowed; revoked sessions stay revoked</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Delayed activation notice</td>
+              <td class="text-left" rowspan="1" colspan="1">Retrieve current source state; do not apply the notice as an activation command</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Entire disable-and-reenable cycle missed</td>
+              <td class="text-left" rowspan="1" colspan="1">Current active state cannot recover revocation history</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Grant revocation arrives before redemption</td>
+              <td class="text-left" rowspan="1" colspan="1">Retain the denial; reject later redemption</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Grant subject issuer differs from the stream's authorized issuer</td>
+              <td class="text-left" rowspan="1" colspan="1">Reject; no cross-issuer revocation</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Direct SCIM provisioning with CAEP revocation only</td>
+              <td class="text-left" rowspan="1" colspan="1">No SCIM event subscription or source GET required</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Reactivation without a version ETag, including <code>If-Match: *</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">HTTP 409; retrieve and use the current ETag</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Feed removal event</td>
+              <td class="text-left" rowspan="1" colspan="1">Reconcile coverage; do not infer deletion</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Source unavailable</td>
+              <td class="text-left" rowspan="1" colspan="1">No activation inferred; local stale-state policy applies</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">SCIM success or SET acknowledgment</td>
+              <td class="text-left" rowspan="1" colspan="1">Does not establish immediate API denial</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Offline JWT</td>
+              <td class="text-left" rowspan="1" colspan="1">May remain usable until expiration unless separately restricted</td>
+            </tr>
+          </tbody>
+        </table>
+</section>
+</div>
+</section>
+</div>
+<div id="signal-examples">
+<section id="appendix-C">
+      <h2 id="name-signal-examples">
+<a href="#appendix-C" class="section-number selfRef">Appendix C. </a><a href="#name-signal-examples" class="section-name selfRef">Signal Examples</a>
+      </h2>
+<p id="appendix-C-1">These decoded SETs omit signatures. Their protected type is
+<code>secevent+jwt</code>. Trusted configuration binds the stream to governing
+issuer <code>https://idp.example/</code> and Target Tenant <code>acme-data</code>; the
+Transmitter issuer is separately authorized for that namespace.<a href="#appendix-C-1" class="pilcrow">¶</a></p>
+<div id="provisioning-change-notice">
+<section id="appendix-C.1">
+        <h3 id="name-provisioning-change-notice">
+<a href="#appendix-C.1" class="section-number selfRef">C.1. </a><a href="#name-provisioning-change-notice" class="section-name selfRef">Provisioning Change Notice</a>
+        </h3>
+<p id="appendix-C.1-1">The trusted source SCIM service has resource <code>/Agents/source-42</code>. Its
+configured correlation is <code>(https://idp.example/, agent-42)</code>,
+represented at the RAS by <code>/Agents/local-108</code>. At 12:02 UTC on September
+17, 2026, the source changes the principal's <code>active</code> value to false:<a href="#appendix-C.1-1" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="appendix-C.1-2">
+<pre>
+{
+  "iss": "https://signals.idp.example",
+  "aud": ["https://ras.example/signals/acme-data"],
+  "iat": 1789646520,
+  "jti": "change-42",
+  "sub_id": {
+    "format": "scim",
+    "uri": "/Agents/source-42"
+  },
+  "events": {
+    "urn:ietf:params:scim:event:prov:patch:notice": {
+      "version": "W/\"source-b7\"",
+      "attributes": ["active"]
+    }
+  }
+}
+</pre><a href="#appendix-C.1-2" class="pilcrow">¶</a>
+</div>
+<p id="appendix-C.1-3">The Receiver retrieves the source Agent, observes <code>active: false</code>, and
+applies disablement under <a href="#application" class="auto internal xref">Section 5.2</a>. The notice itself contains no
+boolean state, authorization cutoff, or lease. If delivered after a
+later change, retrieval obtains current state instead.<a href="#appendix-C.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="revoke-authorization-derived-from-an-id-jag">
+<section id="appendix-C.2">
+        <h3 id="name-revoke-authorization-derive">
+<a href="#appendix-C.2" class="section-number selfRef">C.2. </a><a href="#name-revoke-authorization-derive" class="section-name selfRef">Revoke Authorization Derived from an ID-JAG</a>
+        </h3>
+<p id="appendix-C.2-1">Separately, an authorized Transmitter can report revocation of the
+ID-JAG <code>grant-7</code> issued in <a href="#example" class="auto internal xref">Appendix B</a> while the principal remains
+active:<a href="#appendix-C.2-1" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="appendix-C.2-2">
+<pre>
+{
+ "iss": "https://signals.idp.example",
+ "aud": [
+  "https://ras.example/signals/acme-data"
+ ],
+ "iat": 1789646520,
+ "jti": "revoke-grant-7",
+ "sub_id": {
+  "format": "jwt_id",
+  "iss": "https://idp.example/",
+  "jti": "grant-7"
+ },
+ "events": {
+"https://schemas.openid.net/secevent/caep/event-type/session-revoked"
+  : {
+   "event_timestamp": 1789646520,
+   "initiating_entity": "admin",
+   "reason_admin": {
+    "en": "Grant authorization revoked."
+   }
+  }
+ }
+}
+</pre><a href="#appendix-C.2-2" class="pilcrow">¶</a>
+</div>
+<p id="appendix-C.2-3">No principal-state update is implied. Revocation covers every session
+derived from <code>grant-7</code>, not another grant's sessions or every session
+involving the same agent.<a href="#appendix-C.2-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="document-history">
+<section id="appendix-D">
+      <h2 id="name-document-history">
+<a href="#appendix-D" class="section-number selfRef">Appendix D. </a><a href="#name-document-history" class="section-name selfRef">Document History</a>
+      </h2>
+<p id="appendix-D-1">RFC Editor: Remove this section before publication.<a href="#appendix-D-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="appendix-D-2.1">
+          <p id="appendix-D-2.1.1">Initial version.<a href="#appendix-D-2.1.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+</section>
+</div>
+<div id="acknowledgments">
+<section id="appendix-E">
+      <h2 id="name-acknowledgments">
+<a href="#name-acknowledgments" class="section-name selfRef">Acknowledgments</a>
+      </h2>
+<p id="appendix-E-1">TBD.<a href="#appendix-E-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="authors-addresses">
+<section id="appendix-F">
+      <h2 id="name-authors-address">
+<a href="#name-authors-address" class="section-name selfRef">Author's Address</a>
+      </h2>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Karl McGuinness</span></div>
+<div dir="auto" class="left"><span class="org">Independent</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:public@karlmcguinness.com" class="email">public@karlmcguinness.com</a>
+</div>
+</address>
+</section>
+</div>
+<script>const toc = document.getElementById("toc");
+toc.querySelector("h2").addEventListener("click", e => {
+  toc.classList.toggle("active");
+});
+toc.querySelector("nav").addEventListener("click", e => {
+  toc.classList.remove("active");
+});
+</script>
+</body>
+</html>

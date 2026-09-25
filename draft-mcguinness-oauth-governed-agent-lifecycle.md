@@ -316,34 +316,34 @@ This profile raises Federation's provisioning recommendation to a
 requirement: the RAS MUST have the authorized local correlation before
 accepting a grant involving the agent. A missing or ambiguous
 correlation fails under Federation's identity-resolution error rules.
-{{jit}} defines the one optional way to establish that correlation
-without a prior SCIM write.
+{{FEDERATION}} lets resource policy establish that correlation just in
+time from a validated grant; {{jit}} states what a conforming Receiver
+adds.
 
 ## Just-in-Time Correlation {#jit}
 
-A Receiver MAY be configured to establish the local correlation from a
-validated ID-JAG instead of a prior SCIM write. This option is disabled
-by default and enabled per governing issuer and Target Tenant.
+{{FEDERATION}} defines just-in-time correlation: the resource-policy
+gate per governing issuer and Target Tenant, exact keying by the pair,
+and the local restrictions and retained revocation state applied before
+issuance. A Receiver that correlates agents that way without
+supporting this interface uses those rules alone and does not conform
+to this profile.
 
-When enabled, on a validated grant whose `act.iss` is that issuer and
-whose `act.sub` has no correlation in that tenant, the RAS MAY create
-the local agent principal and its correlation keyed by the pair, with an
-initial local `active` state set by local policy. The RAS MUST NOT
-attach the pair to an existing principal by name or other descriptive
-match, MUST apply Local Suspension, retained revocation state, and local
-policy before issuance, and MUST subject the created principal to the
-same provisioning, reconciliation, and disablement rules as a
-provisioned one. A grant does not carry the IdP's administrative
-status; just-in-time correlation therefore does not replace SCIM
-provisioning for disablement. If local policy sets the initial state
-to inactive, the triggering grant is denied.
+A conforming Receiver that permits just-in-time correlation MUST expose
+the created principal in its Provisioning Domain with `externalId` set
+to the agent identifier, and MUST subject it to the same provisioning,
+reconciliation, and disablement rules as a provisioned one. Local
+Suspension is among the local restrictions Federation requires it to
+apply, and the initial `active` value reflects the initial eligibility
+set by local policy.
 
-Where the Receiver supports this interface, the created principal
-appears in the Provisioning Domain with `externalId` set to the agent
-identifier. A later SCIM create for the same pair therefore fails with
+A later SCIM create for the same pair therefore fails with
 `uniqueness`; the connector finds the record with the `externalId`
 query in {{scim}} and updates it. Provisioning that lags the first
 grant thus converges on one principal rather than creating a second.
+A grant does not carry the IdP's administrative status, so
+just-in-time correlation does not replace SCIM provisioning for
+disablement.
 
 # SCIM Provisioning {#scim}
 

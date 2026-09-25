@@ -12,6 +12,9 @@ agents across platform, identity-provider, and resource-domain boundaries:
 | [Governed Agent Lifecycle Profile for SCIM and OAuth](#governed-agent-lifecycle-profile-for-scim-and-oauth) | IdP-to-resource-domain provisioning, administrative disablement, and session revocation |
 | [SCIM Profile for OAuth 2.0 Client Management](#scim-profile-for-oauth-20-client-management) | Generic SCIM management of OAuth client registrations, including CIMD clients |
 
+Together with the OpenID AuthZEN profiles, they form one
+[architecture for governed agents](#an-architecture-for-governed-agents).
+
 ## Why this matters
 
 Enterprises run agents on platforms they do not operate: a coding agent on
@@ -49,7 +52,33 @@ missing is which enterprise principal that identity represents, whether this
 client may exercise it, and what it may do once it arrives. These drafts
 profile that.
 
-## How the drafts fit together
+## An architecture for governed agents
+
+Governing agents takes more than an inventory and a kill switch. It takes an
+interoperable answer to each of four questions, with the boundaries between
+them kept explicit:
+
+| Question | Layer | Profiles | What is standardized |
+|---|---|---|---|
+| Which agents does the enterprise govern? | Management | SCIM Governed Agent Federation Management; SCIM OAuth Client Management | Agent Principals, Identity Bindings, Client Associations, and OAuth client registrations as managed resources at the IdP, independent of the platform an agent runs on |
+| May this agent obtain authority, and for whom? | Federation | Governed Agent Federation | Resolution of client and workload identity to the Agent Principal, client authority, delegation or agent authorization at the IdP, and the actor gate at the resource |
+| Is this action allowed or denied? | Action authorization | AuthZEN Authorization API; COAZ, with its MCP binding; ARAP and AROP | A policy decision for each operation, such as an MCP tool call mapped into an AuthZEN evaluation at the enforcement point; a requestable denial becomes an access request, re-evaluated after approval and completed as an issued OAuth access token |
+| How is authority withdrawn? | Lifecycle | Governed Agent Lifecycle; Shared Signals and CAEP | Principal disablement, session revocation, and Local Suspension, each with its own boundary |
+
+Agent governance is not one identity and one kill switch. Principal
+identity, execution binding, client authority, delegation, resource
+authority, and administrative state are separate relationships, and their
+boundaries stay explicit as an agent crosses systems.
+
+These profiles stop at whether an action is allowed or denied. Whether it
+falls within an approved task, and whether that task is still in force, is
+the Mission layer:
+[Mission-Bound Authorization](https://github.com/mcguinness/mission-bound-authorization)
+defines the Mission and governs each action against it at runtime, with its
+own AuthZEN binding. Behavioral monitoring, anomaly detection, and telemetry
+are outside both.
+
+### How the drafts fit together
 
 ```
  Agent platform
@@ -82,11 +111,37 @@ administrative state into the resource domain and revokes what depends on
 it. SCIM OAuth Client Management supplies the OAuth client registrations
 that bindings and associations reference.
 
-Agent governance is not one identity and one kill switch. Principal
-identity, execution binding, client authority, delegation, resource
-authority, and administrative state are separate relationships, and their
-boundaries stay explicit as an agent crosses systems. Runtime containment,
-such as stopping an execution or a tool call, sits outside these drafts.
+### The AuthZEN profiles
+
+The AuthZEN profiles are developed in the OpenID AuthZEN working group:
+
+* [AuthZEN Authorization API 1.0](https://openid.net/specs/authorization-api-1_0.html):
+  a policy enforcement point asks a policy decision point for an access
+  decision about a subject, action, resource, and context.
+* [COAZ](https://openid.github.io/authzen/authzen-coaz-framework-1_0.html)
+  (Compatible with OpenID AuthZEN): a protocol-neutral framework that maps an
+  operation's inputs into an AuthZEN request.
+  [COAZ-MCP](https://openid.github.io/authzen/authzen-coaz-mcp-binding-1_0.html)
+  is its binding for the Model Context Protocol.
+* [ARAP](https://openid.github.io/authzen/authzen-access-request-approval-profile-1_0.html)
+  (AuthZEN Access Request and Approval Profile): after a requestable denial,
+  the enforcement point submits an access request, tracks it as an
+  asynchronous task, and re-evaluates after approval. The denial stands until
+  then.
+* [AROP](https://github.com/openid/authzen/blob/main/profiles/authzen-access-request-oauth/authzen-access-request-oauth-profile-1_0.md)
+  (AuthZEN Access Request OAuth Profile): binds ARAP to OAuth so that an
+  approved request completes as an issued access token, using the OAuth
+  Deferred Token Response, CIBA, or the Transaction Authorization Challenge.
+
+Where they meet these drafts today:
+
+* The Federation draft lets an API delegate evaluation to a policy decision
+  service, which must keep the user, the issuer-qualified Agent Principal, and
+  the OAuth client distinct. It names AuthZEN as an optional interface but
+  defines no AuthZEN message mapping.
+* The Federation draft lists asynchronous approval with AROP as an excluded
+  composition. Approval that completes as a token is not yet composed with
+  governed ID-JAG issuance.
 
 ## OAuth 2.0 Profile for Governed Agent Federation
 

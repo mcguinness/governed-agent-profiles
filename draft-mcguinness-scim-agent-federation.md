@@ -96,6 +96,12 @@ managed separately through {{OAUTH-CLIENT}}.
  Shared client: OAuthClient -- Client Association -> Identity Binding
 ~~~
 
+Because Identity Bindings and Client Associations decide which
+authenticated clients and workloads can obtain authorization as an
+Agent Principal, administering them is authorization management rather
+than descriptive provisioning. Each relationship is authorized
+separately ({{trust}}).
+
 A platform can administer only the identities and permissions delegated
 to its connector. The IdP remains the authority for the Agent Principal
 and the decision to accept each relationship. Approval can be
@@ -113,8 +119,12 @@ The management resources correspond to existing federation concepts:
 
 Successful provisioning does not authorize user delegation or resource
 access. Token processing continues to apply every applicable check in
-{{FEDERATION}}. The IdP-to-resource-domain provisioning and lifecycle
-composition in {{LIFECYCLE}} is separate from this platform-to-IdP interface.
+{{FEDERATION}}. Across the family, this document establishes the
+relationships at the IdP, {{FEDERATION}} exercises them to obtain
+authorization, and {{LIFECYCLE}} carries the principal's administrative
+state into the resource domain and revokes what depends on it. That
+IdP-to-resource-domain interface is separate from this platform-to-IdP
+interface.
 
 OAuthClient can represent a locally registered client or local admission
 of a CIMD client. This profile references that resource; it does not

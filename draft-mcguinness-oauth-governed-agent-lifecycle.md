@@ -106,6 +106,11 @@ For delegated access, the Identity Assertion JWT Authorization Grant
 (ID-JAG) {{ID-JAG}} carries that principal as the actor. The resource
 domain correlates the actor with its local agent record.
 
+Across the family, {{AGENT-MANAGEMENT}} establishes the relationships
+at the IdP, {{FEDERATION}} exercises them to obtain authorization, and
+this document carries the principal's administrative state into the
+resource domain and revokes what depends on it.
+
 This companion defines how a resource domain provisions that principal
 and applies changes to its administrative status. The responsibilities
 are:
@@ -149,6 +154,14 @@ decisions; it does not restore revoked sessions. Neither an event
 acknowledgment nor a SCIM response proves that every API has stopped
 accepting issued tokens.
 
+Disablement is one of several revocation boundaries. Disabling the
+principal, disabling an Identity Binding, withdrawing a Client
+Association or a delegation, revoking a workload credential, and
+revoking one grant each reach different authorization
+({{relationship-changes}}). The resource domain also keeps its own
+authority: a Local Suspension denies the agent there regardless of
+upstream state, and upstream activation cannot clear it.
+
 ## Scope
 
 This profile covers IdP-to-resource-domain provisioning for delegated
@@ -163,6 +176,11 @@ Federation. It does not define:
   selectively under {{grant-revocation}}.
 * A guarantee that an unobserved disable-and-reenable cycle invalidates
   all previously issued grants or sessions.
+* Runtime containment: stopping executions, tool calls, or network
+  access, or rejecting offline tokens before they expire. Administrative
+  disablement stops new authorization and revokes RAS sessions;
+  immediate containment needs complementary runtime enforcement
+  ({{api-enforcement}}).
 
 {{recovery}} and {{enforcement}} state the recovery and enforcement
 limits. Deployments requiring stronger revocation-history guarantees need
@@ -298,27 +316,34 @@ This profile raises Federation's provisioning recommendation to a
 requirement: the RAS MUST have the authorized local correlation before
 accepting a grant involving the agent. A missing or ambiguous
 correlation fails under Federation's identity-resolution error rules.
-{{jit}} defines the one optional way to establish that correlation
-without a prior SCIM write.
+{{FEDERATION}} lets resource policy establish that correlation just in
+time from a validated grant; {{jit}} states what a conforming Receiver
+adds.
 
 ## Just-in-Time Correlation {#jit}
 
-A Receiver MAY be configured to establish the local correlation from a
-validated ID-JAG instead of a prior SCIM write. This option is disabled
-by default and enabled per governing issuer and Target Tenant.
+{{FEDERATION}} defines just-in-time correlation: the resource-policy
+gate per governing issuer and Target Tenant, exact keying by the pair,
+and the local restrictions and retained revocation state applied before
+issuance. A Receiver that correlates agents that way without
+supporting this interface uses those rules alone and does not conform
+to this profile.
 
-When enabled, on a validated grant whose `act.iss` is that issuer and
-whose `act.sub` has no correlation in that tenant, the RAS MAY create
-the local agent principal and its correlation keyed by the pair, with an
-initial local `active` state set by local policy. The RAS MUST NOT
-attach the pair to an existing principal by name or other descriptive
-match, MUST apply Local Suspension, retained revocation state, and local
-policy before issuance, and MUST subject the created principal to the
-same provisioning, reconciliation, and disablement rules as a
-provisioned one. A grant does not carry the IdP's administrative
-status; just-in-time correlation therefore does not replace SCIM
-provisioning for disablement, and a later SCIM write for the same pair
-updates the created record rather than creating a second principal.
+A conforming Receiver that permits just-in-time correlation MUST expose
+the created principal in its Provisioning Domain with `externalId` set
+to the agent identifier, and MUST subject it to the same provisioning,
+reconciliation, and disablement rules as a provisioned one. Local
+Suspension is among the local restrictions Federation requires it to
+apply, and the initial `active` value reflects the initial eligibility
+set by local policy.
+
+A later SCIM create for the same pair therefore fails with
+`uniqueness`; the connector finds the record with the `externalId`
+query in {{scim}} and updates it. Provisioning that lags the first
+grant thus converges on one principal rather than creating a second.
+A grant does not carry the IdP's administrative status, so
+just-in-time correlation does not replace SCIM provisioning for
+disablement.
 
 # SCIM Provisioning {#scim}
 
@@ -508,17 +533,20 @@ Without a bound on propagation and enforcement, this profile claims no
 finite end-to-end denial bound. A local stale-state restriction can
 limit new issuance; it does not by itself revoke already-issued tokens.
 
-# Relationship Boundaries {#relationship-changes}
+# Revocation Boundaries {#relationship-changes}
 
 | Change | Boundary |
 |---|---|
+| Disable the Agent Principal | Stop new grants through every binding and client; once applied at the Receiver, deny redemption and refresh and revoke its sessions ({{application}}) |
 | Disable an Identity Binding | Stop new grants through that binding; other bindings remain independent |
 | Withdraw a Client Association | Stop that client use; do not infer agent-wide disablement |
 | Revoke a user's delegation | Affect that delegation, not unrelated users or self-acting authority |
 | Revoke a workload credential | Apply credential validation and IdP policy; do not automatically retire the Agent Principal |
 | Revoke a known ID-JAG | Invalidate its derived sessions; do not change principal eligibility |
+| Apply Local Suspension | Deny the agent in this resource domain regardless of upstream state; upstream activation cannot clear it |
 
-{{FEDERATION}} defines the first three authorization relationships.
+{{FEDERATION}} defines the binding, association, and delegation
+relationships.
 Grant-derived revocation under {{grant-revocation}} can target known
 ID-JAGs. Determining all grants affected by withdrawal of a binding or
 delegation remains an IdP responsibility; the agent identity alone

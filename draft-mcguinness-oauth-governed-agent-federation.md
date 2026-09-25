@@ -710,7 +710,7 @@ This profile does not establish trust in previously unknown agent issuers
 or automatically create Identity Bindings from presented credentials. A
 resource domain creates an Agent Principal Correlation from a validated
 grant only where its own policy permits just-in-time correlation
-({{AGENT-LIFECYCLE}}).
+({{jit-correlation}}).
 
 | Adoption profile | Required addition | Grant protection |
 |---|---|---|
@@ -1536,8 +1536,8 @@ The RAS MUST:
   a bare subject, display name, or OAuth client identifier MUST NOT
   replace it.
 * Deny authorization that depends on a missing agent record, whether
-  that record is provisioned in advance or created just in time where
-  resource policy permits ({{AGENT-LIFECYCLE}}).
+  that record is provisioned in advance or created just in time under
+  {{jit-correlation}}.
 
 User-account and agent-record links are distinct. A changed Identity
 Binding or local agent link MUST NOT transfer an existing delegation
@@ -1563,6 +1563,33 @@ authorized directory connector SHOULD provision and synchronize that
 principal keyed by the same pair and SHOULD propagate activation and
 deactivation. Once deactivation is applied, the RAS enforces {{applied-changes}}. No provisioning protocol is required
 ({{operational-guidance}}).
+
+### Just-in-Time Correlation {#jit-correlation}
+
+Where the RAS requires a local agent record and none exists for the
+qualified pair in the authorized Target Tenant, resource policy MAY
+permit the RAS to create one from a validated grant: from (`act.iss`,
+`act.sub`) of an ID-JAG, or from (`iss`, `sub`) of a WAG under
+{{wag-redemption}}. The policy is disabled by default and enabled per
+governing issuer and Target Tenant. It serves resource domains that do
+not accept provisioning and deployments in which the first grant can
+arrive before provisioning completes. When it applies, the RAS:
+
+* MUST key the created record by that exact pair and MUST NOT attach
+  the pair to an existing record by name or other descriptive match;
+* MUST apply local restrictions, retained revocation state under
+  {{applied-changes}}, and local policy before issuance; and
+* sets the record's initial eligibility by local policy; a record
+  created ineligible denies the triggering request.
+
+Creating the record is correlation, not authorization: the actor gate
+({{actor-authorization}}) and resource policy still apply. A grant does
+not carry the IdP's administrative status, so creation does not
+substitute for propagating disablement; without provisioning, the RAS
+learns of disablement only through local action or another signal
+({{status-changes}}). Provisioning and reconciliation of a created
+record are outside this document; {{AGENT-LIFECYCLE}} defines them for
+Receivers that conform to it.
 
 # Authorization Relationship {#authorization}
 
@@ -2756,7 +2783,7 @@ the request of {{redemption-request}}. The RAS MUST:
    have that authorized correlation before issuance; for governed agents
    this replaces the required acceptance of previously unseen
    identifiers in {{Section 7 of WAG}}. Just-in-time correlation, where
-   resource policy permits it, is defined by {{AGENT-LIFECYCLE}}.
+   resource policy permits it, is defined in {{jit-correlation}}.
 3. Validate resource, scope, and authorization details as in
    {{redemption-validation}}, and apply current RAS policy for the
    agent, client, tenant, and resource. A valid grant sets an authority
@@ -3171,7 +3198,7 @@ choices. Useful controls include:
   control of both accounts in a user-linking flow.
 * Authorize just-in-time creation of user accounts and agent
   correlations by issuer and tenant, the latter under
-  {{AGENT-LIFECYCLE}}; avoid silent merges and reactivation of disabled
+  {{jit-correlation}}; avoid silent merges and reactivation of disabled
   accounts.
 * Retain ownership, groups, and entitlements with their principal;
   audit link and binding changes.

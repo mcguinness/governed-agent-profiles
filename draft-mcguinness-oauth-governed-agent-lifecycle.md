@@ -149,6 +149,14 @@ decisions; it does not restore revoked sessions. Neither an event
 acknowledgment nor a SCIM response proves that every API has stopped
 accepting issued tokens.
 
+Disablement is one of several revocation boundaries. Disabling the
+principal, disabling an Identity Binding, withdrawing a Client
+Association or a delegation, revoking a workload credential, and
+revoking one grant each reach different authorization
+({{relationship-changes}}). The resource domain also keeps its own
+authority: a Local Suspension denies the agent there regardless of
+upstream state, and upstream activation cannot clear it.
+
 ## Scope
 
 This profile covers IdP-to-resource-domain provisioning for delegated
@@ -163,6 +171,11 @@ Federation. It does not define:
   selectively under {{grant-revocation}}.
 * A guarantee that an unobserved disable-and-reenable cycle invalidates
   all previously issued grants or sessions.
+* Runtime containment: stopping executions, tool calls, or network
+  access, or rejecting offline tokens before they expire. Administrative
+  disablement stops new authorization and revokes RAS sessions;
+  immediate containment needs complementary runtime enforcement
+  ({{api-enforcement}}).
 
 {{recovery}} and {{enforcement}} state the recovery and enforcement
 limits. Deployments requiring stronger revocation-history guarantees need

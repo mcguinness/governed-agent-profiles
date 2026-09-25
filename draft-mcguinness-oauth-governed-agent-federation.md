@@ -400,13 +400,13 @@ Client Associations:
  (one stable identity in the IdP issuer's namespace)
    |
    |  Identity Bindings        keyed by qualified input identity
-   +-- B1  dedicated client  https://idp.example/clients/c1
-   +-- B2  SPIFFE workload   spiffe://acme.example/ns/ml/sa/bot
-   +-- B3  platform JWT      https://platform.example  agent/7
+   +-- B1  JWT-SVID          trust domain + SPIFFE ID
+   +-- B2  platform JWT      issuer + sub + selector
+   +-- B3  dedicated client  assertion iss + sub
    |
    |  Client Associations      permit a client to use bindings
-   +-- A1  client C1 -> B1        delegated
-   +-- A2  client C2 -> B2, B3    self-acting
+   +-- A1  client C1 -> B1, B2    delegated
+   +-- A2  client C2 -> B3        self-acting
 ~~~
 
 A binding maps one qualified identity to the Agent Principal. An
@@ -797,6 +797,19 @@ Discovery exposes capabilities, not these authorization decisions:
   mechanism here. Profile metadata does not establish acceptance policy
   ({{discovery}}).
 
+These validations occur while a request is processed, not when an Agent
+Principal, Identity Binding, or Client Association is created. Keys and
+metadata may already be held; their retrieval and refresh follow the
+rules of the source that supplies them:
+
+* The IdP validates a platform JWT or an SVID under the approved key
+  source configured for that input ({{evidence}}).
+* The RAS validates an ID-JAG at redemption under the governing IdP's
+  keys, with trust configured for the asserted namespace
+  ({{redemption-validation}}).
+* A client uses server metadata to locate endpoints and to confirm which
+  grants and profiles each server accepts ({{metadata}}).
+
 Existing workload-federation configuration can supply credential trust
 and exact identity selectors. The Agent Principal mapping and separate
 Client Association are still required, but no new configuration object
@@ -841,6 +854,22 @@ The request passes four separate decisions:
    agent with local principal `service-principal-42`. Alice has the
    file permission, and resource policy permits this agent to act for
    her. In this example, the agent needs no file permission of its own.
+
+The two identities move differently across the three namespaces:
+
+~~~
+           Input credential   ID-JAG          Access token
+           ----------------   ------          ------------
+
+ user      alice-app    -->   alice-ras  -->  user-108
+                              (sub)           (sub)
+
+ agent     workload-7   -->   agent-42   ==>  agent-42
+           (SPIFFE ID)        (act.sub)       (act.sub)
+
+ -->  translated into the next namespace
+ ==>  preserved unchanged across the boundary
+~~~
 
 The resulting tokens show which identities change across the boundary:
 
@@ -1350,20 +1379,34 @@ preserving identity continuity across policy changes. Credential class
 constrains the authorized resolution path even when several classes
 can resolve to the same Agent Principal.
 
-For example, one Agent Principal can carry three bindings at once:
+For example, one Agent Principal can carry a binding for each platform
+the same agent runs on, each keyed by its own issuer and selectors:
 
 ~~~
- Agent Principal  agent-42
- B1  dedicated client  https://idp.example/clients/c1      enabled
- B2  SPIFFE workload   spiffe://acme.example/ns/ml/sa/bot  enabled
- B3  platform JWT      https://platform.example  agent/7   disabled
+ Agent Principal: agent-42
+
+ B1  JWT-SVID, orchestrated runtime                     enabled
+     trust domain  acme.example
+     SPIFFE ID     spiffe://acme.example/ns/ml/sa/bot
+
+ B2  platform JWT, managed container service            enabled
+     issuer        https://sts.amazonaws.com/
+     sub           arn:aws:iam::123456789012:role/agent-42-runtime
+     selector      /https:~1~1sts.amazonaws.com~1/aws_account
+                     = 123456789012
+
+ B3  dedicated client, private_key_jwt                 disabled
+     assertion iss  https://idp.example/clients/c1
+     assertion sub  https://idp.example/clients/c1
 ~~~
 
-The agent resolves through B1 when it runs as its own OAuth client and
-through B2 when it runs behind a shared platform client. Disabling B3
-prevents new issuance through that binding. It does not change the
-Client Association's configured permissions: A2 may still authorize
-use of B2, subject to the remaining checks.
+The same agent resolves through B1 on the orchestrated runtime and
+through B2 on the managed container service ({{aws-example}}). Neither
+the SPIFFE ID nor the role identifies the agent downstream; both
+resolve to agent-42, and the issued grant names that principal.
+Disabling B3 prevents new issuance through that binding. It does not
+change what a Client Association permits: an association naming B1 and
+B2 continues to authorize them, subject to the remaining checks.
 
 ## Subject Resolution and Linking {#subject-resolution}
 
@@ -3545,4 +3588,5 @@ RFC Editor: Remove this section before publication.
 # Acknowledgments
 {:numbered="false"}
 
-TBD.
+The author thanks Jeff Malnick for review and discussion of this
+profile.

@@ -42,6 +42,45 @@ missing is which enterprise principal that identity represents, whether this
 client may exercise it, and what it may do once it arrives. These drafts
 profile that.
 
+## How the drafts fit together
+
+```
+ Agent platform
+      |
+      |  SCIM Governed Agent Federation Management
+      v
+ +----------------------------------+
+ | Governing IdP                    |
+ |   Agent Principal                |
+ |   Identity Bindings              |
+ |   Client Associations            |
+ |   OAuth clients                  |
+ |   Administrative state           |
+ +----------------------------------+
+      |                        |
+      | Governed Agent         | Governed Agent Lifecycle
+      | Federation (OAuth)     | (SCIM and signals)
+      v                        v
+ +----------------------------------+
+ | Resource domain                  |
+ |   Local agent principal          |
+ |   Authorization sessions         |
+ |   Local Suspension               |
+ +----------------------------------+
+```
+
+Management establishes the relationships at the IdP, federation exercises
+them to obtain authorization, and lifecycle carries the principal's
+administrative state into the resource domain and revokes what depends on
+it. SCIM OAuth Client Management supplies the OAuth client registrations
+that bindings and associations reference.
+
+Agent governance is not one identity and one kill switch. Principal
+identity, execution binding, client authority, delegation, resource
+authority, and administrative state are separate relationships, and their
+boundaries stay explicit as an agent crosses systems. Runtime containment,
+such as stopping an execution or a tool call, sits outside these drafts.
+
 ## What the profile defines
 
 The draft defines how an IdP resolves dedicated OAuth client identities or

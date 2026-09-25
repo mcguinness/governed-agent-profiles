@@ -2173,9 +2173,12 @@ unrecognized confirmation method.
 
 ### Distributed Platforms and Key Use {#distributed-key-use}
 
-Bound-grant issuance and redemption require the same key holder. For
-a DPoP access token, API use also requires proofs from that key; handing
-only the token to a worker with an independent key is insufficient.
+A proof key belongs to the component that exercises the credential it
+protects; this document defines no transition to another key
+({{key-transition-gap}}). Bound-grant issuance and redemption therefore
+require the same key holder. For a DPoP access token, API use also
+requires proofs from that key; handing only the token to a worker with
+an independent key is insufficient.
 
 | Arrangement | Requirement through API use |
 |---|---|
@@ -2191,10 +2194,9 @@ token is bound to the worker's key ({{grant-protection}}). This keeps
 the key at the component that calls the API without a key transition.
 
 Remote signing or shared key custody does not establish an independent
-worker binding and expands the trusted computing base. This document
-defines no handoff to a worker's independent DPoP key
-({{key-transition-gap}}). Access-token and refresh-token bindings remain
-subject to {{access-token-protection}} and {{ras-refresh}}.
+worker binding and expands the trusted computing base. Access-token and
+refresh-token bindings remain subject to {{access-token-protection}}
+and {{ras-refresh}}.
 
 ### Opaque Access Tokens and Introspection {#introspection}
 

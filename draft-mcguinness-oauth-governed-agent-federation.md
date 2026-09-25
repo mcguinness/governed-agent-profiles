@@ -785,7 +785,7 @@ and {{discovery}}, and protection on the API hop follows
 {{access-token-protection}}.
 
 
-## Deployment Configuration {#configuration}
+## Federation Configuration {#configuration}
 
 The relationships in {{model}} require trusted configuration, not a
 particular storage representation or administrative interface:
@@ -823,8 +823,9 @@ particular storage representation or administrative interface:
   the corresponding metadata.
 * **Client registration association:** For each target RAS, the IdP
   holds the authoritative mapping from its authenticated client to that
-  client's registration at the RAS, from which it derives the ID-JAG
-  `client_id` ({{flow-configuration}}). Using one identifier at both
+  client's registration at the RAS ({{Section 5 of ID-JAG}}), from which
+  it derives the ID-JAG `client_id` ({{flow-configuration}}). Using one
+  identifier at both
   servers, which a CIMD Client Identifier URL provides by construction,
   makes that mapping the identity mapping. No companion profile
   provisions this association; it is configured.

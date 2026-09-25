@@ -5,6 +5,45 @@
 This is the working area for "OAuth 2.0 Profile for Governed Agent Federation"
 and its SCIM client management, agent management, and lifecycle companions.
 
+## Why this matters
+
+Enterprises run agents on platforms they do not operate: a coding agent on
+one vendor's runtime, a support agent on another, something else on a
+developer's laptop. Each platform issues its own identity for the thing it
+runs. None of those identities is what the enterprise needs to govern.
+
+What the enterprise needs is a principal it can authorize once, audit across
+systems, and disable everywhere. Platform and client identity do not line up
+with that boundary. One runtime can serve several agents that need separate
+authorization, and one agent can move between runtimes while its authority
+has to stay the same.
+
+The common workaround is a shared OAuth client per platform integration.
+Every agent behind it looks identical to the resource server, so attribution
+is lost and revocation becomes all or nothing.
+
+## Why now
+
+Agent deployments multiply the number of platforms an enterprise federates
+with, and they ask resource servers to authorize callers that have no
+registration relationship with them. The pieces needed to answer that exist
+separately and do not yet compose:
+
+* OAuth 2.0 Token Exchange defines `act` but leaves the actor's meaning to
+  profiles.
+* ID-JAG brokers cross-application access through the IdP both sides already
+  trust for SSO, and deliberately leaves actor-token validation,
+  authorization, and representation to extensions.
+* Attestation-based and SPIFFE client authentication establish which OAuth
+  client is calling, not which agent a shared client is acting for.
+
+Federation already answers which external identity is calling. What is
+missing is which enterprise principal that identity represents, whether this
+client may exercise it, and what it may do once it arrives. These drafts
+profile that.
+
+## What the profile defines
+
 The draft defines how an IdP resolves dedicated OAuth client identities or
 independently validated workload identities to stable Agent Principals.
 Identity Binding, Client Association, user delegation, and resource-local

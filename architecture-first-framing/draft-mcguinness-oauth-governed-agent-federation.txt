@@ -544,31 +544,32 @@ Table of Contents
    another.  A local principal link identifies the agent; resource
    policy still determines whether to accept its delegated access.
 
-   Three identities meet in one request, and each answers a different
-   question:
+   Up to three identities meet in one request, and each answers a
+   different question:
 
-     +===========+==================================+================+
-     | Identity  | Question it answers              | Established by |
-     +===========+==================================+================+
-     | Workload  | Which computational principal    | Credential     |
-     |           | presented the accepted evidence? | validation     |
-     |           |                                  | (Section 5)    |
-     +-----------+----------------------------------+----------------+
-     | OAuth     | Which software is requesting the | Client         |
-     | client    | grant?                           | authentication |
-     +-----------+----------------------------------+----------------+
-     | Agent     | Which independently governed     | Identity       |
-     | Principal | principal does that input        | Binding        |
-     |           | resolve to?                      | (Section 6.1)  |
-     +-----------+----------------------------------+----------------+
+   +===========+===============================+=======================+
+   | Identity  | Question it answers           | Established by        |
+   +===========+===============================+=======================+
+   | Workload  | Which workload identity does  | Credential            |
+   |           | the accepted evidence assert? | validation            |
+   |           |                               | (Section 5)           |
+   +-----------+-------------------------------+-----------------------+
+   | OAuth     | Which software is requesting  | Client                |
+   | client    | the grant?                    | authentication        |
+   +-----------+-------------------------------+-----------------------+
+   | Agent     | Which independently governed  | Identity              |
+   | Principal | principal does that input     | Binding               |
+   |           | resolve to?                   | (Section 6.1)         |
+   +-----------+-------------------------------+-----------------------+
 
                  Table 2: Distinct identities in a request
 
-   They can coincide in a deployment, as when a dedicated client's
-   identity is the resolution input, but none is inferred from another.
-   The relationship between workloads and Agent Principals can be one-
-   to-one; this profile does not require it (Section 3.4).  Client
-   Association authorizes client use through the binding, acting
+   Dedicated-client resolution establishes no separate workload
+   identity: the authenticated client identity is itself the resolution
+   input.  In every case, none of these identities is inferred from
+   another.  The relationship between workloads and Agent Principals can
+   be one-to-one; this profile does not require it (Section 3.4).
+   Client Association authorizes client use through the binding, acting
    relationship, and credential class under Section 6.1.
 
    The IdP is the authority for the Agent Principal: the ID-JAG's
@@ -2774,12 +2775,13 @@ Table of Contents
 
 8.5.5.  Distributed Platforms and Key Use
 
-   A proof key belongs to the component that exercises the credential it
-   protects; this document defines no transition to another key
-   (Appendix A.2.1).  Bound-grant issuance and redemption therefore
-   require the same key holder.  For a DPoP access token, API use also
-   requires proofs from that key; handing only the token to a worker
-   with an independent key is insufficient.
+   The component exercising a sender-constrained credential needs the
+   required proofs from its bound key, either through local custody or
+   an authorized signing arrangement; this document defines no
+   transition to another key (Appendix A.2.1).  Bound-grant issuance and
+   redemption therefore require the same key holder.  For a DPoP access
+   token, API use also requires proofs from that key; handing only the
+   token to a worker with an independent key is insufficient.
 
      +================+=============================================+
      | Arrangement    | Requirement through API use                 |

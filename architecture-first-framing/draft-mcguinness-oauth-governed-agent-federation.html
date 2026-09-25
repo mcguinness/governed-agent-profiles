@@ -2011,8 +2011,8 @@ acting relationship. Neither implies the other.<a href="#section-3-6" class="pil
 <p id="section-3-7">Establishing one relationship <span class="bcp14">MUST NOT</span> be treated as establishing
 another. A local principal link identifies the agent; resource policy
 still determines whether to accept its delegated access.<a href="#section-3-7" class="pilcrow">¶</a></p>
-<p id="section-3-8">Three identities meet in one request, and each answers a different
-question:<a href="#section-3-8" class="pilcrow">¶</a></p>
+<p id="section-3-8">Up to three identities meet in one request, and each answers a
+different question:<a href="#section-3-8" class="pilcrow">¶</a></p>
 <span id="name-distinct-identities-in-a-re"></span><table class="center" id="table-2">
         <caption>
 <a href="#table-2" class="selfRef">Table 2</a>:
@@ -2028,7 +2028,7 @@ question:<a href="#section-3-8" class="pilcrow">¶</a></p>
         <tbody>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">Workload</td>
-            <td class="text-left" rowspan="1" colspan="1">Which computational principal presented the accepted evidence?</td>
+            <td class="text-left" rowspan="1" colspan="1">Which workload identity does the accepted evidence assert?</td>
             <td class="text-left" rowspan="1" colspan="1">Credential validation (<a href="#evidence" class="auto internal xref">Section 5</a>)</td>
           </tr>
           <tr>
@@ -2043,8 +2043,9 @@ question:<a href="#section-3-8" class="pilcrow">¶</a></p>
           </tr>
         </tbody>
       </table>
-<p id="section-3-10">They can coincide in a deployment, as when a dedicated client's
-identity is the resolution input, but none is inferred from another.
+<p id="section-3-10">Dedicated-client resolution establishes no separate workload identity:
+the authenticated client identity is itself the resolution input. In
+every case, none of these identities is inferred from another.
 The relationship between workloads and Agent Principals can be
 one-to-one; this profile does not require it (<a href="#governance-boundary" class="auto internal xref">Section 3.4</a>).
 Client Association authorizes client use through the binding, acting
@@ -4779,9 +4780,11 @@ unrecognized confirmation method.<a href="#section-8.5.4-6" class="pilcrow">¶</
           <h4 id="name-distributed-platforms-and-k">
 <a href="#section-8.5.5" class="section-number selfRef">8.5.5. </a><a href="#name-distributed-platforms-and-k" class="section-name selfRef">Distributed Platforms and Key Use</a>
           </h4>
-<p id="section-8.5.5-1">A proof key belongs to the component that exercises the credential it
-protects; this document defines no transition to another key
-(<a href="#key-transition-gap" class="auto internal xref">Appendix A.2.1</a>). Bound-grant issuance and redemption therefore
+<p id="section-8.5.5-1">The component exercising a sender-constrained credential needs the
+required proofs from its bound key, either through local custody or an
+authorized signing arrangement; this document defines no transition to
+another key (<a href="#key-transition-gap" class="auto internal xref">Appendix A.2.1</a>). Bound-grant issuance and
+redemption therefore
 require the same key holder. For a DPoP access token, API use also
 requires proofs from that key; handing only the token to a worker with
 an independent key is insufficient.<a href="#section-8.5.5-1" class="pilcrow">¶</a></p>

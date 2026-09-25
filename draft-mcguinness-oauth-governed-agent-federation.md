@@ -422,6 +422,35 @@ Delegation Authorization. The RAS controls local principal correlation and
 authorization, using trusted provisioning from the IdP or an authorized
 directory connector where applicable.
 
+The relationships compose into one model; the grant that carries the
+result depends on the acting relationship:
+
+~~~
+ Client authentication or workload evidence
+                      |
+               Identity Binding .......... which agent?
+                      v
+       Agent Principal (IdP namespace)
+                      |
+              Client Association ........ may this client use it?
+                      |
+          +-----------+------------+
+          |                        |
+ Delegation Authorization    Agent Authorization
+   agent acts for user         agent acts for itself
+          |                        |
+ ID-JAG: sub = user          WAG: sub = agent
+         act = agent               |
+          |                        |
+          +-----------+------------+
+                      |
+                      v
+ RAS: validate grant; correlate agent with local principal
+                      |
+                      v
+ RAS and API: resource authorization; actor gate if delegated
+~~~
+
 One Agent Principal carries a set of Identity Bindings and a set of
 Client Associations:
 
@@ -447,18 +476,6 @@ Establishing one relationship MUST NOT be treated as establishing
 another. A local principal link identifies the agent; resource policy
 still determines whether to accept its delegated access.
 
-~~~
- Resolution source        IdP namespace       Resource namespace
-
- dedicated client --\
-                     >--> agent-42 ----------> local agent principal
- workload identity -/
-            Identity Binding         Agent Correlation
-
- OAuth client -- Client Association --> permission to use binding
- agent-42 -- Delegation Authorization --> authority to act for user
- agent-42 -- Agent Authorization --> authority to act for itself
-~~~
 
 External workload identity, Agent Principal identity, and OAuth client
 identity are distinct. Identity Binding resolves the agent identity;

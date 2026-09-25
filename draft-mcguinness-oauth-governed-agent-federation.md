@@ -3169,8 +3169,10 @@ choices. Useful controls include:
 
 * Authenticate the authority creating or changing a link, or verify
   control of both accounts in a user-linking flow.
-* Authorize just-in-time creation by issuer and tenant; avoid silent
-  merges and reactivation of disabled accounts.
+* Authorize just-in-time creation of user accounts and agent
+  correlations by issuer and tenant, the latter under
+  {{AGENT-LIFECYCLE}}; avoid silent merges and reactivation of disabled
+  accounts.
 * Retain ownership, groups, and entitlements with their principal;
   audit link and binding changes.
 * Preserve issuer and tenant context when using the System for

@@ -517,9 +517,12 @@ IdP-qualified identity ({{agent-correlation}}).
 
 Identity resolution establishes which governed principal participates
 in a transaction. It does not establish client authority, user delegation,
-resource authority, or permission to perform an operation. The identity
-and actor attribution also do not establish a task's purpose, approval,
-or lifecycle.
+resource authority, or permission to perform an operation. This profile
+provides identity continuity for the agent: across changes of execution
+environment through Identity Binding, and across the boundary between
+the IdP and the resource domain. It does not provide work continuity.
+Whether an approved task, with its purpose, approval, and lifecycle,
+still justifies an action is outside this profile.
 
 This non-normative index summarizes the requirements that connect
 identity resolution to resource enforcement. The referenced sections

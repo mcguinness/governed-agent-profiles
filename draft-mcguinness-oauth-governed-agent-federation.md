@@ -2751,7 +2751,8 @@ the request of {{redemption-request}}. The RAS MUST:
    local agent principal in the authorized Target Tenant. The RAS MUST
    have that authorized correlation before issuance; for governed agents
    this replaces the acceptance of previously unseen identifiers in
-   {{Section 7 of WAG}}.
+   {{Section 7 of WAG}}. Just-in-time correlation, where configured, is
+   defined by {{AGENT-LIFECYCLE}}.
 3. Validate resource, scope, and authorization details as in
    {{redemption-validation}}, and apply current RAS policy for the
    agent, client, tenant, and resource. A valid grant sets an authority

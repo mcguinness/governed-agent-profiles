@@ -171,9 +171,12 @@ and downstream revocation remain separate.
 
 The lifecycle profile provisions issuer-qualified Agent Principals into the
 resource domain with SCIM and applies administrative disablement at the RAS.
-The RAS needs that correlation before it accepts a grant; a validated grant
-does not create it. Re-enablement permits new authorization decisions without
-restoring revoked sessions.
+The RAS needs that correlation before it accepts a grant. Where SCIM is not
+available, or orchestration delivers the first grant before provisioning
+completes, resource policy can permit correlating the agent just in time from
+a validated grant; the option is off by default and enabled per issuer and
+tenant. Re-enablement permits new authorization decisions without restoring
+revoked sessions.
 
 Disablement is one of several revocation boundaries. Disabling the principal
 or a binding, withdrawing a client association or a delegation, revoking a

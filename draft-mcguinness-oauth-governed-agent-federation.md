@@ -171,10 +171,26 @@ the account, an Identity Binding maps a validated, qualified client or
 workload identity to it, and a Client Association states which OAuth
 client may exercise that binding.
 
-This document defines how an identity provider (IdP) resolves client
-or workload identity to an Agent Principal, separately authorizes
-OAuth client use and user delegation, and carries the governed
-identity into the resource domain.
+Existing OAuth mechanisms authenticate clients and carry actors, but
+they leave three relationships open:
+
+1. How different client and workload identities resolve to the same
+   governed principal. {{ATTEST}} and {{SPIFFE-OAUTH}} authenticate
+   OAuth clients, not the agents a shared client serves.
+2. How authority to use that principal is separated from identity
+   resolution. The Identity Assertion JWT Authorization Grant (ID-JAG)
+   leaves the validation and authorization of an actor, and the
+   relationship among client, subject, and actor, to extensions
+   ({{Section 9.7 of ID-JAG}}).
+3. How the resulting principal is represented and correlated across
+   authorization domains. {{RFC8693}} defines the `act` claim but not
+   how an actor authenticated through a client or workload credential
+   is named in it, or how a resource domain correlates that name with
+   local state.
+
+This document defines how an identity provider (IdP) establishes those
+relationships and how OAuth grants carry the result into the resource
+domain.
 
 A dedicated OAuth client resolves through an explicit client-to-agent
 binding. A shared client uses independently validated workload identity
@@ -204,21 +220,10 @@ the resource authorization server (RAS):
 External credentials, execution environments, and OAuth clients can
 change without changing the governed identity.
 
-Existing specifications leave that mapping open. {{RFC8693}} defines
-`act`, while the Identity Assertion JWT Authorization Grant (ID-JAG)
-leaves actor-token validation, authorization, and representation to
-extensions ({{Section 9.7 of ID-JAG}}). {{ATTEST}} and
-{{SPIFFE-OAUTH}} authenticate OAuth clients, not the agents a shared
-client serves.
-
 AIMS {{AIMS}} describes a broader framework for agent identity management.
-This document defines an enterprise federation composition within that
-space: resolving client or workload identity to an IdP-governed Agent
-Principal, separately authorizing client use and user delegation, and
-correlating that principal in a resource domain. A workload identifier
-can supply a resolution input without becoming the downstream Agent
-Principal identifier. In particular, a shared OAuth client's `client_id`
-does not identify the individual agent represented by `act`.
+This document is an OAuth protocol profile within that space, not a
+governance framework: it defines how the identities in one transaction
+relate across authorization domains.
 
 The federation model ({{model}}) defines identity resolution, client
 authorization, delegation authorization, and resource correlation.

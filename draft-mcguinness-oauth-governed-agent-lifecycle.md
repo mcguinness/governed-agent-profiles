@@ -335,8 +335,15 @@ policy before issuance, and MUST subject the created principal to the
 same provisioning, reconciliation, and disablement rules as a
 provisioned one. A grant does not carry the IdP's administrative
 status; just-in-time correlation therefore does not replace SCIM
-provisioning for disablement, and a later SCIM write for the same pair
-updates the created record rather than creating a second principal.
+provisioning for disablement. If local policy sets the initial state
+to inactive, the triggering grant is denied.
+
+Where the Receiver supports this interface, the created principal
+appears in the Provisioning Domain with `externalId` set to the agent
+identifier. A later SCIM create for the same pair therefore fails with
+`uniqueness`; the connector finds the record with the `externalId`
+query in {{scim}} and updates it. Provisioning that lags the first
+grant thus converges on one principal rather than creating a second.
 
 # SCIM Provisioning {#scim}
 

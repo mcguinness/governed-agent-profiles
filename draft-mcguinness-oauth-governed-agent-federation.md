@@ -2174,9 +2174,11 @@ unrecognized confirmation method.
 
 ### Distributed Platforms and Key Use {#distributed-key-use}
 
-A proof key belongs to the component that exercises the credential it
-protects; this document defines no transition to another key
-({{key-transition-gap}}). Bound-grant issuance and redemption therefore
+The component exercising a sender-constrained credential needs the
+required proofs from its bound key, either through local custody or an
+authorized signing arrangement; this document defines no transition to
+another key ({{key-transition-gap}}). Bound-grant issuance and
+redemption therefore
 require the same key holder. For a DPoP access token, API use also
 requires proofs from that key; handing only the token to a worker with
 an independent key is insufficient.

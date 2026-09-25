@@ -609,11 +609,14 @@ Target Tenant for the requested resource uses `invalid_target`.
 
 Clients, workloads, or other actors requiring independently managed
 authorization, delegation, attribution, resource correlation, or
-disablement as principals need separate Agent Principal identities.
-Differences in process, replica, session, worker, or credential alone
-do not require distinct
-identities. Sharing those elements does not justify combining actors
-that require independent governance.
+disablement as principals need separate Agent Principal identities,
+even when they share a runtime, OAuth client, workload credential, or
+deployment. Differences in process, replica, session, worker, or
+credential alone do not require distinct identities. An execution that
+shares all of these with an Agent Principal, such as a sub-agent
+working entirely within its parent's authority and attributed to it,
+can run as that Agent Principal; one that needs any of them separately
+needs its own identity.
 
 Multiple executions MAY operate as the same Agent Principal, and an
 agent MAY move between workloads or execution environments through

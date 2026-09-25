@@ -96,6 +96,12 @@ managed separately through {{OAUTH-CLIENT}}.
  Shared client: OAuthClient -- Client Association -> Identity Binding
 ~~~
 
+Because Identity Bindings and Client Associations decide which
+authenticated clients and workloads can obtain authorization as an
+Agent Principal, administering them is authorization management rather
+than descriptive provisioning. Each relationship is authorized
+separately ({{trust}}).
+
 A platform can administer only the identities and permissions delegated
 to its connector. The IdP remains the authority for the Agent Principal
 and the decision to accept each relationship. Approval can be

@@ -4,8 +4,8 @@
 
 System for Cross-domain Identity Management                K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                       20 September 2026
-Expires: 24 March 2027
+Intended status: Standards Track                       25 September 2026
+Expires: 29 March 2027
 
 
           Governed Agent Lifecycle Profile for SCIM and OAuth
@@ -60,7 +60,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 24 March 2027.
+   This Internet-Draft will expire on 29 March 2027.
 
 Copyright Notice
 
@@ -813,11 +813,12 @@ Table of Contents
               (WISE) Profile", n.d., <https://github.com/identitymonk/
               openid-wise/blob/main/openid-wise-profile-1_0.md>.
 
-   [WAG]      Carleton, P., "Workload Authorization Grant", Work in
-              Progress, Internet-Draft, draft-carleton-workload-authz-
-              grant-00, 3 August 2026,
+   [WAG]      Carleton, P., Steele, N., Parecki, A., Schwenkschuster,
+              A., and B. Campbell, "Workload Authorization Grant", Work
+              in Progress, Internet-Draft, draft-carleton-workload-
+              authz-grant-01, 22 September 2026,
               <https://datatracker.ietf.org/doc/html/draft-carleton-
-              workload-authz-grant-00>.
+              workload-authz-grant-01>.
 
 Appendix A.  Optional Shared Signals Profile
 

@@ -2352,8 +2352,10 @@ is constrained by its own policy domain (<a href="#actor-authorization" class="a
 <span>[<a href="#EMA" class="cite xref">EMA</a>]</span> deployments and adds agent governance before requiring grant
 binding. The names identify deployment profiles, not assurance ratings.<a href="#section-4.2-1" class="pilcrow">¶</a></p>
 <p id="section-4.2-2">This profile does not establish trust in previously unknown agent issuers
-or automatically create Identity Bindings or Agent Principal Correlations
-from presented credentials.<a href="#section-4.2-2" class="pilcrow">¶</a></p>
+or automatically create Identity Bindings from presented credentials. A
+resource domain creates an Agent Principal Correlation from a validated
+grant only where its own policy permits just-in-time correlation
+(<span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span>).<a href="#section-4.2-2" class="pilcrow">¶</a></p>
 <span id="name-adoption-profiles"></span><table class="center" id="table-5">
           <caption>
 <a href="#table-5" class="selfRef">Table 5</a>:
@@ -3646,7 +3648,9 @@ a bare subject, display name, or OAuth client identifier <span class="bcp14">MUS
 replace it.<a href="#section-6.3-2.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-6.3-2.2">
-            <p id="section-6.3-2.2.1">Deny authorization that depends on a missing provisioned agent record.<a href="#section-6.3-2.2.1" class="pilcrow">¶</a></p>
+            <p id="section-6.3-2.2.1">Deny authorization that depends on a missing agent record, whether
+that record is provisioned in advance or created just in time where
+resource policy permits (<span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span>).<a href="#section-6.3-2.2.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 <p id="section-6.3-3">User-account and agent-record links are distinct. A changed Identity
@@ -5836,8 +5840,9 @@ client authentication as in <a href="#redemption-validation" class="auto interna
             <p id="section-10.5-2.2.1">Resolve the pair (<code>iss</code>, <code>sub</code>) under <a href="#agent-correlation" class="auto internal xref">Section 6.3</a> to one
 local agent principal in the authorized Target Tenant. The RAS <span class="bcp14">MUST</span>
 have that authorized correlation before issuance; for governed agents
-this replaces the acceptance of previously unseen identifiers in
-<span><a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-01#section-7" class="relref">Section 7</a> of [<a href="#WAG" class="cite xref">WAG</a>]</span>.<a href="#section-10.5-2.2.1" class="pilcrow">¶</a></p>
+this replaces the required acceptance of previously unseen
+identifiers in <span><a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-01#section-7" class="relref">Section 7</a> of [<a href="#WAG" class="cite xref">WAG</a>]</span>. Just-in-time correlation, where
+resource policy permits it, is defined by <span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span>.<a href="#section-10.5-2.2.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-10.5-2.3">
             <p id="section-10.5-2.3.1">Validate resource, scope, and authorization details as in
@@ -6590,7 +6595,9 @@ under <a href="#grant-protection" class="auto internal xref">Section 8.3</a>.<a 
             <li class="normal" id="appendix-A.1.1-2.3">
               <p id="appendix-A.1.1-2.3.1"><strong>Linking:</strong> <span><a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-01#section-7" class="relref">Section 7</a> of [<a href="#WAG" class="cite xref">WAG</a>]</span> requires acceptance of previously
 unseen agent identifiers under trusted issuers. Governed agents
-instead require an authorized local correlation (<a href="#wag-redemption" class="auto internal xref">Section 10.5</a>).<a href="#appendix-A.1.1-2.3.1" class="pilcrow">¶</a></p>
+instead require an authorized local correlation, established in
+advance or, where resource policy permits, just in time
+(<a href="#wag-redemption" class="auto internal xref">Section 10.5</a>).<a href="#appendix-A.1.1-2.3.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="appendix-A.1.1-2.4">
               <p id="appendix-A.1.1-2.4.1"><strong>Renewal:</strong> This document adopts WAG's prohibition on refresh tokens;
@@ -6770,8 +6777,10 @@ choices. Useful controls include:<a href="#appendix-A.3-1" class="pilcrow">¶</a
 control of both accounts in a user-linking flow.<a href="#appendix-A.3-2.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="appendix-A.3-2.2">
-            <p id="appendix-A.3-2.2.1">Authorize just-in-time creation by issuer and tenant; avoid silent
-merges and reactivation of disabled accounts.<a href="#appendix-A.3-2.2.1" class="pilcrow">¶</a></p>
+            <p id="appendix-A.3-2.2.1">Authorize just-in-time creation of user accounts and agent
+correlations by issuer and tenant, the latter under
+<span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span>; avoid silent merges and reactivation of disabled
+accounts.<a href="#appendix-A.3-2.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="appendix-A.3-2.3">
             <p id="appendix-A.3-2.3.1">Retain ownership, groups, and entitlements with their principal;

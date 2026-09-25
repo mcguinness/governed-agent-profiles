@@ -410,7 +410,9 @@ Governance Tenant:
   tenant.
 
 Target Tenant:
-: The tenant at the RAS in which the agent or user is authorized.
+: The tenant at the RAS in which the agent or user is authorized, that
+  is, where authority is exercised. It can differ from the Governance
+  Tenant, as in {{identity-example}}.
 
 Where the meaning is clear, this document uses agent as shorthand for
 Agent Principal.

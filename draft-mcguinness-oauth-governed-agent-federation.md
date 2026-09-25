@@ -192,12 +192,28 @@ This document defines how an identity provider (IdP) establishes those
 relationships and how OAuth grants carry the result into the resource
 domain.
 
+The governing principle is that the Agent Principal is the
+authorization identity: client and workload identities are
+authenticated inputs from which the IdP resolves it, and they do not
+replace it downstream. Three consequences shape the rest of the
+document:
+
+* **Governed identity is independent of execution identity.**
+  Platforms, workload credentials, and OAuth clients can change without
+  changing the Agent Principal.
+* **Resolving an identity does not authorize its use.** Identity
+  Binding establishes which agent a credential represents; a separate
+  Client Association establishes whether a client may exercise it.
+* **Actor attribution is not delegation authority.** An agent named in
+  `act` acts for the user only under the IdP's Delegation Authorization
+  and the resource's actor gate ({{actor-authorization}}).
+
 A dedicated OAuth client resolves through an explicit client-to-agent
 binding. A shared client uses independently validated workload identity
 to distinguish the agents it serves. Both deployments retain separate
 identity, client-authority, delegation, and resource-policy decisions.
 
-Five independent relationships establish that contract:
+Five independent relationships make up the model:
 
 | Question | Relationship |
 |---|---|
@@ -208,17 +224,13 @@ Five independent relationships establish that contract:
 | What resource-local principal represents the IdP-qualified agent? | Agent Principal Correlation |
 {: title="Federation relationships"}
 
-Client and workload credentials are resolution inputs; downstream
-authorization identifies the IdP-governed principal. For delegated access,
-the resource authorization server (RAS):
+For delegated access, the resource authorization server (RAS):
 
 * Translates the user identity into its local namespace.
 * Preserves the issuer-qualified agent identity.
 * Correlates that identity with local authorization state without
   replacing it with the local principal's identifier.
 
-External credentials, execution environments, and OAuth clients can
-change without changing the governed identity.
 
 AIMS {{AIMS}} describes a broader framework for agent identity management.
 This document is an OAuth protocol profile within that space, not a

@@ -127,11 +127,14 @@ informative:
 --- abstract
 
 This document defines how an identity provider resolves a dedicated
-OAuth client identity or an independently validated workload identity
-to a stable Agent Principal. Client authority and user
-delegation are authorized separately. Resource systems consume the
-issuer-qualified agent identity without interpreting the original
-credential. No new credential format is defined.
+OAuth client identity or an independently validated workload identity,
+through an explicit Identity Binding, to a stable Agent Principal that
+persists as the agent moves between platforms and rotates credentials.
+A separate Client Association authorizes an OAuth client to exercise
+that principal, and user delegation is authorized independently of
+both. Resource systems consume the issuer-qualified agent identity
+without interpreting the original credential. No new credential format
+is defined.
 
 The federation model covers self-acting access, with the Agent Principal
 as subject, and delegated access, with the user as subject and the

@@ -1,9 +1,16 @@
 <!-- regenerate: off (set to off if you edit this file) -->
 
-# OAuth 2.0 Profile for Governed Agent Federation
+# Governed Agent Profiles
 
-This is the working area for "OAuth 2.0 Profile for Governed Agent Federation"
-and its SCIM client management, agent management, and lifecycle companions.
+This is the working area for four related Internet-Drafts on governing
+agents across platform, identity-provider, and resource-domain boundaries:
+
+| Draft | What it covers |
+|---|---|
+| [OAuth 2.0 Profile for Governed Agent Federation](#oauth-20-profile-for-governed-agent-federation) | Resolves client and workload identities to a stable Agent Principal and carries it into a resource domain |
+| [SCIM Profile for Governed Agent Federation Management](#scim-profile-for-governed-agent-federation-management) | Platform-to-IdP management of Agent Principals, Identity Bindings, and Client Associations |
+| [Governed Agent Lifecycle Profile for SCIM and OAuth](#governed-agent-lifecycle-profile-for-scim-and-oauth) | IdP-to-resource-domain provisioning, administrative disablement, and session revocation |
+| [SCIM Profile for OAuth 2.0 Client Management](#scim-profile-for-oauth-20-client-management) | Generic SCIM management of OAuth client registrations, including CIMD clients |
 
 ## Why this matters
 
@@ -81,10 +88,10 @@ authority, and administrative state are separate relationships, and their
 boundaries stay explicit as an agent crosses systems. Runtime containment,
 such as stopping an execution or a tool call, sits outside these drafts.
 
-## What the profile defines
+## OAuth 2.0 Profile for Governed Agent Federation
 
-The draft defines how an IdP resolves dedicated OAuth client identities or
-independently validated workload identities to stable Agent Principals.
+The core draft defines how an IdP resolves dedicated OAuth client identities
+or independently validated workload identities to stable Agent Principals.
 Identity Binding, Client Association, user delegation, and resource-local
 authorization remain separate decisions.
 
@@ -108,12 +115,12 @@ chain of IdPs or brokers is out of scope.
 
 The mandatory delegated path uses an ID Token issued for the dedicated
 client, `private_key_jwt` client authentication, a governed ID-JAG, and RFC
-7523 `jwt-bearer` redemption. Dedicated-client resolution uses the authenticated
-client context without duplicating its assertion in `actor_token`.
-SPIFFE JWT-SVID, WIT-SVID, X.509-SVID, existing platform JWT, and
-Client Attestation inputs are optional. Shared platforms agree on a workload
-input that distinguishes agents behind their SSO client. No new credential
-format or per-replica registration is required.
+7523 `jwt-bearer` redemption. Dedicated-client resolution uses the
+authenticated client context without duplicating its assertion in
+`actor_token`. SPIFFE JWT-SVID, WIT-SVID, X.509-SVID, existing platform JWT,
+and Client Attestation inputs are optional. Shared platforms agree on a
+workload input that distinguishes agents behind their SSO client. No new
+credential format or per-replica registration is required.
 
 Two governed profiles support incremental adoption. Bound governed agent
 access requires DPoP at issuance and redemption; governed agent access permits
@@ -121,17 +128,17 @@ unbound grants only under explicit policy. Access-token protection is a
 separate choice: DPoP, mutual TLS, or explicitly permitted bearer use. The
 API enforces user authority and the actor gate in every governed mode.
 
-The complete dedicated-client walkthrough includes a shared-client SPIFFE
-variant. Continuing access uses eligible subject credentials for new ID-JAGs
-or policy-permitted RAS refresh within retained authorization and lifetime
-limits. Existing SSO refresh tokens do not automatically authorize downstream
-resources.
+The appendices walk through the dedicated-client flow and a shared-client
+SPIFFE variant. Continuing access uses eligible subject credentials for new
+ID-JAGs or policy-permitted RAS refresh within retained authorization and
+lifetime limits. Existing SSO refresh tokens do not automatically authorize
+downstream resources.
 
 The proposed self-acting WAG realization issues an IdP-signed WAG naming the
-Agent Principal as subject, redeemed with the JWT bearer grant and correlated to
-the same local principal. Its token-type, JWT-type, and profile
-identifiers are provisional pending coordination with WAG.
-Instance identification, attester endorsement, key transition, and Identity
+Agent Principal as subject, redeemed with the JWT bearer grant and correlated
+to the same local principal. Its token-type, JWT-type, and profile
+identifiers are provisional pending coordination with WAG. Instance
+identification, attester endorsement, key transition, and Identity
 Continuation Assertion compositions remain deferred.
 
 * [Editor's Copy](https://mcguinness.github.io/governed-agent-profiles/#go.draft-mcguinness-oauth-governed-agent-federation.html)
@@ -139,7 +146,52 @@ Continuation Assertion compositions remain deferred.
 * [Individual Draft](https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-governed-agent-federation)
 * [Compare Editor's Copy to Individual Draft](https://mcguinness.github.io/governed-agent-profiles/#go.draft-mcguinness-oauth-governed-agent-federation.diff)
 
-## SCIM OAuth Client Management
+## SCIM Profile for Governed Agent Federation Management
+
+The SCIM management profile provisions Agent Principals and administers
+Identity Bindings and Client Associations at the IdP. Because those
+relationships decide which clients and workloads can obtain authorization as
+an agent, administering them is authorization management: permission to
+create an agent does not imply permission to bind it, and permission to
+disable a relationship does not imply permission to enable it.
+
+The profile reuses SCIM operations, adds a small Agent identity extension and
+two relationship resources, and references OAuthClient registrations from the
+generic profile. Dedicated-client bindings reference OAuthClient and
+administer identity and client-use permission together. Shared-client
+deployments retain external workload bindings and separate Client
+Associations. Both support CIMD clients without copying their metadata.
+Credential-authority trust, client registration permission, user delegation,
+and downstream revocation remain separate.
+
+* [SCIM management profile source](draft-mcguinness-scim-agent-federation.md)
+* [SCIM management editor's copy](https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html)
+
+## Governed Agent Lifecycle Profile for SCIM and OAuth
+
+The lifecycle profile provisions issuer-qualified Agent Principals into the
+resource domain with SCIM and applies administrative disablement at the RAS.
+The RAS needs that correlation before it accepts a grant; a validated grant
+does not create it. Re-enablement permits new authorization decisions without
+restoring revoked sessions.
+
+Disablement is one of several revocation boundaries. Disabling the principal
+or a binding, withdrawing a client association or a delegation, revoking a
+workload credential, and revoking one grant each reach different
+authorization. A Local Suspension lets the resource domain deny an agent
+regardless of upstream state, and upstream activation cannot clear it.
+
+The lifecycle draft also profiles existing SCIM Events and optional CAEP
+revocation. Provisioning and feed events trigger authoritative reconciliation;
+CAEP can revoke all authorization derived from an issuer-qualified ID-JAG
+`jti`. No new event type, eligibility lease, or authorization cutoff is
+defined. Current state cannot recover a missed disable-and-reenable cycle.
+API enforcement still depends on introspection, caching, and token expiry.
+
+* [Lifecycle profile source](draft-mcguinness-oauth-governed-agent-lifecycle.md)
+* [Lifecycle profile editor's copy](https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html)
+
+## SCIM Profile for OAuth 2.0 Client Management
 
 The generic OAuthClient profile develops the SCIM registration approach first
 proposed by Phil Hunt, Morteza Ansari, and Anthony Nadalin. It maps current
@@ -151,37 +203,6 @@ agent identity, and permission to use that identity remain separate.
 
 * [OAuthClient profile source](draft-mcguinness-scim-oauth-client-management.md)
 * [OAuthClient editor's copy](https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-oauth-client-management.html)
-
-## Platform-to-IdP SCIM Management
-
-The SCIM management profile provisions Agent Principals and administers
-Identity Bindings and Client Associations at the IdP. It reuses SCIM
-operations, adds a small Agent identity extension and two relationship
-resources, and references OAuthClient registrations from the generic profile.
-Dedicated-client bindings reference OAuthClient and administer identity
-and client-use permission together. Shared-client deployments retain
-external workload bindings and separate Client Associations. Both support CIMD clients without copying their metadata.
-Credential-authority trust, client registration permission, user delegation,
-and downstream revocation remain separate.
-
-* [SCIM management profile source](draft-mcguinness-scim-agent-federation.md)
-* [SCIM management editor's copy](https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html)
-
-## Provisioning and Lifecycle Companion
-
-The lifecycle profile uses SCIM Agent administrative state and issuer-qualified
-correlation to apply disablement at the RAS. Re-enablement permits new
-authorization decisions without restoring revoked sessions. API enforcement
-still depends on introspection, caching, and token expiry.
-
-The lifecycle draft also profiles existing SCIM Events and optional CAEP
-revocation. Provisioning and feed events trigger authoritative reconciliation;
-CAEP can revoke all authorization derived from an issuer-qualified ID-JAG
-`jti`. No new event type, eligibility lease, or authorization cutoff is
-defined. Current state cannot recover a missed disable-and-reenable cycle.
-
-* [Lifecycle profile source](draft-mcguinness-oauth-governed-agent-lifecycle.md)
-* [Lifecycle profile editor's copy](https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html)
 
 ## Contributing
 

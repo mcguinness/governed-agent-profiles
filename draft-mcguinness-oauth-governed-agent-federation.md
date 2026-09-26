@@ -2771,7 +2771,8 @@ and `act` requirements do not.
 **Authentication-context resolution.** The subject is the authenticated
 client itself and no separate token exists. {{RFC8693}} requires a
 subject token and offers no way to state that the authenticated client
-is the subject. As an interim binding, a client authenticated with a
+is the subject. This profile therefore presents the authentication
+credential as the subject: a client authenticated with a
 JWT MUST repeat that JWT, byte for byte, as `subject_token` with type
 `urn:ietf:params:oauth:token-type:jwt`: the RFC 7523 assertion, the
 JWT-SVID, the WIT-SVID, or the Client Attestation JWT itself, not an
@@ -2784,10 +2785,11 @@ rule of {{client-assertion-input}}. It does not make the credential the
 agent: the Identity Binding resolves the authenticated client to the
 Agent Principal exactly as in delegated dedicated-client resolution. A
 client authenticated by X.509-SVID over mutual TLS presents no JWT and
-has no self-acting issuance under this interim binding. The convention this document asks
-WAG to define is a token exchange in which the authenticated client is
-the subject, either by permitting omission of the subject token in that
-case or by registering a subject token type for it ({{wag-gaps}}).
+has no self-acting issuance under this profile. The same reuse of an
+authentication assertion appears in {{Section 6.3.1 of ACTOR-PROFILE}},
+which presents it as `actor_token`. A token exchange in which the
+authenticated client is the subject without a subject token would
+simplify this presentation ({{wag-gaps}}).
 
 Mode selection is configured under {{actor-inputs}}. Presence of
 actor-token parameters is `invalid_request`.
@@ -3158,9 +3160,10 @@ needed on:
 * **Subject presentation:** A token exchange in which the authenticated
   client is the subject, by permitting omission of `subject_token` in
   that case or by registering a subject token type for authenticated
-  client context. Until then, JWT-authenticated clients present their
-  authentication JWT as an interim binding ({{wag-request}}) and
-  X.509-SVID authentication has no self-acting issuance.
+  client context. That would simplify the presentation this document
+  defines, in which JWT-authenticated clients repeat their
+  authentication JWT as the subject token ({{wag-request}}), and would
+  give X.509-SVID authentication a self-acting path.
 * **Management:** {{AGENT-MANAGEMENT}} administers Client Associations
   for delegated issuance only; self-acting permission needs a flow
   dimension there.
@@ -3598,7 +3601,7 @@ errors follow {{errors}}; API errors follow {{resource-errors}}.
 This non-normative variant issues a WAG to the same dedicated client
 under {{wag-flow}}. The client authenticates with a fresh assertion,
 `analysis-auth-3`, and repeats the same compact JWT as the subject token
-under the interim binding in {{wag-request}}:
+as {{wag-request}} defines:
 
 ~~~ http-message
 POST /token HTTP/1.1

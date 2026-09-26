@@ -2612,12 +2612,11 @@ the agent's own permissions, the token's authority constraints, the
 Target Tenant, and the selected protection. A governed self-acting
 token has no `act`.
 
-The RAS MUST issue access tokens such that the API can determine, from
-trusted token context, which acting relationship authorized them.
-Separate client registrations, audiences, or issuers for the two
-populations satisfy this requirement. The absence of `act` alone does
-not: a delegated token lacking `act` would otherwise be accepted as
-self-acting.
+{{api-processing}} requires the RAS to issue access tokens from which
+the API can determine the acting relationship. Separate client
+registrations, audiences, or issuers for the two populations satisfy
+that requirement. The absence of `act` alone does not: a delegated
+token lacking `act` would otherwise be accepted as self-acting.
 
 ## Errors {#wag-errors}
 

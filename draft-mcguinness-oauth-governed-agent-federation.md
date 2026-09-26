@@ -269,6 +269,9 @@ carries it. Two peer realizations carry it:
 * **Self-acting access ({{wag-flow}}):** the Workload Authorization Grant
   (WAG), with the Agent Principal as subject.
 
+Each realization has its own mandatory path, and an implementation
+claims one or both ({{scope}}).
+
 Other grant realizations require their own composition rules; the
 federation model alone does not define their wire behavior.
 
@@ -770,16 +773,19 @@ its own URIs ({{metadata}}).
 
 Unless explicitly limited to bound grants or a named profile, the
 requirements below apply to both governed adoption profiles. Conformance claims
-MUST identify the supported profile by its URI ({{metadata}}),
-implemented role, and supported inputs:
+MUST identify the supported profile by its URI ({{metadata}}), the
+realization, the implemented role, and supported inputs. An
+implementation supports delegated access, self-acting access, or both:
 
 * **Roles:** The IdP, RAS, and client MUST implement their respective
   requirements in {{model}}, {{evidence}}, {{identity}}, {{authorization}},
-  {{delegated-flow}}, and {{metadata}}; the API MUST implement
-  {{api-processing}}.
-* **Issuance:** The client and IdP MUST implement ID Token subjects and
-  dedicated-client resolution using RFC 7523 `private_key_jwt`
-  authentication ({{client-assertion-input}}).
+  and {{metadata}}, and in {{delegated-flow}} or {{wag-flow}} for each
+  supported realization; the API MUST implement {{api-processing}}, with
+  {{wag-api}} for self-acting access.
+* **Issuance:** The client and IdP MUST implement dedicated-client
+  resolution using RFC 7523 `private_key_jwt` authentication
+  ({{client-assertion-input}}), and for delegated access also ID Token
+  subjects.
 * **Redemption:** The client and RAS MUST implement `private_key_jwt` for
   redemption. DPoP support and use are REQUIRED for bound governed agent
   access; governed agent access follows {{grant-protection}}.
@@ -797,16 +803,19 @@ implemented role, and supported inputs:
   through trusted configuration; neither role needs SPIFFE for the
   client-assertion path. The platform JWT input is the common
   shared-client input; other shared-client inputs remain bilateral.
-* **WAG:** {{wag-flow}} defines the self-acting realization under the
-  same adoption profiles and its own provisional profile URIs. Its
-  token-type and JWT-type identifiers await WAG coordination
-  ({{wag-gaps}}); conformance claims name the provisional URIs until
-  then.
+* **Self-acting access:** {{wag-flow}} uses the same adoption profiles
+  under its own profile URIs ({{wag-profiles}}). The WAG token type and
+  JWT type are provisional values until WAG registers them
+  ({{wag-gaps}}).
 
-The mandatory interoperability path uses an ID Token subject and
-dedicated-client resolution at the IdP, followed by governed ID-JAG
-redemption using `private_key_jwt` at the RAS and actor-aware processing
-at the API. Grant protection follows the applicable governed profile.
+Each realization has a mandatory interoperability path. For delegated
+access: an ID Token subject and dedicated-client resolution at the IdP,
+governed ID-JAG redemption using `private_key_jwt` at the RAS, and
+actor-aware processing at the API. For self-acting access:
+dedicated-client resolution at the IdP, WAG redemption using
+`private_key_jwt` at the RAS, and processing of the agent's own
+authority at the API. Grant protection follows the applicable governed
+profile.
 
 ID-JAG requires support for Identity Assertions ({{Section 4.3 of ID-JAG}}).
 This profile specifically requires ID Token support to give independent

@@ -31,6 +31,7 @@ normative:
   ATTEST: I-D.ietf-oauth-attestation-based-client-auth
   ACTOR-PROFILE: I-D.mcguinness-oauth-actor-profile
   ID-JAG: I-D.ietf-oauth-identity-assertion-authz-grant
+  RFC7523bis: I-D.ietf-oauth-rfc7523bis
   CIMD: I-D.ietf-oauth-client-id-metadata-document
   OPENID:
     title: "OpenID Connect Core 1.0 incorporating errata set 2"
@@ -1068,7 +1069,7 @@ this profile's requirements; there is no universal IdP audience:
 
 | Input | Audience rule | Source |
 |---|---|---|
-| Dedicated client using `private_key_jwt` | IdP token endpoint URL by default; an explicitly configured identifier for that AS is permitted | {{Section 3 of RFC7523}} permits AS audience identifiers; {{client-assertion-input}} requires endpoint-URL support and defines configuration |
+| Dedicated client using `private_key_jwt` | IdP issuer identifier as the sole audience | {{Section 4 of RFC7523bis}} and {{client-assertion-input}} |
 | SPIFFE JWT-SVID | IdP issuer identifier as the sole audience | {{Section 3.1 of SPIFFE-OAUTH}} |
 | SPIFFE WIT-SVID | Client Attestation PoP JWT targets the IdP under its native audience rules; no `aud` requirement is added to the WIT-SVID | {{Section 3.3 of SPIFFE-OAUTH}}, {{WIT}}, and {{spiffe-input}} |
 | SPIFFE X.509-SVID | No JWT audience; the client authenticates on the mutual-TLS connection carrying the token request | {{Section 3.2 of SPIFFE-OAUTH}} and {{spiffe-input}} |
@@ -1119,23 +1120,12 @@ and subject are the client's registered identifier.
 
 ### Assertion Audience
 
-RFC 7523 client authentication uses these audience rules at both the
-IdP and RAS:
-
-* Clients and servers MUST support the token endpoint URL. The client
-  MUST use that URL unless trusted configuration explicitly establishes
-  another identifier for the same AS, such as its issuer identifier.
-* The assertion's `aud` MUST contain the configured identifier, which
-  the AS MUST compare using exact string matching under
-  {{Section 3 of RFC7523}}. The assertion MUST NOT establish the accepted
-  audience configuration.
-* A client MAY retry with another audience already authorized by trusted
-  configuration for the same AS. An error response MUST NOT establish
-  that authorization or broaden the configured audience set. Retries
-  remain subject to {{client-assertion-input}}'s replay requirements.
-
-This defines a common default while permitting existing AS audience
-conventions; it does not change other credential classes' audience rules.
+RFC 7523 client authentication at the IdP and the RAS MUST follow the
+audience requirements of {{Section 4 of RFC7523bis}}: the assertion's
+`aud` contains the authorization server's issuer identifier as its sole
+value, never its token endpoint URL, and the server rejects any other
+audience. This profile adds no alternative audience configuration and
+does not change other credential classes' audience rules.
 
 ### Replay and Retries
 
@@ -3306,7 +3296,7 @@ key identifier:
 {
   "iss": "analysis-client",
   "sub": "analysis-client",
-  "aud": "https://idp.example/token",
+  "aud": "https://idp.example/",
   "iat": 1789646463,
   "exp": 1789646523,
   "jti": "analysis-auth-1"

@@ -261,16 +261,13 @@ This document is an OAuth deployment profile within that space, not a
 governance framework: it defines how the identities in one transaction
 relate across authorization domains.
 
-The document has three layers with different status:
+The federation model ({{model}}) is independent of the grant that
+carries it. Two peer realizations carry it:
 
-* **Federation model ({{model}}):** identity resolution, client
-  authorization, delegation and agent authorization, and resource
-  correlation, independent of the grant that carries them.
-* **Delegated ID-JAG ({{delegated-flow}}):** the normative wire profile
-  and the basis for conformance in this document.
-* **Self-acting Workload Authorization Grant (WAG) ({{wag-flow}}):** a
-  proposed application of the model to WAG, pending WAG coordination
-  ({{wag-gaps}}); its identifiers are provisional.
+* **Delegated access ({{delegated-flow}}):** ID-JAG, with the user as
+  subject and the Agent Principal as actor.
+* **Self-acting access ({{wag-flow}}):** the Workload Authorization Grant
+  (WAG), with the Agent Principal as subject.
 
 Other grant realizations require their own composition rules; the
 federation model alone does not define their wire behavior.
@@ -688,13 +685,13 @@ This profile defines no aggregate budget, quota, or concurrency semantics.
 
 ## Grant Paths {#paths}
 
-The federation model covers both acting relationships. The table
-distinguishes their wire-profile status, not their architectural scope:
+The federation model covers both acting relationships, each with a peer
+realization:
 
-| Acting relationship | Grant | Profile status |
+| Acting relationship | Grant | Realization |
 |---|---|---|
-| Agent acts as itself | WAG; Agent Principal is the subject | Proposed realization in {{wag-flow}}, pending WAG coordination; token-type, JWT-type, and profile identifiers provisional ({{wag-gaps}}) |
-| Agent acts for a user | ID-JAG; user is the subject and Agent Principal is the actor | Normative profile in {{delegated-flow}}; basis for conformance |
+| Agent acts as itself | WAG; Agent Principal is the subject | {{wag-flow}} |
+| Agent acts for a user | ID-JAG; user is the subject and Agent Principal is the actor | {{delegated-flow}} |
 {: title="Grant paths"}
 
 An Agent Principal is not intrinsically self-acting or delegated. The
@@ -1019,7 +1016,7 @@ from the underlying protocols are summarized in {{profile-additions}}.
 | RAS | Validate and redeem the grant; apply local authorization and token-protection policy | {{redemption}} |
 | API | Enforce profile applicability, actor authorization, tenant, and token protection | {{api-processing}} |
 | Client, IdP, and RAS | Configure capabilities, advertise support, and process failures | {{metadata}}, {{errors}} |
-| IdP, RAS, and API | Issue, redeem, and enforce the proposed self-acting WAG realization | {{wag-flow}} |
+| IdP, RAS, and API | Issue, redeem, and enforce the self-acting WAG realization | {{wag-flow}} |
 | IdP Service Provider and Provisioning Client | Manage Agents, Identity Bindings, Client Associations, and OAuth client registrations | {{AGENT-MANAGEMENT}} (companion) |
 | Receiver | Accept IdP provisioning; apply disablement and revocation at the RAS | {{AGENT-LIFECYCLE}} (companion) |
 {: title="Requirements by implementer"}
@@ -2567,9 +2564,9 @@ The governed profiles have distinct identifiers:
   `urn:ietf:params:oauth:grant-profile:id-jag-governed-agent`
 * **Bound governed agent access:**
   `urn:ietf:params:oauth:grant-profile:id-jag-agent-federation`
-* **Self-acting governed agent access (provisional):**
+* **Self-acting governed agent access:**
   `urn:ietf:params:oauth:grant-profile:wag-governed-agent`
-* **Self-acting bound governed agent access (provisional):**
+* **Self-acting bound governed agent access:**
   `urn:ietf:params:oauth:grant-profile:wag-agent-federation`
 
 The agent-federation URI is the original identifier and carries the
@@ -2673,24 +2670,23 @@ Before using the delegated path:
   describe only the paths actually supported and agree with the
   ID-JAG advertisement.
 
-# Proposed Self-Acting WAG Realization {#wag-flow}
+# Self-Acting WAG Realization {#wag-flow}
 
-This section proposes a self-acting realization of the federation model
-for coordination with the Workload Authorization Grant (WAG) {{WAG}}.
+This section realizes the federation model for self-acting access: the
+Agent Principal is the subject of a Workload Authorization Grant (WAG)
+{{WAG}} issued by the IdP and redeemed at the RAS. It is the peer of
+{{delegated-flow}}. The same resolution inputs, Identity Binding, client
+authorization, grant protection, access-token protection, and resource
+processing apply, with the differences stated here; where this section
+is silent, {{delegated-flow}} applies with the WAG in place of the
+ID-JAG.
+
 WAG-00 defines a platform-issued bearer grant and leaves IdP issuance,
 proof of possession, and identifier registrations open
-({{Section 5 of WAG}} and its list of open issues); this section is
-this document's proposal for that composition. The token type, JWT
-type, and profile URIs below are provisional until WAG registers or
-adopts them ({{wag-gaps}}); the processing rules do not depend on their
-final spelling.
-
-In this realization, the Agent Principal is the subject of a WAG issued
-by the IdP and redeemed at the RAS. It parallels {{delegated-flow}}.
-The same resolution inputs, Identity Binding, client authorization,
-grant protection, access-token protection, and resource processing
-apply, with the differences stated here; where this section is silent,
-{{delegated-flow}} applies with the WAG in place of the ID-JAG.
+({{Section 5 of WAG}} and its list of open issues); this section defines
+that composition. The WAG token type and JWT type are WAG's to register;
+this document uses them as provisional values ({{wag-gaps}}), and the
+processing rules do not depend on their final spelling.
 
 ## Differences from Delegated Access {#wag-differences}
 
@@ -2880,7 +2876,7 @@ Token endpoint errors follow {{errors}} with these additions:
 ## Profile Identifiers {#wag-profiles}
 
 The self-acting realization uses the adoption profiles of {{scope}}
-under its own provisional identifiers,
+under its own identifiers,
 `urn:ietf:params:oauth:grant-profile:wag-governed-agent` and
 `urn:ietf:params:oauth:grant-profile:wag-agent-federation`. Grant
 protection, downgrade prevention, and discovery follow
@@ -3095,8 +3091,7 @@ metadata parameters.
 
 ## WAG Grant Profile URIs
 
-This document also requests the following provisional registrations,
-subject to coordination with WAG ({{wag-gaps}}):
+This document also requests:
 
 * URN: `urn:ietf:params:oauth:grant-profile:wag-agent-federation`
 * Common Name: WAG Bound Governed Agent Access grant profile
@@ -3126,7 +3121,7 @@ Endorsement.
 
 | Specification | What this profile needs | Consequence until resolved |
 |---|---|---|
-| WAG | Adoption or registration of the identifier, protection, linking, and subject-presentation proposals in {{wag-flow}} ({{wag-gaps}}) | The self-acting realization is a proposal with provisional identifiers |
+| WAG | Registration of the WAG token type and JWT type, and alignment on protection, linking, and subject presentation ({{wag-gaps}}) | The WAG token type and JWT type remain provisional values |
 | ID-JAG | Bound-grant example aligned with the normative `jwt-bearer` grant type, and grant-confirmation errors separated from RFC 9449 proof errors ({{bound-grant-coordination}}) | Confirmation checks are applied to `jwt-bearer` here |
 | Actor Profile | A reusable principal-resolution extension point separating credential validation, identity mapping, and actor construction | The mapping is defined locally in {{actor-construction}} |
 {: title="Upstream dependencies"}
@@ -3135,12 +3130,12 @@ Endorsement.
 
 {{Section 5 of WAG}} anticipates IdP issuance through Token Exchange
 without specifying it and lists issuer placement among its open
-questions. {{wag-flow}} is this document's proposal for that
-composition. Coordination is needed on:
+questions. {{wag-flow}} defines that composition. Coordination is
+needed on:
 
-* **Identifiers:** The token type `urn:ietf:params:oauth:token-type:wag`,
-  the JWT type `wag+jwt`, and the two self-acting profile URIs are
-  provisional; WAG-owned registrations and discovery are preferred.
+* **Identifiers:** The token type `urn:ietf:params:oauth:token-type:wag`
+  and the JWT type `wag+jwt` are WAG's to register; this document uses
+  them as provisional values.
 * **Protection:** WAG-00 is a bearer grant with proof of possession
   open. This document proposes DPoP binding at issuance and redemption
   under {{grant-protection}}.

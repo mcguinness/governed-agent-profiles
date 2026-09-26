@@ -126,24 +126,25 @@ informative:
   RFC7644:
 --- abstract
 
-This document defines how an identity provider resolves a dedicated
-OAuth client identity or an independently validated workload identity,
-through an explicit Identity Binding, to a stable Agent Principal that
-persists as the agent moves between platforms and rotates credentials.
-A separate Client Association authorizes an OAuth client to exercise
-that principal, and user delegation is authorized independently of
-both. Resource systems consume the issuer-qualified agent identity
-without interpreting the original credential. No new credential format
-is defined.
+Enterprises govern agents as identities independent of the platforms,
+workloads, and OAuth clients that execute them. Service providers need a
+stable identity for such an agent without understanding each customer's
+runtime or credential model.
 
-The federation model covers self-acting access, with the Agent Principal
-as subject, and delegated access, with the user as subject and the
-agent as actor. This document defines a complete delegated profile of
-the Identity Assertion JWT Authorization Grant (ID-JAG), using existing
-client assertions and workload credentials. It also proposes a
-self-acting realization in which the IdP issues a Workload Authorization
-Grant (WAG) naming the Agent Principal as subject, for coordination
-with WAG; its identifiers are provisional.
+This document is an OAuth deployment profile that standardizes the
+boundary between execution identity and governed identity. An
+enterprise identity provider resolves an authenticated OAuth client or
+workload identity to a governed Agent Principal, whose identifier can be
+the same as the execution identity's or different, and conveys that
+principal to a resource domain. Identity resolution, client authority,
+user delegation, and resource authorization remain separate decisions.
+No new credential format is defined.
+
+Two peer realizations carry the Agent Principal: delegated access
+through the Identity Assertion JWT Authorization Grant (ID-JAG), with
+the user as subject and the agent as actor, and self-acting access
+through the Workload Authorization Grant (WAG), with the agent as
+subject.
 
 --- middle
 

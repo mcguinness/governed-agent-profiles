@@ -809,8 +809,8 @@ authentication as a separate `analysis-client`. Dedicated deployments
 therefore need a user authorization flow for each agent's client
 registration, though an existing IdP session may avoid another login
 prompt. A platform retaining its shared single sign-on (SSO) client instead
-uses an
-agreed independent workload input ({{optional-inputs}} or {{jwt-svid-input}}).
+uses an agreed independent workload input: the existing platform JWT
+({{imported-jwt-input}}) or an optional input ({{optional-inputs}}).
 
 Grant protection, workload-evidence protection, and access-token
 protection are separate choices: even bound governed agent access can
@@ -1105,7 +1105,7 @@ distinguishes its agents ({{actor-inputs}}). An additional agent claim
 in a self-signed client assertion MUST NOT select another Agent
 Principal under this input.
 
-Assertion signing authenticates the client; it does not bind the ID-JAG
+Assertion signing authenticates the client; it does not bind the grant
 to that signing key or establish an attested runtime identity. Grant
 proof processing follows {{grant-protection}} independently, and the
 DPoP key MAY differ from the client-authentication key. An assertion
@@ -1287,7 +1287,7 @@ One shared SPIFFE ID cannot distinguish independently governed agents.
 
 #### Proof Boundaries
 
-Workload authentication and ID-JAG protection remain separate:
+Workload authentication and grant protection remain separate:
 
 * **WIT-SVID:** When DPoP is used at issuance, its key MUST match the
   WIT-SVID's `cnf.jwk`. The IdP MUST compare their JWK thumbprints as
@@ -1299,7 +1299,7 @@ Workload authentication and ID-JAG protection remain separate:
   the same token request. The keys MAY differ, because mutual TLS can
   terminate separately from the component generating DPoP proofs. The
   certificate does not endorse the DPoP key; the authenticated request
-  associates it with this issuance. The ID-JAG uses `cnf.jkt`, not
+  associates it with this issuance. The grant uses `cnf.jkt`, not
   certificate confirmation.
 
 Either input proves control of a credential-bound key. Assurance about a
@@ -1312,7 +1312,7 @@ When the resolution key is also the grant proof key, as for WIT-SVID and
 Client Attestation when DPoP is used, replacing it does not change the
 binding of an outstanding grant, access token, or refresh token.
 Continued use of those requires retaining the corresponding proof key;
-otherwise, the client obtains a new ID-JAG using the replacement key
+otherwise, the client obtains a new grant using the replacement key
 and establishes new RAS authorization. Any subject-credential binding
 still applies and may require a new subject credential. Key migration
 is not defined here ({{key-transition-gap}}).
@@ -1321,7 +1321,7 @@ is not defined here ({{key-transition-gap}}).
 
 Where issuer endorsement of the proof key is required, the deployment
 MUST use a supported input that cryptographically binds the key, such as
-Client Attestation under {{agent-evidence}} or the SVID inputs under
+Client Attestation under {{agent-evidence}} or the WIT-SVID input under
 {{spiffe-input}}; DPoP co-presented with bearer JWT-SVID or unbound
 platform JWT evidence establishes possession only. DPoP MUST NOT
 substitute for a credential proof that the selected input requires.

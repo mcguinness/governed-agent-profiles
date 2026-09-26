@@ -192,9 +192,31 @@ they leave three relationships open:
    is named in it, or how a resource domain correlates that name with
    local state.
 
-This document defines how an identity provider (IdP) establishes those
-relationships and how OAuth grants carry the result into the resource
-domain.
+This document is an OAuth deployment profile that fills those gaps. It
+standardizes the boundary between execution identity and governed
+identity, and it does not require the two to differ. An identity
+provider (IdP) resolves an authenticated client or workload identity to
+an Agent Principal, whose identifier can equal the execution identity's
+or differ from it, and OAuth grants carry that principal into the
+resource domain. A service provider can then authorize a stable,
+enterprise-governed agent without understanding the runtime or
+credential that currently executes it:
+
+~~~
+ Customer domain                          Service provider
+ ---------------                          ----------------
+ Runtime identity: workload-7
+        |
+        |  customer IdP resolves
+        |  workload-7 -> agent-42
+        v
+ Agent Principal: agent-42  ------------>  authorizes, audits, and
+                                           can disable agent-42
+~~~
+
+If agent-42 later runs as workload-19, the customer's IdP binds
+workload-19 to the same Agent Principal, and the service provider still
+sees agent-42.
 
 The governing principle is that the Agent Principal is the
 authorization identity: client and workload identities are
@@ -235,9 +257,8 @@ For delegated access, the resource authorization server (RAS):
 * Correlates that identity with local authorization state without
   replacing it with the local principal's identifier.
 
-
 AIMS {{AIMS}} describes a broader framework for agent identity management.
-This document is an OAuth protocol profile within that space, not a
+This document is an OAuth deployment profile within that space, not a
 governance framework: it defines how the identities in one transaction
 relate across authorization domains.
 

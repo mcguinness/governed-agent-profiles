@@ -528,6 +528,15 @@ The IdP is the authority for the Agent Principal: the ID-JAG's `act.iss`
 equals its `iss`, and `act.sub` comes from the IdP's mapping rather than
 forwarding the external subject.
 
+Identity resolution establishes which governed principal participates
+in a transaction. It does not establish client authority, user delegation,
+resource authority, or permission to perform an operation. This profile
+provides identity continuity for the agent: across changes of execution
+environment through Identity Binding, and across the boundary between
+the IdP and the resource domain. It does not provide work continuity.
+Whether an approved task, with its purpose, approval, and lifecycle,
+still justifies an action is outside this profile.
+
 ## Service Provider Contract {#sp-contract}
 
 A resource domain consumes an IdP-qualified Agent Principal. Its RAS
@@ -550,37 +559,6 @@ serve without replacing the IdP-qualified identity
 correlation does not grant authority, and the RAS decides within the
 grant's ceiling ({{actor-authorization}}, {{wag-redemption}}).
 
-
-## Core Invariants {#invariants}
-
-Identity resolution establishes which governed principal participates
-in a transaction. It does not establish client authority, user delegation,
-resource authority, or permission to perform an operation. This profile
-provides identity continuity for the agent: across changes of execution
-environment through Identity Binding, and across the boundary between
-the IdP and the resource domain. It does not provide work continuity.
-Whether an approved task, with its purpose, approval, and lifecycle,
-still justifies an action is outside this profile.
-
-This non-normative index summarizes the requirements that connect
-identity resolution to resource enforcement. The referenced sections
-define their processing rules.
-
-| Invariant | Required result | Defined in |
-|---|---|---|
-| Governance boundary | Actors needing independent governance have distinct identities; execution topology does not determine identity or authority | {{governance-boundary}} |
-| Identity | Authenticated dedicated-client identity or independently validated workload identity resolves through an enabled exact Identity Binding to one active Agent Principal | {{identity-binding}} |
-| Client authority | The authenticated client is permitted to use that binding, credential class, and acting relationship; permission for delegated issuance does not imply self-acting issuance | {{identity-binding}} |
-| Agent authority | For self-acting access, the agent is authorized on its own behalf in the authorized client, tenant, target, and authority context | {{agent-authorization}} |
-| Delegation | The agent may act for the resolved user in the authorized client, tenant, target, and authority context | {{delegation-authorization}} |
-| Federation | ID-JAG identifies the user in the target subject namespace and the agent as `act.iss` = governing IdP, `act.sub` = Agent Principal | {{subject-resolution}}, {{actor-construction}} |
-| Resource enforcement | Local user authority, the actor gate, tenant, token authority, and applicable proof requirements all permit the operation | {{agent-correlation}}, {{api-processing}} |
-{: title="Core invariants"}
-
-The delegation, federation, and resource enforcement rows describe
-delegated access. The agent authority row describes self-acting access,
-which uses the same governed identity and client authorization with the
-agent as subject ({{wag-flow}}).
 
 ## Authentication, Resolution, and Proof {#inputs}
 
@@ -1009,26 +987,6 @@ then stays unchanged, and either binding can be disabled independently.
 
 {{shared-client-example}} supplies the credential and request details
 for this scenario, using the complete message sequence in {{walkthrough}}.
-
-## Requirements by Implementer {#profile-requirements}
-
-This non-normative index locates requirements by role. The differences
-from the underlying protocols are summarized in {{profile-additions}}.
-
-| Implementer | Requirement | Defined in |
-|---|---|---|
-| Client or platform | Supply credentials accepted by the configured agent-resolution input | {{evidence}} |
-| Client | Select supported inputs, authenticate, satisfy the selected grant protection, and retain token context | {{scope}}, {{grant-protection}}, {{exchange-request}}, {{redemption}}, {{client-token-reuse}} |
-| IdP | Validate evidence, resolve the agent, enforce the Client Association, and authorize delegation | {{inputs}}, {{identity}}, {{authorization}} |
-| IdP | Construct the governed actor and issue the governed ID-JAG | {{actor-construction}}, {{grant-issuance}} |
-| IdP and RAS | Resolve and link the user in the target namespace | {{subject-resolution}} |
-| RAS | Validate and redeem the grant; apply local authorization and token-protection policy | {{redemption}} |
-| API | Enforce profile applicability, actor authorization, tenant, and token protection | {{api-processing}} |
-| Client, IdP, and RAS | Configure capabilities, advertise support, and process failures | {{metadata}}, {{errors}} |
-| IdP, RAS, and API | Issue, redeem, and enforce the self-acting WAG realization | {{wag-flow}} |
-| IdP Service Provider and Provisioning Client | Manage Agents, Identity Bindings, Client Associations, and OAuth client registrations | {{AGENT-MANAGEMENT}} (companion) |
-| Receiver | Accept IdP provisioning; apply disablement and revocation at the RAS | {{AGENT-LIFECYCLE}} (companion) |
-{: title="Requirements by implementer"}
 
 # Agent Resolution Inputs {#evidence}
 

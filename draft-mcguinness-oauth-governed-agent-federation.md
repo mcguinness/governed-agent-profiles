@@ -1416,21 +1416,20 @@ A disabled binding MUST NOT authorize new grant issuance. Disabling
 a binding does not itself revoke outstanding tokens; their treatment
 follows {{status-changes}}.
 
-The IdP MUST verify a Client Association that permits the authenticated
-client to use the selected Identity Binding for the selected acting
-relationship with the selected credential class
-({{flow-configuration}}). A Client Association names the acting
-relationship it permits; permission for delegated issuance does not
-imply self-acting issuance, nor the reverse. The IdP MUST NOT
-substitute the client's identity for the resolved actor.
+Before issuing a governed grant, the IdP MUST verify that a Client
+Association permits the authenticated client to use the selected
+Identity Binding, with the selected credential class, for the requested
+acting relationship ({{flow-configuration}}). Permission for delegated
+issuance does not imply self-acting issuance, nor the reverse. The IdP
+MUST NOT substitute the client's identity for the resolved actor.
 
-A Client Association MAY authorize one or more Identity Bindings. The
-IdP MUST determine explicitly whether the selected binding is within
-that authorization. Authorization of one binding, a credential
-authority, a credential class, or the Agent Principal itself MUST NOT
-imply authorization of another binding unless the association's policy
-explicitly includes it. No association overrides a disabled binding.
-Policy representation and evaluation mechanisms are outside this profile.
+A Client Association MAY authorize several Identity Bindings, and the
+IdP MUST determine explicitly whether the selected binding is among
+them: authorization of one binding, a credential authority, a credential
+class, or the Agent Principal itself MUST NOT imply authorization of
+another binding unless the association's policy explicitly includes it.
+No association overrides a disabled binding. Policy representation and
+evaluation mechanisms are outside this profile.
 
 For a dedicated client, Identity Binding determines which Agent Principal
 the client represents. Client Association independently determines

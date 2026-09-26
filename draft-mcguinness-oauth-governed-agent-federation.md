@@ -1436,6 +1436,12 @@ Binding resolves a qualified client or workload identity to one Agent Principal,
 subject resolution identifies the user for delegated access, and the
 RAS correlates both to its local principals.
 
+Resolution maps a qualified execution identity to an Agent Principal.
+The Agent Principal can have the same identifier as the execution
+identity: resolution establishes which identity is authoritative for
+governance, not that the identifiers differ ({{actor-construction}}).
+An Identity Binding is the approved record that supports resolution.
+
 ## Identity Binding {#identity-binding}
 
 An Identity Binding is keyed by the qualified identity of its input,

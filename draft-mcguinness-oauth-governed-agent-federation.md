@@ -239,16 +239,15 @@ binding. A shared client uses independently validated workload identity
 to distinguish the agents it serves. Both deployments retain separate
 identity, client-authority, delegation, and resource-policy decisions.
 
-Five independent relationships make up the model:
+Each question in the model is decided by one owner:
 
-| Question | Relationship |
-|---|---|
-| What enterprise agent does this client or workload identity represent? | Identity Binding |
-| May this OAuth client exercise that agent through this binding? | Client Association |
-| May this agent act for this user toward the requested target and authority? | Delegation Authorization |
-| May this agent act on its own behalf toward the requested target and authority? | Agent Authorization |
-| What resource-local principal represents the IdP-qualified agent? | Agent Principal Correlation |
-{: title="Federation relationships"}
+| Question | Decided by | Relationship |
+|---|---|---|
+| Which governed agent does this client or workload identity represent? | IdP | Identity Binding |
+| May this OAuth client exercise that agent? | IdP | Client Association |
+| May the agent act for this user, or for itself, toward the requested target and authority? | IdP | Delegation Authorization or Agent Authorization |
+| What may that agent do in this resource domain? | Resource domain | Agent Principal Correlation and resource policy |
+{: title="Decisions and their owners"}
 
 For delegated access, the resource authorization server (RAS):
 

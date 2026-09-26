@@ -528,10 +528,27 @@ The IdP is the authority for the Agent Principal: the ID-JAG's `act.iss`
 equals its `iss`, and `act.sub` comes from the IdP's mapping rather than
 forwarding the external subject.
 
-The RAS needs no platform-specific credential validation or workload
-resolution. An existing service
-principal can represent the agent locally without replacing its
-IdP-qualified identity ({{agent-correlation}}).
+## Service Provider Contract {#sp-contract}
+
+A resource domain consumes an IdP-qualified Agent Principal. Its RAS
+performs no platform-specific credential validation or workload
+resolution, and it need not know whether the agent authenticated as a
+dedicated OAuth client or with a SPIFFE identity, Client Attestation, or
+a platform JWT. From a validated grant it receives:
+
+* the Agent Principal, qualified by its governing issuer: `act.iss` and
+  `act.sub` in an ID-JAG, or `iss` and `sub` in a WAG;
+* the acting relationship: delegated, with the user as subject, or
+  self-acting;
+* the client's registration at the RAS, in `client_id`; and
+* the authority the IdP approved, as a ceiling for the RAS decision.
+
+The RAS correlates the Agent Principal with a local principal for
+authorization and lifecycle state; an existing service principal can
+serve without replacing the IdP-qualified identity
+({{agent-correlation}}). The resource domain keeps its own decision:
+correlation does not grant authority, and the RAS decides within the
+grant's ceiling ({{actor-authorization}}, {{wag-redemption}}).
 
 
 ## Core Invariants {#invariants}

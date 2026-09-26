@@ -66,7 +66,7 @@ own:
 | Fact | Established by | Carried across boundaries by | Decided at the action by | Ended by |
 |---|---|---|---|---|
 | **Identity**: which governed principal is acting | The IdP: Agent Principal, Identity Bindings, and Client Associations (SCIM Governed Agent Federation Management) | Governed Agent Federation, across execution changes through Identity Binding and across domains with the agent preserved and the user translated | RAS correlation of the issuer-qualified agent, and the actor gate at the API | Principal or binding disablement (Governed Agent Lifecycle); Local Suspension as the resource domain's own denial |
-| **Authority**: what it may do, and for whom | The IdP: Delegation Authorization or Agent Authorization for an associated client | The grant, ID-JAG or the proposed WAG, as a ceiling | The RAS deciding anew within that ceiling; AuthZEN and COAZ allowing or denying each operation; ARAP and AROP re-establishing authority after a requestable denial | Grant and session revocation at the issuing server (Governed Agent Lifecycle, CAEP) |
+| **Authority**: what it may do, and for whom | The IdP: Delegation Authorization or Agent Authorization for an associated client | The grant, ID-JAG or WAG, as a ceiling | The RAS deciding anew within that ceiling; AuthZEN and COAZ allowing or denying each operation; ARAP and AROP re-establishing authority after a requestable denial | Grant and session revocation at the issuing server (Governed Agent Lifecycle, CAEP) |
 | **Work**: whether approved work still justifies the action | Mission approval | Mission projection | Mission runtime enforcement, at the same AuthZEN decision point with work state as an input | Mission termination, which reaches every boundary that checks work state |
 
 These drafts define the Identity and Authority rows.
@@ -207,10 +207,12 @@ ID-JAGs or policy-permitted RAS refresh within retained authorization and
 lifetime limits. Existing SSO refresh tokens do not automatically authorize
 downstream resources.
 
-The proposed self-acting WAG realization issues an IdP-signed WAG naming the
-Agent Principal as subject, redeemed with the JWT bearer grant and correlated
-to the same local principal. Its token-type, JWT-type, and profile
-identifiers are provisional pending coordination with WAG. Instance
+The self-acting WAG realization, the peer of the delegated ID-JAG profile,
+issues an IdP-signed WAG naming the Agent Principal as subject, redeemed with
+the JWT bearer grant and correlated to the same local principal. Each
+realization has its own mandatory path, and an implementation claims one or
+both. The WAG token type and JWT type are provisional values until WAG
+registers them. Instance
 identification, attester endorsement, key transition, and Identity
 Continuation Assertion compositions remain deferred.
 

@@ -432,10 +432,9 @@ Grant proof key:
   ({{credential-requirements}}).
 
 Governance Tenant:
-: The IdP tenant within whose governance domain the Agent Principal
-  exists and is administered. The Agent Principal identifier remains
-  qualified by the IdP issuer ({{canonical-identity}}), not by the
-  tenant.
+: The IdP's administrative scope within which an Agent Principal and its
+  relationships are managed. It is not part of the Agent Principal's
+  identity, which the IdP issuer qualifies ({{canonical-identity}}).
 
 Target Tenant:
 : The tenant at the RAS in which the agent or user is authorized, that

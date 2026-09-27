@@ -1881,10 +1881,6 @@ protection, downgrade prevention, and discovery follow
 disablement, and revocation apply to the same Agent Principal and local
 principal as delegated access ({{status-changes}}).
 
-Beyond the exclusions in {{metadata}}, a profile URI does not claim a
-credential class; these dimensions are capabilities and configured
-minimums.
-
 # Conformance and Metadata {#conformance-metadata}
 
 ## Conformance {#scope}
@@ -1958,8 +1954,9 @@ Enterprise access uses the base
 that identifier alone makes no governed-agent conformance claim.
 
 These URIs identify RAS and client processing. IdP issuance and optional
-inputs follow {{discovery}}. No URI claims continuation support, a
-particular workload-evidence protection, or access-token protection.
+inputs follow {{discovery}}. No URI claims a credential class,
+continuation support, a particular workload-evidence protection, or
+access-token protection; these are capabilities and configured minimums.
 
 ### Authorization Server Metadata {#server-metadata}
 

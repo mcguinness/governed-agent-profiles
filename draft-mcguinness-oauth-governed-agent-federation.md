@@ -2934,36 +2934,25 @@ Endorsement.
 
 ### WAG {#wag-gaps}
 
-{{Section 5 of WAG}} anticipates IdP issuance through Token Exchange
-without specifying it and lists issuer placement among its open
-questions. {{wag-flow}} defines that composition. Coordination is
-needed on:
+{{wag-flow}} defines the IdP issuance that {{Section 5 of WAG}}
+anticipates without specifying. Coordination is needed on:
 
-* **Identifiers:** The token type `urn:ietf:params:oauth:token-type:wag`
-  and the JWT type `wag+jwt` are WAG's to register; this document uses
-  them as provisional values. Advertising them and the self-acting
-  profile URIs in ID-JAG's metadata parameters ({{server-metadata}})
-  also needs agreement.
-* **Protection:** WAG-00 is a bearer grant with proof of possession
-  open. This document proposes DPoP binding at issuance and redemption
-  under {{grant-protection}}.
-* **Linking:** {{Section 7 of WAG}} requires acceptance of previously
-  unseen agent identifiers under trusted issuers. Governed agents
-  instead require an authorized local correlation, established in
-  advance or, where resource policy permits, just in time
-  ({{wag-redemption}}).
-* **Renewal:** This document adopts WAG's prohibition on refresh tokens;
-  continuing self-acting access re-issues the grant.
-* **Subject presentation:** A token exchange in which the authenticated
-  client is the subject, by permitting omission of `subject_token` in
-  that case or by registering a subject token type for authenticated
-  client context. That would simplify the presentation this document
-  defines, in which JWT-authenticated clients repeat their
-  authentication JWT as the subject token ({{wag-request}}), and would
-  give X.509-SVID authentication a self-acting path.
-* **Management:** {{AGENT-MANAGEMENT}} administers Client Associations
-  for delegated issuance only; self-acting permission needs a flow
-  dimension there.
+* **Identifiers:** registration of `urn:ietf:params:oauth:token-type:wag`
+  and `wag+jwt`, and their advertisement with the self-acting profile
+  URIs in ID-JAG's metadata parameters ({{server-metadata}}).
+* **Protection:** DPoP binding at issuance and redemption
+  ({{grant-protection}}); WAG-00 leaves proof of possession open.
+* **Linking:** an authorized local correlation, established in advance
+  or, where resource policy permits, just in time ({{wag-redemption}}),
+  in place of the required acceptance of unseen identifiers in
+  {{Section 7 of WAG}}.
+* **Renewal:** this document adopts WAG's prohibition on refresh tokens.
+* **Subject presentation:** a token exchange whose authenticated client
+  is the subject without a subject token, which would replace repeating
+  the authentication JWT ({{wag-request}}) and give X.509-SVID
+  authentication a self-acting path.
+* **Management:** a self-acting dimension for Client Associations in
+  {{AGENT-MANAGEMENT}}, which covers delegated issuance only.
 
 ### ID-JAG Bound Grants {#bound-grant-coordination}
 
@@ -2974,26 +2963,15 @@ dependency on JWT DPoP Grant.
 
 ### Resolution from Authentication Context {#dedicated-client-coordination}
 
-This document explicitly defines delegated issuance from validated
-authentication context and an approved Identity Binding, without
-`actor_token`: dedicated-client identity under {{client-assertion-input}}
-or the SPIFFE and Client Attestation identities under
-{{optional-input-profiles}}.
-ID-JAG makes that parameter optional and leaves actor processing to
-extensions ({{Section 9.7 of ID-JAG}}); its omission alone does not establish
-this composition.
-
-Appendix A.1 of {{RFC8693}} describes a subject-only request as
-impersonation. {{Section 6.3.1 of ACTOR-PROFILE}} permits authentication-context
-reuse only when the same client assertion is also present as
-`actor_token`, and requires the client subject as `act.sub`.
-Neither defines these mapped authentication-context inputs.
-
-Coordination with Actor Profile and ID-JAG is needed on this explicit
-extension: trusted configuration selects the resolution input,
-separate mapping and authorization checks establish the governed actor,
-and the issued ID-JAG contains `act`. Generic Token Exchange or Actor
-Profile support does not advertise support for this composition.
+This document defines delegated issuance from validated authentication
+context and an approved Identity Binding, without `actor_token`
+({{actor-inputs}}). ID-JAG leaves actor processing to extensions
+({{Section 9.7 of ID-JAG}}); Appendix A.1 of {{RFC8693}} reads a
+subject-only request as impersonation; and
+{{Section 6.3.1 of ACTOR-PROFILE}} permits authentication-context reuse
+only with the same assertion as `actor_token`. None defines these mapped
+inputs, so generic Token Exchange or Actor Profile support does not
+advertise this composition, and coordination with both is needed.
 
 ## Deferred Compositions
 
@@ -3007,23 +2985,19 @@ the new key without weakening the applicable grant protection.
 
 ### Portable Authorization Deadlines {#deadline-gap}
 
-A portable IdP-imposed deadline on downstream access needs an
-authenticated claim or reference, its association with the delegation,
-and enforcement rules for access tokens and refresh authorization.
-That composition is outside the scope of this document. ID-JAG `exp`
-remains the redemption limit; it cannot communicate a deadline for
-subsequent access ({{authorization-lifetime}}).
+A portable IdP-imposed deadline on downstream access would need an
+authenticated claim, its association with the delegation, and
+enforcement rules for access tokens and refresh. ID-JAG `exp` limits
+only redemption ({{authorization-lifetime}}).
 
 ### User Access Tokens as Subjects {#access-token-subject-gap}
 
-Deployed on-behalf-of (OBO) flows, including {{AWS-AGENTCORE-OBO}}, use a user
-access
-token as input. This document accepts ID-JAG's ID Token, SAML, and
-refresh-token subjects; it defines no access-token subject composition.
-Such a composition needs rules for token eligibility and audience,
-user/client/actor resolution, sender constraints, and the authority to
-request downstream access. Coordinate those rules with ID-JAG;
-changing only `subject_token_type` does not establish them.
+Deployed on-behalf-of (OBO) flows, including {{AWS-AGENTCORE-OBO}}, use
+a user access token as the subject. This document accepts only ID-JAG's
+ID Token, SAML, and refresh-token subjects. An access-token subject
+composition needs eligibility, audience, resolution, sender-constraint,
+and authority rules coordinated with ID-JAG; changing only
+`subject_token_type` does not establish them.
 
 ### Excluded Compositions {#excluded-compositions}
 
@@ -3063,14 +3037,11 @@ blocks, not a lifecycle propagation contract.
 
 ### Provisioning and Disablement {#lifecycle-gap}
 
-Consistent correlation and disablement across IdP and RAS need an agreed
-provisioning and enforcement contract. {{AGENT-LIFECYCLE}} profiles SCIM,
-optional Shared Signals, and the effects of applied changes on authorization.
-It distinguishes current administrative state from revocation history and
-states the limits of missed-event recovery and token enforcement. Stronger
-guarantees across unobserved transitions require an additional composition.
-The companion is not required for conformance to this federation profile;
-{{agent-correlation}} and {{status-changes}} state this document's guarantees.
+{{AGENT-LIFECYCLE}} profiles SCIM, optional Shared Signals, and the
+effect of applied changes on authorization, including the limits of
+missed-event recovery. It is not required for conformance to this
+document; {{agent-correlation}} and {{status-changes}} state this
+document's guarantees.
 
 # Walkthrough: Dedicated Client {#walkthrough}
 

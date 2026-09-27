@@ -1173,8 +1173,9 @@ After validating the configured resolution input, the IdP MUST:
 Similar names, unqualified identifiers, or a shared signing key MUST
 NOT establish identity equivalence.
 
-Deployments SHOULD permit an Identity Binding to be disabled independently
-of the Agent Principal and its other bindings.
+Permitting an Identity Binding to be disabled independently of the
+Agent Principal and its other bindings lets a deployment withdraw one
+resolution path while the others remain usable.
 A disabled binding MUST NOT authorize new grant issuance. Disabling
 a binding does not itself revoke outstanding tokens; their treatment
 follows {{status-changes}}.
@@ -1186,9 +1187,8 @@ acting relationship ({{configuration}}). Permission for delegated
 issuance does not imply self-acting issuance, nor the reverse. The IdP
 MUST NOT substitute the client's identity for the resolved actor.
 
-A Client Association MAY authorize several Identity Bindings, and the
-IdP MUST determine explicitly whether the selected binding is among
-them: authorization of one binding, a credential authority, a credential
+A Client Association can authorize several Identity Bindings.
+Authorization of one binding, a credential authority, a credential
 class, or the Agent Principal itself MUST NOT imply authorization of
 another binding unless the association's policy explicitly includes it.
 No association overrides a disabled binding. Policy representation and

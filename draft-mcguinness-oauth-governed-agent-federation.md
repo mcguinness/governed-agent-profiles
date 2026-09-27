@@ -754,7 +754,7 @@ requirement.
 | Dedicated-client input | Resolved from authenticated client context; issuer identifier as sole assertion audience; single-use `jti` | {{client-assertion-input}}, {{Section 4 of RFC7523bis}} |
 | Other authentication-context inputs | Resolved from the identity validated by SPIFFE or Client Attestation authentication | {{optional-input-profiles}}, {{actor-inputs}} |
 | Actor representation | One actor: Agent Principal as `act.sub`, IdP as `act.iss`; replaces Actor Profile's credential-to-actor copying | {{actor-construction}} |
-| Request narrowing | Configured resolution mode; one resource; non-empty scope; actor-token parameters required in presented-evidence mode and rejected otherwise; no incoming actor chain | {{root-request}}, {{actor-inputs}} |
+| Request narrowing | Configured resolution mode; one resource; non-empty scope; actor-token parameters required in presented-evidence mode and rejected otherwise; no incoming actor chain | {{issuance-request}}, {{root-request}}, {{actor-inputs}} |
 | Identity and client binding | Users and agents resolved separately; downstream `client_id` from an authoritative client-registration association | {{idp-subject-resolution}}, {{subject-resolution}}, {{agent-correlation}}, {{flow-configuration}} |
 | Grant narrowing | One resource URI (a string; singleton arrays accepted), scope constraints, input-specific expiration limits; DPoP and `cnf.jkt` in the bound profile | {{grant-issuance}}, {{redemption-validation}}, {{grant-protection}} |
 | Resource processing | Actor and tenant context preserved; user authority and actor gate enforced with the selected token protection | {{access-token-response}}, {{api-processing}} |
@@ -1001,7 +1001,7 @@ are prescribed.
 **Across the deployment:**
 
 * **Target Tenant binding:** one Target Tenant, configured once. The
-  tenant-specific resource URI ({{root-request}}), the resource domain's
+  tenant-specific resource URI ({{issuance-request}}), the resource domain's
   provisioning context, and any Shared Signals stream
   ({{AGENT-LIFECYCLE}}) carry it consistently. This profile assumes
   deployments configure these carriers to agree.
@@ -1167,6 +1167,39 @@ that client's registration at the target RAS. This is the client
 registration association of {{configuration}}, not a Client
 Association. A client-supplied downstream client identifier MUST NOT
 select or override that association.
+
+## Token Exchange Request {#issuance-request}
+
+Both grants are requested with a token exchange request {{RFC8693}} to
+the IdP token endpoint. The client authenticates as the configured
+client and supplies any proof required by {{grant-protection}}. Both
+requests carry these REQUIRED parameters:
+
+| Parameter | Value |
+|---|---|
+| `grant_type` | `urn:ietf:params:oauth:grant-type:token-exchange` |
+| `audience` | One target RAS issuer identifier |
+| `resource` | Exactly one resource URI under {{RFC8707}}, served by the RAS named in `audience` |
+| `scope` | Non-empty scope string for the requested resource |
+{: title="Token exchange parameters common to both grants"}
+
+**Resource:** The request MUST contain exactly one `resource` parameter.
+A client requiring access to multiple resources MUST obtain a separate
+grant for each resource. The IdP MUST reject multiple `resource`
+parameters with `invalid_target`. The `resource` URI conveys the Target
+Tenant through the configured resource-to-tenant association, not the
+IdP's Governance Tenant.
+
+**Scope and authorization details:** `authorization_details` MAY
+accompany the required non-empty `scope` and is processed under ID-JAG.
+One resource per grant avoids carrying different scope ceilings for
+different resources. The IdP MUST constrain all granted scope and
+`authorization_details` to that resource. If requested authorization
+details cannot be confined to it, the IdP MUST reject the request with
+`invalid_authorization_details` under {{Section 6 of RFC9396}} rather
+than authorize additional resources.
+
+{{root-request}} and {{wag-request}} add the parameters of each grant.
 
 ## Agent Resolution {#identity}
 
@@ -1399,39 +1432,18 @@ freshness limit on cached policy data.
 ### Request {#root-request}
 
 The client sends the token exchange request of {{Section 4.3 of ID-JAG}}
-to the IdP token endpoint, authenticates as the configured client, and
-supplies any proof required by {{grant-protection}}. The following
-parameters are REQUIRED except where the resolution mode specifies
-otherwise:
+with the common parameters and rules of {{issuance-request}}. The
+following parameters are REQUIRED except where the resolution mode
+specifies otherwise:
 
 | Parameter | Value |
 |---|---|
-| `grant_type` | `urn:ietf:params:oauth:grant-type:token-exchange` |
 | `requested_token_type` | `urn:ietf:params:oauth:token-type:id-jag` |
 | `subject_token` | User subject credential issued for the authenticated client ({{subject-token-validation}}) |
 | `subject_token_type` | `urn:ietf:params:oauth:token-type:id_token`, `urn:ietf:params:oauth:token-type:saml2`, or `urn:ietf:params:oauth:token-type:refresh_token` |
 | `actor_token` | Omitted for authentication-context resolution; REQUIRED for a presented-evidence input under {{actor-inputs}} |
 | `actor_token_type` | Omitted when `actor_token` is omitted; REQUIRED, with value `urn:ietf:params:oauth:token-type:jwt`, whenever `actor_token` is present |
-| `audience` | One target RAS issuer identifier |
-| `resource` | Exactly one resource URI under {{RFC8707}}, served by the RAS named in `audience` |
-| `scope` | Non-empty scope string for the requested resource |
-{: title="Token exchange request parameters"}
-
-**Resource:** The request MUST contain exactly one `resource` parameter.
-A client requiring access to multiple resources MUST obtain a separate
-grant for each resource. The IdP MUST reject multiple `resource`
-parameters with `invalid_target`. The `resource` URI conveys the Target
-Tenant through the configured resource-to-tenant association, not the
-IdP's Governance Tenant.
-
-**Scope and authorization details:** `authorization_details` MAY
-accompany the required non-empty `scope` and is processed under ID-JAG.
-One resource per grant avoids carrying different scope ceilings for
-different resources. The IdP MUST constrain all granted scope and
-`authorization_details` to that resource. If requested authorization
-details cannot be confined to it, the IdP MUST reject the request with
-`invalid_authorization_details` under {{Section 6 of RFC9396}} rather
-than authorize additional resources.
+{: title="ID-JAG token exchange parameters"}
 
 ### Subject Token Validation {#subject-token-validation}
 
@@ -1588,9 +1600,8 @@ shows the messages.
 
 Token exchange is used because only its `issued_token_type`
 ({{RFC8693}}) labels the output as an assertion for another token
-endpoint. The request follows {{root-request}}, including its resource,
-scope, and authorization-details rules, with the differences below. The
-subject token carries the agent-resolution input and is not processed
+endpoint. The request carries the common parameters and rules of
+{{issuance-request}} and the parameters below. The subject token carries the agent-resolution input and is not processed
 under {{subject-token-validation}}.
 
 | Parameter | Value |
@@ -1598,8 +1609,7 @@ under {{subject-token-validation}}.
 | `requested_token_type` | `urn:ietf:params:oauth:token-type:wag` (provisional) |
 | `subject_token`, `subject_token_type` | Per resolution mode, below |
 | `actor_token`, `actor_token_type` | MUST be absent |
-| `audience`, `resource`, `scope` | As in {{root-request}} |
-{: title="Self-acting issuance request"}
+{: title="WAG token exchange parameters"}
 
 **Mode selection:** Configured under {{actor-inputs}}.
 
@@ -1670,7 +1680,7 @@ Servers MUST validate client authentication, credentials, and proofs
 before authorization. Proof, grant-binding, grant-claim, and
 authorization-detail failures use the errors specified in
 {{grant-protection}}, {{spiffe-input}}, {{redemption-validation}}, and
-{{root-request}}.
+{{issuance-request}}.
 
 | Failure | Error |
 |---|---|

@@ -724,7 +724,7 @@ binding. The names identify deployment profiles, not assurance ratings.
 | Adoption profile | Required addition | Grant protection |
 |---|---|---|
 | Enterprise access | Existing EMA and base ID-JAG; no separate Agent Principal required | Existing deployment policy |
-| Governed agent access | Agent resolution, Identity Binding, Client Association, governed actor, tenant enforcement, and downstream actor gate | Grants without sender constraint permitted only by explicit policy; any binding present is enforced |
+| Governed agent access | Agent resolution, Identity Binding, Client Association, the governed actor (delegated) or subject (self-acting), tenant enforcement, and the downstream actor gate for delegated access | Grants without sender constraint permitted only by explicit policy; any binding present is enforced |
 | Bound governed agent access | All governed agent requirements plus DPoP at grant issuance and redemption | `cnf.jkt` and same-key continuity required |
 {: title="Adoption profiles"}
 
@@ -1138,7 +1138,8 @@ Bearer evidence establishes the credential authority's assertion of the
 workload identity, not a cryptographic binding of the current presenter
 to that workload. An attacker who obtains acceptable bearer workload
 evidence and satisfies the request's client authentication, Client
-Association, user-credential, and delegation checks can obtain a grant
+Association, and user-credential and delegation checks, or its
+agent-authorization check, can obtain a grant
 while impersonating the workload, with a grant proof key of its choice.
 In the JWT-SVID path, the same bearer credential also satisfies client
 authentication; that check is not an independent possession factor.
@@ -1997,7 +1998,7 @@ authorization-detail failures use the errors specified in
 | User cannot be resolved, user or required link is disabled, or subject identifiers conflict | `invalid_grant`; no token or automatic linking fallback |
 | Absent, disabled, or ambiguous Identity Binding, or no active Agent Principal can be resolved | `invalid_grant` |
 | Governance Tenant cannot be resolved unambiguously from trusted identity and configuration context | `invalid_grant` |
-| Resolved Agent Principal, but no Client Association permits the selected binding and flow, or delegation is unauthorized | `actor_unauthorized`, as defined by Actor Profile, with HTTP 400 |
+| Resolved Agent Principal, but no Client Association permits the selected binding and acting relationship, or delegation is unauthorized | `actor_unauthorized`, as defined by Actor Profile, with HTTP 400 |
 {: title="Identity resolution and delegation errors"}
 
 Agent-resolution credential failures intentionally use `invalid_grant`
@@ -2069,8 +2070,9 @@ For tokens subject to this profile, the API MUST validate access tokens
 under {{RFC9068}}, or obtain the same context under {{introspection}},
 and MUST enforce the following requirements:
 
-* **Identity:** Require one `act` object with non-empty `iss` and `sub`
-  and no nested `act`. Trust configuration MUST authorize the RAS to
+* **Identity:** For delegated tokens, require one `act` object with
+  non-empty `iss` and `sub` and no nested `act`. Trust configuration
+  MUST authorize the RAS to
   assert that IdP-qualified agent identity; `act.iss` need not equal the
   access-token issuer.
 * **Protection:** Enforce the configured resource mode and all token
@@ -2118,9 +2120,10 @@ actor-specific rejection details outside the trust domain.
 This section realizes the federation model for self-acting access: the
 Agent Principal is the subject of a Workload Authorization Grant (WAG)
 {{WAG}} issued by the IdP and redeemed at the RAS. It is the peer of
-{{delegated-flow}}. The same resolution inputs, Identity Binding, client
-authorization, grant protection, access-token protection, and resource
-processing apply, with the differences stated here; where this section
+{{delegated-flow}}. The same resolution inputs, except X.509-SVID
+({{wag-request}}), and the same Identity Binding, client authorization,
+grant protection, access-token protection, and resource processing
+apply, with the differences stated here; where this section
 is silent, {{delegated-flow}} applies with the WAG in place of the
 ID-JAG.
 
@@ -2591,13 +2594,15 @@ A normalized Agent Principal identity does not imply uniform runtime
 assurance; assurance depends on the resolution input, verified claims,
 and the credential authority's issuance policy.
 
-The attacker still needs an acceptable user subject credential and has
-to satisfy Client Association and delegation authorization, but existing
-permissions may already authorize the compromised client.
+For delegated access, the attacker still needs an acceptable user
+subject credential and has to satisfy Client Association and delegation
+authorization. For self-acting access, the key alone suffices wherever
+a Client Association and Agent Authorization already permit the client.
+Existing permissions may already authorize the compromised client.
 
 Grant binding does not prevent this impersonation at issuance. Unless
 policy independently constrains the grant proof key, the attacker can
-obtain an ID-JAG bound to an attacker-controlled DPoP key. The proof
+obtain a grant bound to an attacker-controlled DPoP key. The proof
 protects that grant against theft; it does not establish legitimate
 runtime provenance.
 

@@ -169,7 +169,9 @@ rules about which applications may use that account. This document
 applies that shape to agents. The Agent Principal is the account, an
 Identity Binding maps a validated, qualified client or workload identity
 to it, and a Client Association states which OAuth client may exercise
-that binding.
+that binding. The account's identifier can be the same as the execution
+identity's; the binding decides which identity is authoritative for
+governance.
 
 Existing OAuth mechanisms authenticate clients and carry actors, but
 they leave three relationships open:

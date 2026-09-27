@@ -2502,8 +2502,8 @@ across components widens its exposure ({{distributed-key-use}}).
 
 Before issuance, the IdP MUST apply current binding and authorization
 policy and reject an inactive agent or withdrawn binding once the change
-has been applied. This profile assumes configured freshness limits on
-cached policy data, which bound when a change is applied.
+has been applied. The IdP MUST apply such a change within a configured
+freshness limit on cached policy data.
 
 Cross-system disablement needs a provisioning and signaling contract
 ({{lifecycle-gap}}); without a signal or online check, issued tokens

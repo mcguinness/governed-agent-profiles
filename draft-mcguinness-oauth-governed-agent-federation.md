@@ -593,28 +593,60 @@ identity selectors; the Agent Principal mapping and separate Client
 Association are still required, but no new configuration object types
 are prescribed.
 
-| Relationship | Configured by | Required context |
-|---|---|---|
-| Credential trust | IdP | Issuer or trust domain, approved key source, algorithms, credential class, and time limits under the selected credential specification |
-| Identity Binding | IdP administrator or approved platform-registry import | Qualified client or workload identity, Agent Principal, Governance Tenant |
-| Client Association | IdP administrator | Client, permitted binding or binding set, acting relationship, credential class |
-| Resolution mode and proof | IdP policy and client configuration | Authentication-context or presented-evidence resolution, with its accepted credential classes and proof requirements, for the client, applicable profile, and target; request parameters do not select the mode ({{actor-inputs}}) |
-| Target | IdP administrator | RAS issuer, resources, Target Tenant, subject namespace, authority to assert `aud_sub` |
-| Delegation Authorization | IdP policy or consent | Agent, user, client, tenant, RAS, resource, authority |
-| Agent Authorization | IdP policy or assignment | Agent's own access to the RAS, resource, and authority, for self-acting issuance |
-| Client registration | Client, at each authorization server | Registration and authentication keys, or Client ID Metadata Documents (CIMD) {{CIMD}} where supported; each server consumes the corresponding metadata |
-| Client registration association | IdP, per target RAS | Authoritative mapping from the authenticated client to that client's registration at the RAS ({{Section 5 of ID-JAG}}), from which the IdP derives the grant's `client_id` ({{flow-configuration}}) |
-| Target Tenant binding | Deployment | One Target Tenant, configured once and carried consistently by the tenant-specific resource URI ({{root-request}}), the resource domain's provisioning context, and any Shared Signals stream ({{AGENT-LIFECYCLE}}) |
-| Local principals | RAS | Local agent principals and user links, provisioned or synchronized for RAS and API processing |
-| Applicable profile | Client, IdP, RAS, and resource policy | Profile and minimum requirements per client, trust relationship, and resource, which each role enforces as applicable to it ({{discovery}}) |
-| Access-token protection | RAS and client | Protection per resource for client, RAS, and API use; `token_type` distinguishes DPoP, but not mutual TLS from bearer ({{access-token-protection}}) |
-{: title="Federation configuration"}
+**At the IdP:**
 
-No companion profile provisions the client registration association; it
-is configured. Using one identifier at both servers, which a CIMD Client
-Identifier URL provides by construction, makes that mapping the identity
-mapping. This profile assumes deployments configure the Target Tenant
-carriers to agree.
+* **Credential trust:** issuer or trust domain, approved key source,
+  algorithms, credential class, and time limits under the selected
+  credential specification.
+* **Identity Binding** (IdP administrator or approved platform-registry
+  import): qualified client or workload identity, Agent Principal, and
+  Governance Tenant.
+* **Client Association** (IdP administrator): client, permitted binding
+  or binding set, acting relationship, and credential class.
+* **Resolution mode and proof** (IdP policy with client configuration):
+  authentication-context or presented-evidence resolution, with its
+  accepted credential classes and proof requirements, per client,
+  applicable profile, and target. Request parameters do not select the
+  mode ({{actor-inputs}}).
+* **Target** (IdP administrator): RAS issuer, resources, Target Tenant,
+  subject namespace, and authority to assert `aud_sub`.
+* **Delegation Authorization** (IdP policy or consent): agent, user,
+  client, tenant, RAS, resource, and authority.
+* **Agent Authorization** (IdP policy or assignment): the agent's own
+  access to the RAS, resource, and authority, for self-acting issuance.
+* **Client registration association** (per target RAS): the
+  authoritative mapping from the authenticated client to that client's
+  registration at the RAS ({{Section 5 of ID-JAG}}), from which the IdP
+  derives the grant's `client_id` ({{flow-configuration}}). No companion
+  profile provisions it. Using one identifier at both servers, which a
+  Client ID Metadata Document (CIMD) {{CIMD}} Client Identifier URL
+  provides by construction, makes that mapping the identity mapping.
+
+**At the RAS:**
+
+* **Local principals:** local agent principals and user links,
+  provisioned or synchronized for RAS and API processing.
+
+**At the client and each authorization server:**
+
+* **Client registration** (the client, at each authorization server):
+  registration and authentication keys, or CIMD where supported; each
+  server consumes the corresponding metadata.
+* **Access-token protection** (RAS and client): protection per resource
+  for client, RAS, and API use. `token_type` distinguishes DPoP, but not
+  mutual TLS from bearer ({{access-token-protection}}).
+
+**Across the deployment:**
+
+* **Target Tenant binding:** one Target Tenant, configured once and
+  carried consistently by the tenant-specific resource URI
+  ({{root-request}}), the resource domain's provisioning context, and any
+  Shared Signals stream ({{AGENT-LIFECYCLE}}). This profile assumes
+  deployments configure these carriers to agree.
+* **Applicable profile** (client, IdP, RAS, and resource policy):
+  profile and minimum requirements per client, trust relationship, and
+  resource, which each role enforces as applicable to it
+  ({{discovery}}).
 
 Validation occurs while a request is processed, not when an Agent
 Principal, Identity Binding, or Client Association is created. Keys and

@@ -593,7 +593,7 @@ imply authorization for the other.
 | Client Association | For delegated issuance | A separate one for self-acting issuance |
 | API enforcement | User authority and the actor gate | The agent's own authority; no actor gate |
 | Refresh | RAS refresh under explicit policy | None; WAG prohibits refresh tokens |
-{: title="Self-acting differences from delegated access"}
+{: title="Delegated and self-acting access compared"}
 
 ## Authorization Relationships {#authorization}
 
@@ -805,9 +805,8 @@ Protection on the API hop follows {{access-token-protection}}.
 
 ## Grant Protection {#grant-protection}
 
-These rules apply to both grants, the ID-JAG and the WAG. Client
-authentication and all governance requirements remain mandatory in
-either profile.
+Client authentication and all governance requirements remain mandatory
+in either adoption profile.
 
 By profile:
 
@@ -1157,9 +1156,6 @@ principal as delegated access ({{status-changes}}).
 # Grant Issuance at the IdP {#issuance}
 
 ## Issuance Prerequisites {#flow-configuration}
-
-**Applicability:** This section and {{grant-protection}} apply to both
-the ID-JAG and the WAG.
 
 **Relationships:** The IdP MUST issue a grant only under the applicable
 identity, client, delegation, and target relationships in
@@ -1862,7 +1858,7 @@ Linking mechanisms are deployment choices ({{operational-guidance}}).
 
 ### Actor Preservation {#actor-preservation}
 
-**Actor preservation:** The RAS MUST preserve the complete validated
+The RAS MUST preserve the complete validated
 `act` object, including `iss`, `sub`, and any `sub_profile`, in the
 access token or its introspection context under
 {{Section 3.6.3.2 of ACTOR-PROFILE}}. Preservation applies to JSON
@@ -1872,10 +1868,6 @@ The RAS:
 * MUST NOT add, remove, or rewrite actor members.
 * MUST NOT translate `act.sub` to its local agent-principal identifier
   or replace `act.iss` with its own issuer.
-
-These rules concern the actor of a delegated token. For self-acting
-access, the access token's subject is the local principal, and the
-qualified identity is retained under {{wag-redemption}}.
 
 ## Self-Acting Redemption: WAG {#wag-redemption}
 
@@ -2093,7 +2085,7 @@ multiple values or a different resource with `invalid_target`.
 
 ## Profile Applicability {#api-applicability}
 
-**Applicability:** This profile defines no in-band discriminator.
+This profile defines no in-band discriminator.
 
 * The RAS and API MUST establish profile applicability through trusted
   issuer, client, and resource configuration or authoritative
@@ -2112,7 +2104,7 @@ claim alone does not establish governed issuance.
 
 ## Token Validation {#api-validation}
 
-**Validation:** For tokens subject to this profile, the API MUST
+For tokens subject to this profile, the API MUST
 validate access tokens under {{RFC9068}}, or obtain the same context
 under {{introspection}}, and MUST enforce the following requirements:
 
@@ -2160,7 +2152,7 @@ otherwise be accepted as self-acting.
 
 ## Policy Services {#policy-services}
 
-**Policy services:** If the API delegates authorization evaluation to
+If the API delegates authorization evaluation to
 a policy decision service, it MUST:
 
 * Preserve the distinction between the user, the issuer-qualified
@@ -2226,8 +2218,6 @@ context. A credential change alone need not invalidate cached tokens
 when the governed principal and authorization context remain the same.
 
 ## Applied Disablement and Revocation {#applied-changes}
-
-**Applicability:** Authorization derived from either grant.
 
 When a principal disablement, correlation removal, or local restriction
 is applied at the RAS, the RAS MUST:

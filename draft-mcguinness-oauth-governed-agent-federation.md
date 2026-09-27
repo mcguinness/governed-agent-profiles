@@ -2593,8 +2593,9 @@ Validators MUST enforce:
   configured maximum age or lifetime. It SHOULD remain within the few
   minutes contemplated by {{RFC7519}}.
 * **Replay protection:** Apply each credential, proof, and grant
-  mechanism independently. Replay state retained through expiration
-  MUST cover the maximum allowed skew.
+  mechanism independently. Replay detection MUST remain in effect for
+  as long as the credential, proof, or grant would otherwise be
+  accepted, including the maximum allowed skew.
 
 A fresh proof does not renew an expired credential; an unchanged
 identifier does not authorize a new proof key.

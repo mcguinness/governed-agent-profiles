@@ -232,9 +232,10 @@ read in this order:
 
 | Role | Start with | Then read |
 |---|---|---|
-| Client | {{evidence}}, {{root-request}}, {{wag-request}} | {{grant-protection}}, {{redemption-request}}, {{discovery}} |
+| All roles | {{model}}, {{scope}} | {{metadata}}, {{security}} |
+| Client | {{evidence}}, {{root-request}}, {{wag-request}} | {{grant-protection}}, {{redemption-request}}, {{access-token-response}}, {{client-token-reuse}}, {{wag-redemption}}, {{discovery}}, {{errors}} |
 | IdP | {{identity}}, {{authorization}} | {{exchange-request}}, {{wag-issuance}}, {{errors}} |
-| RAS | {{sp-contract}}, {{redemption}} | {{agent-correlation}}, {{actor-authorization}}, {{wag-redemption}}, {{ras-refresh}} |
+| RAS | {{sp-contract}}, {{redemption}} | {{agent-correlation}}, {{actor-authorization}}, {{wag-redemption}}, {{ras-refresh}}, {{errors}} |
 | API | {{api-processing}} | {{actor-authorization}}, {{access-token-protection}}, {{wag-api}} |
 {: title="Reading guide"}
 
@@ -602,7 +603,7 @@ are prescribed.
 | Delegation Authorization | IdP policy or consent | Agent, user, client, tenant, RAS, resource, authority |
 | Agent Authorization | IdP policy or assignment | Agent's own access to the RAS, resource, and authority, for self-acting issuance |
 | Client registration | Client, at each authorization server | Registration and authentication keys, or Client ID Metadata Documents (CIMD) {{CIMD}} where supported; each server consumes the corresponding metadata |
-| Client registration association | IdP, per target RAS | Authoritative mapping from the authenticated client to that client's registration at the RAS ({{Section 5 of ID-JAG}}), from which the IdP derives the ID-JAG `client_id` ({{flow-configuration}}) |
+| Client registration association | IdP, per target RAS | Authoritative mapping from the authenticated client to that client's registration at the RAS ({{Section 5 of ID-JAG}}), from which the IdP derives the grant's `client_id` ({{flow-configuration}}) |
 | Target Tenant binding | Deployment | One Target Tenant, configured once and carried consistently by the tenant-specific resource URI ({{root-request}}), the resource domain's provisioning context, and any Shared Signals stream ({{AGENT-LIFECYCLE}}) |
 | Local principals | RAS | Local agent principals and user links, provisioned or synchronized for RAS and API processing |
 | Applicable profile | Client, IdP, RAS, and resource policy | Profile and minimum requirements per client, trust relationship, and resource, which each role enforces as applicable to it ({{discovery}}) |
@@ -716,14 +717,14 @@ Credential acquisition is outside this profile. Audience validation
 follows each input's credential specification and section; there is no
 universal IdP audience.
 
-| Input | Qualified identity | Reference |
-|---|---|---|
-| Dedicated client | Trusted assertion issuer and exact client `sub`, qualified by the IdP client-registration context | {{client-assertion-input}} |
-| Existing platform JWT | Approved issuer and exact `sub`, with configured additional selectors | {{imported-jwt-input}} |
-| SPIFFE JWT-SVID | Approved trust domain and exact SPIFFE ID in `sub` | {{jwt-svid-input}} |
-| SPIFFE WIT-SVID | Approved trust domain and exact SPIFFE ID in the validated `sub` | {{spiffe-input}} |
-| SPIFFE X.509-SVID | Approved trust domain and exact SPIFFE ID in the certificate's URI Subject Alternative Name | {{spiffe-input}} |
-| Client Attestation | Trusted attester and validated `sub`, which identifies the OAuth client; the client-to-agent mapping is explicit | {{agent-evidence}} |
+| Input | Qualified identity | Mode ({{actor-inputs}}) | Reference |
+|---|---|---|---|
+| Dedicated client | Trusted assertion issuer and exact client `sub`, qualified by the IdP client-registration context | Authentication context | {{client-assertion-input}} |
+| Existing platform JWT | Approved issuer and exact `sub`, with configured additional selectors | Presented evidence | {{imported-jwt-input}} |
+| SPIFFE JWT-SVID | Approved trust domain and exact SPIFFE ID in `sub` | Authentication context | {{jwt-svid-input}} |
+| SPIFFE WIT-SVID | Approved trust domain and exact SPIFFE ID in the validated `sub` | Authentication context | {{spiffe-input}} |
+| SPIFFE X.509-SVID | Approved trust domain and exact SPIFFE ID in the certificate's URI Subject Alternative Name | Authentication context | {{spiffe-input}} |
+| Client Attestation | Trusted attester and validated `sub`, which identifies the OAuth client; the client-to-agent mapping is explicit | Authentication context | {{agent-evidence}} |
 {: title="Agent-resolution inputs and qualified identities"}
 
 Input support follows {{scope}} and {{optional-inputs}}; resolution mode
@@ -2850,7 +2851,9 @@ permitted for this resource, the preceding messages change only as follows:
 {: title="Message changes for governed agent access"}
 
 The client assertion, Identity Binding, Client Association, user and actor
-identities, scope, tenant checks, and actor gate are unchanged.
+identities, scope, tenant checks, and actor gate are unchanged. An
+unbound grant can instead obtain a DPoP-bound access token by presenting
+a valid proof at redemption ({{grant-protection}}).
 
 ## Renewal and Rejection Examples
 

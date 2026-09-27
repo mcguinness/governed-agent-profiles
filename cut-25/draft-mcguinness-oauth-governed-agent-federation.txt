@@ -1642,13 +1642,16 @@ Table of Contents
    +====================+==============================================+
    | Input              | Lifetime bound on the grant                  |
    +====================+==============================================+
-   | Platform JWT       | The effective evidence                       |
-   |                    | deadline in Appendix A.2                     |
+   | Dedicated client   | None: it authenticates one request           |
+   | assertion          | and does not cap the grant                   |
+   +--------------------+----------------------------------------------+
+   | Platform JWT       | The effective evidence deadline in           |
+   |                    | Appendix A.2                                 |
    +--------------------+----------------------------------------------+
    | JWT-SVID           | Its exp                                      |
    +--------------------+----------------------------------------------+
-   | WIT-SVID and       | The credential's exp; the                    |
-   | Client Attestation | PoP JWT adds no limit                        |
+   | WIT-SVID and       | The credential's exp; the PoP JWT            |
+   | Client Attestation | adds no limit                                |
    +--------------------+----------------------------------------------+
    | X.509-SVID         | The earliest notAfter in the                 |
    |                    | validated certificate path,                  |
@@ -1779,7 +1782,12 @@ Table of Contents
    unless the resource is explicitly configured to permit bearer tokens.
    The permitted protection is selected through trusted client and
    resource configuration before issuance, not by a request flag, and a
-   validation failure MUST NOT trigger a weaker mode.
+   validation failure MUST NOT trigger a weaker mode.  Where
+   configuration permits both DPoP and bearer tokens for the resource,
+   the RAS MUST bind the access token to the key of a valid DPoP proof
+   presented at redemption, and issues a bearer token only when no proof
+   is presented.  A proof never selects a protection that configuration
+   does not permit.
 
           +============+========================================+
           | Selected   | Access token                           |
@@ -2265,10 +2273,11 @@ Table of Contents
    subject token, with subject_token_type urn:ietf:params:oauth:token-
    type:jwt, and the client authenticates separately; the existing
    platform JWT (Appendix A.2) is presented this way.  The presented-
-   evidence, classification, and mutual-exclusion rules of
-   Section 6.4.3, including no fallback to authentication context, apply
-   to that subject token; its actor-construction and act requirements do
-   not.
+   evidence, classification, and mutual-exclusion rules of Section 6.4.3
+   apply to that subject token, including no fallback to authentication
+   context and the inbound actor chain rule, which rejects a subject
+   token that contains act.  Only actor construction and the governed
+   act result do not apply.
 
    *Authentication-context resolution:* The authentication-context rules
    of Section 6.4.3 apply.  Because [RFC8693] cannot name the
@@ -3308,7 +3317,10 @@ A.2.  Existing Platform JWT
          supplied attributes.
 
    *  *Audience:* The configured audiences authorize presentation to
-      this IdP as workload evidence (*Configuration*).
+      this IdP as workload evidence (*Configuration*).  The IdP MUST
+      reject a platform JWT whose aud is absent or contains none of
+      them; when aud is present, this is the rejection Section 4.1.3 of
+      [RFC7519] requires.
 
    *  *Proof:* This profile defines no new proof mechanism.  If cnf is
       present, the IdP MUST enforce its proof mechanism and MUST NOT
@@ -3975,10 +3987,12 @@ Appendix E.  Input Variants
    the WIT-SVID variant uses the WIT-SVID key; the X.509-SVID variant's
    DPoP key may differ from its TLS key.  The input bounds the grant
    lifetime under Section 6.4.5.  Each variant needs a Client
-   Association for its authenticated client, which is platform-sso for
-   the JWT-SVID and platform JWT variants (Section 4.2).  The dedicated-
-   client rejection examples apply to each binding, except that replay
-   rules follow the input specification.
+   Association for its authenticated client (Section 4.2): a separate
+   one for platform-sso in the JWT-SVID and platform JWT variants, while
+   in the WIT-SVID and X.509-SVID variants, where the authenticated
+   client is the workload itself, it can be administered together with
+   the binding.  The dedicated-client rejection examples apply to each
+   binding, except that replay rules follow the input specification.
 
 E.1.  Shared Platform Client with SPIFFE
 

@@ -627,7 +627,7 @@ For example:
 * Renaming a tenant or changing its owner or administrator within the
   same governance domain does not by itself change the principal.
 
-Multiple Identity Bindings MAY resolve distinct client or workload
+Multiple Identity Bindings can resolve distinct client or workload
 identities to the same Agent Principal when the IdP approves them as
 representing the same governed principal. They share the governed
 authorization identity downstream.
@@ -1198,7 +1198,7 @@ For a dedicated client, Identity Binding determines which Agent Principal
 the client represents. Client Association independently determines
 whether that client may exercise the binding for the requested acting
 relationship.
-Deployments MAY administer both in one registration or policy object;
+Deployments can administer both in one registration or policy object;
 their identity and authorization semantics remain distinct.
 
 A binding can remain valid while permission to use it is withdrawn,
@@ -1458,7 +1458,7 @@ For delegated access, the RAS and API MUST enforce both:
   the gate; failure to establish it MUST result in denial.
 
 The actor gate is an authorization condition, not a protocol object.
-It MAY be implemented through an agent registration, tenant assignment,
+It can be implemented through an agent registration, tenant assignment,
 consent policy, or another explicit rule. Requiring the agent to also
 hold independent permissions on each object is local
 policy, not a baseline requirement.

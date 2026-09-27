@@ -1318,10 +1318,11 @@ not replace the federated actor. That rule concerns the actor of a delegated tok
 access the access token's subject is the local principal and the
 qualified identity is retained under {{wag-redemption}}.
 
-Where the RAS requires a local agent principal, the IdP or its
-authorized directory connector SHOULD provision and synchronize that
-principal keyed by the same pair and SHOULD propagate activation and
-deactivation. Once deactivation is applied, the RAS enforces {{applied-changes}}. No provisioning protocol is required
+Where the RAS requires a local agent principal, deployments normally
+have the IdP or its authorized directory connector provision and
+synchronize that principal, keyed by the same pair, and propagate
+activation and deactivation. Once deactivation is applied, the RAS
+enforces {{applied-changes}}. No provisioning protocol is required
 ({{operational-guidance}}).
 
 ### Just-in-Time Correlation {#jit-correlation}

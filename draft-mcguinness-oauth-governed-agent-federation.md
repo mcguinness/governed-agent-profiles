@@ -3399,7 +3399,7 @@ assertion cannot select that agent.
 ## Redemption Request and Response
 
 `RAS_CLIENT_ASSERTION` authenticates the corresponding RAS client with
-`iss=sub=analysis-api`, `aud=https://ras.example/token`, a short
+`iss=sub=analysis-api`, `aud=https://ras.example/`, a short
 expiration, and its own `jti`. It uses that registration's signing key.
 `RAS_DPOP_PROOF` is a fresh proof using K, `htm=POST`, and
 `htu=https://ras.example/token`.

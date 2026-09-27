@@ -2457,11 +2457,10 @@ identity granularity. {{svid-context-example}} illustrates both inputs.
   exact SPIFFE ID in the validated `sub` through {{identity-binding}}.
 * **Proof:** When DPoP is used at issuance, its key MUST match the
   WIT-SVID's `cnf.jwk`; the IdP MUST compare their JWK thumbprints as
-  used in {{RFC9449}}. This carries the WIT-endorsed key into the grant
-  binding; the Client Attestation PoP JWT remains required. Key
-  retention follows {{resolution-key-lifecycle}}.
-* **Failure:** When DPoP is used at issuance, the IdP MUST reject a
-  mismatch between its key and `cnf.jwk` with `invalid_grant`.
+  used in {{RFC9449}} and MUST reject a mismatch with `invalid_grant`.
+  This carries the WIT-endorsed key into the grant binding; the Client
+  Attestation PoP JWT remains required. Key retention follows
+  {{resolution-key-lifecycle}}.
 
 ### X.509-SVID
 

@@ -2283,10 +2283,10 @@ use a supported workload-identity input that distinguishes its agents
 input.
 
 * **Presentation:** An asymmetrically signed `client_assertion` under
-  {{RFC7523}}, commonly `private_key_jwt`, whose assertion issuer and
-  subject are the client's registered identifier (Section 9 of
-  {{OPENID}}). Other configured asymmetric RFC 7523 methods MAY be
-  supported.
+  {{RFC7523}}. For `private_key_jwt`, the common method, the assertion
+  issuer and subject are the client's registered identifier
+  (Section 9 of {{OPENID}}); other configured asymmetric RFC 7523
+  methods MAY be supported.
 * **Validation:** The IdP authenticates the client under
   {{Section 3 of RFC7523}} and its configured authentication method,
   and MUST use verification keys authorized for that client and
@@ -2311,14 +2311,15 @@ input.
 * **Replay:** These rules narrow the base specifications and prohibit
   negotiated assertion reuse. The assertion MUST contain a `jti`. The
   IdP MUST reject reuse in another request while the assertion remains
-  acceptable. Replay identifiers MUST be qualified by the validated
-  issuer and client. For any retry of a dedicated-client exchange,
-  including after a `use_dpop_nonce` challenge under
-  {{Section 8 of RFC9449}}, the client MUST generate a new
-  `client_assertion` with a fresh `jti`; for a nonce retry, it MUST also
-  generate a fresh DPoP proof containing the supplied nonce while
-  retaining the grant proof key. A new DPoP proof alone is not enough,
-  because the IdP may already have consumed the previous assertion.
+  acceptable; a reused assertion fails client authentication. Replay
+  identifiers MUST be qualified by the validated issuer and client.
+* **Retry:** For any retry of a dedicated-client exchange, including
+  after a `use_dpop_nonce` challenge under {{Section 8 of RFC9449}}, the
+  client MUST generate a new `client_assertion` with a fresh `jti`; for
+  a nonce retry, it MUST also generate a fresh DPoP proof containing the
+  supplied nonce while retaining the grant proof key. A new DPoP proof
+  alone is not enough, because the IdP may already have consumed the
+  previous assertion during authentication.
 
 ## Existing Platform JWT {#imported-jwt-input}
 
@@ -2326,23 +2327,28 @@ This common shared-client input accepts existing signed platform JWTs as
 issued, with no new media type or reissuance; {{scope}} states when it
 is required, and {{aws-example}} gives an AWS STS example. The IdP MUST
 accept a platform JWT only when its issuer, credential class, and the
-authenticated client are explicitly configured together. Configuration
-MUST also specify the credential class: the rule distinguishing workload
-credentials from user, management-API, or other tokens of the same
-issuer, namely an explicit `typ`, a dedicated issuer, or an accepted
-audience combined with exact selectors. Credential classification and
-rejection follow {{actor-inputs}}.
+authenticated client are explicitly configured together. Credential
+classification and rejection follow {{actor-inputs}}.
+
+* **Configuration:** Configuration MUST also specify:
+  * the credential class: the rule distinguishing workload credentials
+    from user, management-API, or other tokens of the same issuer,
+    namely an explicit `typ`, a dedicated issuer, or an accepted
+    audience combined with exact selectors;
+  * approved keys or an approved HTTPS JWK Set URI under {{RFC7517}},
+    retrieved with server authentication;
+  * the issuer's permitted asymmetric algorithms;
+  * the effective evidence deadline, the permitted clock skew for a
+    future issuance time, and any maximum age; and
+  * the audiences that authorize presentation to this IdP as workload
+    evidence.
 
 * **Presentation:** `actor_token` in delegated issuance and
   `subject_token` in self-acting issuance ({{wag-request}}); the client
   authenticates separately with a configured method. An accepted JWT
   MUST NOT be treated as OAuth client authentication unless it
   independently satisfies a configured client authentication method.
-* **Validation:** Configuration MUST also specify approved keys or an
-  approved HTTPS JWK Set URI under {{RFC7517}}, retrieved with server
-  authentication; the issuer's permitted asymmetric algorithms; the
-  effective evidence deadline; the permitted clock skew for a future
-  issuance time; and any maximum age. The IdP MUST validate the JWT
+* **Validation:** The IdP MUST validate the JWT
   under {{RFC7519}}, {{RFC8725}}, and the configured credential profile.
   Keys or URLs in the JWT MUST NOT override the approved key source.
   The IdP MUST determine the effective evidence deadline from `exp`, a
@@ -2367,8 +2373,8 @@ rejection follow {{actor-inputs}}.
     issuance policy constrains its values to identities the caller is
     authorized to assert. A signature alone does not establish that
     authority for request tags or other caller-supplied attributes.
-* **Audience:** Configuration MUST also specify the audiences that
-  authorize presentation to this IdP as workload evidence.
+* **Audience:** The configured audiences authorize presentation to this
+  IdP as workload evidence (**Configuration**).
 * **Proof:** This profile defines no new proof mechanism. If `cnf` is
   present, the IdP MUST enforce its proof mechanism and MUST NOT give
   the credential bearer treatment when the binding is unsupported. A

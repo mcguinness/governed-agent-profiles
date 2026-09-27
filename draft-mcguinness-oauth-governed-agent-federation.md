@@ -2106,32 +2106,31 @@ This profile defines no in-band discriminator.
   validated claims or authenticated introspection context.
 * The RAS MUST issue tokens such that the API can determine, from
   trusted token context, which adoption profile and acting
-  relationship authorized them ({{wag-api}}).
+  relationship authorized them.
 
 The API MUST reject ambiguous applicability and reject missing or
 malformed `act` for a configured governed delegated population.
 Self-acting tokens carry no `act` ({{wag-api}}). An ordinary `act`
 claim alone does not establish governed issuance.
 
+Separate client registrations, audiences, or issuers for the delegated
+and self-acting populations satisfy these rules. The absence of `act`
+alone does not: a delegated token lacking `act` would otherwise be
+accepted as self-acting.
+
 ## Token Validation {#api-validation}
 
-For tokens subject to this profile, the API MUST
-validate access tokens under {{RFC9068}}, or obtain the same context
-under {{introspection}}, and MUST enforce the following requirements:
+For tokens subject to this profile, the API MUST validate access tokens
+under {{RFC9068}}, or obtain the same context under {{introspection}},
+and MUST enforce the following requirements:
 
-* **Identity:** For delegated tokens, require one `act` object with
-  non-empty `iss` and `sub` and no nested `act`. Trust configuration
-  MUST authorize the RAS to assert that IdP-qualified agent identity;
-  `act.iss` need not equal the access-token issuer.
 * **Protection:** Enforce the configured resource mode
   ({{access-token-protection}}) and all token confirmation claims.
   Validate DPoP under {{RFC9449}}, certificate binding under
   {{RFC8705}}, or permitted bearer use under {{RFC6750}}.
 * **Authority:** Require non-empty `scope` with its defined type.
-  Enforce user permissions and the actor gate under
-  {{actor-authorization}} and {{Section 8 of ACTOR-PROFILE}}. Enforce any
-  effective `authorization_details` under {{RFC9396}}, using the API's
-  defined semantics for their combination with scope.
+  Enforce any effective `authorization_details` under {{RFC9396}}, using
+  the API's defined semantics for their combination with scope.
 * **Tenant:** Resolve exactly one authorized Target Tenant from token
   context, as represented under {{access-token-response}}. A request
   parameter alone cannot establish it. Verify that it matches the
@@ -2148,18 +2147,22 @@ requests rather than reuse an active response. This narrows
 {{Section 4 of RFC7662}} so cached authorization cannot outlive an
 expiration unknown to the API.
 
+## Delegated Access {#api-delegated}
+
+For delegated tokens, the API MUST also:
+
+* **Identity:** Require one `act` object with non-empty `iss` and `sub`
+  and no nested `act`. Trust configuration MUST authorize the RAS to
+  assert that IdP-qualified agent identity; `act.iss` need not equal the
+  access-token issuer.
+* **Authority:** Enforce user permissions and the actor gate under
+  {{actor-authorization}} and {{Section 8 of ACTOR-PROFILE}}.
+
 ## Self-Acting Access {#wag-api}
 
-The API applies {{api-processing}}, its {{resource-errors}}, and the API
-rules of {{access-token-protection}} and {{introspection}}, without the
-actor gate. It enforces the agent's own permissions, the token's
-authority constraints, the Target Tenant, and the selected protection.
-A governed self-acting token has no `act`.
-
-Separate client registrations, audiences, or issuers for the two
-populations satisfy the applicability rule of {{api-processing}}. The
-absence of `act` alone does not: a delegated token lacking `act` would
-otherwise be accepted as self-acting.
+For self-acting tokens, the API enforces the agent's own permissions
+together with the requirements of {{api-validation}}. No actor gate
+applies, and a governed self-acting token has no `act`.
 
 ## Policy Services {#policy-services}
 

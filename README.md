@@ -3,7 +3,32 @@
 # Governed Agent Profiles
 
 This is the working area for four related Internet-Drafts on governing
-agents across platform, identity-provider, and resource-domain boundaries:
+agents across platform, identity-provider, and resource-domain boundaries.
+
+## The problem
+
+Enterprises run agents on platforms they do not operate, and they need to
+recognize and govern each agent across changes in platforms, workloads, and
+credentials. These drafts let an identity provider resolve those execution
+identities to an Agent Principal that resource domains can recognize,
+authorize, and audit. The principal can remain stable while its execution
+environment and its permissions change. Its identifier can also be the same
+as the execution identity's; what the drafts establish is which identity is
+authoritative for governance.
+
+The common workaround is a shared OAuth client per platform integration.
+Every agent behind it looks identical to the resource server, so attribution
+is lost and revocation becomes all or nothing.
+
+The pieces needed to fix that exist separately and do not yet compose.
+OAuth 2.0 Token Exchange defines `act` but leaves the actor's meaning to
+profiles. ID-JAG brokers cross-application access through the IdP both sides
+already trust for SSO, and leaves actor validation, authorization, and
+representation to extensions. Attestation-based and SPIFFE client
+authentication establish which OAuth client is calling, not which agent a
+shared client is acting for.
+
+## The drafts
 
 | Draft | What it covers |
 |---|---|
@@ -11,45 +36,6 @@ agents across platform, identity-provider, and resource-domain boundaries:
 | [SCIM Profile for Governed Agent Federation Management](#scim-profile-for-governed-agent-federation-management) | Platform-to-IdP management of Agent Principals, Identity Bindings, and Client Associations |
 | [Governed Agent Lifecycle Profile for SCIM and OAuth](#governed-agent-lifecycle-profile-for-scim-and-oauth) | IdP-to-resource-domain provisioning, administrative disablement, and session revocation |
 | [SCIM Profile for OAuth 2.0 Client Management](#scim-profile-for-oauth-20-client-management) | Generic SCIM management of OAuth client registrations, including CIMD clients |
-
-## Why this matters
-
-Enterprises run agents on platforms they do not operate: a coding agent on
-one vendor's runtime, a support agent on another, something else on a
-developer's laptop. Each platform issues its own identity for the thing it
-runs. None of those identities is what the enterprise needs to govern.
-
-What the enterprise needs is a principal it can authorize once, audit across
-systems, and disable everywhere. Platform and client identity do not line up
-with that boundary. One runtime can serve several agents that need separate
-authorization, and one agent can move between runtimes while its authority
-has to stay the same.
-
-The common workaround is a shared OAuth client per platform integration.
-Every agent behind it looks identical to the resource server, so attribution
-is lost and revocation becomes all or nothing.
-
-## Why now
-
-Agent deployments multiply the number of platforms an enterprise federates
-with, and they ask resource servers to authorize callers that have no
-registration relationship with them. The pieces needed to answer that exist
-separately and do not yet compose:
-
-* OAuth 2.0 Token Exchange defines `act` but leaves the actor's meaning to
-  profiles.
-* ID-JAG brokers cross-application access through the IdP both sides already
-  trust for SSO, and deliberately leaves actor-token validation,
-  authorization, and representation to extensions.
-* Attestation-based and SPIFFE client authentication establish which OAuth
-  client is calling, not which agent a shared client is acting for.
-
-Federation already answers which external identity is calling. What is
-missing is which enterprise principal that identity represents, whether this
-client may exercise it, and what it may do once it arrives. These drafts
-profile that.
-
-## How the drafts fit together
 
 ```
  Agent platform
@@ -82,18 +68,16 @@ administrative state into the resource domain and revokes what depends on
 it. SCIM OAuth Client Management supplies the OAuth client registrations
 that bindings and associations reference.
 
-Agent governance is not one identity and one kill switch. Principal
-identity, execution binding, client authority, delegation, resource
-authority, and administrative state are separate relationships, and their
-boundaries stay explicit as an agent crosses systems. Runtime containment,
-such as stopping an execution or a tool call, sits outside these drafts.
-
 ## OAuth 2.0 Profile for Governed Agent Federation
 
 The core draft defines how an IdP resolves dedicated OAuth client identities
-or independently validated workload identities to stable Agent Principals.
-Identity Binding, Client Association, user delegation, and resource-local
-authorization remain separate decisions.
+or independently validated workload identities to stable Agent Principals,
+and how two peer grants carry that principal to a resource domain:
+
+| Acting relationship | Grant | Principal representation |
+|---|---|---|
+| Acting for a user | ID-JAG | User as subject; agent as actor |
+| Acting for itself | WAG | Agent as subject |
 
 The governing principle is that the Agent Principal is the authorization
 identity. Client and workload identities are authenticated inputs that
@@ -113,33 +97,31 @@ The scope is deliberately narrow: an agent governed by the IdP that issues
 the grant, federated into a resource domain. Identity continuity across a
 chain of IdPs or brokers is out of scope.
 
-The mandatory delegated path uses an ID Token issued for the dedicated
-client, `private_key_jwt` client authentication, a governed ID-JAG, and RFC
-7523 `jwt-bearer` redemption. Dedicated-client resolution uses the
-authenticated client context without duplicating its assertion in
-`actor_token`. SPIFFE JWT-SVID, WIT-SVID, X.509-SVID, existing platform JWT,
-and Client Attestation inputs are optional. Shared platforms agree on a
-workload input that distinguishes agents behind their SSO client. No new
-credential format or per-replica registration is required.
+Each grant has its own mandatory path, and an implementation claims one or
+both. Delegated access uses an ID Token issued for the dedicated client,
+`private_key_jwt` client authentication, a governed ID-JAG, and RFC 7523
+`jwt-bearer` redemption. Self-acting access uses the same dedicated-client
+resolution and redemption with a WAG naming the Agent Principal as subject.
+The WAG token type and JWT type are provisional values until WAG registers
+them. SPIFFE JWT-SVID, WIT-SVID, X.509-SVID, and Client Attestation inputs
+are optional; shared platforms use the existing platform JWT input to
+distinguish the agents behind their SSO client. No new credential format or
+per-replica registration is required.
 
 Two governed profiles support incremental adoption. Bound governed agent
-access requires DPoP at issuance and redemption; governed agent access permits
-unbound grants only under explicit policy. Access-token protection is a
-separate choice: DPoP, mutual TLS, or explicitly permitted bearer use. The
-API enforces user authority and the actor gate in every governed mode.
+access requires DPoP at issuance and redemption; governed agent access
+permits unbound grants only under explicit policy. Access-token protection
+is a separate choice: DPoP, mutual TLS, or explicitly permitted bearer use.
+For delegated access, the API enforces user authority and the actor gate.
+For self-acting access, it enforces the agent's own authority.
 
 The appendices walk through the dedicated-client flow and a shared-client
 SPIFFE variant. Continuing access uses eligible subject credentials for new
-ID-JAGs or policy-permitted RAS refresh within retained authorization and
+grants or policy-permitted RAS refresh within retained authorization and
 lifetime limits. Existing SSO refresh tokens do not automatically authorize
-downstream resources.
-
-The proposed self-acting WAG realization issues an IdP-signed WAG naming the
-Agent Principal as subject, redeemed with the JWT bearer grant and correlated
-to the same local principal. Its token-type, JWT-type, and profile
-identifiers are provisional pending coordination with WAG. Instance
-identification, attester endorsement, key transition, and Identity
-Continuation Assertion compositions remain deferred.
+downstream resources. Instance identification, attester endorsement, key
+transition, and Identity Continuation Assertion compositions remain
+deferred.
 
 * [Editor's Copy](https://mcguinness.github.io/governed-agent-profiles/#go.draft-mcguinness-oauth-governed-agent-federation.html)
 * [Datatracker Page](https://datatracker.ietf.org/doc/draft-mcguinness-oauth-governed-agent-federation)
@@ -207,6 +189,81 @@ agent identity, and permission to use that identity remain separate.
 
 * [OAuthClient profile source](draft-mcguinness-scim-oauth-client-management.md)
 * [OAuthClient editor's copy](https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-oauth-client-management.html)
+
+## Beyond these drafts
+
+Identity, authority, and approved work have separate owners, checks, and
+lifetimes. These drafts define agent federation, management, and lifecycle
+controls. This section shows how those controls relate to resource
+authorization, approval workflows, and mission-bound authorization. Some of
+those protocol compositions remain undefined:
+
+* The Federation draft lets an API delegate evaluation to a policy decision
+  service, which must keep the user, the issuer-qualified Agent Principal, and
+  the OAuth client distinct. It names AuthZEN as an optional interface but
+  defines no AuthZEN message mapping.
+* The Federation draft lists asynchronous approval with AROP as an excluded
+  composition. Approval that completes as a token is not yet composed with
+  governed ID-JAG issuance.
+
+| Concern | Question | Responsibility | Specifications |
+|---|---|---|---|
+| Identity | Which governed agent is acting? | The IdP resolves the Agent Principal; the resource domain correlates it locally. | These drafts |
+| Authority | What may it do, and for whom? | The IdP authorizes the grant; the resource domain decides within its limits. | These drafts; AuthZEN and COAZ for per-action decisions; ARAP and AROP for requestable denials |
+| Work | Does approved work still justify this action? | Mission-bound authorization supplies and evaluates work context. | [Mission-Bound Authorization](https://github.com/mcguinness/mission-bound-authorization) |
+
+Each concern ends separately. Disabling an Identity Binding stops new grants
+through that binding. Disabling the Agent Principal stops new grants for the
+agent and, once the resource domain applies it, revokes the agent's sessions
+there. Otherwise, tokens already issued end only by revocation or expiry.
+Revoking a grant or session ends the authority derived from it. Ending a
+Mission denies actions at every boundary that checks work state. A Local
+Suspension denies the agent in one resource domain regardless of upstream
+state.
+
+### Principles
+
+* **Execution identity is evidence; governed identity is the principal.**
+  Platforms mint execution identities. The enterprise governs the principal,
+  and an Identity Binding connects the two, so an agent keeps its identity
+  when it moves between platforms or rotates credentials.
+* **Every concern has an owner, and none stands in for another.** The IdP
+  owns identity, the resource domain owns resource authority, and the Mission
+  control point owns work. Being known is not being authorized, and being
+  authorized is not being approved for this work.
+* **Owners, not a single control plane.** Each boundary keeps its own
+  decision: the RAS decides anew within the grant, and a Local Suspension
+  cannot be cleared from upstream.
+* **Facts cross boundaries only by contract.** A contract states what is
+  preserved, what is translated, and what is decided anew. Traceable
+  delegation is attribution, not authority.
+
+The treatment of each boundary follows
+[Continuity Is Not One Thing](https://notes.karlmcguinness.com/notes/continuity-is-not-one-thing/).
+Request provenance through intermediaries, behavioral monitoring, anomaly
+detection, and telemetry are outside this architecture.
+
+### The AuthZEN profiles
+
+The AuthZEN profiles are developed in the OpenID AuthZEN working group:
+
+* [AuthZEN Authorization API 1.0](https://openid.net/specs/authorization-api-1_0.html):
+  a policy enforcement point asks a policy decision point for an access
+  decision about a subject, action, resource, and context.
+* [COAZ](https://openid.github.io/authzen/authzen-coaz-framework-1_0.html)
+  (Compatible with OpenID AuthZEN): a protocol-neutral framework that maps an
+  operation's inputs into an AuthZEN request.
+  [COAZ-MCP](https://openid.github.io/authzen/authzen-coaz-mcp-binding-1_0.html)
+  is its binding for the Model Context Protocol.
+* [ARAP](https://openid.github.io/authzen/authzen-access-request-approval-profile-1_0.html)
+  (AuthZEN Access Request and Approval Profile): after a requestable denial,
+  the enforcement point submits an access request, tracks it as an
+  asynchronous task, and re-evaluates after approval. The denial stands until
+  then.
+* [AROP](https://github.com/openid/authzen/blob/main/profiles/authzen-access-request-oauth/authzen-access-request-oauth-profile-1_0.md)
+  (AuthZEN Access Request OAuth Profile): binds ARAP to OAuth so that an
+  approved request completes as an issued access token, using the OAuth
+  Deferred Token Response, CIBA, or the Transaction Authorization Challenge.
 
 ## Contributing
 

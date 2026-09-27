@@ -1233,12 +1233,10 @@ than authorize additional resources.
 
 ## Agent Resolution {#identity}
 
-Resolution turns validated inputs into principals:
-
-* An approved Identity Binding resolves a qualified client or workload
-  identity to one Agent Principal.
-* Subject resolution identifies the user for delegated access.
-* The RAS correlates both with its local principals.
+The IdP resolves the Agent Principal from validated inputs through an
+approved Identity Binding. For delegated access, it also resolves the
+user ({{idp-subject-resolution}}). The RAS then correlates both with its
+local principals ({{agent-correlation}}, {{subject-resolution}}).
 
 ### Agent Resolution Inputs {#evidence}
 
@@ -1545,8 +1543,8 @@ access token an ID Token.
 
 ### Subject Resolution {#idp-subject-resolution}
 
-For ID-JAG, subject resolution identifies the user, and linking
-associates that user with a local account. Self-acting access resolves
+For ID-JAG, subject resolution identifies the user, and linking at the
+RAS ({{subject-resolution}}) associates that user with a local account. Self-acting access resolves
 the agent as subject instead ({{wag-flow}}). Subject identifiers, tenant
 relationships, `aud_sub`, `aud_tenant`, and `sub_id` follow Sections
 3.1, 5, and 6 of {{ID-JAG}}, with these additions.
@@ -1564,6 +1562,8 @@ The IdP MUST:
 * Derive `aud_sub`, `aud_tenant`, or `sub_id`, when used, from an
   authoritative association for the target, never from a client-supplied
   account hint.
+* Reject issuance for a disabled user or missing, ambiguous, or
+  conflicting resolution ({{errors}}).
 
 ### Actor Resolution and Construction {#actor-construction}
 
@@ -1853,8 +1853,9 @@ additionally:
 
 ### User Resolution and Linking {#subject-resolution}
 
-After validating the ID-JAG and its client and proof bindings, the RAS
-MUST:
+Subject identifiers and `aud_sub` follow Sections 3.1, 5, and 6 of
+{{ID-JAG}}, with these additions. After validating the ID-JAG and its
+client and proof bindings, the RAS MUST:
 
 * Resolve exactly one local user in the authorized Target Tenant,
   qualifying `sub` by the validated IdP issuer and tenant relationship;
@@ -1877,8 +1878,8 @@ User-account links have these constraints:
   most one local account per Target Tenant.
 * **Continuity:** A link change MUST NOT transfer an outstanding grant
   or delegation to another user.
-* **Failure:** The IdP and RAS MUST reject issuance for a disabled user
-  or missing, ambiguous, or conflicting resolution ({{errors}}).
+* **Failure:** The RAS MUST reject issuance for a disabled user or
+  missing, ambiguous, or conflicting resolution ({{errors}}).
 
 Linking mechanisms are deployment choices ({{operational-guidance}}).
 

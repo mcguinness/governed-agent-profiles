@@ -2543,14 +2543,13 @@ does not advertise it.
 
 ### Grant Key Transition {#key-transition-gap}
 
-No proof-key transition is defined; the holder of the issuance key also
-redeems a bound grant ({{distributed-key-use}}). Passing a bound grant
-to a worker with another key would need one.
+No proof-key transition is defined ({{distributed-key-use}}); passing a
+bound grant to a worker with another key would need one.
 
 ### Portable Authorization Deadlines {#deadline-gap}
 
-No portable IdP-imposed deadline on downstream access is defined; ID-JAG
-`exp` limits only redemption ({{authorization-lifetime}}).
+No portable IdP-imposed deadline on downstream access is defined
+({{authorization-lifetime}}).
 
 ### User Access Tokens as Subjects {#access-token-subject-gap}
 

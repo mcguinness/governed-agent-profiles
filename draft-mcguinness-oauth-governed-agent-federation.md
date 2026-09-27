@@ -1476,9 +1476,9 @@ user, actor, client, tenant, and resource policy. The grant does not
 assert that the RAS's policy has been satisfied or convey the IdP's
 underlying approval records.
 
-Audit records SHOULD identify both the user and the issuer-qualified
-actor; the client identifier MUST NOT stand in for the actor in
-authorization or attribution.
+The client identifier MUST NOT stand in for the actor in authorization.
+Audit records that identify both the user and the issuer-qualified
+actor, rather than the client identifier alone, preserve attribution.
 
 # Delegated Access with ID-JAG {#delegated-flow}
 

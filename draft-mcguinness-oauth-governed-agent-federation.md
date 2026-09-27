@@ -1065,9 +1065,8 @@ Issuance and denial follow these rules:
 For self-acting access, the IdP MUST authorize the resolved Agent
 Principal to access the requested RAS, resource, and authority on its
 own behalf in the requested client and tenant context. The IdP MUST do
-so before issuing a grant that names the agent as subject.
-
-The IdP MUST reject missing, revoked, expired, or insufficient Agent
+so before issuing a grant that names the agent as subject. The IdP
+MUST reject missing, revoked, expired, or insufficient Agent
 Authorization. Valid credentials, an active Identity Binding, or a
 Client Association MUST NOT imply it. Agent Authorization MUST NOT be
 inferred from a Delegation Authorization involving the same agent.
@@ -2224,8 +2223,8 @@ of an issuer-authorized presenter ({{credential-requirements}}).
 Governed agent access without grant binding adds agent authorization
 to existing enterprise access. It still leaves a stolen grant
 redeemable by an attacker who can authenticate as the grant's
-designated client,
-particularly a shared client. Binding only the resulting access token
+designated client, particularly a shared client. Binding only the
+resulting access token
 does not prevent that redemption. Explicit acceptance policy, short
 grant lifetimes, credential confidentiality, and the no-fallback rules
 in {{discovery}} limit this exposure. They do not provide proof of

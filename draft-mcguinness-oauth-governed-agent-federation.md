@@ -1478,7 +1478,8 @@ For an active token:
 
 **Issuance:** The RAS SHOULD NOT issue refresh tokens, retaining
 {{Section 4.4.3 of ID-JAG}}, but MAY do so for authorized long-running
-work under explicit policy.
+work under explicit policy. A WAG redemption never yields a refresh
+token ({{wag-redemption}}).
 
 **Binding:** The RAS MUST bind each refresh token to the authenticated
 client and apply the first applicable additional sender-binding rule
@@ -1793,8 +1794,9 @@ claims, aligned with the claim set of {{Section 5.1 of WAG}}:
 
 The WAG MUST NOT contain `act`.
 
-**Unambiguous context:** The rule of {{grant-issuance}} applies; no
-user is involved.
+**Unambiguous context:** The IdP MUST NOT issue a WAG unless the Agent
+Principal, downstream client, and tenant are unambiguous, as
+{{grant-issuance}} requires for the ID-JAG.
 
 **Lifetime:** Of the limits in {{grant-issuance}}, the configured limit
 and the agent-resolution input limit apply, including the
@@ -1814,7 +1816,7 @@ request of {{redemption-request}}.
 1. **Grant:** Validate the grant under {{RFC7523}}, consistent with
    {{Section 5 of WAG}}; require `iss` to be a configured governing IdP
    for the asserted agent namespace; and reject a WAG that contains
-   `act` as an invalid grant.
+   `act` with `invalid_grant`.
 2. **Proof and client:** Apply {{grant-protection}} and client
    authentication as in {{redemption-validation}}.
 3. **Correlation:** Resolve the pair (`iss`, `sub`) under
@@ -1846,7 +1848,8 @@ this document defines no claim or member for it.
 * {{distributed-key-use}} and {{applied-changes}}.
 * {{introspection}}, without an `act` member.
 * {{client-token-reuse}}, without a user in the cached context.
-* {{continuing-access}}, without RAS refresh.
+* {{continuing-access}} does not apply; continued access obtains a new
+  WAG (step 5).
 
 ## Resource Processing {#wag-api}
 
@@ -1873,6 +1876,7 @@ Token endpoint errors follow {{errors}} with these additions:
 | Agent not authorized for the requested RAS or resource | `invalid_target` |
 | Agent not authorized for the requested authority | `invalid_scope` |
 | WAG whose `sub` has no authorized correlation at the RAS | `invalid_grant` |
+| Invalid WAG at redemption, including one that contains `act` | `invalid_grant` |
 {: title="Self-acting error additions"}
 
 ## Profile Identifiers {#wag-profiles}

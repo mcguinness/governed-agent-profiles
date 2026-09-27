@@ -151,8 +151,7 @@ Table of Contents
      6.7.  Access-Token Protection
      6.8.  Distributed Platforms and Key Use
      6.9.  Opaque Access Tokens and Introspection
-     6.10. RAS Refresh Tokens
-     6.11. Redemption Errors
+     6.10. Redemption Errors
    7.  Access at the Resource Server
      7.1.  Profile Applicability
      7.2.  Token Validation
@@ -162,7 +161,8 @@ Table of Contents
      7.6.  Error Responses
    8.  Continuing Access and Authorization Changes
      8.1.  Client Token Reuse
-     8.2.  Applied Disablement and Revocation
+     8.2.  RAS Refresh Tokens
+     8.3.  Applied Disablement and Revocation
    9.  Security Considerations
      9.1.  Adoption Tradeoffs
      9.2.  Credential and Token Confusion
@@ -321,21 +321,8 @@ Table of Contents
    give the processing of the IdP, the resource authorization server
    (RAS), and the API (resource server), each covering delegated and
    self-acting access, and Section 8 covers renewal, token reuse, and
-   disablement.  Section 4.5 states what each role implements.  A
-   client's rules sit beside the exchanges it takes part in:
-
-   *  discovery and profile selection (Section 4.10.3);
-
-   *  the issuance request (Section 5.2, with Section 5.6.1 or
-      Section 5.7.1) and its input profile (Appendix A);
-
-   *  grant protection and the issuance response (Section 4.4,
-      Section 5.5);
-
-   *  the redemption request and the access-token response and
-      protection (Section 6.1, Section 6.6, Section 6.7); and
-
-   *  token reuse and renewal (Section 8.1, Section 8).
+   disablement.  Section 4.5 states what each role implements.  Client
+   requirements accompany the requests and responses at each stage.
 
 2.  Conventions and Terminology
 
@@ -747,7 +734,7 @@ Table of Contents
    limits redemption, not subsequent access.
 
    The RAS MUST limit access-token and refresh-authorization lifetimes
-   under its local policy (Section 6.10).  This profile defines no
+   under its local policy (Section 8.2).  This profile defines no
    portable IdP-imposed deadline on downstream authorization
    (Appendix C.2.2) and requires no shared approval record or correlated
    lifetime lookup.
@@ -927,7 +914,7 @@ Table of Contents
    |                        | selected token           |              |
    |                        | protection               |              |
    +------------------------+--------------------------+--------------+
-   | Refresh narrowing      | Explicit policy, client  | Section 6.10 |
+   | Refresh narrowing      | Explicit policy, client  | Section 8.2  |
    |                        | binding, preserved proof |              |
    |                        | binding and profile,     |              |
    |                        | finite absolute          |              |
@@ -1181,7 +1168,7 @@ Table of Contents
    before authorization.  Proof, grant-binding, grant-claim, and
    authorization-detail failures use the errors specified in
    Section 4.4, Appendix A.2.3, Section 6.2, and Section 5.2.
-   Section 5.8 and Section 6.11 list the failures specific to each
+   Section 5.8 and Section 6.10 list the failures specific to each
    server.
 
     +=============================================+==================+
@@ -2263,7 +2250,7 @@ Table of Contents
    The IdP or an authorized directory connector can provision local
    agent principals, keyed by the same pair.  No provisioning protocol
    is required (Appendix C.3).  Once deactivation is applied, the RAS
-   enforces Section 8.2.
+   enforces Section 8.3.
 
 6.3.1.  Just-in-Time Correlation
 
@@ -2280,7 +2267,7 @@ Table of Contents
       descriptive match;
 
    *  MUST apply local restrictions, retained revocation state under
-      Section 8.2, and local policy before issuance; and
+      Section 8.3, and local policy before issuance; and
 
    *  sets the record's initial eligibility by local policy; a record
       created ineligible denies the triggering request.
@@ -2402,7 +2389,7 @@ Table of Contents
    *Retention:* The RAS retains the correlation between the WAG's (iss,
    sub) and the local principal for the life of the derived
    authorization.  This supports revocation by qualified agent
-   (Section 8.2) and audit.  The token and its introspection response
+   (Section 8.3) and audit.  The token and its introspection response
    need not carry the correlation; this document defines no claim or
    member for it.
 
@@ -2440,6 +2427,9 @@ Table of Contents
    *Response:* The response follows Section 4.4.2 of [ID-JAG].  The
    client MUST reject an output that does not satisfy its configured
    protection requirement.
+
+   Whether the response also carries a refresh token, and how that token
+   is bound and used, follows Section 8.2.
 
 6.7.  Access-Token Protection
 
@@ -2537,78 +2527,7 @@ Table of Contents
       of [RFC8705].  The API MUST enforce that cnf as it would the JWT
       claim.
 
-6.10.  RAS Refresh Tokens
-
-   *Issuance:* The RAS SHOULD NOT issue refresh tokens, retaining
-   Section 4.4.3 of [ID-JAG], but MAY do so for authorized long-running
-   work under explicit policy.  A WAG redemption never yields a refresh
-   token (Section 6.5).
-
-   *Binding:* The RAS MUST bind each refresh token to the authenticated
-   client and apply the first applicable additional sender-binding rule
-   below.  Bindings required by the client-authentication method, such
-   as Section 10.3 of [ATTEST], apply in every row.  Refresh-token
-   rotation does not replace them.
-
-   +==========================+=======================================+
-   | Redemption context       | Refresh-token requirement             |
-   +==========================+=======================================+
-   | Grant contains cnf.jkt   | Retain the grant's DPoP key binding,  |
-   |                          | regardless of access-token protection |
-   +--------------------------+---------------------------------------+
-   | Unbound grant; DPoP      | Bind to the validated redemption      |
-   | proof used at redemption | proof key                             |
-   +--------------------------+---------------------------------------+
-   | No DPoP proof;           | Bind to the validated mutual-TLS      |
-   | certificate-bound access | certificate                           |
-   | token                    |                                       |
-   +--------------------------+---------------------------------------+
-   | Neither DPoP nor         | Retain any authentication-method      |
-   | certificate binding      | binding; if none applies, apply the   |
-   |                          | fallback below                        |
-   +--------------------------+---------------------------------------+
-
-                  Table 20: Refresh-token sender binding
-
-   Without DPoP, certificate, or authentication-method binding, the RAS
-   requires explicit policy permitting client-bound refresh without
-   sender constraint and uses rotation under Section 4.14 of [RFC9700].
-
-   *Resource:* A refresh request MAY include one resource parameter
-   under Section 2.2 of [RFC8707] solely to identify the retained
-   resource.  If omitted, the RAS MUST use that resource.  If supplied,
-   its value MUST match the retained resource exactly.  The RAS MUST
-   reject multiple values or a different resource with invalid_target.
-
-   *Processing:* On every refresh, the RAS MUST:
-
-   1.  *Client and proof:* Authenticate the bound client and enforce the
-       retained authentication-method binding and any additional sender
-       binding under RFC 9449 or RFC 8705.  Dropping or replacing a
-       sender binding requires a new grant.
-
-   2.  *Authorization context:* Preserve the user, qualified actor,
-       Target Tenant, resource, and authorization ceiling, including
-       authorization_details.  Apply current local user and actor policy
-       and Section 6 of [RFC9396].
-
-   3.  *Profile:* Enforce current minimum-profile policy against the
-       profile under which the grant was accepted.  Reject with
-       invalid_grant if it no longer qualifies.  Adding a proof does not
-       upgrade that authorization.
-
-   4.  *Lifetime:* Enforce a finite absolute authorization expiration
-       set at issuance under local policy and an inactivity limit under
-       [RFC9700].  Rotation, refresh, or repeated redemption of the same
-       ID-JAG MUST NOT reset the absolute expiration.  Access beyond it
-       requires a new ID-JAG and therefore a fresh IdP decision.  That
-       new ID-JAG starts a new authorization period and leaves the
-       previous expiration unchanged.
-
-   5.  *Output:* Issue access tokens under Section 6.6 and Section 6.7,
-       expiring no later than the absolute authorization expiration.
-
-6.11.  Redemption Errors
+6.10.  Redemption Errors
 
    In addition to Section 4.8 and the checks of Section 6.2, the RAS
    uses these errors:
@@ -2625,7 +2544,7 @@ Table of Contents
             | contains act                    |               |
             +---------------------------------+---------------+
 
-                        Table 21: Redemption errors
+                        Table 20: Redemption errors
 
 7.  Access at the Resource Server
 
@@ -2742,7 +2661,7 @@ Table of Contents
    |                                             | of [ACTOR-PROFILE] |
    +---------------------------------------------+--------------------+
 
-                Table 22: Resource server error responses
+                Table 21: Resource server error responses
 
    Actor denial MUST NOT use insufficient_scope.  The API MUST NOT
    expose actor-specific rejection details outside the trust domain.
@@ -2763,14 +2682,14 @@ Table of Contents
      +-----------------+--------------------------------------------+
      | RAS refresh     | Preserves authorization at the same RAS    |
      | (delegated      | within its lifetime and policy limits      |
-     | access)         | (Section 6.10)                             |
+     | access)         | (Section 8.2)                              |
      +-----------------+--------------------------------------------+
      | Obtain a new    | Current agent-resolution input and a fresh |
      | WAG             | IdP authorization decision (Section 5.7);  |
      |                 | a WAG redemption yields no refresh token   |
      +-----------------+--------------------------------------------+
 
-                       Table 23: Renewal mechanisms
+                       Table 22: Renewal mechanisms
 
    An IdP refresh token can supply the subject credential for a new
    exchange only when eligible under Section 5.6.2.  Otherwise, renewal
@@ -2802,7 +2721,78 @@ Table of Contents
    when the governed principal and authorization context remain the
    same.
 
-8.2.  Applied Disablement and Revocation
+8.2.  RAS Refresh Tokens
+
+   *Issuance:* The RAS SHOULD NOT issue refresh tokens, retaining
+   Section 4.4.3 of [ID-JAG], but MAY do so for authorized long-running
+   work under explicit policy.  A WAG redemption never yields a refresh
+   token (Section 6.5).
+
+   *Binding:* The RAS MUST bind each refresh token to the authenticated
+   client and apply the first applicable additional sender-binding rule
+   below.  Bindings required by the client-authentication method, such
+   as Section 10.3 of [ATTEST], apply in every row.  Refresh-token
+   rotation does not replace them.
+
+   +==========================+=======================================+
+   | Redemption context       | Refresh-token requirement             |
+   +==========================+=======================================+
+   | Grant contains cnf.jkt   | Retain the grant's DPoP key binding,  |
+   |                          | regardless of access-token protection |
+   +--------------------------+---------------------------------------+
+   | Unbound grant; DPoP      | Bind to the validated redemption      |
+   | proof used at redemption | proof key                             |
+   +--------------------------+---------------------------------------+
+   | No DPoP proof;           | Bind to the validated mutual-TLS      |
+   | certificate-bound access | certificate                           |
+   | token                    |                                       |
+   +--------------------------+---------------------------------------+
+   | Neither DPoP nor         | Retain any authentication-method      |
+   | certificate binding      | binding; if none applies, apply the   |
+   |                          | fallback below                        |
+   +--------------------------+---------------------------------------+
+
+                  Table 23: Refresh-token sender binding
+
+   Without DPoP, certificate, or authentication-method binding, the RAS
+   requires explicit policy permitting client-bound refresh without
+   sender constraint and uses rotation under Section 4.14 of [RFC9700].
+
+   *Resource:* A refresh request MAY include one resource parameter
+   under Section 2.2 of [RFC8707] solely to identify the retained
+   resource.  If omitted, the RAS MUST use that resource.  If supplied,
+   its value MUST match the retained resource exactly.  The RAS MUST
+   reject multiple values or a different resource with invalid_target.
+
+   *Processing:* On every refresh, the RAS MUST:
+
+   1.  *Client and proof:* Authenticate the bound client and enforce the
+       retained authentication-method binding and any additional sender
+       binding under RFC 9449 or RFC 8705.  Dropping or replacing a
+       sender binding requires a new grant.
+
+   2.  *Authorization context:* Preserve the user, qualified actor,
+       Target Tenant, resource, and authorization ceiling, including
+       authorization_details.  Apply current local user and actor policy
+       and Section 6 of [RFC9396].
+
+   3.  *Profile:* Enforce current minimum-profile policy against the
+       profile under which the grant was accepted.  Reject with
+       invalid_grant if it no longer qualifies.  Adding a proof does not
+       upgrade that authorization.
+
+   4.  *Lifetime:* Enforce a finite absolute authorization expiration
+       set at issuance under local policy and an inactivity limit under
+       [RFC9700].  Rotation, refresh, or repeated redemption of the same
+       ID-JAG MUST NOT reset the absolute expiration.  Access beyond it
+       requires a new ID-JAG and therefore a fresh IdP decision.  That
+       new ID-JAG starts a new authorization period and leaves the
+       previous expiration unchanged.
+
+   5.  *Output:* Issue access tokens under Section 6.6 and Section 6.7,
+       expiring no later than the absolute authorization expiration.
+
+8.3.  Applied Disablement and Revocation
 
    When a principal disablement, correlation removal, or local
    restriction is applied at the RAS, the RAS MUST:
@@ -3004,7 +2994,7 @@ Table of Contents
 
                Table 25: Effects of administrative changes
 
-   The RAS requirements for applied changes are in Section 8.2.  The
+   The RAS requirements for applied changes are in Section 8.3.  The
    provisioning that feeds them is a deployment choice.
 
    The withdrawal of a delegation, Identity Binding, or Client

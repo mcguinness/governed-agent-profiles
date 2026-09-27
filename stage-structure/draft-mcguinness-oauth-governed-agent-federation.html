@@ -1408,10 +1408,7 @@ subject.<a href="#section-abstract-3" class="pilcrow">¶</a></p>
                 <p id="section-toc.1-1.6.2.9.1"><a href="#section-6.9" class="auto internal xref">6.9</a>.  <a href="#name-opaque-access-tokens-and-in" class="internal xref">Opaque Access Tokens and Introspection</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.10">
-                <p id="section-toc.1-1.6.2.10.1"><a href="#section-6.10" class="auto internal xref">6.10</a>. <a href="#name-ras-refresh-tokens" class="internal xref">RAS Refresh Tokens</a></p>
-</li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.11">
-                <p id="section-toc.1-1.6.2.11.1"><a href="#section-6.11" class="auto internal xref">6.11</a>. <a href="#name-redemption-errors" class="internal xref">Redemption Errors</a></p>
+                <p id="section-toc.1-1.6.2.10.1"><a href="#section-6.10" class="auto internal xref">6.10</a>. <a href="#name-redemption-errors" class="internal xref">Redemption Errors</a></p>
 </li>
             </ul>
 </li>
@@ -1445,7 +1442,10 @@ subject.<a href="#section-abstract-3" class="pilcrow">¶</a></p>
                 <p id="section-toc.1-1.8.2.1.1"><a href="#section-8.1" class="auto internal xref">8.1</a>.  <a href="#name-client-token-reuse" class="internal xref">Client Token Reuse</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.2">
-                <p id="section-toc.1-1.8.2.2.1"><a href="#section-8.2" class="auto internal xref">8.2</a>.  <a href="#name-applied-disablement-and-rev" class="internal xref">Applied Disablement and Revocation</a></p>
+                <p id="section-toc.1-1.8.2.2.1"><a href="#section-8.2" class="auto internal xref">8.2</a>.  <a href="#name-ras-refresh-tokens" class="internal xref">RAS Refresh Tokens</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.3">
+                <p id="section-toc.1-1.8.2.3.1"><a href="#section-8.3" class="auto internal xref">8.3</a>.  <a href="#name-applied-disablement-and-rev" class="internal xref">Applied Disablement and Revocation</a></p>
 </li>
             </ul>
 </li>
@@ -1754,30 +1754,8 @@ IdP's namespace is out of scope. Also out of scope (<a href="#upstream-gaps" cla
 the resource authorization server (RAS), and the API (resource server),
 each covering delegated and self-acting access, and
 <a href="#continuing-access" class="auto internal xref">Section 8</a> covers renewal, token reuse, and disablement.
-<a href="#scope" class="auto internal xref">Section 4.5</a> states what each role implements. A client's rules sit beside
-the exchanges it takes part in:<a href="#section-1-15" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-1-16.1">
-          <p id="section-1-16.1.1">discovery and profile selection (<a href="#discovery" class="auto internal xref">Section 4.10.3</a>);<a href="#section-1-16.1.1" class="pilcrow">¶</a></p>
-</li>
-        <li class="normal" id="section-1-16.2">
-          <p id="section-1-16.2.1">the issuance request (<a href="#issuance-request" class="auto internal xref">Section 5.2</a>, with <a href="#root-request" class="auto internal xref">Section 5.6.1</a> or
-<a href="#wag-request" class="auto internal xref">Section 5.7.1</a>) and its input profile (<a href="#input-profiles" class="auto internal xref">Appendix A</a>);<a href="#section-1-16.2.1" class="pilcrow">¶</a></p>
-</li>
-        <li class="normal" id="section-1-16.3">
-          <p id="section-1-16.3.1">grant protection and the issuance response (<a href="#grant-protection" class="auto internal xref">Section 4.4</a>,
-<a href="#grant-common" class="auto internal xref">Section 5.5</a>);<a href="#section-1-16.3.1" class="pilcrow">¶</a></p>
-</li>
-        <li class="normal" id="section-1-16.4">
-          <p id="section-1-16.4.1">the redemption request and the access-token response and protection
-(<a href="#redemption-request" class="auto internal xref">Section 6.1</a>, <a href="#access-token-response" class="auto internal xref">Section 6.6</a>,
-<a href="#access-token-protection" class="auto internal xref">Section 6.7</a>); and<a href="#section-1-16.4.1" class="pilcrow">¶</a></p>
-</li>
-        <li class="normal" id="section-1-16.5">
-          <p id="section-1-16.5.1">token reuse and renewal (<a href="#client-token-reuse" class="auto internal xref">Section 8.1</a>,
-<a href="#continuing-access" class="auto internal xref">Section 8</a>).<a href="#section-1-16.5.1" class="pilcrow">¶</a></p>
-</li>
-      </ul>
+<a href="#scope" class="auto internal xref">Section 4.5</a> states what each role implements. Client requirements
+accompany the requests and responses at each stage.<a href="#section-1-15" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="conventions-and-terminology">
@@ -2332,7 +2310,7 @@ rejected under <a href="#actor-inputs" class="auto internal xref">Section 5.3.3<
 token or RAS refresh authorization already issued; the grant's <code>exp</code>
 limits redemption, not subsequent access.<a href="#section-3.6.3-1" class="pilcrow">¶</a></p>
 <p id="section-3.6.3-2">The RAS <span class="bcp14">MUST</span> limit access-token and refresh-authorization lifetimes
-under its local policy (<a href="#ras-refresh" class="auto internal xref">Section 6.10</a>). This profile defines no
+under its local policy (<a href="#ras-refresh" class="auto internal xref">Section 8.2</a>). This profile defines no
 portable IdP-imposed deadline on downstream authorization
 (<a href="#deadline-gap" class="auto internal xref">Appendix C.2.2</a>) and requires no shared approval record or correlated
 lifetime lookup.<a href="#section-3.6.3-2" class="pilcrow">¶</a></p>
@@ -2600,7 +2578,7 @@ requirement.<a href="#section-4.1.1-1" class="pilcrow">¶</a></p>
                 <td class="text-left" rowspan="1" colspan="1">Refresh narrowing</td>
                 <td class="text-left" rowspan="1" colspan="1">Explicit policy, client binding, preserved proof binding and profile, finite absolute authorization expiration</td>
                 <td class="text-left" rowspan="1" colspan="1">
-                  <a href="#ras-refresh" class="auto internal xref">Section 6.10</a>
+                  <a href="#ras-refresh" class="auto internal xref">Section 8.2</a>
 </td>
               </tr>
               <tr>
@@ -2918,7 +2896,7 @@ Servers <span class="bcp14">MUST</span> validate client authentication, credenti
 before authorization. Proof, grant-binding, grant-claim, and
 authorization-detail failures use the errors specified in
 <a href="#grant-protection" class="auto internal xref">Section 4.4</a>, <a href="#spiffe-input" class="auto internal xref">Appendix A.2.3</a>, <a href="#redemption-common" class="auto internal xref">Section 6.2</a>, and
-<a href="#issuance-request" class="auto internal xref">Section 5.2</a>. <a href="#issuance-errors" class="auto internal xref">Section 5.8</a> and <a href="#redemption-errors" class="auto internal xref">Section 6.11</a> list
+<a href="#issuance-request" class="auto internal xref">Section 5.2</a>. <a href="#issuance-errors" class="auto internal xref">Section 5.8</a> and <a href="#redemption-errors" class="auto internal xref">Section 6.10</a> list
 the failures specific to each server.<a href="#section-4.8-1" class="pilcrow">¶</a></p>
 <span id="name-target-authority-and-user-r"></span><table class="center" id="table-6">
           <caption>
@@ -4445,7 +4423,7 @@ existing delegation to a different agent.<a href="#section-6.3-3" class="pilcrow
 <p id="section-6.3-4">The IdP or an authorized directory connector can provision local agent
 principals, keyed by the same pair. No provisioning protocol is required
 (<a href="#operational-guidance" class="auto internal xref">Appendix C.3</a>). Once deactivation is applied, the RAS
-enforces <a href="#applied-changes" class="auto internal xref">Section 8.2</a>.<a href="#section-6.3-4" class="pilcrow">¶</a></p>
+enforces <a href="#applied-changes" class="auto internal xref">Section 8.3</a>.<a href="#section-6.3-4" class="pilcrow">¶</a></p>
 <div id="jit-correlation">
 <section id="section-6.3.1">
           <h4 id="name-just-in-time-correlation">
@@ -4468,7 +4446,7 @@ descriptive match;<a href="#section-6.3.1-2.2.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="section-6.3.1-2.3">
               <p id="section-6.3.1-2.3.1"><span class="bcp14">MUST</span> apply local restrictions, retained revocation state under
-<a href="#applied-changes" class="auto internal xref">Section 8.2</a>, and local policy before issuance; and<a href="#section-6.3.1-2.3.1" class="pilcrow">¶</a></p>
+<a href="#applied-changes" class="auto internal xref">Section 8.3</a>, and local policy before issuance; and<a href="#section-6.3.1-2.3.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="section-6.3.1-2.4">
               <p id="section-6.3.1-2.4.1">sets the record's initial eligibility by local policy; a record
@@ -4642,7 +4620,7 @@ RAS policy.<a href="#section-6.5-2.5.1" class="pilcrow">¶</a></p>
 <p id="section-6.5-3"><strong>Retention:</strong> The RAS retains the correlation between the WAG's
 (<code>iss</code>, <code>sub</code>) and the local principal for the life of the derived
 authorization. This supports revocation by qualified agent
-(<a href="#applied-changes" class="auto internal xref">Section 8.2</a>) and audit. The token and its introspection
+(<a href="#applied-changes" class="auto internal xref">Section 8.3</a>) and audit. The token and its introspection
 response need not carry the correlation; this document defines no claim
 or member for it.<a href="#section-6.5-3" class="pilcrow">¶</a></p>
 </section>
@@ -4692,6 +4670,8 @@ limit.<a href="#section-6.6-2.6.1" class="pilcrow">¶</a></p>
 <p id="section-6.6-3"><strong>Response:</strong> The response follows <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04#section-4.4.2" class="relref">Section 4.4.2</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>. The
 client <span class="bcp14">MUST</span> reject an output that does not satisfy its configured
 protection requirement.<a href="#section-6.6-3" class="pilcrow">¶</a></p>
+<p id="section-6.6-4">Whether the response also carries a refresh token, and how that token
+is bound and used, follows <a href="#ras-refresh" class="auto internal xref">Section 8.2</a>.<a href="#section-6.6-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="access-token-protection">
@@ -4821,106 +4801,16 @@ would the JWT claim.<a href="#section-6.9-2.3.1" class="pilcrow">¶</a></p>
         </ul>
 </section>
 </div>
-<div id="ras-refresh">
+<div id="redemption-errors">
 <section id="section-6.10">
-        <h3 id="name-ras-refresh-tokens">
-<a href="#section-6.10" class="section-number selfRef">6.10. </a><a href="#name-ras-refresh-tokens" class="section-name selfRef">RAS Refresh Tokens</a>
+        <h3 id="name-redemption-errors">
+<a href="#section-6.10" class="section-number selfRef">6.10. </a><a href="#name-redemption-errors" class="section-name selfRef">Redemption Errors</a>
         </h3>
-<p id="section-6.10-1"><strong>Issuance:</strong> The RAS <span class="bcp14">SHOULD NOT</span> issue refresh tokens, retaining
-<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04#section-4.4.3" class="relref">Section 4.4.3</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>, but <span class="bcp14">MAY</span> do so for authorized long-running
-work under explicit policy. A WAG redemption never yields a refresh
-token (<a href="#wag-redemption" class="auto internal xref">Section 6.5</a>).<a href="#section-6.10-1" class="pilcrow">¶</a></p>
-<p id="section-6.10-2"><strong>Binding:</strong> The RAS <span class="bcp14">MUST</span> bind each refresh token to the authenticated
-client and apply the first applicable additional sender-binding rule
-below. Bindings required by the client-authentication method, such as
-<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-10.3" class="relref">Section 10.3</a> of [<a href="#ATTEST" class="cite xref">ATTEST</a>]</span>, apply in every row. Refresh-token rotation
-does not replace them.<a href="#section-6.10-2" class="pilcrow">¶</a></p>
-<span id="name-refresh-token-sender-bindin"></span><table class="center" id="table-20">
+<p id="section-6.10-1">In addition to <a href="#errors" class="auto internal xref">Section 4.8</a> and the checks of <a href="#redemption-common" class="auto internal xref">Section 6.2</a>, the
+RAS uses these errors:<a href="#section-6.10-1" class="pilcrow">¶</a></p>
+<span id="name-redemption-errors-2"></span><table class="center" id="table-20">
           <caption>
 <a href="#table-20" class="selfRef">Table 20</a>:
-<a href="#name-refresh-token-sender-bindin" class="selfRef">Refresh-token sender binding</a>
-          </caption>
-<thead>
-            <tr>
-              <th class="text-left" rowspan="1" colspan="1">Redemption context</th>
-              <th class="text-left" rowspan="1" colspan="1">Refresh-token requirement</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td class="text-left" rowspan="1" colspan="1">Grant contains <code>cnf.jkt</code>
-</td>
-              <td class="text-left" rowspan="1" colspan="1">Retain the grant's DPoP key binding, regardless of access-token protection</td>
-            </tr>
-            <tr>
-              <td class="text-left" rowspan="1" colspan="1">Unbound grant; DPoP proof used at redemption</td>
-              <td class="text-left" rowspan="1" colspan="1">Bind to the validated redemption proof key</td>
-            </tr>
-            <tr>
-              <td class="text-left" rowspan="1" colspan="1">No DPoP proof; certificate-bound access token</td>
-              <td class="text-left" rowspan="1" colspan="1">Bind to the validated mutual-TLS certificate</td>
-            </tr>
-            <tr>
-              <td class="text-left" rowspan="1" colspan="1">Neither DPoP nor certificate binding</td>
-              <td class="text-left" rowspan="1" colspan="1">Retain any authentication-method binding; if none applies, apply the fallback below</td>
-            </tr>
-          </tbody>
-        </table>
-<p id="section-6.10-4">Without DPoP, certificate, or authentication-method binding, the RAS
-requires explicit policy permitting client-bound refresh without sender
-constraint and uses rotation under <span><a href="https://rfc-editor.org/rfc/rfc9700#section-4.14" class="relref">Section 4.14</a> of [<a href="#RFC9700" class="cite xref">RFC9700</a>]</span>.<a href="#section-6.10-4" class="pilcrow">¶</a></p>
-<p id="section-6.10-5"><strong>Resource:</strong> A refresh request <span class="bcp14">MAY</span> include one <code>resource</code> parameter
-under <span><a href="https://rfc-editor.org/rfc/rfc8707#section-2.2" class="relref">Section 2.2</a> of [<a href="#RFC8707" class="cite xref">RFC8707</a>]</span> solely to identify the retained
-resource. If omitted, the RAS <span class="bcp14">MUST</span> use that resource. If supplied, its
-value <span class="bcp14">MUST</span> match the retained resource exactly. The RAS <span class="bcp14">MUST</span> reject
-multiple values or a different resource with <code>invalid_target</code>.<a href="#section-6.10-5" class="pilcrow">¶</a></p>
-<p id="section-6.10-6"><strong>Processing:</strong> On every refresh, the RAS <span class="bcp14">MUST</span>:<a href="#section-6.10-6" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="section-6.10-7">
-<li id="section-6.10-7.1">
-            <p id="section-6.10-7.1.1"><strong>Client and proof:</strong> Authenticate the bound client and enforce the
-retained authentication-method binding and any additional sender
-binding under RFC 9449 or RFC 8705. Dropping or replacing a
-sender binding requires a new grant.<a href="#section-6.10-7.1.1" class="pilcrow">¶</a></p>
-</li>
-          <li id="section-6.10-7.2">
-            <p id="section-6.10-7.2.1"><strong>Authorization context:</strong> Preserve the user, qualified actor, Target
-Tenant, resource, and authorization ceiling, including
-<code>authorization_details</code>. Apply current local user and actor policy
-and <span><a href="https://rfc-editor.org/rfc/rfc9396#section-6" class="relref">Section 6</a> of [<a href="#RFC9396" class="cite xref">RFC9396</a>]</span>.<a href="#section-6.10-7.2.1" class="pilcrow">¶</a></p>
-</li>
-          <li id="section-6.10-7.3">
-            <p id="section-6.10-7.3.1"><strong>Profile:</strong> Enforce current minimum-profile policy against the
-profile under which the grant was accepted. Reject with
-<code>invalid_grant</code> if it no longer qualifies. Adding a proof does not
-upgrade that authorization.<a href="#section-6.10-7.3.1" class="pilcrow">¶</a></p>
-</li>
-          <li id="section-6.10-7.4">
-            <p id="section-6.10-7.4.1"><strong>Lifetime:</strong> Enforce a finite absolute authorization expiration set
-at issuance under local policy and an inactivity limit under
-<span>[<a href="#RFC9700" class="cite xref">RFC9700</a>]</span>. Rotation, refresh, or repeated redemption of the same
-ID-JAG <span class="bcp14">MUST NOT</span> reset the absolute expiration. Access beyond it
-requires a new ID-JAG and therefore a fresh IdP decision. That new
-ID-JAG starts a new authorization period and leaves the previous
-expiration unchanged.<a href="#section-6.10-7.4.1" class="pilcrow">¶</a></p>
-</li>
-          <li id="section-6.10-7.5">
-            <p id="section-6.10-7.5.1"><strong>Output:</strong> Issue access tokens under <a href="#access-token-response" class="auto internal xref">Section 6.6</a> and
-<a href="#access-token-protection" class="auto internal xref">Section 6.7</a>, expiring no later than the absolute
-authorization expiration.<a href="#section-6.10-7.5.1" class="pilcrow">¶</a></p>
-</li>
-        </ol>
-</section>
-</div>
-<div id="redemption-errors">
-<section id="section-6.11">
-        <h3 id="name-redemption-errors">
-<a href="#section-6.11" class="section-number selfRef">6.11. </a><a href="#name-redemption-errors" class="section-name selfRef">Redemption Errors</a>
-        </h3>
-<p id="section-6.11-1">In addition to <a href="#errors" class="auto internal xref">Section 4.8</a> and the checks of <a href="#redemption-common" class="auto internal xref">Section 6.2</a>, the
-RAS uses these errors:<a href="#section-6.11-1" class="pilcrow">¶</a></p>
-<span id="name-redemption-errors-2"></span><table class="center" id="table-21">
-          <caption>
-<a href="#table-21" class="selfRef">Table 21</a>:
 <a href="#name-redemption-errors-2" class="selfRef">Redemption errors</a>
           </caption>
 <thead>
@@ -5092,9 +4982,9 @@ token's constraints.<a href="#section-7.5-3" class="pilcrow">¶</a></p>
 <p id="section-7.6-1">Challenges and scope errors use the selected scheme: <code>DPoP</code> under
 <span><a href="https://rfc-editor.org/rfc/rfc9449#section-7.1" class="relref">Section 7.1</a> of [<a href="#RFC9449" class="cite xref">RFC9449</a>]</span>, or <code>Bearer</code> under <span>[<a href="#RFC6750" class="cite xref">RFC6750</a>]</span> for bearer
 and mutual-TLS tokens.<a href="#section-7.6-1" class="pilcrow">¶</a></p>
-<span id="name-resource-server-error-respo"></span><table class="center" id="table-22">
+<span id="name-resource-server-error-respo"></span><table class="center" id="table-21">
           <caption>
-<a href="#table-22" class="selfRef">Table 22</a>:
+<a href="#table-21" class="selfRef">Table 21</a>:
 <a href="#name-resource-server-error-respo" class="selfRef">Resource server error responses</a>
           </caption>
 <thead>
@@ -5133,9 +5023,9 @@ actor-specific rejection details outside the trust domain.<a href="#section-7.6-
 <a href="#section-8" class="section-number selfRef">8. </a><a href="#name-continuing-access-and-autho" class="section-name selfRef">Continuing Access and Authorization Changes</a>
       </h2>
 <p id="section-8-1">Deployments select a renewal model before scheduling unattended work:<a href="#section-8-1" class="pilcrow">¶</a></p>
-<span id="name-renewal-mechanisms"></span><table class="center" id="table-23">
+<span id="name-renewal-mechanisms"></span><table class="center" id="table-22">
         <caption>
-<a href="#table-23" class="selfRef">Table 23</a>:
+<a href="#table-22" class="selfRef">Table 22</a>:
 <a href="#name-renewal-mechanisms" class="selfRef">Renewal mechanisms</a>
         </caption>
 <thead>
@@ -5155,7 +5045,7 @@ actor-specific rejection details outside the trust domain.<a href="#section-7.6-
           </tr>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">RAS refresh (delegated access)</td>
-            <td class="text-left" rowspan="1" colspan="1">Preserves authorization at the same RAS within its lifetime and policy limits (<a href="#ras-refresh" class="auto internal xref">Section 6.10</a>)</td>
+            <td class="text-left" rowspan="1" colspan="1">Preserves authorization at the same RAS within its lifetime and policy limits (<a href="#ras-refresh" class="auto internal xref">Section 8.2</a>)</td>
           </tr>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">Obtain a new WAG</td>
@@ -5200,31 +5090,121 @@ context. A credential change alone need not invalidate cached tokens
 when the governed principal and authorization context remain the same.<a href="#section-8.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="applied-changes">
+<div id="ras-refresh">
 <section id="section-8.2">
-        <h3 id="name-applied-disablement-and-rev">
-<a href="#section-8.2" class="section-number selfRef">8.2. </a><a href="#name-applied-disablement-and-rev" class="section-name selfRef">Applied Disablement and Revocation</a>
+        <h3 id="name-ras-refresh-tokens">
+<a href="#section-8.2" class="section-number selfRef">8.2. </a><a href="#name-ras-refresh-tokens" class="section-name selfRef">RAS Refresh Tokens</a>
         </h3>
-<p id="section-8.2-1">When a principal disablement, correlation removal, or local restriction
-is applied at the RAS, the RAS <span class="bcp14">MUST</span>:<a href="#section-8.2-1" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-8.2-2.1">
-            <p id="section-8.2-2.1.1">Check current locally applied eligibility at grant redemption and
-refresh, in addition to grant validation and the actor gate.<a href="#section-8.2-2.1.1" class="pilcrow">¶</a></p>
+<p id="section-8.2-1"><strong>Issuance:</strong> The RAS <span class="bcp14">SHOULD NOT</span> issue refresh tokens, retaining
+<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04#section-4.4.3" class="relref">Section 4.4.3</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>, but <span class="bcp14">MAY</span> do so for authorized long-running
+work under explicit policy. A WAG redemption never yields a refresh
+token (<a href="#wag-redemption" class="auto internal xref">Section 6.5</a>).<a href="#section-8.2-1" class="pilcrow">¶</a></p>
+<p id="section-8.2-2"><strong>Binding:</strong> The RAS <span class="bcp14">MUST</span> bind each refresh token to the authenticated
+client and apply the first applicable additional sender-binding rule
+below. Bindings required by the client-authentication method, such as
+<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-10.3" class="relref">Section 10.3</a> of [<a href="#ATTEST" class="cite xref">ATTEST</a>]</span>, apply in every row. Refresh-token rotation
+does not replace them.<a href="#section-8.2-2" class="pilcrow">¶</a></p>
+<span id="name-refresh-token-sender-bindin"></span><table class="center" id="table-23">
+          <caption>
+<a href="#table-23" class="selfRef">Table 23</a>:
+<a href="#name-refresh-token-sender-bindin" class="selfRef">Refresh-token sender binding</a>
+          </caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Redemption context</th>
+              <th class="text-left" rowspan="1" colspan="1">Refresh-token requirement</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Grant contains <code>cnf.jkt</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Retain the grant's DPoP key binding, regardless of access-token protection</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Unbound grant; DPoP proof used at redemption</td>
+              <td class="text-left" rowspan="1" colspan="1">Bind to the validated redemption proof key</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">No DPoP proof; certificate-bound access token</td>
+              <td class="text-left" rowspan="1" colspan="1">Bind to the validated mutual-TLS certificate</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Neither DPoP nor certificate binding</td>
+              <td class="text-left" rowspan="1" colspan="1">Retain any authentication-method binding; if none applies, apply the fallback below</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-8.2-4">Without DPoP, certificate, or authentication-method binding, the RAS
+requires explicit policy permitting client-bound refresh without sender
+constraint and uses rotation under <span><a href="https://rfc-editor.org/rfc/rfc9700#section-4.14" class="relref">Section 4.14</a> of [<a href="#RFC9700" class="cite xref">RFC9700</a>]</span>.<a href="#section-8.2-4" class="pilcrow">¶</a></p>
+<p id="section-8.2-5"><strong>Resource:</strong> A refresh request <span class="bcp14">MAY</span> include one <code>resource</code> parameter
+under <span><a href="https://rfc-editor.org/rfc/rfc8707#section-2.2" class="relref">Section 2.2</a> of [<a href="#RFC8707" class="cite xref">RFC8707</a>]</span> solely to identify the retained
+resource. If omitted, the RAS <span class="bcp14">MUST</span> use that resource. If supplied, its
+value <span class="bcp14">MUST</span> match the retained resource exactly. The RAS <span class="bcp14">MUST</span> reject
+multiple values or a different resource with <code>invalid_target</code>.<a href="#section-8.2-5" class="pilcrow">¶</a></p>
+<p id="section-8.2-6"><strong>Processing:</strong> On every refresh, the RAS <span class="bcp14">MUST</span>:<a href="#section-8.2-6" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-8.2-7">
+<li id="section-8.2-7.1">
+            <p id="section-8.2-7.1.1"><strong>Client and proof:</strong> Authenticate the bound client and enforce the
+retained authentication-method binding and any additional sender
+binding under RFC 9449 or RFC 8705. Dropping or replacing a
+sender binding requires a new grant.<a href="#section-8.2-7.1.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-8.2-2.2">
-            <p id="section-8.2-2.2.1">Invalidate authorization derived from grants for that qualified agent
+          <li id="section-8.2-7.2">
+            <p id="section-8.2-7.2.1"><strong>Authorization context:</strong> Preserve the user, qualified actor, Target
+Tenant, resource, and authorization ceiling, including
+<code>authorization_details</code>. Apply current local user and actor policy
+and <span><a href="https://rfc-editor.org/rfc/rfc9396#section-6" class="relref">Section 6</a> of [<a href="#RFC9396" class="cite xref">RFC9396</a>]</span>.<a href="#section-8.2-7.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-8.2-7.3">
+            <p id="section-8.2-7.3.1"><strong>Profile:</strong> Enforce current minimum-profile policy against the
+profile under which the grant was accepted. Reject with
+<code>invalid_grant</code> if it no longer qualifies. Adding a proof does not
+upgrade that authorization.<a href="#section-8.2-7.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-8.2-7.4">
+            <p id="section-8.2-7.4.1"><strong>Lifetime:</strong> Enforce a finite absolute authorization expiration set
+at issuance under local policy and an inactivity limit under
+<span>[<a href="#RFC9700" class="cite xref">RFC9700</a>]</span>. Rotation, refresh, or repeated redemption of the same
+ID-JAG <span class="bcp14">MUST NOT</span> reset the absolute expiration. Access beyond it
+requires a new ID-JAG and therefore a fresh IdP decision. That new
+ID-JAG starts a new authorization period and leaves the previous
+expiration unchanged.<a href="#section-8.2-7.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-8.2-7.5">
+            <p id="section-8.2-7.5.1"><strong>Output:</strong> Issue access tokens under <a href="#access-token-response" class="auto internal xref">Section 6.6</a> and
+<a href="#access-token-protection" class="auto internal xref">Section 6.7</a>, expiring no later than the absolute
+authorization expiration.<a href="#section-8.2-7.5.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+</section>
+</div>
+<div id="applied-changes">
+<section id="section-8.3">
+        <h3 id="name-applied-disablement-and-rev">
+<a href="#section-8.3" class="section-number selfRef">8.3. </a><a href="#name-applied-disablement-and-rev" class="section-name selfRef">Applied Disablement and Revocation</a>
+        </h3>
+<p id="section-8.3-1">When a principal disablement, correlation removal, or local restriction
+is applied at the RAS, the RAS <span class="bcp14">MUST</span>:<a href="#section-8.3-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-8.3-2.1">
+            <p id="section-8.3-2.1.1">Check current locally applied eligibility at grant redemption and
+refresh, in addition to grant validation and the actor gate.<a href="#section-8.3-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.3-2.2">
+            <p id="section-8.3-2.2.1">Invalidate authorization derived from grants for that qualified agent
 and Target Tenant, including refresh tokens, when the principal is
 disabled or its correlation is removed. The RAS retains enough
-association for this from the time it issues that authorization.<a href="#section-8.2-2.2.1" class="pilcrow">¶</a></p>
+association for this from the time it issues that authorization.<a href="#section-8.3-2.2.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-8.2-2.3">
-            <p id="section-8.2-2.3.1">Not let refresh bypass a principal restriction or restore revoked
-authorization; reactivation permits new decisions only.<a href="#section-8.2-2.3.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-8.3-2.3">
+            <p id="section-8.3-2.3.1">Not let refresh bypass a principal restriction or restore revoked
+authorization; reactivation permits new decisions only.<a href="#section-8.3-2.3.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-8.2-2.4">
-            <p id="section-8.2-2.4.1">Report revoked or disabled authorization as inactive under
-<span>[<a href="#RFC7662" class="cite xref">RFC7662</a>]</span>.<a href="#section-8.2-2.4.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-8.3-2.4">
+            <p id="section-8.3-2.4.1">Report revoked or disabled authorization as inactive under
+<span>[<a href="#RFC7662" class="cite xref">RFC7662</a>]</span>.<a href="#section-8.3-2.4.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 </section>
@@ -5437,7 +5417,7 @@ propagation mechanism:<a href="#section-9.5-4" class="pilcrow">¶</a></p>
             </tr>
           </tbody>
         </table>
-<p id="section-9.5-6">The RAS requirements for applied changes are in <a href="#applied-changes" class="auto internal xref">Section 8.2</a>.
+<p id="section-9.5-6">The RAS requirements for applied changes are in <a href="#applied-changes" class="auto internal xref">Section 8.3</a>.
 The provisioning that feeds them is a deployment choice.<a href="#section-9.5-6" class="pilcrow">¶</a></p>
 <p id="section-9.5-7">The withdrawal of a delegation, Identity Binding, or Client Association
 can be propagated to derived authorization only when the IdP has

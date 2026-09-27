@@ -862,9 +862,9 @@ Each realization has this mandatory interoperability path:
   resolution using RFC 7523 `private_key_jwt` authentication
   ({{client-assertion-input}}). For delegated access, they MUST also
   implement ID Token subjects.
-* **Redemption:** The client and RAS MUST implement `private_key_jwt` for
-  redemption. DPoP support and use are REQUIRED for bound governed agent
-  access; governed agent access follows {{grant-protection}}.
+* **Redemption:** The client and RAS MUST implement `private_key_jwt`
+  for redemption. DPoP support and use are REQUIRED for bound governed
+  agent access; governed agent access follows {{grant-protection}}.
 * **API:** The API MUST implement {{api-processing}}, with {{wag-api}}
   for self-acting access.
 
@@ -1027,8 +1027,8 @@ are prescribed.
 **Across the deployment:**
 
 * **Target Tenant binding:** one Target Tenant, configured once. The
-  tenant-specific resource URI ({{issuance-request}}), the resource domain's
-  provisioning context, and any Shared Signals stream
+  tenant-specific resource URI ({{issuance-request}}), the resource
+  domain's provisioning context, and any Shared Signals stream
   ({{AGENT-LIFECYCLE}}) carry it consistently. This profile assumes
   deployments configure these carriers to agree.
 * **Applicable profile** (client, IdP, RAS, and resource policy):
@@ -1087,9 +1087,10 @@ access-token protection; these are capabilities and configured minimums.
 Servers MUST publish {{RFC8414}} metadata as follows:
 
 * **RAS:** Include each supported governed profile URI, and for
-  delegated access the base `urn:ietf:params:oauth:grant-profile:id-jag`,
-  in `authorization_grant_profiles_supported`. The self-acting URIs use
-  the same parameter, pending coordination ({{wag-gaps}}).
+  delegated access the base
+  `urn:ietf:params:oauth:grant-profile:id-jag`, in
+  `authorization_grant_profiles_supported`. The self-acting URIs use the
+  same parameter, pending coordination ({{wag-gaps}}).
   * Include `urn:ietf:params:oauth:grant-type:jwt-bearer` in
     `grant_types_supported` for this profile.
 * **IdP:** Advertise Token Exchange in `grant_types_supported`. For
@@ -1097,7 +1098,8 @@ Servers MUST publish {{RFC8414}} metadata as follows:
   `identity_chaining_requested_token_types_supported` under
   {{Section 7.1 of ID-JAG}}. For self-acting access, advertise the WAG
   token type in the same parameter, pending coordination ({{wag-gaps}}).
-  * Include `private_key_jwt` in `token_endpoint_auth_methods_supported`.
+  * Include `private_key_jwt` in
+    `token_endpoint_auth_methods_supported`.
   * When SPIFFE authentication is supported, include `spiffe_jwt`,
     `spiffe_wit`, or `spiffe_x509` under {{Section 4 of SPIFFE-OAUTH}}.
     Authentication metadata alone does not advertise agent-resolution
@@ -1312,12 +1314,12 @@ MUST NOT select or change that mode.
   The IdP MUST reject either parameter with `invalid_request`, including
   a duplicate authentication credential.
 * **Presented-evidence input:** In delegated issuance, the IdP MUST
-  require both `actor_token` and `actor_token_type`, and the type MUST be
-  `urn:ietf:params:oauth:token-type:jwt` ({{issuance-errors}}). In self-acting
-  issuance, the evidence is the subject token ({{wag-request}}).
-  Validate the separate platform JWT under {{imported-jwt-input}}.
-  Missing or rejected evidence MUST NOT trigger resolution from
-  authentication context.
+  require both `actor_token` and `actor_token_type`, and the type MUST
+  be `urn:ietf:params:oauth:token-type:jwt` ({{issuance-errors}}). In
+  self-acting issuance, the evidence is the subject token
+  ({{wag-request}}). Validate the separate platform JWT under
+  {{imported-jwt-input}}. Missing or rejected evidence MUST NOT trigger
+  resolution from authentication context.
 
 **Credential class:** The IdP MUST select exactly one configured
 platform credential class for actor evidence, or reject with
@@ -1473,7 +1475,8 @@ Each grant carries these claims in addition to those of its own section
 | X.509-SVID | The earliest `notAfter` in the validated certificate path, excluding the trust anchor |
 {: title="Grant lifetime bound by agent-resolution input"}
 
-The ID-JAG is also limited by its subject credential ({{grant-issuance}}).
+The ID-JAG is also limited by its subject credential
+({{grant-issuance}}).
 
 **Response:** The response follows {{Section 4.3.4 of ID-JAG}}; for a
 WAG, `issued_token_type` is the WAG token type. For a bound grant, the
@@ -1529,10 +1532,11 @@ access token an ID Token.
 ### Subject Resolution {#idp-subject-resolution}
 
 For ID-JAG, subject resolution identifies the user, and linking at the
-RAS ({{subject-resolution}}) associates that user with a local account. Self-acting access resolves
-the agent as subject instead ({{wag-flow}}). Subject identifiers, tenant
-relationships, `aud_sub`, `aud_tenant`, and `sub_id` follow Sections
-3.1, 5, and 6 of {{ID-JAG}}, with these additions.
+RAS ({{subject-resolution}}) associates that user with a local account.
+Self-acting access resolves the agent as subject instead ({{wag-flow}}).
+Subject identifiers, tenant relationships, `aud_sub`, `aud_tenant`, and
+`sub_id` follow Sections 3.1, 5, and 6 of {{ID-JAG}}, with these
+additions.
 
 The IdP MUST:
 
@@ -1560,8 +1564,9 @@ and {{authorization}}. The ID-JAG MUST contain one `act` object with:
 * `iss`: this IdP's issuer identifier.
 
 These values MUST come from the approved mapping, even when source and
-governed identifiers coincide. For presented-evidence inputs this replaces
-credential-to-actor copying in {{Section 6.3 of ACTOR-PROFILE}}.
+governed identifiers coincide. For presented-evidence inputs this
+replaces credential-to-actor copying in
+{{Section 6.3 of ACTOR-PROFILE}}.
 
 The object MUST follow {{Section 3.4 of ACTOR-PROFILE}}, including its
 `sub_profile` recommendation and unclassified-actor rules. Any
@@ -1628,8 +1633,9 @@ shows the messages.
 Token exchange is used because only its `issued_token_type`
 ({{RFC8693}}) labels the output as an assertion for another token
 endpoint. The request carries the common parameters and rules of
-{{issuance-request}} and the parameters below. The subject token carries the agent-resolution input and is not processed
-under {{subject-token-validation}}.
+{{issuance-request}} and the parameters below. The subject token carries
+the agent-resolution input and is not processed under
+{{subject-token-validation}}.
 
 | Parameter | Value |
 |---|---|
@@ -1925,7 +1931,8 @@ with these claims under {{RFC9068}}, or equivalent context through
   ({{wag-redemption}}).
 * **Authority:** Redeemed resource as audience and non-empty authorized
   `scope` (otherwise `invalid_scope`), without broadening authority.
-* **Protection:** The binding selected under {{access-token-protection}}.
+* **Protection:** The binding selected under
+  {{access-token-protection}}.
 * **Tenant:** By default, the tenant-specific resource URI, which
   becomes the audience under {{Section 3 of RFC8707}}. A deployment MAY
   instead carry the tenant in a configured tenant claim or authoritative
@@ -2284,15 +2291,16 @@ possession of an issuer-authorized grant key.
 ## Credential and Token Confusion
 
 Credential classification and mutually exclusive validation follow
-{{actor-inputs}} and {{Section 3.12 of RFC8725}}. Signature validity alone
-establishes neither a credential's intended use nor permission to
+{{actor-inputs}} and {{Section 3.12 of RFC8725}}. Signature validity
+alone establishes neither a credential's intended use nor permission to
 resolve or exercise an agent.
 
 ## Dedicated-Client Key Compromise
 
-In dedicated-client resolution, compromise of the client's authentication
-key permits an attacker to authenticate as the resolution source for its
-bound Agent Principal. No independent workload credential is required.
+In dedicated-client resolution, compromise of the client's
+authentication key permits an attacker to authenticate as the resolution
+source for its bound Agent Principal. No independent workload credential
+is required.
 
 For delegated access, the attacker still needs an acceptable user
 subject credential and has to satisfy Client Association and delegation
@@ -2929,9 +2937,10 @@ at grant issuance and redemption remains required in this bound profile.
 ### Intermediate Adoption Variant
 
 To adopt governed agent access, the parties instead configure
-`urn:ietf:params:oauth:grant-profile:id-jag-governed-agent` and explicitly
-permit grants without sender constraint. With bearer access also
-permitted for this resource, the preceding messages change only as follows:
+`urn:ietf:params:oauth:grant-profile:id-jag-governed-agent` and
+explicitly permit grants without sender constraint. With bearer access
+also permitted for this resource, the preceding messages change only as
+follows:
 
 | Message | Change |
 |---|---|
@@ -2940,8 +2949,8 @@ permitted for this resource, the preceding messages change only as follows:
 | Access-token response and API request | Use the bearer variant above |
 {: title="Message changes for governed agent access"}
 
-The client assertion, Identity Binding, Client Association, user and actor
-identities, scope, tenant checks, and actor gate are unchanged. An
+The client assertion, Identity Binding, Client Association, user and
+actor identities, scope, tenant checks, and actor gate are unchanged. An
 unbound grant can instead obtain a DPoP-bound access token by presenting
 a valid proof at redemption ({{grant-protection}}).
 

@@ -2300,11 +2300,11 @@ the request of {{redemption-request}}. The RAS MUST:
 
 The access token's `sub` is the local principal. This differs from
 delegated access, where the IdP-qualified actor survives in `act`. The
-RAS MUST retain the correlation between the WAG's (`iss`, `sub`) and
-the local principal for the life of the derived authorization, and MUST
-make that issuer-qualified identity available for audit and in the
-introspection context of the token. The token itself need not carry it;
-this document defines no new claim for that purpose.
+RAS retains the correlation between the WAG's (`iss`, `sub`) and the
+local principal for the life of the derived authorization, which
+supports revocation by qualified agent ({{applied-changes}}) and audit.
+Neither the token nor its introspection response carries that identity;
+this document defines no claim or member for it.
 
 ## Resource Processing {#wag-api}
 

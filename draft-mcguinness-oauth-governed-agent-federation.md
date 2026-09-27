@@ -324,9 +324,7 @@ Identity Binding:
 Client Association:
 : An approved permission for an authenticated OAuth client to use an
   Agent Principal through the selected Identity Binding, acting
-  relationship, and credential class. The permission can cover one
-  binding or an explicitly authorized set of bindings under
-  {{identity-binding}}.
+  relationship, and credential class ({{identity-binding}}).
 
 Credential class:
 : A configured category of agent-resolution input with mutually
@@ -350,8 +348,7 @@ Agent Authorization:
 
 Agent Principal Correlation:
 : The RAS's authoritative association of an IdP-qualified Agent
-  Principal with a local principal. Correlation does not grant
-  authority.
+  Principal with a local principal.
 
 Issuer-bound presenter key:
 : A key the credential issuer has attested belongs to the workload, such
@@ -366,9 +363,7 @@ Request proof key:
 
 Grant proof key:
 : The DPoP key proven when requesting an ID-JAG or WAG and bound into
-  that grant for redemption. Only an input that binds a key, such as a
-  WIT-SVID or Client Attestation, can tie it to the credential issuer
-  ({{credential-requirements}}).
+  that grant for redemption ({{credential-requirements}}).
 
 Governance Tenant:
 : The IdP's administrative scope within which an Agent Principal and its

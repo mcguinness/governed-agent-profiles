@@ -1297,7 +1297,6 @@ relationship.
 
 | Input | Lifetime bound on the grant |
 |---|---|
-| Dedicated client assertion | None; the configured and subject-credential limits apply |
 | Platform JWT | The effective evidence deadline in {{imported-jwt-input}} |
 | JWT-SVID | Its `exp` |
 | WIT-SVID and Client Attestation | The credential's `exp`; the PoP JWT adds no limit |

@@ -2644,8 +2644,8 @@ across components widens its exposure ({{distributed-key-use}}).
 
 Before issuance, the IdP MUST apply current binding and authorization
 policy and reject an inactive agent or withdrawn binding once the change
-has been applied; cached policy data MUST have configured freshness
-limits.
+has been applied. This profile assumes configured freshness limits on
+cached policy data, which bound when a change is applied.
 
 Cross-system disablement needs a provisioning and signaling contract
 ({{lifecycle-gap}}); without a signal or online check, issued tokens
@@ -2659,9 +2659,9 @@ disable-and-reenable transition or invalidate every old grant.
 
 Execution termination, Identity Binding disablement, Client Association
 removal, delegation revocation, and Agent Principal disablement have
-different effects. Deployments MUST NOT treat one as evidence that the
-others have occurred. In particular, stopping an execution does not
-revoke credentials or authority held elsewhere.
+different effects, and none of them is evidence that the others have
+occurred. In particular, stopping an execution does not revoke
+credentials or authority held elsewhere.
 
 The following table summarizes the effect after a change is applied at
 the enforcing server; it defines no new propagation mechanism:
@@ -2678,18 +2678,19 @@ the enforcing server; it defines no new propagation mechanism:
 
 The RAS requirements for applied disablement and revocation are in
 {{applied-changes}}; the provisioning that feeds them is a deployment
-choice. An IdP SHOULD retain the identifiers
-of the ID-JAGs it issued under each delegation, Identity Binding, and
-Client Association, so that withdrawing any of them can be propagated to
-derived authorization through grant-derived revocation in that companion
-or an equivalent signal. The agent identity alone cannot identify that
+choice. Withdrawing a delegation, Identity Binding, or Client
+Association can be propagated to derived authorization, through
+grant-derived revocation in that companion or an equivalent signal,
+only when the IdP has retained the identifiers of the ID-JAGs it issued
+under that relationship. The agent identity alone cannot identify that
 set.
 
-Deployments SHOULD document their maximum disablement delay, including
-propagation and cache freshness. Without a bound on propagation, the
-remaining lifetime of existing grants, refresh authorizations, and
-access tokens determines the possible continuation window; the
-five-minute ID-JAG recommendation is not a global stopping guarantee.
+Deployments benefit from documenting their maximum disablement delay,
+including propagation and cache freshness. Without a bound on
+propagation, the remaining lifetime of existing grants, refresh
+authorizations, and access tokens determines the possible continuation
+window; the five-minute ID-JAG recommendation is not a global stopping
+guarantee.
 
 Account-linking errors can grant access to another user's account.
 {{subject-resolution}} requires issuer, namespace, tenant, and

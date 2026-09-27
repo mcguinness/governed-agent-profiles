@@ -1959,6 +1959,9 @@ with these claims under {{RFC9068}}, or equivalent context through
 client MUST reject an output that does not satisfy its configured
 protection requirement.
 
+Whether the response also carries a refresh token, and how that token
+is bound and used, follows {{ras-refresh}}.
+
 ## Access-Token Protection {#access-token-protection}
 
 **Selection:** The RAS MUST issue a sender-constrained access token
@@ -2039,62 +2042,6 @@ For an active token:
   `jkt` under {{Section 6.2 of RFC9449}} or `x5t#S256` under
   {{Section 3.2 of RFC8705}}. The API MUST enforce that `cnf` as it
   would the JWT claim.
-
-## RAS Refresh Tokens {#ras-refresh}
-
-**Issuance:** The RAS SHOULD NOT issue refresh tokens, retaining
-{{Section 4.4.3 of ID-JAG}}, but MAY do so for authorized long-running
-work under explicit policy. A WAG redemption never yields a refresh
-token ({{wag-redemption}}).
-
-**Binding:** The RAS MUST bind each refresh token to the authenticated
-client and apply the first applicable additional sender-binding rule
-below. Bindings required by the client-authentication method, such as
-{{Section 10.3 of ATTEST}}, apply in every row. Refresh-token rotation
-does not replace them.
-
-| Redemption context | Refresh-token requirement |
-|---|---|
-| Grant contains `cnf.jkt` | Retain the grant's DPoP key binding, regardless of access-token protection |
-| Unbound grant; DPoP proof used at redemption | Bind to the validated redemption proof key |
-| No DPoP proof; certificate-bound access token | Bind to the validated mutual-TLS certificate |
-| Neither DPoP nor certificate binding | Retain any authentication-method binding; if none applies, apply the fallback below |
-{: title="Refresh-token sender binding"}
-
-Without DPoP, certificate, or authentication-method binding, the RAS
-requires explicit policy permitting client-bound refresh without sender
-constraint and uses rotation under {{Section 4.14 of RFC9700}}.
-
-**Resource:** A refresh request MAY include one `resource` parameter
-under {{Section 2.2 of RFC8707}} solely to identify the retained
-resource. If omitted, the RAS MUST use that resource. If supplied, its
-value MUST match the retained resource exactly. The RAS MUST reject
-multiple values or a different resource with `invalid_target`.
-
-**Processing:** On every refresh, the RAS MUST:
-
-1. **Client and proof:** Authenticate the bound client and enforce the
-   retained authentication-method binding and any additional sender
-   binding under RFC 9449 or RFC 8705. Dropping or replacing a
-   sender binding requires a new grant.
-2. **Authorization context:** Preserve the user, qualified actor, Target
-   Tenant, resource, and authorization ceiling, including
-   `authorization_details`. Apply current local user and actor policy
-   and {{Section 6 of RFC9396}}.
-3. **Profile:** Enforce current minimum-profile policy against the
-   profile under which the grant was accepted. Reject with
-   `invalid_grant` if it no longer qualifies. Adding a proof does not
-   upgrade that authorization.
-4. **Lifetime:** Enforce a finite absolute authorization expiration set
-   at issuance under local policy and an inactivity limit under
-   {{RFC9700}}. Rotation, refresh, or repeated redemption of the same
-   ID-JAG MUST NOT reset the absolute expiration. Access beyond it
-   requires a new ID-JAG and therefore a fresh IdP decision. That new
-   ID-JAG starts a new authorization period and leaves the previous
-   expiration unchanged.
-5. **Output:** Issue access tokens under {{access-token-response}} and
-   {{access-token-protection}}, expiring no later than the absolute
-   authorization expiration.
 
 ## Redemption Errors {#redemption-errors}
 
@@ -2247,6 +2194,62 @@ Clients need not parse opaque tokens. If the client cannot establish
 that association, it MUST obtain a token or grant for the current
 context. A credential change alone need not invalidate cached tokens
 when the governed principal and authorization context remain the same.
+
+## RAS Refresh Tokens {#ras-refresh}
+
+**Issuance:** The RAS SHOULD NOT issue refresh tokens, retaining
+{{Section 4.4.3 of ID-JAG}}, but MAY do so for authorized long-running
+work under explicit policy. A WAG redemption never yields a refresh
+token ({{wag-redemption}}).
+
+**Binding:** The RAS MUST bind each refresh token to the authenticated
+client and apply the first applicable additional sender-binding rule
+below. Bindings required by the client-authentication method, such as
+{{Section 10.3 of ATTEST}}, apply in every row. Refresh-token rotation
+does not replace them.
+
+| Redemption context | Refresh-token requirement |
+|---|---|
+| Grant contains `cnf.jkt` | Retain the grant's DPoP key binding, regardless of access-token protection |
+| Unbound grant; DPoP proof used at redemption | Bind to the validated redemption proof key |
+| No DPoP proof; certificate-bound access token | Bind to the validated mutual-TLS certificate |
+| Neither DPoP nor certificate binding | Retain any authentication-method binding; if none applies, apply the fallback below |
+{: title="Refresh-token sender binding"}
+
+Without DPoP, certificate, or authentication-method binding, the RAS
+requires explicit policy permitting client-bound refresh without sender
+constraint and uses rotation under {{Section 4.14 of RFC9700}}.
+
+**Resource:** A refresh request MAY include one `resource` parameter
+under {{Section 2.2 of RFC8707}} solely to identify the retained
+resource. If omitted, the RAS MUST use that resource. If supplied, its
+value MUST match the retained resource exactly. The RAS MUST reject
+multiple values or a different resource with `invalid_target`.
+
+**Processing:** On every refresh, the RAS MUST:
+
+1. **Client and proof:** Authenticate the bound client and enforce the
+   retained authentication-method binding and any additional sender
+   binding under RFC 9449 or RFC 8705. Dropping or replacing a
+   sender binding requires a new grant.
+2. **Authorization context:** Preserve the user, qualified actor, Target
+   Tenant, resource, and authorization ceiling, including
+   `authorization_details`. Apply current local user and actor policy
+   and {{Section 6 of RFC9396}}.
+3. **Profile:** Enforce current minimum-profile policy against the
+   profile under which the grant was accepted. Reject with
+   `invalid_grant` if it no longer qualifies. Adding a proof does not
+   upgrade that authorization.
+4. **Lifetime:** Enforce a finite absolute authorization expiration set
+   at issuance under local policy and an inactivity limit under
+   {{RFC9700}}. Rotation, refresh, or repeated redemption of the same
+   ID-JAG MUST NOT reset the absolute expiration. Access beyond it
+   requires a new ID-JAG and therefore a fresh IdP decision. That new
+   ID-JAG starts a new authorization period and leaves the previous
+   expiration unchanged.
+5. **Output:** Issue access tokens under {{access-token-response}} and
+   {{access-token-protection}}, expiring no later than the absolute
+   authorization expiration.
 
 ## Applied Disablement and Revocation {#applied-changes}
 

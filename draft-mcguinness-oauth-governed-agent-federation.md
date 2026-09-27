@@ -1687,11 +1687,8 @@ This section defines self-acting access, the peer of
 {{delegated-flow}}: the Agent Principal is the subject of a Workload
 Authorization Grant (WAG) {{WAG}} issued by the IdP and redeemed at the
 RAS. Each subsection names the delegated rules it reuses and states its
-exceptions. WAG-00 defines a platform-issued bearer grant and leaves
-IdP issuance, proof of possession, and identifier registrations open;
-this section defines that composition, using provisional token and JWT
-types whose final spelling does not affect processing ({{wag-gaps}}).
-
+exceptions. The WAG token and JWT types are provisional; their final
+spelling does not affect processing ({{wag-gaps}}).
 ## Differences from Delegated Access {#wag-differences}
 
 | Area | Delegated ID-JAG | Self-acting WAG |
@@ -1744,18 +1741,16 @@ under {{subject-token-validation}}.
 | `audience`, `resource`, `scope` | As in {{root-request}} |
 {: title="Self-acting issuance request"}
 
-**Mode selection:** Configured under {{actor-inputs}}. Presence of
-actor-token parameters is `invalid_request`.
+**Mode selection:** Configured under {{actor-inputs}}.
 
 **Presented-evidence resolution:** The workload credential is the
 subject token, with `subject_token_type`
 `urn:ietf:params:oauth:token-type:jwt`, and the client authenticates
 separately; the existing platform JWT ({{imported-jwt-input}}) is
-presented this way. The presented-evidence rules of {{actor-inputs}}
-apply, including no fallback to authentication context. The
-classification and mutual-exclusion rules of {{actor-inputs}} apply to
-that subject token; its actor-construction and `act` requirements do
-not.
+presented this way. The presented-evidence, classification, and
+mutual-exclusion rules of {{actor-inputs}}, including no fallback to
+authentication context, apply to that subject token; its
+actor-construction and `act` requirements do not.
 
 **Authentication-context resolution:** The authentication-context rules
 of {{actor-inputs}} apply. Because {{RFC8693}} cannot name the

@@ -2969,13 +2969,13 @@ weakening proof requirements.<a href="#section-5-7.2.1" class="pilcrow">¶</a></
 <p id="section-5.1-1">For self-acting access, the IdP <span class="bcp14">MUST</span> authorize the resolved Agent
 Principal to access the requested RAS, resource, and authority on its
 own behalf in the requested client and tenant context. The IdP <span class="bcp14">MUST</span> do
-so before issuing a grant that names the agent as subject.<a href="#section-5.1-1" class="pilcrow">¶</a></p>
-<p id="section-5.1-2">The IdP <span class="bcp14">MUST</span> reject missing, revoked, expired, or insufficient Agent
+so before issuing a grant that names the agent as subject. The IdP
+<span class="bcp14">MUST</span> reject missing, revoked, expired, or insufficient Agent
 Authorization. Valid credentials, an active Identity Binding, or a
 Client Association <span class="bcp14">MUST NOT</span> imply it. Agent Authorization <span class="bcp14">MUST NOT</span> be
 inferred from a Delegation Authorization involving the same agent.
 Denied self-acting access <span class="bcp14">MUST NOT</span> fall back to delegated access or to
-a broader authority.<a href="#section-5.1-2" class="pilcrow">¶</a></p>
+a broader authority.<a href="#section-5.1-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="delegation-authorization">
@@ -5123,8 +5123,8 @@ of an issuer-authorized presenter (<a href="#credential-requirements" class="aut
 <p id="section-9.1-4">Governed agent access without grant binding adds agent authorization
 to existing enterprise access. It still leaves a stolen grant
 redeemable by an attacker who can authenticate as the grant's
-designated client,
-particularly a shared client. Binding only the resulting access token
+designated client, particularly a shared client. Binding only the
+resulting access token
 does not prevent that redemption. Explicit acceptance policy, short
 grant lifetimes, credential confidentiality, and the no-fallback rules
 in <a href="#discovery" class="auto internal xref">Section 8.2.3</a> limit this exposure. They do not provide proof of
@@ -5844,7 +5844,8 @@ client identifier, including multiple agents behind a shared client.<a href="#ap
 <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-02#section-3.1" class="relref">Section 3.1</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>, including the assertion type, and
 <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-02#section-5" class="relref">Section 5</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span> and <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-02#section-6" class="relref">Section 6</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span> for
 trust establishment and key distribution. It <span class="bcp14">MUST</span> also verify the
-signature with keys authorized for the SPIFFE ID's trust domain. An
+signature, before resolving the agent, with keys authorized for the
+SPIFFE ID's trust domain. An
 optional <code>iss</code> <span class="bcp14">MUST NOT</span> select another trust domain or key authority.<a href="#appendix-B.1-2.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="appendix-B.1-2.3">
@@ -5943,8 +5944,9 @@ exact SPIFFE ID in the validated <code>sub</code> through <a href="#identity-bin
 </li>
             <li class="normal" id="appendix-B.3.1-1.4">
               <p id="appendix-B.3.1-1.4.1"><strong>Proof:</strong> When DPoP is used at issuance, its key <span class="bcp14">MUST</span> match the
-WIT-SVID's <code>cnf.jwk</code>. The IdP <span class="bcp14">MUST</span> compare their JWK thumbprints as
-used in <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span> and <span class="bcp14">MUST</span> reject a mismatch with <code>invalid_grant</code>.
+WIT-SVID's <code>cnf.jwk</code>. The IdP <span class="bcp14">MUST</span> compare the JWK thumbprints of the
+DPoP key and <code>cnf.jwk</code> as used in <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span> and <span class="bcp14">MUST</span> reject a
+mismatch with <code>invalid_grant</code>.
 This carries the WIT-endorsed key into the grant binding; the Client
 Attestation PoP JWT remains required. Key retention follows
 <a href="#resolution-key-lifecycle" class="auto internal xref">Appendix B.4</a>.<a href="#appendix-B.3.1-1.4.1" class="pilcrow">¶</a></p>

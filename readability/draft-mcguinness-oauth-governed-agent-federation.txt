@@ -1229,9 +1229,8 @@ Table of Contents
    For self-acting access, the IdP MUST authorize the resolved Agent
    Principal to access the requested RAS, resource, and authority on its
    own behalf in the requested client and tenant context.  The IdP MUST
-   do so before issuing a grant that names the agent as subject.
-
-   The IdP MUST reject missing, revoked, expired, or insufficient Agent
+   do so before issuing a grant that names the agent as subject.  The
+   IdP MUST reject missing, revoked, expired, or insufficient Agent
    Authorization.  Valid credentials, an active Identity Binding, or a
    Client Association MUST NOT imply it.  Agent Authorization MUST NOT
    be inferred from a Delegation Authorization involving the same agent.
@@ -3474,9 +3473,9 @@ B.1.  SPIFFE JWT-SVID
       Section 3.1 of [SPIFFE-OAUTH], including the assertion type, and
       Section 5 of [SPIFFE-OAUTH] and Section 6 of [SPIFFE-OAUTH] for
       trust establishment and key distribution.  It MUST also verify the
-      signature with keys authorized for the SPIFFE ID's trust domain.
-      An optional iss MUST NOT select another trust domain or key
-      authority.
+      signature, before resolving the agent, with keys authorized for
+      the SPIFFE ID's trust domain.  An optional iss MUST NOT select
+      another trust domain or key authority.
 
    *  *Resolution:* The IdP MUST resolve the exact SPIFFE ID in the
       validated sub under Section 4.2.  The SPIFFE ID's association with
@@ -3549,11 +3548,11 @@ B.3.1.  WIT-SVID
       exact SPIFFE ID in the validated sub through Section 4.2.
 
    *  *Proof:* When DPoP is used at issuance, its key MUST match the
-      WIT-SVID's cnf.jwk.  The IdP MUST compare their JWK thumbprints as
-      used in [RFC9449] and MUST reject a mismatch with invalid_grant.
-      This carries the WIT-endorsed key into the grant binding; the
-      Client Attestation PoP JWT remains required.  Key retention
-      follows Appendix B.4.
+      WIT-SVID's cnf.jwk.  The IdP MUST compare the JWK thumbprints of
+      the DPoP key and cnf.jwk as used in [RFC9449] and MUST reject a
+      mismatch with invalid_grant.  This carries the WIT-endorsed key
+      into the grant binding; the Client Attestation PoP JWT remains
+      required.  Key retention follows Appendix B.4.
 
 B.3.2.  X.509-SVID
 

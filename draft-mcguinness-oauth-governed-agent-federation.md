@@ -424,9 +424,9 @@ still determines whether to accept its delegated access.
 
 The mapping from execution identity to Agent Principal is local to the
 IdP; the security contract across the boundary between the IdP and the
-resource domain is interoperable. The RAS never receives the original
-execution credential; the grant carries the resolved Agent Principal
-instead. The RAS performs no platform-specific credential validation or
+resource domain is interoperable. The RAS does not resolve the agent
+from the execution credential; the grant carries the resolved Agent
+Principal instead. The RAS performs no platform-specific credential validation or
 workload resolution, and it need not know which input the agent
 authenticated with. From a validated grant it receives:
 
@@ -442,7 +442,8 @@ The RAS correlates the Agent Principal with a local principal, which can
 be an existing service principal, without replacing the IdP-qualified
 identity ({{agent-correlation}}); for delegated access, it translates
 the user into its local namespace and preserves the agent
-({{identity-example}}). Correlation does not grant authority: the RAS
+({{subject-resolution}}, {{agent-correlation}}). Correlation does not
+grant authority: the RAS
 decides within the grant's ceiling ({{actor-authorization}},
 {{wag-redemption}}).
 

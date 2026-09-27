@@ -542,7 +542,7 @@ The IdP MUST establish an unambiguous Governance Tenant and, before
 issuance, the Target Tenant for the requested RAS and resource. The RAS
 MUST interpret an agent identifier in its asserted issuer context and
 MUST NOT key agent authorization on a bare `sub`. Tenant resolution
-failures use the errors in {{errors}}.
+failures use the errors in {{errors}} and {{issuance-errors}}.
 
 ## Governance Boundary and Execution Independence {#governance-boundary}
 
@@ -759,7 +759,7 @@ requirement.
 | Grant narrowing | One resource URI (a string; singleton arrays accepted), scope constraints, input-specific expiration limits; DPoP and `cnf.jkt` in the bound profile | {{grant-common}}, {{grant-issuance}}, {{redemption-common}}, {{grant-protection}} |
 | Resource processing | Actor and tenant context preserved; user authority and actor gate enforced with the selected token protection | {{access-token-response}}, {{api-processing}} |
 | Refresh narrowing | Explicit policy, client binding, preserved proof binding and profile, finite absolute authorization expiration | {{ras-refresh}} |
-| Error processing | `invalid_grant`, not RFC 8693's default `invalid_request`, for actor credential or resolution failures; `actor_unauthorized` for a denied resolved actor | {{errors}} |
+| Error processing | `invalid_grant`, not RFC 8693's default `invalid_request`, for actor credential or resolution failures; `actor_unauthorized` for a denied resolved actor | {{issuance-errors}} |
 | Profile discovery | Governed profiles in existing ID-JAG metadata; trusted policy sets the minimum | {{metadata}} |
 {: title="Additions and narrowings to the base specifications"}
 
@@ -944,6 +944,36 @@ Key lookup MUST retain the issuer or trust-domain association
 
 A fresh proof does not renew an expired credential; an unchanged
 identifier does not authorize a new proof key.
+
+## Token Endpoint Errors {#errors}
+
+Token endpoint errors follow {{Section 5.2 of RFC6749}} and the
+applicable extension, authentication, and proof specifications.
+Servers MUST validate client authentication, credentials, and proofs
+before authorization. Proof, grant-binding, grant-claim, and
+authorization-detail failures use the errors specified in
+{{grant-protection}}, {{spiffe-input}}, {{redemption-common}}, and
+{{issuance-request}}. {{issuance-errors}} and {{redemption-errors}} list
+the failures specific to each server.
+
+| Failure | Error |
+|---|---|
+| Unacceptable `resource` parameter at exchange, redemption, or refresh, including multiple values or a target outside the grant or retained authorization | `invalid_target` under RFC 8707 |
+| Target Tenant cannot be resolved for the requested resource | `invalid_target` |
+| No client registration association exists for the requested RAS ({{flow-configuration}}) | `invalid_target` |
+| Unacceptable requested scope, invalid scope reduction, or no non-empty scope can be issued | `invalid_scope` |
+| User cannot be resolved, user or required link is disabled, or subject identifiers conflict | `invalid_grant`; no token or automatic linking fallback |
+{: title="Target, authority, and user-resolution errors"}
+
+Client authentication failures use the authentication method's error,
+including when the same credential supplies an agent-resolution input.
+
+Error descriptions SHOULD NOT reveal identity, binding, or policy
+details beyond those disclosed by the error category. Distinguishing
+`invalid_grant` from `actor_unauthorized` reveals that an actor was
+resolved but denied, but not which binding-resolution check failed.
+That disclosure reaches even a holder of stolen bearer evidence who
+passes the request's other authentication.
 
 ## Federation Configuration {#configuration}
 
@@ -1300,7 +1330,7 @@ MUST NOT select or change that mode.
   a duplicate authentication credential.
 * **Presented-evidence input:** In delegated issuance, the IdP MUST
   require both `actor_token` and `actor_token_type`, and the type MUST be
-  `urn:ietf:params:oauth:token-type:jwt` ({{errors}}). In self-acting
+  `urn:ietf:params:oauth:token-type:jwt` ({{issuance-errors}}). In self-acting
   issuance, the evidence is the subject token ({{wag-request}}).
   Validate the separate platform JWT under {{imported-jwt-input}}.
   Missing or rejected evidence MUST NOT trigger resolution from
@@ -1603,7 +1633,7 @@ apply. The IdP MUST:
    RAS, resource, and authority. No user is involved.
 5. Apply {{grant-protection}} and issue the WAG under {{wag-claims}}.
 
-**Failures:** {{wag-errors}}.
+**Failures:** {{issuance-errors}}.
 
 The client redeems the WAG under {{wag-redemption}}; {{wag-example}}
 shows the messages.
@@ -1677,15 +1707,9 @@ Principal, downstream client, and tenant are unambiguous.
 
 **Lifetime:** The limits of {{grant-common}} apply.
 
-## Token Endpoint Error Responses {#errors}
+## Issuance Errors {#issuance-errors}
 
-Token endpoint errors follow {{Section 5.2 of RFC6749}} and the
-applicable extension, authentication, and proof specifications.
-Servers MUST validate client authentication, credentials, and proofs
-before authorization. Proof, grant-binding, grant-claim, and
-authorization-detail failures use the errors specified in
-{{grant-protection}}, {{spiffe-input}}, {{redemption-common}}, and
-{{issuance-request}}.
+In addition to {{errors}}, the IdP uses these errors:
 
 | Failure | Error |
 |---|---|
@@ -1697,36 +1721,16 @@ authorization-detail failures use the errors specified in
 
 | Failure | Error |
 |---|---|
-| Unacceptable `resource` parameter at exchange, redemption, or refresh, including multiple values or a target outside the grant or retained authorization | `invalid_target` under RFC 8707 |
-| Target Tenant cannot be resolved for the requested resource | `invalid_target` |
-| No client registration association exists for the requested RAS ({{flow-configuration}}) | `invalid_target` |
-| Unacceptable requested scope, invalid scope reduction, or no non-empty scope can be issued | `invalid_scope` |
-{: title="Target and authority errors"}
-
-| Failure | Error |
-|---|---|
-| Invalid subject or agent-resolution credential, disallowed inbound actor chain, or invalid ID-JAG | `invalid_grant` |
-| User cannot be resolved, user or required link is disabled, or subject identifiers conflict | `invalid_grant`; no token or automatic linking fallback |
+| Invalid subject or agent-resolution credential, or disallowed inbound actor chain | `invalid_grant` |
 | Absent, disabled, or ambiguous Identity Binding, or no active Agent Principal can be resolved | `invalid_grant` |
 | Governance Tenant cannot be resolved unambiguously from trusted identity and configuration context | `invalid_grant` |
 | Resolved Agent Principal, but no Client Association permits the selected binding and acting relationship, or delegation is unauthorized | `actor_unauthorized` under Actor Profile, with HTTP 400 |
 {: title="Identity resolution and delegation errors"}
 
 Agent-resolution credential failures use `invalid_grant` instead of
-the default `invalid_request` of {{Section 2.2.2 of RFC8693}}. Client
-authentication failures use the authentication method's error,
-including when the same credential supplies an agent-resolution input.
+the default `invalid_request` of {{Section 2.2.2 of RFC8693}}.
 
-Error descriptions SHOULD NOT reveal identity, binding, or policy
-details beyond those disclosed by the error category. Distinguishing
-`invalid_grant` from `actor_unauthorized` reveals that an actor was
-resolved but denied, but not which binding-resolution check failed.
-That disclosure reaches even a holder of stolen bearer evidence who
-passes the request's other authentication.
-
-### Self-Acting Error Additions {#wag-errors}
-
-Token endpoint errors follow {{errors}} with these additions:
+Self-acting issuance adds these errors:
 
 | Failure | Error |
 |---|---|
@@ -1735,9 +1739,7 @@ Token endpoint errors follow {{errors}} with these additions:
 | Resolved Agent Principal, but no Client Association permits self-acting issuance for the binding | `unauthorized_client`, not `actor_unauthorized`, since no actor is asserted |
 | Agent not authorized for the requested RAS or resource | `invalid_target` |
 | Agent not authorized for the requested authority | `invalid_scope` |
-| WAG whose `sub` has no authorized correlation at the RAS | `invalid_grant` |
-| Invalid WAG at redemption, including one that contains `act` | `invalid_grant` |
-{: title="Self-acting error additions"}
+{: title="Self-acting issuance errors"}
 
 # Grant Redemption at the RAS {#redemption}
 
@@ -2091,6 +2093,18 @@ multiple values or a different resource with `invalid_target`.
 5. **Output:** Issue access tokens under {{access-token-response}} and
    {{access-token-protection}}, expiring no later than the absolute
    authorization expiration.
+
+## Redemption Errors {#redemption-errors}
+
+In addition to {{errors}} and the checks of {{redemption-common}}, the
+RAS uses these errors:
+
+| Failure | Error |
+|---|---|
+| Invalid ID-JAG | `invalid_grant` |
+| WAG whose `sub` has no authorized correlation at the RAS | `invalid_grant` |
+| Invalid WAG, including one that contains `act` | `invalid_grant` |
+{: title="Redemption errors"}
 
 # Access at the Resource Server {#api-processing}
 

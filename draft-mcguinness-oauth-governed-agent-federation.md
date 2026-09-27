@@ -242,19 +242,8 @@ This document is organized by protocol stage. {{model}} and
 the resource authorization server (RAS), and the API (resource server),
 each covering delegated and self-acting access, and
 {{continuing-access}} covers renewal, token reuse, and disablement.
-{{scope}} states what each role implements. A client's rules sit beside
-the exchanges it takes part in:
-
-* discovery and profile selection ({{discovery}});
-* the issuance request ({{issuance-request}}, with {{root-request}} or
-  {{wag-request}}) and its input profile ({{input-profiles}});
-* grant protection and the issuance response ({{grant-protection}},
-  {{grant-common}});
-* the redemption request and the access-token response and protection
-  ({{redemption-request}}, {{access-token-response}},
-  {{access-token-protection}}); and
-* token reuse and renewal ({{client-token-reuse}},
-  {{continuing-access}}).
+{{scope}} states what each role implements. Client requirements
+accompany the requests and responses at each stage.
 
 # Conventions and Terminology
 

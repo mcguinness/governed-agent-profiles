@@ -1730,7 +1730,7 @@ In addition to {{errors}}, the IdP uses these errors:
 | Absent, disabled, or ambiguous Identity Binding, or no active Agent Principal can be resolved | `invalid_grant` |
 | Governance Tenant cannot be resolved unambiguously from trusted identity and configuration context | `invalid_grant` |
 | Resolved Agent Principal, but no Client Association permits the selected binding for delegated issuance, or delegation is unauthorized | `actor_unauthorized` under Actor Profile, with HTTP 400 |
-| Approval requires a downstream lifetime condition that the selected composition cannot enforce ({{issuance-authorization}}) | `actor_unauthorized` |
+| Approval requires a downstream lifetime condition that the selected composition cannot enforce, in delegated issuance ({{issuance-authorization}}) | `actor_unauthorized` |
 {: title="Identity resolution and delegation errors"}
 
 Agent-resolution credential failures use `invalid_grant` instead of
@@ -3224,7 +3224,7 @@ This document does not define the following compositions:
 
 | Composition | Boundary in this document |
 |---|---|
-| Asynchronous approval with {{AROP}} | External approval follows {{external-approval}} and {{authorization-lifetime}} |
+| Asynchronous approval with {{AROP}} | External approval follows {{external-approval}}, {{authorization-lifetime}}, and {{issuance-authorization}} |
 | Continuation with {{ICA}} | Renewal follows {{continuing-access}} |
 | General WIMSE WIT/WIC inputs | Only the SPIFFE forms in {{spiffe-input}} are defined |
 | Instance-based resolution or instance context under {{INSTANCE}} | Workload evidence resolves the agent without a per-instance protocol; shared workload identity does not distinguish replicas {{SPIFFE-CONCEPTS}} |

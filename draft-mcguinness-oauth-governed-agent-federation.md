@@ -2344,16 +2344,17 @@ grant only where its own policy permits just-in-time correlation
 ({{jit-correlation}}).
 
 Unless explicitly limited to bound grants or a named profile, the
-requirements below apply to both governed adoption profiles. Conformance claims
+requirements of this document apply to both governed adoption profiles. Conformance claims
 MUST identify the supported profile by its URI ({{metadata}}), the
 realization, the implemented role, and supported inputs. An
 implementation supports delegated access, self-acting access, or both:
 
 * **Roles:** The IdP, RAS, and client MUST implement their respective
-  requirements in {{model}}, {{evidence}}, {{identity}}, {{authorization}},
-  and {{metadata}}, and in {{delegated-flow}} or {{wag-flow}} for each
-  supported realization; the API MUST implement {{api-processing}}, with
-  {{wag-api}} for self-acting access.
+  requirements in {{model}}, {{identity}}, {{authorization}},
+  {{metadata}}, and {{security}}; in {{delegated-flow}} or {{wag-flow}}
+  for each supported realization; and in {{optional-input-profiles}} for
+  each supported optional input. The API MUST implement
+  {{api-processing}}, with {{wag-api}} for self-acting access.
 * **Issuance:** The client and IdP MUST implement dedicated-client
   resolution using RFC 7523 `private_key_jwt` authentication
   ({{client-assertion-input}}), and for delegated access also ID Token
@@ -2364,10 +2365,11 @@ implementation supports delegated access, self-acting access, or both:
 * **Access tokens:** Access tokens are JWTs under {{RFC9068}} or opaque
   tokens whose introspection response carries the same context under
   {{introspection}}.
-* **Optional inputs:** SPIFFE JWT-SVIDs, Workload Identity Token SVIDs
-  (WIT-SVIDs), X.509-SVIDs, existing platform JWTs, Client Attestation,
-  SAML subjects, and IdP refresh-token subjects are OPTIONAL
-  capabilities, with one exception: an IdP that accepts any
+* **Optional inputs and subjects:** The inputs of
+  {{optional-input-profiles}} (SPIFFE JWT-SVIDs, Workload Identity Token
+  SVIDs (WIT-SVIDs), X.509-SVIDs, and Client Attestation), existing
+  platform JWTs, SAML subjects, and IdP refresh-token subjects are
+  OPTIONAL capabilities, with one exception: an IdP that accepts any
   agent-resolution input other than dedicated-client identity MUST also
   support the existing platform JWT input ({{imported-jwt-input}}), and
   a client that relies on a shared client identity MUST be able to

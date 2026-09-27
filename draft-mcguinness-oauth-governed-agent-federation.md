@@ -573,7 +573,9 @@ are also required. The adoption profiles apply to both realizations,
 each under its own URIs ({{metadata}}).
 
 "Bound" refers to sender constraint on the grant, ID-JAG or WAG, between
-issuance and redemption. Grant protection, workload-evidence protection,
+issuance and redemption; it does not imply sender constraint on the
+agent-resolution credential or the resulting access token. Grant
+protection, workload-evidence protection,
 and access-token protection are separate choices: even bound governed
 agent access can use bearer workload evidence and, under explicit
 resource policy, bearer access tokens. Credential-class validation
@@ -931,7 +933,8 @@ this document does not.
 
 # Authorization Relationship {#authorization}
 
-After resolution under {{inputs}} and {{identity}}, the IdP MUST
+Validated identity does not grant authority. After resolution under
+{{inputs}} and {{identity}}, the IdP MUST
 authorize issuance under current assignments and policy for the resolved
 agent, authenticated client, acting relationship, Governance and Target
 Tenants, RAS, resource, and requested authority. The authority asserted
@@ -1038,8 +1041,8 @@ that delegation under its local user, actor, client, tenant, and
 resource policy.
 
 The client identifier MUST NOT stand in for the actor in authorization.
-Audit records that identify both the user and the issuer-qualified actor
-preserve attribution.
+Audit records that identify both the user and the issuer-qualified actor,
+rather than the client identifier alone, preserve attribution.
 
 # Delegated Access with ID-JAG {#delegated-flow}
 
@@ -1420,7 +1423,8 @@ For mutual TLS with a bound grant, the client MUST also prove possession
 of the grant's DPoP key in the same redemption request; certificate
 possession alone does not redeem the grant. The access token then
 carries `cnf.x5t#S256` but not `cnf.jkt`, as {{Section 5 of RFC9449}}
-allows for access tokens that are not DPoP-bound. A native
+allows for access tokens that are not DPoP-bound; receipt of the grant
+proof does not override the configured access-token protection. A native
 mutual-TLS-bound grant is future work ({{excluded-compositions}}).
 
 **Enforcement:** The RAS MUST NOT copy the grant's `cnf` into an access
@@ -2519,7 +2523,8 @@ anticipates. Open items are registration of the WAG token type and
 ({{server-metadata}}), DPoP binding ({{grant-protection}}), authorized
 correlation in place of the acceptance of unseen identifiers required by
 {{Section 7 of WAG}}, a token exchange in which the authenticated client
-is the subject without a subject token ({{wag-request}}), and
+is the subject without a subject token ({{wag-request}}), which would
+also give X.509-SVID authentication a self-acting path, and
 self-acting Client Associations ({{AGENT-MANAGEMENT}}).
 
 ### ID-JAG Bound Grants {#bound-grant-coordination}
@@ -2535,8 +2540,9 @@ Delegated issuance here resolves the actor from authentication context
 without `actor_token` ({{actor-inputs}}). ID-JAG leaves actor processing
 to extensions ({{Section 9.7 of ID-JAG}}), Appendix A.1 of {{RFC8693}}
 reads a subject-only request as impersonation, and
-{{Section 6.3.1 of ACTOR-PROFILE}} requires the same assertion as
-`actor_token`. Generic Token Exchange or Actor Profile support therefore
+{{Section 6.3.1 of ACTOR-PROFILE}} permits authentication-context reuse
+only with the same assertion as `actor_token`. Generic Token Exchange or
+Actor Profile support therefore
 does not advertise it.
 
 ## Deferred Compositions

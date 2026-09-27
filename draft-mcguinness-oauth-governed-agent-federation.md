@@ -1443,7 +1443,11 @@ protection requirement.
 unless the resource is explicitly configured to permit bearer tokens.
 The permitted protection is selected through trusted client and
 resource configuration before issuance, not by a request flag, and a
-validation failure MUST NOT trigger a weaker mode.
+validation failure MUST NOT trigger a weaker mode. Where configuration
+permits both DPoP and bearer tokens for the resource, the RAS MUST bind
+the access token to the key of a valid DPoP proof presented at
+redemption, and issues a bearer token only when no proof is presented.
+A proof never selects a protection that configuration does not permit.
 
 | Selected protection | Access token |
 |---|---|

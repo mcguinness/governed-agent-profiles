@@ -2631,10 +2631,9 @@ key identifier:
 `client_assertion` under {{client-assertion-input}}. The Identity
 Binding resolves the authenticated client to `agent-42`; no actor-token
 parameters are sent, and the assertion supplies no independent workload
-identity. Adding another agent's identifier to the assertion cannot
-select that agent. The assertion expires after 60 seconds but does not
-cap the grant's 300-second lifetime; Alice's ID Token remains valid for
-at least that period.
+identity. The assertion expires after 60 seconds but does not cap the
+grant's 300-second lifetime; Alice's ID Token remains valid for at least
+that period.
 
 ## Exchange Request and Response
 
@@ -2811,8 +2810,8 @@ requires a nonce, the proof also includes it.
 The API validates the token and proof, including `htm`, `htu`, `ath`,
 and the match between the proof key and `cnf.jkt`. It then enforces the
 user permissions, actor gate, and tenant-specific audience. The client
-caches this token for Alice and `agent-42` in `acme-data`; matching
-client identity or scope alone does not permit other uses.
+caches this token for Alice and `agent-42` in `acme-data`
+({{client-token-reuse}}).
 
 For explicitly configured bearer access, the response instead uses
 `token_type=Bearer`, the access token has no `cnf`, and the API request
@@ -2834,19 +2833,12 @@ permitted for this resource, the preceding messages change only as follows:
 {: title="Message changes for governed agent access"}
 
 The client assertion, Identity Binding, Client Association, user and actor
-identities, scope, tenant checks, and actor gate are unchanged. An
-unbound grant may instead obtain a DPoP-bound access token by presenting
-a valid proof at redemption; this does not establish bound governed
-agent access.
+identities, scope, tenant checks, and actor gate are unchanged.
 
 ## Renewal and Rejection Examples
 
 The redemption response contains no refresh token; after the access
-token expires, the client obtains a new ID-JAG. Where policy permits RAS
-refresh, access beyond the absolute authorization expiration also
-requires a new ID-JAG; the new IdP and RAS decisions establish a new
-period under {{ras-refresh}}, and the previous expiration remains
-unchanged.
+token expires, the client obtains a new ID-JAG ({{continuing-access}}).
 
 Each rejection below changes one condition in the walkthrough; all
 other credentials, proofs, and policy checks succeed. Token endpoint
@@ -2920,9 +2912,8 @@ the agent's own permissions and the tenant; it applies no actor gate.
 
 These non-normative variants change only the agent-resolution input of
 {{walkthrough}}; the message sequence is unchanged. The resulting actor
-is always the IdP issuer and `agent-42`, and the RAS never receives or
-validates the original credential. Only the platform JWT variant sends
-actor-token parameters.
+is always the IdP issuer and `agent-42`. Only the platform JWT variant
+sends actor-token parameters.
 
 | Variant | Authentication and presentation | Identity resolved |
 |---|---|---|

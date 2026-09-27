@@ -1979,6 +1979,7 @@ authorization-detail failures use the errors specified in
 
 | Failure | Error |
 |---|---|
+| Unsupported or invalid requested authorization details | `invalid_authorization_details` ({{Section 8 of RFC9396}}) |
 | Unsupported input combination, ambiguous credential classification, or unsupported `actor_token_type` in actor-evidence mode | `invalid_request` |
 | No unambiguous configured resolution mode, actor-token parameters in an authentication-context mode, a method inconsistent with that mode, or missing actor-token parameters in actor-evidence mode | `invalid_request`; no mode fallback |
 {: title="Request errors"}

@@ -382,8 +382,7 @@ Agent Principal.
 
 The IdP controls Identity Bindings, Client Associations, and Agent and
 Delegation Authorization. The RAS controls local principal correlation
-and authorization, using trusted provisioning from the IdP or an
-authorized directory connector where applicable.
+and authorization ({{agent-correlation}}).
 
 The relationships compose into one model; the grant that carries the
 result depends on the acting relationship:
@@ -415,10 +414,7 @@ result depends on the acting relationship:
 ~~~
 
 One Agent Principal can carry several Identity Bindings and several
-Client Associations ({{identity-binding}}). One Client Association can
-permit a client to use several of those bindings for one acting
-relationship, and another association can permit a different client
-self-acting use through a different binding.
+Client Associations ({{identity-binding}}).
 
 Establishing one relationship MUST NOT be treated as establishing
 another. A local principal link identifies the agent; resource policy
@@ -428,30 +424,27 @@ still determines whether to accept its delegated access.
 
 The mapping from execution identity to Agent Principal is local to the
 IdP; the security contract across the boundary between the IdP and the
-resource domain is interoperable. A resource domain consumes an
-IdP-qualified Agent Principal. Its RAS never receives the original
+resource domain is interoperable. The RAS never receives the original
 execution credential; the grant carries the resolved Agent Principal
 instead. The RAS performs no platform-specific credential validation or
 workload resolution, and it need not know which input the agent
 authenticated with. From a validated grant it receives:
 
 * the Agent Principal, qualified by its governing issuer: `act.iss` and
-  `act.sub` in an ID-JAG, where `act.iss` equals the grant's `iss` and
-  `act.sub` comes from the IdP's mapping ({{actor-construction}}), or
-  `iss` and `sub` in a WAG;
+  `act.sub` in an ID-JAG ({{actor-construction}}), or `iss` and `sub` in
+  a WAG;
 * the acting relationship: delegated, with the user as subject, or
   self-acting;
 * the client's registration at the RAS, in `client_id`; and
 * the authority the IdP approved, as a ceiling for the RAS decision.
 
-The RAS correlates the Agent Principal with a local principal for
-authorization and lifecycle state; an existing service principal can
-serve without replacing the IdP-qualified identity
-({{agent-correlation}}). For delegated access, the RAS translates the
-user into its local namespace and preserves the agent
-({{identity-example}}). The resource domain keeps its own decision:
-correlation does not grant authority, and the RAS decides within the
-grant's ceiling ({{actor-authorization}}, {{wag-redemption}}).
+The RAS correlates the Agent Principal with a local principal, which can
+be an existing service principal, without replacing the IdP-qualified
+identity ({{agent-correlation}}); for delegated access, it translates
+the user into its local namespace and preserves the agent
+({{identity-example}}). Correlation does not grant authority: the RAS
+decides within the grant's ceiling ({{actor-authorization}},
+{{wag-redemption}}).
 
 ## Authentication, Resolution, and Proof {#inputs}
 

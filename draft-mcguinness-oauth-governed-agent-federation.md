@@ -953,9 +953,10 @@ and the input's own section:
   that qualifies it. That qualified identity keys the Identity Binding
   ({{identity-binding}}).
 * **Credential authority:** The input identifies that authority. For
-  workload evidence, the existing credential mechanism MUST authorize
-  issuance for the asserted workload identity; a caller-supplied subject
-  or agent identifier alone MUST NOT establish that identity. For
+  workload evidence, the IdP relies on the credential mechanism having
+  authorized issuance for the asserted workload identity; a
+  caller-supplied subject or agent identifier alone MUST NOT establish
+  that identity. For
   dedicated clients, the IdP relies on the configured
   client-authentication method and approved binding.
 * **Proof semantics:** The input states whether it is bearer evidence or
@@ -1069,9 +1070,10 @@ type or reissuance in a federation-specific format. It is the common
 shared-client input; {{scope}} states when it is required. The client
 presents the JWT as `actor_token` in delegated issuance and as
 `subject_token` in self-acting issuance ({{wag-request}}), and
-authenticates separately with a configured method. The IdP MUST
-explicitly configure the accepted issuer, credential class, and
-authenticated client. Credential classification and rejection follow
+authenticates separately with a configured method. The IdP MUST accept
+a platform JWT only from an explicitly configured issuer, for a
+configured credential class and authenticated client. Credential
+classification and rejection follow
 {{actor-inputs}}.
 
 The Identity Binding MUST specify an exact issuer and `sub` and MAY
@@ -1137,7 +1139,7 @@ X.509-SVID ({{spiffe-input}}).
 ### Bearer Evidence Limits {#credential-requirements}
 
 Where issuer endorsement of the proof key is required, the deployment
-MUST use a supported input that cryptographically binds the key, such as
+needs a supported input that cryptographically binds the key, such as
 Client Attestation under {{agent-evidence}} or the WIT-SVID input under
 {{spiffe-input}}; DPoP co-presented with bearer JWT-SVID or unbound
 platform JWT evidence establishes possession only. DPoP MUST NOT
@@ -2469,7 +2471,7 @@ Servers MUST publish {{RFC8414}} metadata as follows:
   * When SPIFFE authentication is supported, include `spiffe_jwt`,
     `spiffe_wit`, or `spiffe_x509` under {{Section 4 of SPIFFE-OAUTH}}.
     Authentication metadata alone does not advertise agent-resolution
-    support; client and IdP MUST configure the input under
+    support; the client and IdP configure the input under
     {{actor-inputs}}.
   * The WAG advertisement states a capability for self-acting issuance
     ({{wag-flow}}); trusted configuration establishes permission to use

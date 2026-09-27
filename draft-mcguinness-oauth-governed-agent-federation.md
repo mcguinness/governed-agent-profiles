@@ -1172,17 +1172,6 @@ Before using either path:
   {{Section 16.2 of ACTOR-PROFILE}} is published, it MUST describe only
   the paths actually supported and agree with the ID-JAG advertisement.
 
-### Self-Acting Profile Identifiers {#wag-profiles}
-
-The self-acting realization uses the adoption profiles of
-{{adoption-profiles}} under its own identifiers,
-`urn:ietf:params:oauth:grant-profile:wag-governed-agent` and
-`urn:ietf:params:oauth:grant-profile:wag-agent-federation`. Grant
-protection, downgrade prevention, and discovery follow
-{{grant-protection}}, {{discovery}}, and {{metadata}}. Provisioning,
-disablement, and revocation apply to the same Agent Principal and local
-principal as delegated access ({{status-changes}}).
-
 # Grant Issuance at the IdP {#issuance}
 
 ## Issuance Prerequisites {#flow-configuration}
@@ -2444,12 +2433,12 @@ This document also requests:
 * URN: `urn:ietf:params:oauth:grant-profile:wag-agent-federation`
 * Common Name: WAG Bound Governed Agent Access grant profile
 * Change Controller: IETF
-* Specification Document: {{wag-profiles}} of this document.
+* Specification Document: {{metadata}} of this document.
 
 * URN: `urn:ietf:params:oauth:grant-profile:wag-governed-agent`
 * Common Name: WAG Governed Agent Access grant profile
 * Change Controller: IETF
-* Specification Document: {{wag-profiles}} of this document.
+* Specification Document: {{metadata}} of this document.
 
 The WAG token type `urn:ietf:params:oauth:token-type:wag` and JWT type
 `wag+jwt` are not requested here; they are proposed for registration by

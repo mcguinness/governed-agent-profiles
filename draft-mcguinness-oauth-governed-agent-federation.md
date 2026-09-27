@@ -2421,8 +2421,9 @@ The governed profiles have distinct identifiers:
 * **Self-acting bound governed agent access:**
   `urn:ietf:params:oauth:grant-profile:wag-agent-federation`
 
-The agent-federation URI is the original identifier and carries the
-mandatory grant-binding requirements. Enterprise access uses the base
+The two agent-federation URIs carry the mandatory grant-binding
+requirements; the ID-JAG one is the original identifier. Enterprise
+access uses the base
 `urn:ietf:params:oauth:grant-profile:id-jag` identifier under ID-JAG;
 that identifier alone makes no governed-agent conformance claim.
 
@@ -2434,16 +2435,19 @@ particular workload-evidence protection, or access-token protection.
 
 Servers MUST publish {{RFC8414}} metadata as follows:
 
-* **RAS:** Include each supported governed profile URI and the base
-  `urn:ietf:params:oauth:grant-profile:id-jag` in
-  `authorization_grant_profiles_supported`. The self-acting URIs use the
+* **RAS:** Include each supported governed profile URI, and for
+  delegated access the base `urn:ietf:params:oauth:grant-profile:id-jag`,
+  in `authorization_grant_profiles_supported`. The self-acting URIs use the
   same parameter; that use is proposed for coordination with ID-JAG and
   WAG ({{wag-gaps}}).
   * Include `urn:ietf:params:oauth:grant-type:jwt-bearer` in
     `grant_types_supported` for this profile.
-* **IdP:** Advertise Token Exchange in `grant_types_supported` and
-  ID-JAG in `identity_chaining_requested_token_types_supported` under
-  {{Section 7.1 of ID-JAG}}.
+* **IdP:** Advertise Token Exchange in `grant_types_supported`. For
+  delegated access, advertise ID-JAG in
+  `identity_chaining_requested_token_types_supported` under
+  {{Section 7.1 of ID-JAG}}; for self-acting access, advertise the WAG
+  token type in the same parameter, a use proposed for coordination
+  with ID-JAG and WAG ({{wag-gaps}}).
   * Include `private_key_jwt` in `token_endpoint_auth_methods_supported`.
   * When SPIFFE authentication is supported, include `spiffe_jwt`,
     `spiffe_wit`, or `spiffe_x509` under {{Section 4 of SPIFFE-OAUTH}}.
@@ -2508,7 +2512,7 @@ Migration changes the configured profile after
 the participating roles implement its requirements; it does not relabel
 previously issued grants or refresh tokens.
 
-Before using the delegated path:
+Before using either path:
 
 * **Issuance support:** The client and IdP MUST agree through trusted
   configuration on issuance support and any options; generic JWT or
@@ -2517,8 +2521,9 @@ Before using the delegated path:
   advertisement, JWT bearer grant support, and compatible access-token
   protection. If no supported profile satisfies the configured minimum,
   the client MUST NOT initiate that path.
-* **Metadata consistency:** If the `actor_profile_token_exchange`
-  parameter of {{Section 16.2 of ACTOR-PROFILE}} is published, it MUST
+* **Metadata consistency:** For delegated access, if the
+  `actor_profile_token_exchange` parameter of
+  {{Section 16.2 of ACTOR-PROFILE}} is published, it MUST
   describe only the paths actually supported and agree with the
   ID-JAG advertisement.
 
@@ -2905,7 +2910,9 @@ needed on:
 
 * **Identifiers:** The token type `urn:ietf:params:oauth:token-type:wag`
   and the JWT type `wag+jwt` are WAG's to register; this document uses
-  them as provisional values.
+  them as provisional values. Advertising them and the self-acting
+  profile URIs in ID-JAG's metadata parameters ({{server-metadata}})
+  also needs agreement.
 * **Protection:** WAG-00 is a bearer grant with proof of possession
   open. This document proposes DPoP binding at issuance and redemption
   under {{grant-protection}}.

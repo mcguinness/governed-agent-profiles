@@ -2138,8 +2138,8 @@ an unverified header, or a caller-supplied claim <span class="bcp14">MUST NOT</s
 weaker validation path or establish an Identity Binding. Unrecognized
 request parameters and JWT claims follow <span><a href="https://rfc-editor.org/rfc/rfc6749#section-3.2" class="relref">Section 3.2</a> of [<a href="#RFC6749" class="cite xref">RFC6749</a>]</span> and
 <span><a href="https://rfc-editor.org/rfc/rfc7519#section-4" class="relref">Section 4</a> of [<a href="#RFC7519" class="cite xref">RFC7519</a>]</span>.<a href="#section-3.2-1" class="pilcrow">¶</a></p>
-<p id="section-3.2-2">The IdP <span class="bcp14">MUST</span> distinguish three functions and <span class="bcp14">MUST NOT</span> substitute one
-for another:<a href="#section-3.2-2" class="pilcrow">¶</a></p>
+<p id="section-3.2-2">The IdP <span class="bcp14">MUST NOT</span> substitute one of three distinct functions for
+another:<a href="#section-3.2-2" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-3.2-3.1">
             <p id="section-3.2-3.1.1"><strong>Client authentication:</strong> evidence authenticating the OAuth client.<a href="#section-3.2-3.1.1" class="pilcrow">¶</a></p>
@@ -2171,9 +2171,9 @@ authenticated client to exercise that agent.<a href="#section-3.2-5" class="pilc
 <p id="section-3.3-1">The Agent Principal identifier <span class="bcp14">MUST</span> be unique and non-reassignable
 within the IdP issuer's namespace, across all Governance Tenants sharing
 that issuer identifier. Governance Tenant is not an additional component
-of the downstream agent identity. Tenant-local identifiers <span class="bcp14">MUST</span> be
-qualified to meet this issuer-wide uniqueness requirement before use
-as an Agent Principal identifier.<a href="#section-3.3-1" class="pilcrow">¶</a></p>
+of the downstream agent identity. A tenant-local identifier therefore
+needs qualification to meet this issuer-wide uniqueness requirement
+before use as an Agent Principal identifier.<a href="#section-3.3-1" class="pilcrow">¶</a></p>
 <p id="section-3.3-2">It need not equal an external subject, OAuth client identifier,
 SPIFFE ID, display name, or instance identifier. Identity continuity is
 an explicit decision by the governing authority to preserve the same
@@ -2184,10 +2184,13 @@ principal, not continuity of a particular execution or runtime instance.<a href=
 execution currently represents the agent; any such assurance comes from
 the validated evidence and proofs required by the resolution-input
 profile (<a href="#evidence" class="auto internal xref">Section 4.1</a>).<a href="#section-3.3-3" class="pilcrow">¶</a></p>
-<p id="section-3.3-4">A transfer to a different Governance Tenant under a different
-administrative authority <span class="bcp14">MUST</span> create a new Agent Principal identifier
-and <span class="bcp14">MUST NOT</span> automatically carry forward delegations or RAS principal
-links. This document defines no cross-tenant identity migration protocol.<a href="#section-3.3-4" class="pilcrow">¶</a></p>
+<p id="section-3.3-4">After a transfer to a different Governance Tenant under a different
+administrative authority, the IdP <span class="bcp14">MUST</span> assert the agent under a new
+Agent Principal identifier. Delegations held for the previous identifier
+do not carry forward automatically (<a href="#delegation-authorization" class="auto internal xref">Section 5.2</a>). RAS
+principal links held for the previous identifier <span class="bcp14">MUST NOT</span> be re-keyed to
+the new identifier (<a href="#agent-correlation" class="auto internal xref">Section 4.4</a>). This document
+defines no cross-tenant identity migration protocol.<a href="#section-3.3-4" class="pilcrow">¶</a></p>
 <p id="section-3.3-5">For example:<a href="#section-3.3-5" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-3.3-6.1">
@@ -2199,7 +2202,7 @@ new identity.<a href="#section-3.3-6.1.1" class="pilcrow">¶</a></p>
 same governance domain does not by itself change the principal.<a href="#section-3.3-6.2.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-3.3-7">Multiple Identity Bindings <span class="bcp14">MAY</span> resolve distinct client or workload
+<p id="section-3.3-7">Multiple Identity Bindings can resolve distinct client or workload
 identities to the same Agent Principal when the IdP approves them as
 representing the same governed principal. They share the governed
 authorization identity downstream.<a href="#section-3.3-7" class="pilcrow">¶</a></p>
@@ -2226,16 +2229,17 @@ shares all of these with an Agent Principal, such as a sub-agent
 working entirely within its parent's authority and attributed to it,
 can run as that Agent Principal; one that needs any of them separately
 needs its own identity.<a href="#section-3.4-1" class="pilcrow">¶</a></p>
-<p id="section-3.4-2">Multiple executions <span class="bcp14">MAY</span> operate as the same Agent Principal, and an
-agent <span class="bcp14">MAY</span> move between workloads or execution environments through
-approved Identity Bindings. Conversely, one environment <span class="bcp14">MAY</span> host
+<p id="section-3.4-2">Multiple executions can operate as the same Agent Principal, and an
+agent can move between workloads or execution environments through
+approved Identity Bindings. Conversely, one environment can host
 multiple Agent Principals. The validated resolution input and its
-Identity Binding <span class="bcp14">MUST</span> distinguish exactly one Agent Principal for each
-authorization transaction; a shared workload identity alone cannot
-select among agents.<a href="#section-3.4-2" class="pilcrow">¶</a></p>
+Identity Binding therefore need to distinguish exactly one Agent
+Principal for each authorization transaction; the IdP rejects an
+ambiguous mapping (<a href="#identity-binding" class="auto internal xref">Section 4.2</a>), and a shared workload
+identity alone cannot select among agents.<a href="#section-3.4-2" class="pilcrow">¶</a></p>
 <p id="section-3.4-3">Scaling, restarting, rescheduling, migration, credential rotation, or
 creation of additional executions, replicas, credentials, Identity
-Bindings, or Client Associations <span class="bcp14">MUST NOT</span> by itself create, merge,
+Bindings, or Client Associations does not by itself create, merge,
 transfer, or increase Agent Principal authority.
 Each transaction remains subject to the applicable Client Association,
 delegation authorization, target, and resource policy.
@@ -2447,8 +2451,8 @@ provisions this association; it is configured.<a href="#section-3.7-5.2.1" class
             <p id="section-3.7-5.3.1"><strong>Target Tenant binding:</strong> The Target Tenant is configured once and
 carried consistently by the tenant-specific resource URI
 (<a href="#root-request" class="auto internal xref">Section 6.4.1</a>), by the resource domain's provisioning context, and
-by any Shared Signals stream (<span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span>). Deployments <span class="bcp14">MUST</span>
-configure these carriers to agree.<a href="#section-3.7-5.3.1" class="pilcrow">¶</a></p>
+by any Shared Signals stream (<span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span>). This profile
+assumes deployments configure these carriers to agree.<a href="#section-3.7-5.3.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-3.7-5.4">
             <p id="section-3.7-5.4.1"><strong>Local principals:</strong> The RAS provisions or synchronizes local agent
@@ -2692,9 +2696,10 @@ that qualifies it. That qualified identity keys the Identity Binding
 </li>
           <li class="normal" id="section-4.1-2.3">
             <p id="section-4.1-2.3.1"><strong>Credential authority:</strong> The input identifies that authority. For
-workload evidence, the existing credential mechanism <span class="bcp14">MUST</span> authorize
-issuance for the asserted workload identity; a caller-supplied subject
-or agent identifier alone <span class="bcp14">MUST NOT</span> establish that identity. For
+workload evidence, the IdP relies on the credential mechanism having
+authorized issuance for the asserted workload identity; a
+caller-supplied subject or agent identifier alone <span class="bcp14">MUST NOT</span> establish
+that identity. For
 dedicated clients, the IdP relies on the configured
 client-authentication method and approved binding.<a href="#section-4.1-2.3.1" class="pilcrow">¶</a></p>
 </li>
@@ -2892,9 +2897,10 @@ type or reissuance in a federation-specific format. It is the common
 shared-client input; <a href="#scope" class="auto internal xref">Section 8.1</a> states when it is required. The client
 presents the JWT as <code>actor_token</code> in delegated issuance and as
 <code>subject_token</code> in self-acting issuance (<a href="#wag-request" class="auto internal xref">Section 7.3</a>), and
-authenticates separately with a configured method. The IdP <span class="bcp14">MUST</span>
-explicitly configure the accepted issuer, credential class, and
-authenticated client. Credential classification and rejection follow
+authenticates separately with a configured method. The IdP <span class="bcp14">MUST</span> accept
+a platform JWT only when its issuer, credential class, and the
+authenticated client are explicitly configured together. Credential
+classification and rejection follow
 <a href="#actor-inputs" class="auto internal xref">Section 6.4.3</a>.<a href="#section-4.1.2-1" class="pilcrow">¶</a></p>
 <p id="section-4.1.2-2">The Identity Binding <span class="bcp14">MUST</span> specify an exact issuer and <code>sub</code> and <span class="bcp14">MAY</span>
 require additional string values from the JWT Claims Set, including
@@ -2991,7 +2997,7 @@ X.509-SVID (<a href="#spiffe-input" class="auto internal xref">Appendix A.3</a>)
 <a href="#section-4.1.4" class="section-number selfRef">4.1.4. </a><a href="#name-bearer-evidence-limits" class="section-name selfRef">Bearer Evidence Limits</a>
           </h4>
 <p id="section-4.1.4-1">Where issuer endorsement of the proof key is required, the deployment
-<span class="bcp14">MUST</span> use a supported input that cryptographically binds the key, such as
+needs a supported input that cryptographically binds the key, such as
 Client Attestation under <a href="#agent-evidence" class="auto internal xref">Appendix A.2</a> or the WIT-SVID input under
 <a href="#spiffe-input" class="auto internal xref">Appendix A.3</a>; DPoP co-presented with bearer JWT-SVID or unbound
 platform JWT evidence establishes possession only. DPoP <span class="bcp14">MUST NOT</span>
@@ -3032,8 +3038,9 @@ identifies the client, not the agent.<a href="#section-4.2-3.2.1" class="pilcrow
 </li>
         </ul>
 <p id="section-4.2-4">Similar names, unqualified identifiers, or a shared signing key <span class="bcp14">MUST NOT</span> establish identity equivalence.<a href="#section-4.2-4" class="pilcrow">¶</a></p>
-<p id="section-4.2-5">Deployments <span class="bcp14">SHOULD</span> permit an Identity Binding to be disabled independently
-of the Agent Principal and its other bindings.
+<p id="section-4.2-5">Permitting an Identity Binding to be disabled independently of the
+Agent Principal and its other bindings lets a deployment withdraw one
+resolution path while the others remain usable.
 A disabled binding <span class="bcp14">MUST NOT</span> authorize new grant issuance. Disabling
 a binding does not itself revoke outstanding tokens; their treatment
 follows <a href="#status-changes" class="auto internal xref">Section 9.6</a>.<a href="#section-4.2-5" class="pilcrow">¶</a></p>
@@ -3043,9 +3050,8 @@ Identity Binding, with the selected credential class, for the requested
 acting relationship (<a href="#configuration" class="auto internal xref">Section 3.7</a>). Permission for delegated
 issuance does not imply self-acting issuance, nor the reverse. The IdP
 <span class="bcp14">MUST NOT</span> substitute the client's identity for the resolved actor.<a href="#section-4.2-6" class="pilcrow">¶</a></p>
-<p id="section-4.2-7">A Client Association <span class="bcp14">MAY</span> authorize several Identity Bindings, and the
-IdP <span class="bcp14">MUST</span> determine explicitly whether the selected binding is among
-them: authorization of one binding, a credential authority, a credential
+<p id="section-4.2-7">A Client Association can authorize several Identity Bindings.
+Authorization of one binding, a credential authority, a credential
 class, or the Agent Principal itself <span class="bcp14">MUST NOT</span> imply authorization of
 another binding unless the association's policy explicitly includes it.
 No association overrides a disabled binding. Policy representation and
@@ -3054,7 +3060,7 @@ evaluation mechanisms are outside this profile.<a href="#section-4.2-7" class="p
 the client represents. Client Association independently determines
 whether that client may exercise the binding for the requested acting
 relationship.
-Deployments <span class="bcp14">MAY</span> administer both in one registration or policy object;
+Deployments can administer both in one registration or policy object;
 their identity and authorization semantics remain distinct.<a href="#section-4.2-8" class="pilcrow">¶</a></p>
 <p id="section-4.2-9">A binding can remain valid while permission to use it is withdrawn,
 preserving identity continuity across policy changes. Credential class
@@ -3201,10 +3207,11 @@ The local agent record supports authorization and attribution; it does
 not replace the federated actor. That rule concerns the actor of a delegated token; for self-acting
 access the access token's subject is the local principal and the
 qualified identity is retained under <a href="#wag-redemption" class="auto internal xref">Section 7.5</a>.<a href="#section-4.4-6" class="pilcrow">¶</a></p>
-<p id="section-4.4-7">Where the RAS requires a local agent principal, the IdP or its
-authorized directory connector <span class="bcp14">SHOULD</span> provision and synchronize that
-principal keyed by the same pair and <span class="bcp14">SHOULD</span> propagate activation and
-deactivation. Once deactivation is applied, the RAS enforces <a href="#applied-changes" class="auto internal xref">Section 6.5.8</a>. No provisioning protocol is required
+<p id="section-4.4-7">Where the RAS requires a local agent principal, deployments typically
+have the IdP or its authorized directory connector provision and
+synchronize that principal, keyed by the same pair, and propagate
+activation and deactivation. Once deactivation is applied, the RAS
+enforces <a href="#applied-changes" class="auto internal xref">Section 6.5.8</a>. No provisioning protocol is required
 (<a href="#operational-guidance" class="auto internal xref">Appendix B.3</a>).<a href="#section-4.4-7" class="pilcrow">¶</a></p>
 <div id="jit-correlation">
 <section id="section-4.4.1">
@@ -3395,7 +3402,7 @@ the gate; failure to establish it <span class="bcp14">MUST</span> result in deni
 </li>
         </ul>
 <p id="section-5.4-5">The actor gate is an authorization condition, not a protocol object.
-It <span class="bcp14">MAY</span> be implemented through an agent registration, tenant assignment,
+It can be implemented through an agent registration, tenant assignment,
 consent policy, or another explicit rule. Requiring the agent to also
 hold independent permissions on each object is local
 policy, not a baseline requirement.<a href="#section-5.4-5" class="pilcrow">¶</a></p>
@@ -3410,9 +3417,9 @@ independently decide whether to accept that delegation under its local
 user, actor, client, tenant, and resource policy. The grant does not
 assert that the RAS's policy has been satisfied or convey the IdP's
 underlying approval records.<a href="#section-5.4-7" class="pilcrow">¶</a></p>
-<p id="section-5.4-8">Audit records <span class="bcp14">SHOULD</span> identify both the user and the issuer-qualified
-actor; the client identifier <span class="bcp14">MUST NOT</span> stand in for the actor in
-authorization or attribution.<a href="#section-5.4-8" class="pilcrow">¶</a></p>
+<p id="section-5.4-8">The client identifier <span class="bcp14">MUST NOT</span> stand in for the actor in authorization.
+Audit records that identify both the user and the issuer-qualified
+actor, rather than the client identifier alone, preserve attribution.<a href="#section-5.4-8" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -3538,7 +3545,7 @@ requirements.<a href="#section-6.1-1" class="pilcrow">¶</a></p>
         <h3 id="name-prerequisites-and-common-ca">
 <a href="#section-6.2" class="section-number selfRef">6.2. </a><a href="#name-prerequisites-and-common-ca" class="section-name selfRef">Prerequisites and Common Capabilities</a>
         </h3>
-<p id="section-6.2-1">Before issuance, the IdP <span class="bcp14">MUST</span> establish the applicable identity,
+<p id="section-6.2-1">The IdP <span class="bcp14">MUST</span> issue an ID-JAG only under the applicable identity,
 client, delegation, and target relationships in <a href="#configuration" class="auto internal xref">Section 3.7</a>.<a href="#section-6.2-1" class="pilcrow">¶</a></p>
 <p id="section-6.2-2">The IdP <span class="bcp14">MUST</span> derive the ID-JAG <code>client_id</code> from an authoritative
 association between the authenticated IdP client and that client's
@@ -4373,10 +4380,10 @@ is applied at the RAS, the RAS <span class="bcp14">MUST</span>:<a href="#section
 refresh, in addition to grant validation and the actor gate.<a href="#section-6.5.8-2.1.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="section-6.5.8-2.2">
-              <p id="section-6.5.8-2.2.1">Retain enough association to invalidate authorization derived from
-grants by qualified agent and Target Tenant, including refresh tokens,
-and invalidate it when the principal is disabled or its correlation
-is removed.<a href="#section-6.5.8-2.2.1" class="pilcrow">¶</a></p>
+              <p id="section-6.5.8-2.2.1">Invalidate authorization derived from grants for that qualified agent
+and Target Tenant, including refresh tokens, when the principal is
+disabled or its correlation is removed. The RAS retains enough
+association for this from the time it issues that authorization.<a href="#section-6.5.8-2.2.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="section-6.5.8-2.3">
               <p id="section-6.5.8-2.3.1">Not let refresh bypass a principal restriction or restore revoked
@@ -4562,8 +4569,8 @@ otherwise renewal may require user interaction.<a href="#section-6.7-3" class="p
         <h3 id="name-client-token-reuse">
 <a href="#section-6.8" class="section-number selfRef">6.8. </a><a href="#name-client-token-reuse" class="section-name selfRef">Client Token Reuse</a>
         </h3>
-<p id="section-6.8-1">The client <span class="bcp14">MUST</span> associate each cached grant, access token, and refresh
-token with its authorized context:<a href="#section-6.8-1" class="pilcrow">¶</a></p>
+<p id="section-6.8-1">To govern reuse, the client associates each cached grant, access
+token, and refresh token with its authorized context:<a href="#section-6.8-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-6.8-2.1">
             <p id="section-6.8-2.1.1">User and Agent Principal.<a href="#section-6.8-2.1.1" class="pilcrow">¶</a></p>
@@ -4584,7 +4591,7 @@ identifier or matching scope alone <span class="bcp14">MUST NOT</span> permit re
 users, or tenants.<a href="#section-6.8-3" class="pilcrow">¶</a></p>
 <p id="section-6.8-4">The association can use trusted request and configuration context;
 clients need not parse opaque tokens. If the client cannot establish
-the required association, it <span class="bcp14">MUST</span> obtain a token or grant for the current
+that association, it <span class="bcp14">MUST</span> obtain a token or grant for the current
 context. A credential change alone need not invalidate cached tokens
 when the governed principal and authorization context remain the same.<a href="#section-6.8-4" class="pilcrow">¶</a></p>
 </section>
@@ -4643,6 +4650,8 @@ is bounded as described in <a href="#status-changes" class="auto internal xref">
 service, it <span class="bcp14">MUST</span> preserve the distinction between the user, the
 issuer-qualified Agent Principal, and the OAuth client, and supply the
 tenant and token constraints needed to evaluate the requested operation.
+For a self-acting token, the local principal stands for the Agent
+Principal.
 <span>[<a href="#AUTHZEN" class="cite xref">AUTHZEN</a>]</span> is one optional evaluation interface; this profile defines
 no mapping to it. A policy permit does not override the token's
 constraints.<a href="#section-6.9-6" class="pilcrow">¶</a></p>
@@ -5023,11 +5032,11 @@ continued access obtains a new WAG under current IdP and RAS policy.<a href="#se
         </ol>
 <p id="section-7.5-3">The access token's <code>sub</code> is the local principal. This differs from
 delegated access, where the IdP-qualified actor survives in <code>act</code>. The
-RAS <span class="bcp14">MUST</span> retain the correlation between the WAG's (<code>iss</code>, <code>sub</code>) and
-the local principal for the life of the derived authorization, and <span class="bcp14">MUST</span>
-make that issuer-qualified identity available for audit and in the
-introspection context of the token. The token itself need not carry it;
-this document defines no new claim for that purpose.<a href="#section-7.5-3" class="pilcrow">¶</a></p>
+RAS retains the correlation between the WAG's (<code>iss</code>, <code>sub</code>) and the
+local principal for the life of the derived authorization, which
+supports revocation by qualified agent (<a href="#applied-changes" class="auto internal xref">Section 6.5.8</a>) and audit.
+The token and its introspection response need not carry it; this
+document defines no claim or member for that purpose.<a href="#section-7.5-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="wag-api">
@@ -5283,7 +5292,7 @@ with ID-JAG and WAG (<a href="#wag-gaps" class="auto internal xref">Appendix B.1
                   <p id="section-8.2.1-2.2.2.2.1">When SPIFFE authentication is supported, include <code>spiffe_jwt</code>,
 <code>spiffe_wit</code>, or <code>spiffe_x509</code> under <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-02#section-4" class="relref">Section 4</a> of [<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>.
 Authentication metadata alone does not advertise agent-resolution
-support; client and IdP <span class="bcp14">MUST</span> configure the input under
+support; the client and IdP configure the input under
 <a href="#actor-inputs" class="auto internal xref">Section 6.4.3</a>.<a href="#section-8.2.1-2.2.2.2.1" class="pilcrow">¶</a></p>
 </li>
                 <li class="normal" id="section-8.2.1-2.2.2.3">
@@ -5500,8 +5509,9 @@ minutes contemplated by <span>[<a href="#RFC7519" class="cite xref">RFC7519</a>]
 </li>
           <li class="normal" id="section-9.3-2.3">
             <p id="section-9.3-2.3.1"><strong>Replay protection:</strong> Apply each credential, proof, and grant
-mechanism independently. Replay state retained through expiration
-<span class="bcp14">MUST</span> cover the maximum allowed skew.<a href="#section-9.3-2.3.1" class="pilcrow">¶</a></p>
+mechanism independently. Where a mechanism retains replay state, that
+state <span class="bcp14">MUST</span> remain in effect for as long as the credential, proof, or
+grant would otherwise be accepted, including the maximum allowed skew.<a href="#section-9.3-2.3.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 <p id="section-9.3-3">A fresh proof does not renew an expired credential; an unchanged
@@ -5529,11 +5539,11 @@ policy independently constrains the grant proof key, the attacker can
 obtain a grant bound to an attacker-controlled DPoP key. The proof
 protects that grant against theft; it does not establish legitimate
 runtime provenance.<a href="#section-9.4-3" class="pilcrow">¶</a></p>
-<p id="section-9.4-4">Deployments requiring runtime or workload provenance <span class="bcp14">MUST</span> use an
+<p id="section-9.4-4">Deployments requiring runtime or workload provenance need an
 agent-resolution input whose verified claims and trusted issuance policy
-establish the required properties, rather than dedicated-client
-resolution alone. Authentication-key revocation and binding disablement
-affect subsequent issuance under <a href="#status-changes" class="auto internal xref">Section 9.6</a>.<a href="#section-9.4-4" class="pilcrow">¶</a></p>
+establish the required properties; dedicated-client resolution alone
+does not establish them. Authentication-key revocation and binding
+disablement affect subsequent issuance under <a href="#status-changes" class="auto internal xref">Section 9.6</a>.<a href="#section-9.4-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="credential-authority-and-key-isolation">
@@ -5559,8 +5569,8 @@ across components widens its exposure (<a href="#distributed-key-use" class="aut
         </h3>
 <p id="section-9.6-1">Before issuance, the IdP <span class="bcp14">MUST</span> apply current binding and authorization
 policy and reject an inactive agent or withdrawn binding once the change
-has been applied; cached policy data <span class="bcp14">MUST</span> have configured freshness
-limits.<a href="#section-9.6-1" class="pilcrow">¶</a></p>
+has been applied. The IdP <span class="bcp14">MUST</span> apply such a change within a configured
+freshness limit on cached policy data.<a href="#section-9.6-1" class="pilcrow">¶</a></p>
 <p id="section-9.6-2">Cross-system disablement needs a provisioning and signaling contract
 (<a href="#lifecycle-gap" class="auto internal xref">Appendix B.3.1</a>); without a signal or online check, issued tokens
 remain usable until expiration. <span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span> profiles SCIM
@@ -5572,9 +5582,9 @@ current active state alone cannot recover a missed
 disable-and-reenable transition or invalidate every old grant.<a href="#section-9.6-2" class="pilcrow">¶</a></p>
 <p id="section-9.6-3">Execution termination, Identity Binding disablement, Client Association
 removal, delegation revocation, and Agent Principal disablement have
-different effects. Deployments <span class="bcp14">MUST NOT</span> treat one as evidence that the
-others have occurred. In particular, stopping an execution does not
-revoke credentials or authority held elsewhere.<a href="#section-9.6-3" class="pilcrow">¶</a></p>
+different effects, and none of them is evidence that the others have
+occurred. In particular, stopping an execution does not revoke
+credentials or authority held elsewhere.<a href="#section-9.6-3" class="pilcrow">¶</a></p>
 <p id="section-9.6-4">The following table summarizes the effect after a change is applied at
 the enforcing server; it defines no new propagation mechanism:<a href="#section-9.6-4" class="pilcrow">¶</a></p>
 <span id="name-effects-of-administrative-c"></span><table class="center" id="table-28">
@@ -5624,17 +5634,18 @@ the enforcing server; it defines no new propagation mechanism:<a href="#section-
         </table>
 <p id="section-9.6-6">The RAS requirements for applied disablement and revocation are in
 <a href="#applied-changes" class="auto internal xref">Section 6.5.8</a>; the provisioning that feeds them is a deployment
-choice. An IdP <span class="bcp14">SHOULD</span> retain the identifiers
-of the ID-JAGs it issued under each delegation, Identity Binding, and
-Client Association, so that withdrawing any of them can be propagated to
-derived authorization through grant-derived revocation in that companion
-or an equivalent signal. The agent identity alone cannot identify that
+choice. Withdrawing a delegation, Identity Binding, or Client
+Association can be propagated to derived authorization, through
+grant-derived revocation in that companion or an equivalent signal,
+only when the IdP has retained the identifiers of the ID-JAGs it issued
+under that relationship. The agent identity alone cannot identify that
 set.<a href="#section-9.6-6" class="pilcrow">¶</a></p>
-<p id="section-9.6-7">Deployments <span class="bcp14">SHOULD</span> document their maximum disablement delay, including
-propagation and cache freshness. Without a bound on propagation, the
-remaining lifetime of existing grants, refresh authorizations, and
-access tokens determines the possible continuation window; the
-five-minute ID-JAG recommendation is not a global stopping guarantee.<a href="#section-9.6-7" class="pilcrow">¶</a></p>
+<p id="section-9.6-7">Deployments benefit from documenting their maximum disablement delay,
+including propagation and cache freshness. Without a bound on
+propagation, the remaining lifetime of existing grants, refresh
+authorizations, and access tokens determines the possible continuation
+window; the five-minute ID-JAG recommendation is not a global stopping
+guarantee.<a href="#section-9.6-7" class="pilcrow">¶</a></p>
 <p id="section-9.6-8">Account-linking errors can grant access to another user's account.
 <a href="#subject-resolution" class="auto internal xref">Section 4.3</a> requires issuer, namespace, tenant, and
 link-change checks before authorization; proof of key possession does

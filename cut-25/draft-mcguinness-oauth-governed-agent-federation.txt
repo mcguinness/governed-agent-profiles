@@ -681,101 +681,71 @@ Table of Contents
    separate Client Association are still required, but no new
    configuration object types are prescribed.
 
-   +===============+===================+==============================+
-   | Relationship  | Configured by     | Required context             |
-   +===============+===================+==============================+
-   | Credential    | IdP               | Issuer or trust domain,      |
-   | trust         |                   | approved key source,         |
-   |               |                   | algorithms, credential       |
-   |               |                   | class, and time limits under |
-   |               |                   | the selected credential      |
-   |               |                   | specification                |
-   +---------------+-------------------+------------------------------+
-   | Identity      | IdP administrator | Qualified client or workload |
-   | Binding       | or approved       | identity, Agent Principal,   |
-   |               | platform-registry | Governance Tenant            |
-   |               | import            |                              |
-   +---------------+-------------------+------------------------------+
-   | Client        | IdP administrator | Client, permitted binding or |
-   | Association   |                   | binding set, acting          |
-   |               |                   | relationship, credential     |
-   |               |                   | class                        |
-   +---------------+-------------------+------------------------------+
-   | Resolution    | IdP policy and    | Authentication-context or    |
-   | mode and      | client            | presented-evidence           |
-   | proof         | configuration     | resolution, with its         |
-   |               |                   | accepted credential classes  |
-   |               |                   | and proof requirements, for  |
-   |               |                   | the client, applicable       |
-   |               |                   | profile, and target; request |
-   |               |                   | parameters do not select the |
-   |               |                   | mode (Section 6.4.3)         |
-   +---------------+-------------------+------------------------------+
-   | Target        | IdP administrator | RAS issuer, resources,       |
-   |               |                   | Target Tenant, subject       |
-   |               |                   | namespace, authority to      |
-   |               |                   | assert aud_sub               |
-   +---------------+-------------------+------------------------------+
-   | Delegation    | IdP policy or     | Agent, user, client, tenant, |
-   | Authorization | consent           | RAS, resource, authority     |
-   +---------------+-------------------+------------------------------+
-   | Agent         | IdP policy or     | Agent's own access to the    |
-   | Authorization | assignment        | RAS, resource, and           |
-   |               |                   | authority, for self-acting   |
-   |               |                   | issuance                     |
-   +---------------+-------------------+------------------------------+
-   | Client        | Client, at each   | Registration and             |
-   | registration  | authorization     | authentication keys, or      |
-   |               | server            | Client ID Metadata Documents |
-   |               |                   | (CIMD) [CIMD] where          |
-   |               |                   | supported; each server       |
-   |               |                   | consumes the corresponding   |
-   |               |                   | metadata                     |
-   +---------------+-------------------+------------------------------+
-   | Client        | IdP, per target   | Authoritative mapping from   |
-   | registration  | RAS               | the authenticated client to  |
-   | association   |                   | that client's registration   |
-   |               |                   | at the RAS (Section 5 of     |
-   |               |                   | [ID-JAG]), from which the    |
-   |               |                   | IdP derives the grant's      |
-   |               |                   | client_id (Section 6.2)      |
-   +---------------+-------------------+------------------------------+
-   | Target Tenant | Deployment        | One Target Tenant,           |
-   | binding       |                   | configured once and carried  |
-   |               |                   | consistently by the tenant-  |
-   |               |                   | specific resource URI        |
-   |               |                   | (Section 6.4.1), the         |
-   |               |                   | resource domain's            |
-   |               |                   | provisioning context, and    |
-   |               |                   | any Shared Signals stream    |
-   |               |                   | ([AGENT-LIFECYCLE])          |
-   +---------------+-------------------+------------------------------+
-   | Local         | RAS               | Local agent principals and   |
-   | principals    |                   | user links, provisioned or   |
-   |               |                   | synchronized for RAS and API |
-   |               |                   | processing                   |
-   +---------------+-------------------+------------------------------+
-   | Applicable    | Client, IdP, RAS, | Profile and minimum          |
-   | profile       | and resource      | requirements per client,     |
-   |               | policy            | trust relationship, and      |
-   |               |                   | resource, which each role    |
-   |               |                   | enforces as applicable to it |
-   |               |                   | (Section 8.2.3)              |
-   +---------------+-------------------+------------------------------+
-   | Access-token  | RAS and client    | Protection per resource for  |
-   | protection    |                   | client, RAS, and API use;    |
-   |               |                   | token_type distinguishes     |
-   |               |                   | DPoP, but not mutual TLS     |
-   |               |                   | from bearer (Section 6.5.4)  |
-   +---------------+-------------------+------------------------------+
+   *At the IdP:*
 
-                    Table 3: Federation configuration
+   *  *Credential trust:* issuer or trust domain, approved key source,
+      algorithms, credential class, and time limits under the selected
+      credential specification.
 
-   No companion profile provisions the client registration association;
-   it is configured.  Using one identifier at both servers, which a CIMD
-   Client Identifier URL provides by construction, makes that mapping
-   the identity mapping.  This profile assumes deployments configure the
-   Target Tenant carriers to agree.
+   *  *Identity Binding* (IdP administrator or approved platform-
+      registry import): qualified client or workload identity, Agent
+      Principal, and Governance Tenant.
+
+   *  *Client Association* (IdP administrator): client, permitted
+      binding or binding set, acting relationship, and credential class.
+
+   *  *Resolution mode and proof* (IdP policy with client
+      configuration): authentication-context or presented-evidence
+      resolution, with its accepted credential classes and proof
+      requirements, per client, applicable profile, and target.  Request
+      parameters do not select the mode (Section 6.4.3).
+
+   *  *Target* (IdP administrator): RAS issuer, resources, Target
+      Tenant, subject namespace, and authority to assert aud_sub.
+
+   *  *Delegation Authorization* (IdP policy or consent): agent, user,
+      client, tenant, RAS, resource, and authority.
+
+   *  *Agent Authorization* (IdP policy or assignment): the agent's own
+      access to the RAS, resource, and authority, for self-acting
+      issuance.
+
+   *  *Client registration association* (per target RAS): the
+      authoritative mapping from the authenticated client to that
+      client's registration at the RAS (Section 5 of [ID-JAG]), from
+      which the IdP derives the grant's client_id (Section 6.2).  No
+      companion profile provisions it.  Using one identifier at both
+      servers, which a Client ID Metadata Document (CIMD) [CIMD] Client
+      Identifier URL provides by construction, makes that mapping the
+      identity mapping.
+
+   *At the RAS:*
+
+   *  *Local principals:* local agent principals and user links,
+      provisioned or synchronized for RAS and API processing.
+
+   *At the client and each authorization server:*
+
+   *  *Client registration* (the client, at each authorization server):
+      registration and authentication keys, or CIMD where supported;
+      each server consumes the corresponding metadata.
+
+   *  *Access-token protection* (RAS and client): protection per
+      resource for client, RAS, and API use. token_type distinguishes
+      DPoP, but not mutual TLS from bearer (Section 6.5.4).
+
+   *Across the deployment:*
+
+   *  *Target Tenant binding:* one Target Tenant, configured once and
+      carried consistently by the tenant-specific resource URI
+      (Section 6.4.1), the resource domain's provisioning context, and
+      any Shared Signals stream ([AGENT-LIFECYCLE]).  This profile
+      assumes deployments configure these carriers to agree.
+
+   *  *Applicable profile* (client, IdP, RAS, and resource policy):
+      profile and minimum requirements per client, trust relationship,
+      and resource, which each role enforces as applicable to it
+      (Section 8.2.3).
 
    Validation occurs while a request is processed, not when an Agent
    Principal, Identity Binding, or Client Association is created.  Keys
@@ -847,7 +817,7 @@ Table of Contents
      | scope           | files.read           | files.read           |
      +-----------------+----------------------+----------------------+
 
-            Table 4: Identity claims across the domain boundary
+            Table 3: Identity claims across the domain boundary
 
    The RAS translates the user and preserves the agent: alice-ras is
    Alice's identifier in the target SSO namespace, platform-api is the
@@ -931,7 +901,7 @@ Table of Contents
    |             | explicit              |                |           |
    +-------------+-----------------------+----------------+-----------+
 
-        Table 5: Agent-resolution inputs and qualified identities
+        Table 4: Agent-resolution inputs and qualified identities
 
    Input support follows Section 8.1 and Section 4.1.1; resolution mode
    selection and rejection follow Section 6.4.3.
@@ -1361,7 +1331,7 @@ Table of Contents
    |                        | sets the minimum         |              |
    +------------------------+--------------------------+--------------+
 
-       Table 6: Additions and narrowings to the base specifications
+       Table 5: Additions and narrowings to the base specifications
 
 6.2.  Prerequisites and Common Capabilities
 
@@ -1406,7 +1376,7 @@ Table of Contents
        | required        | does not prescribe                     |
        +-----------------+----------------------------------------+
 
-                Table 7: Mandatory-to-implement algorithms
+                Table 6: Mandatory-to-implement algorithms
 
    Other algorithms permitted by the selected specification MAY be used
    through trusted configuration and metadata.
@@ -1432,7 +1402,7 @@ Table of Contents
      |              | client, trust relationship, and resource.      |
      +--------------+------------------------------------------------+
 
-                    Table 8: Grant protection by profile
+                    Table 7: Grant protection by profile
 
    In both profiles:
 
@@ -1504,7 +1474,7 @@ Table of Contents
    |                      | requested resource                         |
    +----------------------+--------------------------------------------+
 
-                 Table 9: Token exchange request parameters
+                 Table 8: Token exchange request parameters
 
    *Resource:* The request MUST contain exactly one resource parameter.
    A client requiring access to multiple resources MUST obtain a
@@ -1649,7 +1619,7 @@ Table of Contents
    |           | derived under Section 6.2                            |
    +-----------+------------------------------------------------------+
 
-            Table 10: ID-JAG claims profiled by this document
+             Table 9: ID-JAG claims profiled by this document
 
    *Unambiguous context:* The IdP MUST NOT issue a grant if it cannot
    determine an unambiguous user, actor, downstream client, or tenant
@@ -1685,7 +1655,7 @@ Table of Contents
    |                    | excluding the trust anchor                   |
    +--------------------+----------------------------------------------+
 
-          Table 11: Grant lifetime bound by agent-resolution input
+          Table 10: Grant lifetime bound by agent-resolution input
 
    The subject credential's expiration is:
 
@@ -1726,7 +1696,7 @@ Table of Contents
        |           | omitted, the grant's scope is the upper bound |
        +-----------+-----------------------------------------------+
 
-                  Table 12: Redemption request parameters
+                  Table 11: Redemption request parameters
 
    The confirmation checks of Section 9.8.1.2 of [ID-JAG] apply to this
    grant type (Appendix C.1.2).
@@ -1826,7 +1796,7 @@ Table of Contents
           | Bearer     | No cnf                                 |
           +------------+----------------------------------------+
 
-                  Table 13: Access-token protection modes
+                  Table 12: Access-token protection modes
 
    For mutual TLS with a bound grant, the client MUST also prove
    possession of the grant's DPoP key in the same redemption request;
@@ -1922,7 +1892,7 @@ Table of Contents
      |                   | Section 4.14 of [RFC9700]                 |
      +-------------------+-------------------------------------------+
 
-                   Table 14: Refresh-token sender binding
+                   Table 13: Refresh-token sender binding
 
    *Resource:* A refresh request MAY include one resource parameter
    under Section 2.2 of [RFC8707] solely to identify the retained
@@ -2011,7 +1981,7 @@ Table of Contents
    | in presented-evidence mode       |                               |
    +----------------------------------+-------------------------------+
 
-                         Table 15: Request errors
+                         Table 14: Request errors
 
      +=============================================+================+
      | Failure                                     | Error          |
@@ -2031,7 +2001,7 @@ Table of Contents
      | issued                                      |                |
      +---------------------------------------------+----------------+
 
-                  Table 16: Target and authority errors
+                  Table 15: Target and authority errors
 
      +=========================================+=====================+
      | Failure                                 | Error               |
@@ -2058,7 +2028,7 @@ Table of Contents
      | delegation is unauthorized              | 400                 |
      +-----------------------------------------+---------------------+
 
-            Table 17: Identity resolution and delegation errors
+            Table 16: Identity resolution and delegation errors
 
    Agent-resolution credential failures use invalid_grant instead of the
    default invalid_request of Section 2.2.2 of [RFC8693].  Client
@@ -2092,7 +2062,7 @@ Table of Contents
      |                 | (Section 6.5.7)                            |
      +-----------------+--------------------------------------------+
 
-                       Table 18: Renewal mechanisms
+                       Table 17: Renewal mechanisms
 
    An IdP refresh token can supply the subject credential for a new
    exchange only when eligible under Section 6.4.2; otherwise renewal
@@ -2191,7 +2161,7 @@ Table of Contents
     |                                            | of [ACTOR-PROFILE] |
     +--------------------------------------------+--------------------+
 
-                 Table 19: Resource server error responses
+                 Table 18: Resource server error responses
 
    Actor denial MUST NOT use insufficient_scope.  The API MUST NOT
    expose actor-specific rejection details outside the trust domain.
@@ -2233,7 +2203,7 @@ Table of Contents
     |                | explicit policy       | refresh tokens         |
     +----------------+-----------------------+------------------------+
 
-          Table 20: Self-acting differences from delegated access
+          Table 19: Self-acting differences from delegated access
 
 7.1.  Self-Acting Issuance
 
@@ -2287,7 +2257,7 @@ Table of Contents
       | scope                |                                      |
       +----------------------+--------------------------------------+
 
-                   Table 21: Self-acting issuance request
+                   Table 20: Self-acting issuance request
 
    *Mode selection:* Configured under Section 6.4.3.
 
@@ -2343,7 +2313,7 @@ Table of Contents
          |                      | lifetime below                 |
          +----------------------+--------------------------------+
 
-                      Table 22: IdP-issued WAG claims
+                      Table 21: IdP-issued WAG claims
 
    The WAG MUST NOT contain act.
 
@@ -2456,7 +2426,7 @@ Table of Contents
     | including one that contains act     |                           |
     +-------------------------------------+---------------------------+
 
-                   Table 23: Self-acting error additions
+                   Table 22: Self-acting error additions
 
 7.7.  Profile Identifiers
 
@@ -2709,7 +2679,7 @@ Table of Contents
    |                    |                     | for bearer use         |
    +--------------------+---------------------+------------------------+
 
-                        Table 24: Adoption tradeoffs
+                        Table 23: Adoption tradeoffs
 
    Governed agent access without grant binding adds agent authorization
    to existing enterprise access but leaves stolen grants redeemable by
@@ -2854,7 +2824,7 @@ Table of Contents
    |                |                         | token expires         |
    +----------------+-------------------------+-----------------------+
 
-               Table 25: Effects of administrative changes
+               Table 24: Effects of administrative changes
 
    The RAS requirements for applied changes are in Section 6.5.8; the
    provisioning that feeds them is a deployment choice.  Withdrawing a
@@ -3518,7 +3488,7 @@ C.1.  Upstream Dependencies
     |               |                                  | 6.4.4)       |
     +---------------+----------------------------------+--------------+
 
-                      Table 26: Upstream dependencies
+                      Table 25: Upstream dependencies
 
 C.1.1.  WAG
 
@@ -3600,7 +3570,7 @@ C.2.4.  Excluded Compositions
    | without scope            | of [RFC9396] is not defined            |
    +--------------------------+----------------------------------------+
 
-                      Table 27: Excluded compositions
+                      Table 26: Excluded compositions
 
 C.3.  Operational Dependencies
 
@@ -3851,7 +3821,7 @@ D.5.  Intermediate Adoption Variant
    | request               |                                           |
    +-----------------------+-------------------------------------------+
 
-            Table 28: Message changes for governed agent access
+            Table 27: Message changes for governed agent access
 
    The client assertion, Identity Binding, Client Association, user and
    actor identities, scope, tenant checks, and actor gate are unchanged.
@@ -3912,7 +3882,7 @@ D.6.  Renewal and Rejection Examples
    | that request URI                |           |                     |
    +---------------------------------+-----------+---------------------+
 
-                        Table 29: Rejection examples
+                        Table 28: Rejection examples
 
 D.7.  Self-Acting Variant
 
@@ -3998,7 +3968,7 @@ Appendix E.  Input Variants
    |            | jwt                              |                  |
    +------------+----------------------------------+------------------+
 
-        Table 30: Input variants relative to the dedicated-client
+        Table 29: Input variants relative to the dedicated-client
                                walkthrough
 
    In the bound profile, K signs the issuance DPoP proof, except that

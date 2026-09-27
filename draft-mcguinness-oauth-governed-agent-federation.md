@@ -1822,18 +1822,21 @@ actor-specific rejection details outside the trust domain.
 # Self-Acting Access with WAG {#wag-flow}
 
 This section defines self-acting access, the peer of
-{{delegated-flow}}: the Agent Principal is the subject of a Workload
+{{delegated-flow}}. The Agent Principal is the subject of a Workload
 Authorization Grant (WAG) {{WAG}} issued by the IdP and redeemed at the
 RAS. Each subsection names the delegated rules it reuses and states its
 exceptions. The WAG token and JWT types are provisional; their final
 spelling does not affect processing ({{wag-gaps}}).
+
 ## Differences from Delegated Access {#wag-differences}
 
 | Area | Delegated ID-JAG | Self-acting WAG |
 |---|---|---|
 | Subject | User, from the subject credential | Agent Principal, from the agent-resolution input |
-| Agent representation | Agent Principal in `act`, which the RAS keeps beside the local user as subject | Grant subject, with no `act` ({{wag-claims}}); the RAS correlates it to a local agent principal ({{agent-correlation}}) |
-| Authorization | Delegation Authorization; Client Association for delegated issuance | Agent Authorization ({{agent-authorization}}); a separate Client Association for self-acting issuance |
+| Agent in the grant | Agent Principal in `act` | Grant subject, with no `act` ({{wag-claims}}) |
+| Agent at the RAS | Kept in `act` beside the local user as subject | Correlated to a local agent principal ({{agent-correlation}}) |
+| Authorization | Delegation Authorization | Agent Authorization ({{agent-authorization}}) |
+| Client Association | For delegated issuance | A separate one for self-acting issuance |
 | API enforcement | User authority and the actor gate | The agent's own authority; no actor gate |
 | Refresh | RAS refresh under explicit policy | None; WAG prohibits refresh tokens |
 {: title="Self-acting differences from delegated access"}
@@ -1883,35 +1886,37 @@ under {{subject-token-validation}}.
 
 **Presented-evidence resolution:** The workload credential is the
 subject token, with `subject_token_type`
-`urn:ietf:params:oauth:token-type:jwt`, and the client authenticates
-separately; the existing platform JWT ({{imported-jwt-input}}) is
+`urn:ietf:params:oauth:token-type:jwt`. The client authenticates
+separately. The existing platform JWT ({{imported-jwt-input}}) is
 presented this way. The presented-evidence, classification, and
-mutual-exclusion rules of {{actor-inputs}} apply to that subject token,
-including no fallback to authentication context and the inbound actor
-chain rule, which rejects a subject token that contains `act`. Only
-actor construction and the governed `act` result do not apply.
+mutual-exclusion rules of {{actor-inputs}} apply to that subject token.
+These include no fallback to authentication context and the inbound
+actor chain rule, which rejects a subject token that contains `act`.
+Only actor construction and the governed `act` result do not apply.
 
 **Authentication-context resolution:** The authentication-context rules
-of {{actor-inputs}} apply. Because {{RFC8693}} cannot name the
-authenticated client as the subject without a subject token, a client
-authenticated with a JWT MUST repeat that JWT, byte for byte, as
-`subject_token` with type `urn:ietf:params:oauth:token-type:jwt`: the
-RFC 7523 assertion, the JWT-SVID, the WIT-SVID, or the Client
-Attestation JWT itself, not an accompanying proof-of-possession JWT.
-The IdP MUST reject a subject token that is not byte-identical to the
-credential presented for authentication, which prevents a client from
-substituting another party's assertion as the subject. Carrying one
-assertion in both parameters does not violate the single-use `jti` rule
-of {{client-assertion-input}}, and the Identity Binding, not the
-credential, determines the Agent Principal, as in delegated
-dedicated-client resolution. A client authenticated by X.509-SVID over
-mutual TLS presents no JWT and has no self-acting issuance under this
-profile ({{wag-gaps}}).
+of {{actor-inputs}} apply. In this mode:
+
+* {{RFC8693}} cannot name the authenticated client as the subject
+  without a subject token. A client authenticated with a JWT therefore
+  MUST repeat that JWT, byte for byte, as `subject_token` with type
+  `urn:ietf:params:oauth:token-type:jwt`. That JWT is the credential
+  itself: the RFC 7523 assertion, the JWT-SVID, the WIT-SVID, or the
+  Client Attestation JWT, not an accompanying proof-of-possession JWT.
+* The IdP MUST reject a subject token that is not byte-identical to the
+  credential presented for authentication. This prevents a client from
+  substituting another party's assertion as the subject.
+* Carrying one assertion in both parameters does not violate the
+  single-use `jti` rule of {{client-assertion-input}}.
+* The Identity Binding, not the credential, determines the Agent
+  Principal, as in delegated dedicated-client resolution.
+* A client authenticated by X.509-SVID over mutual TLS presents no JWT
+  and has no self-acting issuance under this profile ({{wag-gaps}}).
 
 ## Grant Claims {#wag-claims}
 
 The WAG subject identifies the governed Agent Principal, not the
-credential subject from which it was resolved, and stays the same across
+credential subject from which it was resolved. It stays the same across
 the executions behind its Identity Binding ({{governance-boundary}}).
 The grant is a JWT with `typ` `wag+jwt` (provisional) and the following
 claims, aligned with the claim set of {{Section 5.1 of WAG}}:
@@ -1947,33 +1952,34 @@ request of {{redemption-request}}.
 **Processing:** The RAS MUST:
 
 1. **Grant:** Validate the grant under {{RFC7523}}, consistent with
-   {{Section 5 of WAG}}; require `iss` to be a configured governing IdP
-   for the asserted agent namespace; and reject a WAG that contains
-   `act` with `invalid_grant`.
+   {{Section 5 of WAG}}. Require `iss` to be a configured governing IdP
+   for the asserted agent namespace. Reject a WAG that contains `act`
+   with `invalid_grant`.
 2. **Proof and client:** Apply {{grant-protection}} and client
    authentication as in {{redemption-validation}}.
 3. **Correlation:** Resolve the pair (`iss`, `sub`) under
    {{agent-correlation}} to one local agent principal in the authorized
    Target Tenant. The RAS MUST have that authorized correlation before
-   issuance; for governed agents this replaces the required acceptance
+   issuance. For governed agents, this replaces the required acceptance
    of previously unseen identifiers in {{Section 7 of WAG}}.
    {{jit-correlation}} covers just-in-time correlation where resource
    policy permits it.
 4. **Authority:** Validate resource, scope, and authorization details as
-   in {{redemption-validation}}, and apply current RAS policy for the
-   agent, client, tenant, and resource. A valid grant sets an authority
+   in {{redemption-validation}}. Apply current RAS policy for the agent,
+   client, tenant, and resource. A valid grant sets an authority
    ceiling; it does not require issuance.
 5. **Output:** Issue an access token under {{access-token-response}} and
    {{access-token-protection}}, with the local agent principal as `sub`
    and no `act`. The RAS MUST NOT issue a refresh token for a WAG
-   redemption; continued access obtains a new WAG under current IdP and
+   redemption. Continued access obtains a new WAG under current IdP and
    RAS policy.
 
 **Retention:** The RAS retains the correlation between the WAG's
 (`iss`, `sub`) and the local principal for the life of the derived
-authorization, for revocation by qualified agent ({{applied-changes}})
-and audit. The token and its introspection response need not carry it;
-this document defines no claim or member for it.
+authorization. This supports revocation by qualified agent
+({{applied-changes}}) and audit. The token and its introspection
+response need not carry the correlation; this document defines no claim
+or member for it.
 
 **Shared rules:** With the WAG as the grant, these also apply:
 
@@ -1981,14 +1987,15 @@ this document defines no claim or member for it.
 * {{distributed-key-use}} and {{applied-changes}}.
 * {{introspection}}, without an `act` member.
 * {{client-token-reuse}}, without a user in the cached context.
-* {{continuing-access}} does not apply; continued access obtains a new
-  WAG (step 5).
+
+{{continuing-access}} does not apply; continued access obtains a new WAG
+(step 5).
 
 ## Resource Processing {#wag-api}
 
 The API applies {{api-processing}}, its {{resource-errors}}, and the API
-rules of {{access-token-protection}} and {{introspection}} without the
-actor gate: it enforces the agent's own permissions, the token's
+rules of {{access-token-protection}} and {{introspection}}, without the
+actor gate. It enforces the agent's own permissions, the token's
 authority constraints, the Target Tenant, and the selected protection.
 A governed self-acting token has no `act`.
 

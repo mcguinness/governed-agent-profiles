@@ -1787,9 +1787,10 @@ subject token, with `subject_token_type`
 `urn:ietf:params:oauth:token-type:jwt`, and the client authenticates
 separately; the existing platform JWT ({{imported-jwt-input}}) is
 presented this way. The presented-evidence, classification, and
-mutual-exclusion rules of {{actor-inputs}}, including no fallback to
-authentication context, apply to that subject token; its
-actor-construction and `act` requirements do not.
+mutual-exclusion rules of {{actor-inputs}} apply to that subject token,
+including no fallback to authentication context and the inbound actor
+chain rule, which rejects a subject token that contains `act`. Only
+actor construction and the governed `act` result do not apply.
 
 **Authentication-context resolution:** The authentication-context rules
 of {{actor-inputs}} apply. Because {{RFC8693}} cannot name the

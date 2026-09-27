@@ -2412,7 +2412,10 @@ classification and rejection follow {{actor-inputs}}.
     authorized to assert. A signature alone does not establish that
     authority for request tags or other caller-supplied attributes.
 * **Audience:** The configured audiences authorize presentation to this
-  IdP as workload evidence (**Configuration**).
+  IdP as workload evidence (**Configuration**). The IdP MUST reject a
+  platform JWT whose `aud` is absent or contains none of them; when
+  `aud` is present, this is the rejection {{Section 4.1.3 of RFC7519}}
+  requires.
 * **Proof:** This profile defines no new proof mechanism. If `cnf` is
   present, the IdP MUST enforce its proof mechanism and MUST NOT give
   the credential bearer treatment when the binding is unsupported. A

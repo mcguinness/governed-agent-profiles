@@ -723,9 +723,7 @@ universal IdP audience.
 | Client Attestation | Trusted attester and validated `sub`, which identifies the OAuth client; the client-to-agent mapping is explicit | {{agent-evidence}} |
 {: title="Agent-resolution inputs and qualified identities"}
 
-Input support follows {{scope}} and {{optional-inputs}}. Except for the
-platform JWT, each input resolves from the token request's
-authentication context, with actor-token parameters omitted; mode
+Input support follows {{scope}} and {{optional-inputs}}; resolution mode
 selection and rejection follow {{actor-inputs}}.
 
 ### Optional Inputs {#optional-inputs}

@@ -199,13 +199,7 @@ authenticated client or workload identity to an Agent Principal, and
 OAuth grants carry that principal into the resource domain. A service
 provider can then authorize, audit, and disable a stable,
 enterprise-governed agent without understanding the runtime or
-credential that currently executes it. The Agent Principal is the
-authorization identity: client and workload identities are authenticated
-inputs from which the IdP resolves it, and they do not replace it
-downstream. Resolving an identity does not authorize its use
-({{model}}), and an agent named in `act` acts for the user only under
-the IdP's Delegation Authorization and the resource's actor gate
-({{actor-authorization}}).
+credential that currently executes it.
 
 The federation model ({{model}}) is independent of the grant that
 carries it. Two peer realizations carry it, each with its own mandatory

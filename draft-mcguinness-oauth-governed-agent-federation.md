@@ -2347,10 +2347,11 @@ grant only where its own policy permits just-in-time correlation
 ({{jit-correlation}}).
 
 Unless explicitly limited to bound grants or a named profile, the
-requirements of this document apply to both governed adoption profiles. Conformance claims
-MUST identify the supported profile by its URI ({{metadata}}), the
-realization, the implemented role, and supported inputs. An
-implementation supports delegated access, self-acting access, or both:
+requirements of this document apply to both governed adoption profiles.
+Conformance claims MUST identify the supported profile by its URI
+({{metadata}}), the realization, the implemented role, and supported
+inputs. An implementation supports delegated access, self-acting
+access, or both:
 
 * **Roles:** The IdP, RAS, and client MUST implement their respective
   requirements in {{model}}, {{identity}}, {{authorization}},
@@ -2951,7 +2952,8 @@ dependency on JWT DPoP Grant.
 This document explicitly defines delegated issuance from validated
 authentication context and an approved Identity Binding, without
 `actor_token`: dedicated-client identity under {{client-assertion-input}}
-or the SPIFFE and Client Attestation identities under {{optional-input-profiles}}.
+or the SPIFFE and Client Attestation identities under
+{{optional-input-profiles}}.
 ID-JAG makes that parameter optional and leaves actor processing to
 extensions ({{Section 9.7 of ID-JAG}}); its omission alone does not establish
 this composition.

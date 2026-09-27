@@ -541,7 +541,10 @@ still justifies an action is outside this profile.
 
 ## Service Provider Contract {#sp-contract}
 
-A resource domain consumes an IdP-qualified Agent Principal. Its RAS
+The mapping from execution identity to Agent Principal is local to the
+IdP; the security contract across the boundary between the IdP and the
+resource domain is interoperable. A resource domain consumes an
+IdP-qualified Agent Principal. Its RAS
 performs no platform-specific credential validation or workload
 resolution, and it need not know whether the agent authenticated as a
 dedicated OAuth client or with a SPIFFE identity, Client Attestation, or

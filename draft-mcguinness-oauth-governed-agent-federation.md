@@ -756,7 +756,7 @@ requirement.
 | Actor representation | One actor: Agent Principal as `act.sub`, IdP as `act.iss`; replaces Actor Profile's credential-to-actor copying | {{actor-construction}} |
 | Request narrowing | Configured resolution mode; one resource; non-empty scope; actor-token parameters required in presented-evidence mode and rejected otherwise; no incoming actor chain | {{issuance-request}}, {{root-request}}, {{actor-inputs}} |
 | Identity and client binding | Users and agents resolved separately; downstream `client_id` from an authoritative client-registration association | {{idp-subject-resolution}}, {{subject-resolution}}, {{agent-correlation}}, {{flow-configuration}} |
-| Grant narrowing | One resource URI (a string; singleton arrays accepted), scope constraints, input-specific expiration limits; DPoP and `cnf.jkt` in the bound profile | {{grant-issuance}}, {{redemption-validation}}, {{grant-protection}} |
+| Grant narrowing | One resource URI (a string; singleton arrays accepted), scope constraints, input-specific expiration limits; DPoP and `cnf.jkt` in the bound profile | {{grant-common}}, {{grant-issuance}}, {{redemption-validation}}, {{grant-protection}} |
 | Resource processing | Actor and tenant context preserved; user authority and actor gate enforced with the selected token protection | {{access-token-response}}, {{api-processing}} |
 | Refresh narrowing | Explicit policy, client binding, preserved proof binding and profile, finite absolute authorization expiration | {{ras-refresh}} |
 | Error processing | `invalid_grant`, not RFC 8693's default `invalid_request`, for actor credential or resolution failures; `actor_unauthorized` for a denied resolved actor | {{errors}} |
@@ -1427,6 +1427,47 @@ policy and reject an inactive agent or withdrawn binding once the change
 has been applied. The IdP MUST apply such a change within a configured
 freshness limit on cached policy data.
 
+## Common Grant Claims, Lifetime, and Response {#grant-common}
+
+Each grant carries these claims in addition to those of its own section
+({{grant-issuance}}, {{wag-claims}}):
+
+| Claim | Required result |
+|---|---|
+| `client_id` | The client's registration identifier at the RAS, derived under {{flow-configuration}} |
+| `resource` | The authorized resource URI, issued as a JSON string; receivers also accept a single-element array under {{redemption-validation}} |
+| `scope` | Non-empty authorized scope string, no broader than the approved request |
+| `cnf.jkt` | Thumbprint of the grant proof key when DPoP is used at issuance; REQUIRED for bound governed agent access ({{grant-protection}}) |
+| `exp`, `iat`, `jti` | As in {{Section 3.1 of ID-JAG}}, within the lifetime limits below |
+{: title="Claims common to both grants"}
+
+**Lifetime:** A grant has these limits:
+
+* **Configured limit:** The grant lifetime SHOULD be at most five
+  minutes and MUST NOT exceed the configured lifetime limit.
+* **Agent-resolution input:** The grant MUST NOT outlive the validated
+  resolution credential, using the bound in the following table. The
+  dedicated-client assertion is the exception: it MUST be valid when the
+  request is authenticated, but it authenticates one transaction and
+  does not cap the grant.
+
+| Input | Lifetime bound on the grant |
+|---|---|
+| Dedicated client assertion | None (the exception above) |
+| Platform JWT | The effective evidence deadline in {{imported-jwt-input}} |
+| JWT-SVID | Its `exp` |
+| WIT-SVID and Client Attestation | The credential's `exp`; the PoP JWT adds no limit |
+| X.509-SVID | The earliest `notAfter` in the validated certificate path, excluding the trust anchor |
+{: title="Grant lifetime bound by agent-resolution input"}
+
+The ID-JAG is also limited by its subject credential ({{grant-issuance}}).
+
+**Response:** The response follows {{Section 4.3.4 of ID-JAG}}; for a
+WAG, `issued_token_type` is the WAG token type. For a bound grant, the
+client MUST retain the DPoP key for redemption and SHOULD inspect
+the grant to confirm that `cnf.jkt` identifies that key
+({{Section 9.8.1.1 of ID-JAG}}).
+
 ## Delegated Issuance: ID-JAG {#exchange-request}
 
 ### Request {#root-request}
@@ -1516,44 +1557,22 @@ classification of {{ENTITY-PROFILES}}.
 ### Grant Issuance {#grant-issuance}
 
 **Claims:** The ID-JAG MUST use the format and claims of
-{{Section 3.1 of ID-JAG}} and additionally satisfy:
+{{Section 3.1 of ID-JAG}} and the common claims of {{grant-common}}, and
+additionally satisfy:
 
 | Claim | Required result |
 |---|---|
 | `sub` | Same user as the validated subject credential, expressed in the IdP's subject namespace for the RAS |
 | `act` | Agent Principal actor constructed under {{actor-construction}} |
-| `cnf.jkt` | Thumbprint of the grant proof key when DPoP is used at issuance; REQUIRED for bound governed agent access ({{grant-protection}}) |
-| `resource` | The authorized resource URI, issued as a JSON string; receivers also accept a single-element array under {{redemption-validation}} |
-| `scope` | Non-empty authorized scope string, no broader than the approved request |
-| `client_id` | The client's registration identifier at the RAS, derived under {{flow-configuration}} |
-{: title="ID-JAG claims profiled by this document"}
+{: title="ID-JAG subject and actor claims"}
 
 **Unambiguous context:** The IdP MUST NOT issue a grant if it cannot
 determine an unambiguous user, actor, downstream client, or tenant
 relationship.
 
-**Lifetime:** The grant has three limits:
-
-* **Configured limit:** The grant lifetime SHOULD be at most five
-  minutes and MUST NOT exceed the configured lifetime limit.
-* **Subject credential:** The grant's expiration MUST NOT exceed the
-  subject credential's expiration, determined below.
-* **Agent-resolution input:** The grant MUST NOT outlive the validated
-  resolution credential, using the bound in the following table. The
-  dedicated-client assertion is the exception: it MUST be valid when the
-  request is authenticated, but it authenticates one transaction and
-  does not cap the grant.
-
-| Input | Lifetime bound on the grant |
-|---|---|
-| Dedicated client assertion | None (the exception above) |
-| Platform JWT | The effective evidence deadline in {{imported-jwt-input}} |
-| JWT-SVID | Its `exp` |
-| WIT-SVID and Client Attestation | The credential's `exp`; the PoP JWT adds no limit |
-| X.509-SVID | The earliest `notAfter` in the validated certificate path, excluding the trust anchor |
-{: title="Grant lifetime bound by agent-resolution input"}
-
-The subject credential's expiration is:
+**Lifetime:** The limits of {{grant-common}} apply. The grant's
+expiration also MUST NOT exceed the subject credential's expiration,
+which is:
 
 * **ID Token:** its `exp` claim.
 * **SAML assertion:** the earliest applicable `NotOnOrAfter` in the
@@ -1563,13 +1582,6 @@ The subject credential's expiration is:
 * **Refresh token:** its expiry, if the IdP records one. Otherwise the
   configured and agent-resolution input limits apply; absence of a
   recorded expiry does not authorize an unlimited grant lifetime.
-
-### Successful Response {#exchange-response}
-
-The response follows {{Section 4.3.4 of ID-JAG}}. For a bound grant,
-the client MUST retain the DPoP key for redemption and SHOULD inspect
-the grant to confirm that `cnf.jkt` identifies that key
-({{Section 9.8.1.1 of ID-JAG}}).
 
 ## Self-Acting Issuance: WAG {#wag-issuance}
 
@@ -1647,30 +1659,23 @@ of {{actor-inputs}} apply. In this mode:
 The WAG subject identifies the governed Agent Principal, not the
 credential subject from which it was resolved. It stays the same across
 the executions behind its Identity Binding ({{governance-boundary}}).
-The grant is a JWT with `typ` `wag+jwt` (provisional) and the following
-claims, aligned with the claim set of {{Section 5.1 of WAG}}:
+The grant is a JWT with `typ` `wag+jwt` (provisional) whose claims are
+aligned with the claim set of {{Section 5.1 of WAG}}: the common claims
+of {{grant-common}} and the following:
 
 | Claim | Value |
 |---|---|
 | `iss` | The IdP issuer identifier |
 | `sub` | The Agent Principal identifier from the Identity Binding |
 | `aud` | The target RAS issuer identifier |
-| `client_id`, `resource`, `scope`, `cnf.jkt` | As for the ID-JAG in {{grant-issuance}} |
-| `exp`, `iat`, `jti` | As for the ID-JAG, within the lifetime below |
-{: title="IdP-issued WAG claims"}
+{: title="WAG issuer, subject, and audience claims"}
 
 The WAG MUST NOT contain `act`.
 
 **Unambiguous context:** The IdP MUST NOT issue a WAG unless the Agent
-Principal, downstream client, and tenant are unambiguous, as
-{{grant-issuance}} requires for the ID-JAG.
+Principal, downstream client, and tenant are unambiguous.
 
-**Lifetime:** Of the limits in {{grant-issuance}}, the configured limit
-and the agent-resolution input limit apply, including the
-dedicated-client exception.
-
-**Response:** As in {{exchange-response}}, with `issued_token_type` set
-to the WAG token type.
+**Lifetime:** The limits of {{grant-common}} apply.
 
 ## Token Endpoint Error Responses {#errors}
 
@@ -2531,7 +2536,7 @@ classification and rejection follow {{actor-inputs}}.
   maximum age measured from an authenticated issuance time (such as
   `iat`), or both. When both apply, the earlier deadline governs.
   Receipt time MUST NOT substitute for issuance time. The deadline
-  bounds grant expiration ({{grant-issuance}}).
+  bounds grant expiration ({{grant-common}}).
 * **Resolution:** The Identity Binding MUST specify an exact issuer and
   `sub`. It MAY require additional string values from the JWT Claims
   Set, including nested claims. Selectors constrain identity
@@ -3041,7 +3046,7 @@ as `client_id`. Across the variants:
   except that the WIT-SVID variant uses the WIT-SVID key. The
   X.509-SVID variant's DPoP key may differ from its TLS key.
 * **Lifetime:** The input bounds the grant lifetime under
-  {{grant-issuance}}.
+  {{grant-common}}.
 * **Client Association:** Each variant needs a Client Association for
   its authenticated client ({{identity-binding}}). The JWT-SVID and
   platform JWT variants need a separate one for `platform-sso`. In the

@@ -2044,8 +2044,8 @@ otherwise renewal may require user interaction.
 
 ## Client Token Reuse {#client-token-reuse}
 
-The client MUST associate each cached grant, access token, and refresh
-token with its authorized context:
+To govern reuse, the client associates each cached grant, access
+token, and refresh token with its authorized context:
 
 * User and Agent Principal.
 * Governance and Target Tenants.

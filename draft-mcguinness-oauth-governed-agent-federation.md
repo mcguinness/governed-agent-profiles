@@ -2621,11 +2621,11 @@ obtain a grant bound to an attacker-controlled DPoP key. The proof
 protects that grant against theft; it does not establish legitimate
 runtime provenance.
 
-Deployments requiring runtime or workload provenance MUST use an
+Deployments requiring runtime or workload provenance need an
 agent-resolution input whose verified claims and trusted issuance policy
-establish the required properties, rather than dedicated-client
-resolution alone. Authentication-key revocation and binding disablement
-affect subsequent issuance under {{status-changes}}.
+establish the required properties; dedicated-client resolution alone
+does not establish them. Authentication-key revocation and binding
+disablement affect subsequent issuance under {{status-changes}}.
 
 ## Credential Authority and Key Isolation
 

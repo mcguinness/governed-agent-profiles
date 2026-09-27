@@ -640,13 +640,6 @@ portable IdP-imposed deadline on downstream authorization
 ({{deadline-gap}}) and requires no shared approval record or correlated
 lifetime lookup.
 
-If IdP approval requires a downstream lifetime condition that the
-selected composition cannot enforce, the IdP MUST reject issuance
-with `actor_unauthorized` for delegated issuance or `invalid_target`
-for self-acting issuance. It MUST NOT discard that condition or treat
-a shorter ID-JAG lifetime as enforcing it. Revocation follows
-{{status-changes}}.
-
 ### Delegated Actor Authorization {#actor-authorization}
 
 For delegated access, the RAS and API MUST enforce both:
@@ -1414,11 +1407,12 @@ the remaining checks.
 ## Issuance Authorization {#issuance-authorization}
 
 Validated identity does not grant authority. After resolution under
-{{inputs}} and {{identity}}, the IdP MUST
-authorize issuance under current assignments and policy for the resolved
-agent, authenticated client, acting relationship, Governance and Target
-Tenants, RAS, resource, and requested authority. The authority asserted
-in a delegated grant MUST be bounded by both:
+{{inputs}}, {{identity}}, and, for delegated access,
+{{idp-subject-resolution}}, the IdP MUST authorize issuance under
+current assignments and policy for the resolved agent, authenticated
+client, acting relationship, Governance and Target Tenants, RAS,
+resource, and requested authority. The authority asserted in a delegated
+grant MUST be bounded by both:
 
 * The authority the IdP is authorized to assert for the user.
 * The authority permitted by the agent's delegation authorization
@@ -1441,6 +1435,13 @@ Before issuance, the IdP MUST apply current binding and authorization
 policy and reject an inactive agent or withdrawn binding once the change
 has been applied. The IdP MUST apply such a change within a configured
 freshness limit on cached policy data.
+
+If IdP approval requires a downstream lifetime condition that the
+selected composition cannot enforce, the IdP MUST reject issuance
+with `actor_unauthorized` for delegated issuance or `invalid_target`
+for self-acting issuance. It MUST NOT discard that condition or treat
+a shorter grant lifetime as enforcing it. Revocation follows
+{{status-changes}}.
 
 ## Common Grant Claims, Lifetime, and Response {#grant-common}
 
@@ -1557,8 +1558,9 @@ The IdP MUST:
 ### Actor Resolution and Construction {#actor-construction}
 
 After credential validation, the IdP MUST resolve the agent under
-{{identity}} and authorize issuance under {{issuance-authorization}}
-and {{authorization}}. The ID-JAG MUST contain one `act` object with:
+{{identity}} and authorize issuance under {{issuance-authorization}} and
+{{delegation-authorization}}. The ID-JAG MUST contain one `act` object
+with:
 
 * `sub`: the Agent Principal identifier from the Identity Binding.
 * `iss`: this IdP's issuer identifier.
@@ -1619,8 +1621,9 @@ apply. The IdP MUST:
    client identity.
 3. Verify the Client Association for self-acting issuance
    ({{identity-binding}}).
-4. Apply Agent Authorization ({{agent-authorization}}) for the requested
-   RAS, resource, and authority. No user is involved.
+4. Authorize issuance under {{issuance-authorization}}, applying Agent
+   Authorization ({{agent-authorization}}) for the requested RAS,
+   resource, and authority. No user is involved.
 5. Apply {{grant-protection}} and issue the WAG under {{wag-claims}}.
 
 **Failures:** {{issuance-errors}}.
@@ -1717,6 +1720,7 @@ In addition to {{errors}}, the IdP uses these errors:
 | Absent, disabled, or ambiguous Identity Binding, or no active Agent Principal can be resolved | `invalid_grant` |
 | Governance Tenant cannot be resolved unambiguously from trusted identity and configuration context | `invalid_grant` |
 | Resolved Agent Principal, but no Client Association permits the selected binding and acting relationship, or delegation is unauthorized | `actor_unauthorized` under Actor Profile, with HTTP 400 |
+| Approval requires a downstream lifetime condition that the selected composition cannot enforce ({{issuance-authorization}}) | `actor_unauthorized` |
 {: title="Identity resolution and delegation errors"}
 
 Agent-resolution credential failures use `invalid_grant` instead of
@@ -1731,6 +1735,7 @@ Self-acting issuance adds these errors:
 | Resolved Agent Principal, but no Client Association permits self-acting issuance for the binding | `unauthorized_client`, not `actor_unauthorized`, since no actor is asserted |
 | Agent not authorized for the requested RAS or resource | `invalid_target` |
 | Agent not authorized for the requested authority | `invalid_scope` |
+| Approval requires a downstream lifetime condition that the selected composition cannot enforce ({{issuance-authorization}}) | `invalid_target` |
 {: title="Self-acting issuance errors"}
 
 # Grant Redemption at the RAS {#redemption}
@@ -1908,8 +1913,8 @@ The RAS:
    {{jit-correlation}} covers just-in-time correlation where resource
    policy permits it.
 4. **Authority:** Apply the authority checks of {{redemption-common}}
-   and current RAS policy for the agent, client, tenant, and resource. A valid grant sets an authority
-   ceiling; it does not require issuance.
+   and current RAS policy for the agent, client, tenant, and resource. A
+   valid grant sets an authority ceiling; it does not require issuance.
 5. **Output:** Issue an access token under {{access-token-response}} and
    {{access-token-protection}}, with the local agent principal as `sub`
    and no `act`. The RAS MUST NOT issue a refresh token for a WAG

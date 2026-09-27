@@ -1072,8 +1072,8 @@ shared-client input; {{scope}} states when it is required. The client
 presents the JWT as `actor_token` in delegated issuance and as
 `subject_token` in self-acting issuance ({{wag-request}}), and
 authenticates separately with a configured method. The IdP MUST accept
-a platform JWT only from an explicitly configured issuer, for a
-configured credential class and authenticated client. Credential
+a platform JWT only when its issuer, credential class, and the
+authenticated client are explicitly configured together. Credential
 classification and rejection follow
 {{actor-inputs}}.
 
@@ -1321,7 +1321,7 @@ not replace the federated actor. That rule concerns the actor of a delegated tok
 access the access token's subject is the local principal and the
 qualified identity is retained under {{wag-redemption}}.
 
-Where the RAS requires a local agent principal, deployments normally
+Where the RAS requires a local agent principal, deployments typically
 have the IdP or its authorized directory connector provision and
 synchronize that principal, keyed by the same pair, and propagate
 activation and deactivation. Once deactivation is applied, the RAS
@@ -2062,7 +2062,7 @@ users, or tenants.
 
 The association can use trusted request and configuration context;
 clients need not parse opaque tokens. If the client cannot establish
-the required association, it MUST obtain a token or grant for the current
+that association, it MUST obtain a token or grant for the current
 context. A credential change alone need not invalidate cached tokens
 when the governed principal and authorization context remain the same.
 

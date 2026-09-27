@@ -652,17 +652,18 @@ working entirely within its parent's authority and attributed to it,
 can run as that Agent Principal; one that needs any of them separately
 needs its own identity.
 
-Multiple executions MAY operate as the same Agent Principal, and an
-agent MAY move between workloads or execution environments through
-approved Identity Bindings. Conversely, one environment MAY host
+Multiple executions can operate as the same Agent Principal, and an
+agent can move between workloads or execution environments through
+approved Identity Bindings. Conversely, one environment can host
 multiple Agent Principals. The validated resolution input and its
-Identity Binding MUST distinguish exactly one Agent Principal for each
-authorization transaction; a shared workload identity alone cannot
-select among agents.
+Identity Binding therefore need to distinguish exactly one Agent
+Principal for each authorization transaction; the IdP rejects an
+ambiguous mapping ({{identity-binding}}), and a shared workload
+identity alone cannot select among agents.
 
 Scaling, restarting, rescheduling, migration, credential rotation, or
 creation of additional executions, replicas, credentials, Identity
-Bindings, or Client Associations MUST NOT by itself create, merge,
+Bindings, or Client Associations does not by itself create, merge,
 transfer, or increase Agent Principal authority.
 Each transaction remains subject to the applicable Client Association,
 delegation authorization, target, and resource policy.

@@ -630,8 +630,8 @@ rejected under {{actor-inputs}}.
 
 ### Authorization Lifetime {#authorization-lifetime}
 
-Credential or ID-JAG expiration does not by itself terminate an access
-token or RAS refresh authorization already issued; the ID-JAG's `exp`
+Credential or grant expiration does not by itself terminate an access
+token or RAS refresh authorization already issued; the grant's `exp`
 limits redemption, not subsequent access.
 
 The RAS MUST limit access-token and refresh-authorization lifetimes
@@ -1315,7 +1315,7 @@ MUST NOT select or change that mode.
   resolution from authentication context.
 
 **Credential class:** The IdP MUST select exactly one configured
-platform credential class for actor evidence, or reject with
+platform credential class for presented evidence, or reject with
 `invalid_request`. Native SPIFFE and Client Attestation inputs use
 authentication context and MUST NOT be accepted through
 presented-evidence mode. Credential classes MUST have mutually exclusive
@@ -1327,12 +1327,6 @@ authorization rules MUST NOT trigger validation under another class.
 relationship, the IdP MUST reject an agent-resolution JWT or ID Token
 containing `act`, and a refresh-token subject whose retained
 authorization contains an actor chain.
-
-**Delegated result:** In delegated issuance, both modes proceed through
-{{actor-construction}}, and a governed request MUST result in the
-required governed `act` or fail. Omitting actor-token parameters in
-authentication-context mode does not request ordinary EMA or
-subject-only impersonation.
 
 ### Identity Binding {#identity-binding}
 
@@ -1557,6 +1551,11 @@ The IdP MUST:
 
 ### Actor Resolution and Construction {#actor-construction}
 
+In delegated issuance, both resolution modes proceed through this
+section, and a governed request MUST result in the required governed
+`act` or fail. Omitting actor-token parameters in authentication-context
+mode does not request ordinary EMA or subject-only impersonation.
+
 After credential validation, the IdP MUST resolve the agent under
 {{identity}} and authorize issuance under {{issuance-authorization}} and
 {{delegation-authorization}}. The ID-JAG MUST contain one `act` object
@@ -1628,8 +1627,9 @@ apply. The IdP MUST:
 
 **Failures:** {{issuance-errors}}.
 
-The client redeems the WAG under {{wag-redemption}}; {{wag-example}}
-shows the messages.
+The client redeems the WAG under {{redemption-request}}, and the RAS
+processes it under {{wag-redemption}}; {{wag-example}} shows the
+messages.
 
 ### Issuance Request {#wag-request}
 
@@ -1658,7 +1658,6 @@ presented this way. The presented-evidence, classification, and
 mutual-exclusion rules of {{actor-inputs}} apply to that subject token.
 These include no fallback to authentication context and the inbound
 actor chain rule, which rejects a subject token that contains `act`.
-Only actor construction and the governed `act` result do not apply.
 
 **Authentication-context resolution:** The authentication-context rules
 of {{actor-inputs}} apply. In this mode:
@@ -1675,7 +1674,7 @@ of {{actor-inputs}} apply. In this mode:
 * Carrying one assertion in both parameters does not violate the
   single-use `jti` rule of {{client-assertion-input}}.
 * The Identity Binding, not the credential, determines the Agent
-  Principal, as in delegated dedicated-client resolution.
+  Principal ({{identity-binding}}).
 * A client authenticated by X.509-SVID over mutual TLS presents no JWT
   and has no self-acting issuance under this profile ({{wag-gaps}}).
 
@@ -1719,7 +1718,7 @@ In addition to {{errors}}, the IdP uses these errors:
 | Invalid subject or agent-resolution credential, or disallowed inbound actor chain | `invalid_grant` |
 | Absent, disabled, or ambiguous Identity Binding, or no active Agent Principal can be resolved | `invalid_grant` |
 | Governance Tenant cannot be resolved unambiguously from trusted identity and configuration context | `invalid_grant` |
-| Resolved Agent Principal, but no Client Association permits the selected binding and acting relationship, or delegation is unauthorized | `actor_unauthorized` under Actor Profile, with HTTP 400 |
+| Resolved Agent Principal, but no Client Association permits the selected binding for delegated issuance, or delegation is unauthorized | `actor_unauthorized` under Actor Profile, with HTTP 400 |
 | Approval requires a downstream lifetime condition that the selected composition cannot enforce ({{issuance-authorization}}) | `actor_unauthorized` |
 {: title="Identity resolution and delegation errors"}
 
@@ -1785,10 +1784,10 @@ Both grants use these checks. {{redemption-validation}} and
 ## Agent Principal Correlation {#agent-correlation}
 
 The Agent Principal identity is the pair of IdP issuer and agent
-identifier, carried in ID-JAG as (`act.iss`, `act.sub`).
-The RAS MUST:
+identifier, carried as (`act.iss`, `act.sub`) in an ID-JAG and as
+(`iss`, `sub`) in a WAG. The RAS MUST:
 
-* Resolve that qualified identity independently of the user's identity;
+* Resolve that qualified identity independently of any user identity;
   a bare subject, display name, or OAuth client identifier MUST NOT
   replace it.
 * Deny authorization that depends on a missing agent record, whether
@@ -1821,14 +1820,14 @@ RAS:
 * sets the record's initial eligibility by local policy; a record
   created ineligible denies the triggering request.
 
-Creating the record is correlation, not authorization. The actor gate
-({{actor-authorization}}) and resource policy still apply. Creation
-does not substitute for propagating disablement, because a grant does
-not carry the IdP's administrative status. Without provisioning, the
-RAS learns of disablement only through local action or another signal
-({{status-changes}}). {{AGENT-LIFECYCLE}}, not this document, defines
-provisioning and reconciliation of a created record for Receivers that
-conform to it.
+Creating the record is correlation, not authorization. Resource policy
+still applies, and for delegated access so does the actor gate
+({{actor-authorization}}). Creation does not substitute for propagating
+disablement, because a grant does not carry the IdP's administrative
+status. Without provisioning, the RAS learns of disablement only through
+local action or another signal ({{status-changes}}).
+{{AGENT-LIFECYCLE}}, not this document, defines provisioning and
+reconciliation of a created record for Receivers that conform to it.
 
 ## Delegated Redemption: ID-JAG {#idjag-redemption}
 
@@ -1852,9 +1851,10 @@ The RAS MUST perform ID-JAG validation and additionally:
 
 ### User Resolution and Linking {#subject-resolution}
 
-Subject identifiers and `aud_sub` follow Sections 3.1, 5, and 6 of
-{{ID-JAG}}, with these additions. After validating the ID-JAG and its
-client and proof bindings, the RAS MUST:
+Subject identifiers, tenant relationships, `aud_sub`, `aud_tenant`, and
+`sub_id` follow Sections 3.1, 5, and 6 of {{ID-JAG}}, with these
+additions. After validating the ID-JAG and its client and proof
+bindings, the RAS MUST:
 
 * Resolve exactly one local user in the authorized Target Tenant,
   qualifying `sub` by the validated IdP issuer and tenant relationship;

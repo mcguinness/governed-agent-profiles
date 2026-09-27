@@ -540,10 +540,8 @@ identity alone cannot select among agents.
 Scaling, restarting, rescheduling, migration, credential rotation, or
 creation of additional executions, replicas, credentials, Identity
 Bindings, or Client Associations does not by itself create, merge,
-transfer, or increase Agent Principal authority.
-Each transaction remains subject to the applicable Client Association,
-delegation authorization, target, and resource policy.
-This profile defines no aggregate budget, quota, or concurrency semantics.
+transfer, or increase Agent Principal authority. This profile defines no
+aggregate budget, quota, or concurrency semantics.
 
 ## Grant Paths {#paths}
 
@@ -552,13 +550,6 @@ authorization transaction determines whether it is represented as the
 subject, in a WAG ({{wag-flow}}), or as the actor for a user, in an
 ID-JAG ({{delegated-flow}}). Authorization for one relationship does not
 imply authorization for the other.
-
-In the delegated realization, the client presents a supported user
-credential and agent-resolution input, and authenticates at each
-authorization server. The two token requests are ID-JAG issuance at the
-IdP and redemption at the RAS. Each decision is constrained by its own
-policy domain ({{actor-authorization}}), and the API enforces the result
-({{api-processing}}).
 
 ## Adoption Profiles {#adoption-profiles}
 

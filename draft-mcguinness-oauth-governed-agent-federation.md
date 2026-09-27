@@ -573,8 +573,8 @@ weaker validation path or establish an Identity Binding. Unrecognized
 request parameters and JWT claims follow {{Section 3.2 of RFC6749}} and
 {{Section 4 of RFC7519}}.
 
-The IdP MUST distinguish three functions and MUST NOT substitute one
-for another:
+The IdP MUST NOT substitute one of three distinct functions for
+another:
 
 * **Client authentication:** evidence authenticating the OAuth client.
 * **Agent resolution:** resolution of the authenticated dedicated-client

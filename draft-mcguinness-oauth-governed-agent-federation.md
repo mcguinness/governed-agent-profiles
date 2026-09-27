@@ -2562,7 +2562,8 @@ client identifier, including multiple agents behind a shared client.
   {{Section 3.1 of SPIFFE-OAUTH}}, including the assertion type, and
   {{Section 5 of SPIFFE-OAUTH}} and {{Section 6 of SPIFFE-OAUTH}} for
   trust establishment and key distribution. It MUST also verify the
-  signature with keys authorized for the SPIFFE ID's trust domain. An
+  signature, before resolving the agent, with keys authorized for the
+  SPIFFE ID's trust domain. An
   optional `iss` MUST NOT select another trust domain or key authority.
 * **Resolution:** The IdP MUST resolve the exact SPIFFE ID in the
   validated `sub` under {{identity-binding}}. The SPIFFE ID's
@@ -2628,8 +2629,9 @@ identity granularity. {{svid-context-example}} illustrates both inputs.
 * **Resolution:** The IdP MUST resolve the approved trust domain and
   exact SPIFFE ID in the validated `sub` through {{identity-binding}}.
 * **Proof:** When DPoP is used at issuance, its key MUST match the
-  WIT-SVID's `cnf.jwk`. The IdP MUST compare their JWK thumbprints as
-  used in {{RFC9449}} and MUST reject a mismatch with `invalid_grant`.
+  WIT-SVID's `cnf.jwk`. The IdP MUST compare the JWK thumbprints of the
+  DPoP key and `cnf.jwk` as used in {{RFC9449}} and MUST reject a
+  mismatch with `invalid_grant`.
   This carries the WIT-endorsed key into the grant binding; the Client
   Attestation PoP JWT remains required. Key retention follows
   {{resolution-key-lifecycle}}.

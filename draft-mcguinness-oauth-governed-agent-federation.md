@@ -1481,7 +1481,9 @@ authorization or attribution.
 This section realizes the federation model as a normative profile of
 ID-JAG issuance and redemption, using the actor extension point in
 {{Section 9.7 of ID-JAG}}. Where it is silent, ID-JAG applies
-unchanged.
+unchanged. {{profile-additions}} lists every change this profile makes
+to ID-JAG; the sections after it state the processing rule behind each
+row.
 
 ## Relationship to Base Specifications {#profile-additions}
 

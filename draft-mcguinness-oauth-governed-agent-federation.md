@@ -2045,17 +2045,20 @@ Conformance claims MUST identify the supported profile by its URI
 inputs. An implementation supports delegated access, self-acting
 access, or both.
 
-The IdP, RAS, and client MUST implement their respective requirements
-in {{model}}, {{identity}}, {{authorization}}, {{metadata}},
-{{security}}, and {{mandatory-input-profiles}}; in {{delegated-flow}} or
-{{wag-flow}} for each supported realization; and in
-{{optional-input-profiles}} for each supported optional input. Each
-realization has this mandatory interoperability path:
+The IdP, RAS, and client MUST implement their respective
+requirements in:
+
+* {{model}}, {{identity}}, {{authorization}}, {{metadata}},
+  {{security}}, and {{mandatory-input-profiles}};
+* {{delegated-flow}} or {{wag-flow}} for each supported realization; and
+* {{optional-input-profiles}} for each supported optional input.
+
+Each realization has this mandatory interoperability path:
 
 * **Issuance:** The client and IdP MUST implement dedicated-client
   resolution using RFC 7523 `private_key_jwt` authentication
-  ({{client-assertion-input}}), and for delegated access also ID Token
-  subjects.
+  ({{client-assertion-input}}). For delegated access, they MUST also
+  implement ID Token subjects.
 * **Redemption:** The client and RAS MUST implement `private_key_jwt` for
   redemption. DPoP support and use are REQUIRED for bound governed agent
   access; governed agent access follows {{grant-protection}}.
@@ -2063,25 +2066,29 @@ realization has this mandatory interoperability path:
   for self-acting access.
 
 The inputs of {{optional-input-profiles}}, existing platform JWTs, SAML
-subjects, and IdP refresh-token subjects are OPTIONAL capabilities, with
-one exception: an IdP that accepts any agent-resolution input other than
-dedicated-client identity MUST also support the existing platform JWT
-input ({{imported-jwt-input}}), and a client that relies on a shared
-client identity MUST be able to present it. Input selection follows
-{{discovery}}.
+subjects, and IdP refresh-token subjects are OPTIONAL capabilities,
+except that:
+
+* An IdP that accepts any agent-resolution input other than
+  dedicated-client identity MUST also support the existing platform JWT
+  input ({{imported-jwt-input}}).
+* A client that relies on a shared client identity MUST be able to
+  present the existing platform JWT input.
+
+Input selection follows {{discovery}}.
 
 ID-JAG requires support for Identity Assertions
-({{Section 4.3 of ID-JAG}}); requiring ID Token subjects specifically
+({{Section 4.3 of ID-JAG}}). Requiring ID Token subjects specifically
 gives independent implementations a common subject-token format. This is
 an implementation baseline, not a requirement to deploy one client per
 agent: deployments MAY use mutually supported optional inputs.
 
-Because an ID Token's audience identifies the authenticated IdP client
-({{subject-token-validation}}), a dedicated deployment needs a user
-authorization flow for each agent's client registration, though an
-existing IdP session may avoid another login prompt. A platform
-retaining its shared single sign-on (SSO) client instead uses the
-existing platform JWT ({{imported-jwt-input}}) or an optional input.
+An ID Token's audience identifies the authenticated IdP client
+({{subject-token-validation}}). A dedicated deployment therefore needs a
+user authorization flow for each agent's client registration, though an
+existing IdP session may avoid another login prompt. A platform that
+keeps its shared single sign-on (SSO) client instead uses the existing
+platform JWT ({{imported-jwt-input}}) or an optional input.
 
 ## Authorization Server and Client Metadata {#metadata}
 
@@ -2118,7 +2125,7 @@ Servers MUST publish {{RFC8414}} metadata as follows:
 * **IdP:** Advertise Token Exchange in `grant_types_supported`. For
   delegated access, advertise ID-JAG in
   `identity_chaining_requested_token_types_supported` under
-  {{Section 7.1 of ID-JAG}}; for self-acting access, advertise the WAG
+  {{Section 7.1 of ID-JAG}}. For self-acting access, advertise the WAG
   token type in the same parameter, pending coordination ({{wag-gaps}}).
   * Include `private_key_jwt` in `token_endpoint_auth_methods_supported`.
   * When SPIFFE authentication is supported, include `spiffe_jwt`,
@@ -2127,9 +2134,8 @@ Servers MUST publish {{RFC8414}} metadata as follows:
     support ({{actor-inputs}}, {{discovery}}).
 * **Both:** Advertise supported client authentication methods and, when
   DPoP is supported, DPoP algorithms, including {{flow-configuration}}'s
-  common capabilities.
-  Where supported, publish the existing CIMD and mutual-TLS capability
-  metadata defined by {{CIMD}} and {{RFC8705}}.
+  common capabilities. Where supported, publish the existing CIMD and
+  mutual-TLS capability metadata defined by {{CIMD}} and {{RFC8705}}.
 
 ### Client Metadata {#client-metadata}
 
@@ -2148,42 +2154,40 @@ configuration of trust, Identity Bindings, and Client Associations.
 Profile applicability follows these rules:
 
 1. **Establish policy:** Before exchange, trusted configuration MUST
-   establish the applicable
-   governed profile and minimum requirements for the client, issuer
-   trust relationship, and target resource. The client, IdP, and RAS
-   MUST use that configuration. Client identity, issuer context, and
-   target resource identify the applicable policy; this document defines
-   no transaction-level profile negotiation.
-2. **Enforce the minimum:** Each server MUST enforce its configured minimum
-   regardless of absent
-   `actor_token`, `act`, DPoP, or `cnf`. Their presence or absence MUST
-   NOT select a different profile. Metadata advertises capabilities;
-   it MUST NOT authorize a lower profile or override resource policy.
-3. **Prevent fallback:** Implementations MUST NOT retry a failed governed
-   request as ordinary
-   EMA or drop proof to retry as governed agent access. A lower profile
-   requires a separately authorized configuration, not an error-driven
-   fallback.
-4. **Enforce resource policy:** The RAS and API MUST agree on the minimum
-   profile for their resource.
-   The API relies on the RAS to enforce grant protection; an access
-   token's `cnf` describes its own protection and does not establish
-   which grant profile was used. Where multiple paths share a resource,
-   applicability follows {{api-processing}}.
+   establish the applicable governed profile and minimum requirements
+   for the client, issuer trust relationship, and target resource. The
+   client, IdP, and RAS MUST use that configuration. Client identity,
+   issuer context, and target resource identify the applicable policy.
+   This document defines no transaction-level profile negotiation.
+2. **Enforce the minimum:** Each server MUST enforce its configured
+   minimum regardless of absent `actor_token`, `act`, DPoP, or `cnf`.
+   Their presence or absence MUST NOT select a different profile.
+   Metadata advertises capabilities; it MUST NOT authorize a lower
+   profile or override resource policy.
+3. **Prevent fallback:** Implementations MUST NOT retry a failed
+   governed request as ordinary EMA or drop proof to retry as governed
+   agent access. A lower profile requires a separately authorized
+   configuration, not an error-driven fallback.
+4. **Enforce resource policy:** The RAS and API MUST agree on the
+   minimum profile for their resource. The API relies on the RAS to
+   enforce grant protection. An access token's `cnf` describes the
+   token's own protection. It does not establish which grant profile
+   was used. Where multiple paths share a resource, applicability
+   follows {{api-processing}}.
 
 An implementation MAY serve existing EMA and either governed profile
 concurrently under these rules. Supporting the bound profile does not
 require accepting grants without sender constraint or advertising the
 intermediate profile.
 
-Migration changes the configured profile after
-the participating roles implement its requirements; it does not relabel
-previously issued grants or refresh tokens.
+Migration changes the configured profile after the participating roles
+implement its requirements. It does not relabel previously issued
+grants or refresh tokens.
 
 Before using either path:
 
 * **Issuance support:** The client and IdP MUST agree through trusted
-  configuration on issuance support and any options; generic JWT or
+  configuration on issuance support and any options. Generic JWT or
   authentication-method support is insufficient.
 * **RAS capabilities:** The client MUST verify the RAS's profile
   advertisement, JWT bearer grant support, and compatible access-token
@@ -2191,9 +2195,8 @@ Before using either path:
   the client MUST NOT initiate that path.
 * **Metadata consistency:** For delegated access, if the
   `actor_profile_token_exchange` parameter of
-  {{Section 16.2 of ACTOR-PROFILE}} is published, it MUST
-  describe only the paths actually supported and agree with the
-  ID-JAG advertisement.
+  {{Section 16.2 of ACTOR-PROFILE}} is published, it MUST describe only
+  the paths actually supported and agree with the ID-JAG advertisement.
 
 # Security Considerations {#security}
 
@@ -2206,22 +2209,26 @@ The profile's security controls carry these deployment costs:
 
 | Requirement | Benefit | Cost |
 |---|---|---|
-| Dedicated-client resolution as the common mode | Reuses deployed client authentication and registered keys | Each client identity resolves to one Agent Principal; proves registered-client identity, not independent runtime or workload provenance |
-| Optional native JWT-SVID input | Reuses SPIFFE issuance, client authentication, and trust-domain validation | JWT-SVID is bearer evidence; deployments requiring issuer-bound presenter proof need another supported input |
-| Bound profile: DPoP at both token endpoints; grant bound to the grant proof key | A stolen ID-JAG cannot be redeemed without the key | Every client holds and proves a key. Grant binding does not make bearer evidence proof of an issuer-authorized presenter ({{credential-requirements}}) |
+| Dedicated-client resolution as the common mode | Reuses deployed client authentication and registered keys | One Agent Principal per client identity; proves registered-client identity, not independent runtime or workload provenance |
+| Optional native JWT-SVID input | Reuses SPIFFE issuance, client authentication, and trust-domain validation | Bearer evidence; issuer-bound presenter proof needs another supported input |
+| Bound profile: DPoP at both token endpoints; grant bound to the grant proof key | A stolen ID-JAG cannot be redeemed without the key | Every client holds and proves a key |
 | Bound grants: same key for issuance and redemption | No key-transition protocol to secure | A broker that obtains bound grants also redeems them ({{distributed-key-use}}) |
-| Access-token context as JWT claims or introspection | The API reads `act`, `scope`, and `cnf` from the token or from an authenticated introspection response ({{introspection}}) | Opaque-token deployments add an introspection round trip and a freshness policy |
+| Access-token context as JWT claims or introspection ({{introspection}}) | The API reads `act`, `scope`, and `cnf` from the token or authenticated introspection | Opaque tokens add an introspection round trip and a freshness policy |
 | Actor-aware API processing | The actor gate is enforced where access happens | APIs parse `act` and consult the gate on delegated paths |
 | Sender-constrained access tokens by default | Token theft is contained | Resources without DPoP or mutual TLS need explicit configuration for bearer use |
 {: title="Adoption tradeoffs"}
 
+The bound profile's grant binding does not make bearer evidence proof
+of an issuer-authorized presenter ({{credential-requirements}}).
+
 Governed agent access without grant binding adds agent authorization
-to existing enterprise access but leaves stolen grants redeemable by
-an attacker able to authenticate as their designated client,
+to existing enterprise access. It still leaves a stolen grant
+redeemable by an attacker who can authenticate as the grant's
+designated client,
 particularly a shared client. Binding only the resulting access token
 does not prevent that redemption. Explicit acceptance policy, short
 grant lifetimes, credential confidentiality, and the no-fallback rules
-in {{discovery}} limit this exposure; they do not provide proof of
+in {{discovery}} limit this exposure. They do not provide proof of
 possession of an issuer-authorized grant key.
 
 ## Credential and Token Confusion
@@ -2236,7 +2243,7 @@ resolve or exercise an agent.
 Validators MUST enforce:
 
 * **Time claims:** Apply the selected credential's expiration and other
-  time rules; reject `iat` later than the current time plus permitted
+  time rules. Reject `iat` later than the current time plus permitted
   clock skew. Under {{RFC7519}}, `iat` has no not-before semantics.
 * **Clock skew:** Use a configured tolerance that MUST NOT extend a
   configured maximum age or lifetime. It SHOULD remain within the few
@@ -2260,15 +2267,15 @@ subject credential and has to satisfy Client Association and delegation
 authorization. For self-acting access, the key alone suffices wherever
 a Client Association and Agent Authorization already permit the client.
 
-Grant binding does not prevent this impersonation at issuance: unless
+Grant binding does not prevent this impersonation at issuance. Unless
 policy independently constrains the grant proof key, the attacker can
 obtain a grant bound to an attacker-controlled DPoP key. The proof
 protects that grant against theft; it does not establish legitimate
 runtime provenance.
 
 Runtime or workload provenance requires an agent-resolution input whose
-verified claims and trusted issuance policy establish it;
-dedicated-client resolution alone does not. A normalized Agent Principal
+verified claims and trusted issuance policy establish it.
+Dedicated-client resolution alone does not. A normalized Agent Principal
 identity does not imply uniform runtime assurance. Authentication-key
 revocation and binding disablement affect subsequent issuance under
 {{status-changes}}.
@@ -2278,8 +2285,9 @@ revocation and binding disablement affect subsequent issuance under
 A compromised credential authority can assert identities within its
 trusted scope. Exact bindings, tenant boundaries, and issuer-scoped
 key lookup limit that scope. Key lookup MUST retain the issuer or
-trust-domain association ({{Section 3.8 of RFC8725}}); `kid` alone or a
-union of unrelated issuers' keys does not establish the assertion's source.
+trust-domain association ({{Section 3.8 of RFC8725}}). Neither `kid`
+alone nor a union of unrelated issuers' keys establishes the
+assertion's source.
 
 A holder of a shared private key can present any credential issued for
 that key. Agent isolation therefore depends on issuance controls and
@@ -2294,17 +2302,21 @@ has been applied. The IdP MUST apply such a change within a configured
 freshness limit on cached policy data.
 
 Cross-system disablement needs a provisioning and signaling contract
-({{lifecycle-gap}}). Without a signal or online check, issued tokens
-remain usable until expiration; without a bound on propagation, the
-remaining lifetime of existing grants, refresh authorizations, and
-access tokens determines the possible continuation window. The
-five-minute ID-JAG recommendation is not a global stopping guarantee.
-Even after disablement is applied, cached introspection results or
-offline JWTs can remain usable until their acceptance limits, and
-current active state alone cannot recover a missed disable-and-reenable
-transition or invalidate every old grant. Deployments benefit from
-documenting their maximum disablement delay, including propagation and
-cache freshness.
+({{lifecycle-gap}}). Issued authority can outlast disablement:
+
+* Without a signal or online check, issued tokens remain usable until
+  expiration.
+* Without a bound on propagation, the remaining lifetime of existing
+  grants, refresh authorizations, and access tokens determines the
+  possible continuation window. The five-minute ID-JAG recommendation is
+  not a global stopping guarantee.
+* Even after disablement is applied, cached introspection results or
+  offline JWTs can remain usable until their acceptance limits.
+* Current active state alone cannot recover a missed
+  disable-and-reenable transition or invalidate every old grant.
+
+Deployments benefit from documenting their maximum disablement delay,
+including propagation and cache freshness.
 
 Administrative actions have different effects, and none is evidence
 that another has occurred. The following table summarizes each effect
@@ -2314,22 +2326,24 @@ propagation mechanism:
 | Administrative action | Effect on new authorization | Previously issued authority |
 |---|---|---|
 | Terminate an execution | Stops that execution; does not disable the agent or its approved relationships | Credentials and tokens remain subject to their validation and revocation rules |
-| Disable one Identity Binding at the IdP | No new grant through that binding; other enabled bindings remain usable with their own Client Associations | Existing grants and RAS tokens need separate revocation or expiry |
-| Remove a Client Association at the IdP | No new grant through that permission; the Identity Binding can remain valid | Existing grants and RAS tokens need separate revocation or expiry |
-| Disable the Agent Principal at the IdP | No new grant for that agent, regardless of binding or client | RAS issuance and refresh stop when the change reaches and is applied by the RAS |
-| Withdraw the user's delegation at the IdP | No new delegated grant for that delegation | Existing RAS authorization can continue until revocation is applied or its absolute expiration |
+| Disable one Identity Binding at the IdP | No new grant through that binding; other enabled bindings remain usable with their own Client Associations | Grants and RAS tokens continue until separately revoked or expired |
+| Remove a Client Association at the IdP | No new grant through that permission; the Identity Binding can remain valid | Grants and RAS tokens continue until separately revoked or expired |
+| Disable the Agent Principal at the IdP | No new grant for that agent, regardless of binding or client | RAS issuance and refresh stop once the RAS receives and applies the change |
+| Withdraw the user's delegation at the IdP | No new delegated grant for that delegation | RAS authorization can continue until revocation is applied or its absolute expiration |
 | Disable the local agent or user at the RAS | No new access tokens or refresh for that principal | API access stops when its actor/user policy observes the change, introspection reports inactivity, or the token expires |
 {: title="Effects of administrative changes"}
 
-The RAS requirements for applied changes are in {{applied-changes}};
-the provisioning that feeds them is a deployment choice. Withdrawing a
-delegation, Identity Binding, or Client Association can be propagated
-to derived authorization, through grant-derived revocation in
-{{AGENT-LIFECYCLE}} or an equivalent signal, only when the IdP has
-retained the identifiers of the ID-JAGs it issued under that
-relationship; the agent identity alone cannot identify that set.
+The RAS requirements for applied changes are in {{applied-changes}}.
+The provisioning that feeds them is a deployment choice.
 
-Account-linking errors can grant access to another user's account;
+The withdrawal of a delegation, Identity Binding, or Client Association
+can be propagated to derived authorization only when the IdP has
+retained the identifiers of the ID-JAGs it issued under that
+relationship. The agent identity alone cannot identify that set.
+Propagation can use grant-derived revocation in {{AGENT-LIFECYCLE}} or
+an equivalent signal.
+
+Account-linking errors can grant access to another user's account.
 {{subject-resolution}} states the checks required before authorization.
 Proof of key possession does not establish account ownership, and link
 removal does not revoke outstanding tokens.
@@ -2339,7 +2353,7 @@ removal does not revoke outstanding tokens.
 External approval MUST NOT replace credential validation, identity
 resolution, Client Association, or delegation authorization. A
 resource-local approval can satisfy an additional policy condition
-within the presented token's authority; it MUST NOT expand that
+within the presented token's authority. It MUST NOT expand that
 authority or override token validity or tenant restrictions. Access
 beyond that authority requires new authorization through an applicable
 protocol. Asynchronous approval composition is deferred under
@@ -2355,7 +2369,7 @@ activity of one Agent Principal for different users.
 Issuers SHOULD disclose only the agent attributes needed for the
 authorized purpose. User and agent context remain separate when the
 agent acts for a user. The mapping in {{actor-construction}} keeps
-external workload identifiers out of the ID-JAG; this profile does not
+external workload identifiers out of the ID-JAG. This profile does not
 define pairwise actor translation.
 
 Any future instance context needs purpose limits, retention guidance,

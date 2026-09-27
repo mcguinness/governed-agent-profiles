@@ -803,8 +803,8 @@ particular storage representation or administrative interface:
 * **Target Tenant binding:** The Target Tenant is configured once and
   carried consistently by the tenant-specific resource URI
   ({{root-request}}), by the resource domain's provisioning context, and
-  by any Shared Signals stream ({{AGENT-LIFECYCLE}}). Deployments MUST
-  configure these carriers to agree.
+  by any Shared Signals stream ({{AGENT-LIFECYCLE}}). This profile
+  assumes deployments configure these carriers to agree.
 * **Local principals:** The RAS provisions or synchronizes local agent
   principals and user links for RAS and API processing.
 * **Applicable profile:** Client, IdP, RAS, and resource policy establish

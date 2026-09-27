@@ -240,10 +240,21 @@ This document is organized by protocol stage. {{model}} and
 {{conformance-metadata}} apply to every role. {{issuance}},
 {{redemption}}, and {{api-processing}} give the processing of the IdP,
 the resource authorization server (RAS), and the API (resource server),
-each covering delegated and self-acting access. A client sends the
-requests of {{issuance-request}} and {{redemption-request}}, and
+each covering delegated and self-acting access, and
 {{continuing-access}} covers renewal, token reuse, and disablement.
-{{scope}} states what each role implements.
+{{scope}} states what each role implements. A client's rules sit beside
+the exchanges it takes part in:
+
+* discovery and profile selection ({{discovery}});
+* the issuance request ({{issuance-request}}, with {{root-request}} or
+  {{wag-request}}) and its input profile ({{input-profiles}});
+* grant protection and the issuance response ({{grant-protection}},
+  {{grant-common}});
+* the redemption request and the access-token response and protection
+  ({{redemption-request}}, {{access-token-response}},
+  {{access-token-protection}}); and
+* token reuse and renewal ({{client-token-reuse}},
+  {{continuing-access}}).
 
 # Conventions and Terminology
 
@@ -845,8 +856,8 @@ requirements in:
 
 * {{model}}, {{conformance-metadata}}, {{security}}, and
   {{mandatory-input-profiles}};
-* {{issuance}}, {{redemption}}, {{api-processing}}, and
-  {{continuing-access}} for each supported realization; and
+* the parts of {{issuance}}, {{redemption}}, {{api-processing}}, and
+  {{continuing-access}} that apply to each supported realization; and
 * {{optional-input-profiles}} for each supported optional input.
 
 Each realization has this mandatory interoperability path:
@@ -2327,7 +2338,7 @@ verified claims and trusted issuance policy establish it.
 Dedicated-client resolution alone does not. A normalized Agent Principal
 identity does not imply uniform runtime assurance. Authentication-key
 revocation and binding disablement affect subsequent issuance under
-{{status-changes}}.
+{{issuance-authorization}} and {{status-changes}}.
 
 ## Credential Authority and Key Isolation
 
@@ -2386,7 +2397,8 @@ Propagation can use grant-derived revocation in {{AGENT-LIFECYCLE}} or
 an equivalent signal.
 
 Account-linking errors can grant access to another user's account.
-{{subject-resolution}} states the checks required before authorization.
+{{idp-subject-resolution}} and {{subject-resolution}} state the checks
+required before authorization.
 Proof of key possession does not establish account ownership, and link
 removal does not revoke outstanding tokens.
 

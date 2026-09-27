@@ -1885,11 +1885,9 @@ principal as delegated access ({{status-changes}}).
 
 ## Conformance {#scope}
 
-This profile does not establish trust in previously unknown agent issuers
-or automatically create Identity Bindings from presented credentials. A
-resource domain creates an Agent Principal Correlation from a validated
-grant only where its own policy permits just-in-time correlation
-({{jit-correlation}}).
+This profile does not establish trust in previously unknown agent
+issuers or automatically create Identity Bindings from presented
+credentials.
 
 Unless explicitly limited to bound grants or a named profile, the
 requirements of this document apply to both governed adoption profiles.

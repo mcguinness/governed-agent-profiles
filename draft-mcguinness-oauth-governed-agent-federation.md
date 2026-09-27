@@ -618,11 +618,11 @@ metadata may already be held; their retrieval and refresh follow the
 rules of the source that supplies them ({{evidence}},
 {{redemption-validation}}, {{metadata}}).
 
-Discovery exposes capabilities, not these authorization decisions.
-Credential metadata follows its credential specification; discovery
-MUST NOT establish trust. Profile metadata does not establish acceptance
-policy ({{discovery}}), and bindings, associations, delegation, and
-local links have no discovery mechanism here.
+Discovery exposes capabilities, not these authorization decisions
+({{discovery}}). Credential metadata follows its credential
+specification; discovery MUST NOT establish trust. Bindings,
+associations, delegation, and local links have no discovery mechanism
+here.
 
 Request hints, discovered client metadata, and unverified JWT claims
 MUST NOT by themselves establish credential-authority trust or change an

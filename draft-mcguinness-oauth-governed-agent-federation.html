@@ -7,10 +7,10 @@
 <title>OAuth 2.0 Profile for Governed Agent Federation</title>
 <meta content="Karl McGuinness" name="author">
 <meta content="
-       Enterprises govern agents as identities independent of the platforms,
-workloads, and OAuth clients that execute them. Service providers need a
-stable identity for such an agent without understanding each customer's
-runtime or credential model. 
+       Service providers need a stable identity for an enterprise-governed agent
+without understanding the runtime, workload credential, or OAuth client
+through which it executes. Enterprises govern such agents independently
+of those platforms, workloads, and clients. 
        This document is an OAuth deployment profile that standardizes the
 boundary between execution identity and governed identity. An
 enterprise identity provider resolves an authenticated OAuth client or
@@ -1096,10 +1096,10 @@ svg {
 <h1 id="title">OAuth 2.0 Profile for Governed Agent Federation</h1>
 <section id="section-abstract">
       <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
-<p id="section-abstract-1">Enterprises govern agents as identities independent of the platforms,
-workloads, and OAuth clients that execute them. Service providers need a
-stable identity for such an agent without understanding each customer's
-runtime or credential model.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+<p id="section-abstract-1">Service providers need a stable identity for an enterprise-governed agent
+without understanding the runtime, workload credential, or OAuth client
+through which it executes. Enterprises govern such agents independently
+of those platforms, workloads, and clients.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
 <p id="section-abstract-2">This document is an OAuth deployment profile that standardizes the
 boundary between execution identity and governed identity. An
 enterprise identity provider resolves an authenticated OAuth client or
@@ -1606,7 +1606,9 @@ and separate rules about which applications may use that account.
 This document applies that shape to agents. The Agent Principal is
 the account, an Identity Binding maps a validated, qualified client or
 workload identity to it, and a Client Association states which OAuth
-client may exercise that binding.<a href="#section-1-4" class="pilcrow">¶</a></p>
+client may exercise that binding. The account's identifier can be the
+same as the execution identity's; the binding decides which identity is
+authoritative for governance.<a href="#section-1-4" class="pilcrow">¶</a></p>
 <p id="section-1-5">Existing OAuth mechanisms authenticate clients and carry actors, but
 they leave three relationships open:<a href="#section-1-5" class="pilcrow">¶</a></p>
 <ol start="1" type="1" class="normal type-1" id="section-1-6">
@@ -1882,8 +1884,9 @@ requires independently validated workload identity.<a href="#section-2.2-1.8.1" 
           <dd style="margin-left: 1.5em" id="section-2.2-1.10">
             <p id="section-2.2-1.10.1">An approved association from an exact client or workload identity,
 qualified by its registration context or credential authority, to one
-Agent Principal. It is administered in a Governance Tenant and
-establishes identity resolution, not permission to exercise the agent.<a href="#section-2.2-1.10.1" class="pilcrow">¶</a></p>
+Agent Principal, which can have the same identifier as that identity.
+It is administered in a Governance Tenant and establishes identity
+resolution, not permission to exercise the agent.<a href="#section-2.2-1.10.1" class="pilcrow">¶</a></p>
 </dd>
           <dd class="break"></dd>
 <dt id="section-2.2-1.11">Client Association:</dt>
@@ -2092,7 +2095,10 @@ still justifies an action is outside this profile.<a href="#section-3-12" class=
         <h3 id="name-service-provider-contract">
 <a href="#section-3.1" class="section-number selfRef">3.1. </a><a href="#name-service-provider-contract" class="section-name selfRef">Service Provider Contract</a>
         </h3>
-<p id="section-3.1-1">A resource domain consumes an IdP-qualified Agent Principal. Its RAS
+<p id="section-3.1-1">The mapping from execution identity to Agent Principal is local to the
+IdP; the security contract across the boundary between the IdP and the
+resource domain is interoperable. A resource domain consumes an
+IdP-qualified Agent Principal. Its RAS
 performs no platform-specific credential validation or workload
 resolution, and it need not know whether the agent authenticated as a
 dedicated OAuth client or with a SPIFFE identity, Client Attestation, or
@@ -3419,7 +3425,9 @@ authorization or attribution.<a href="#section-5.4-8" class="pilcrow">¶</a></p>
 <p id="section-6-1">This section realizes the federation model as a normative profile of
 ID-JAG issuance and redemption, using the actor extension point in
 <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04#section-9.7" class="relref">Section 9.7</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>. Where it is silent, ID-JAG applies
-unchanged.<a href="#section-6-1" class="pilcrow">¶</a></p>
+unchanged. <a href="#profile-additions" class="auto internal xref">Section 6.1</a> lists every change this profile makes
+to ID-JAG; the sections after it state the processing rule behind each
+row.<a href="#section-6-1" class="pilcrow">¶</a></p>
 <div id="profile-additions">
 <section id="section-6.1">
         <h3 id="name-relationship-to-base-specif">

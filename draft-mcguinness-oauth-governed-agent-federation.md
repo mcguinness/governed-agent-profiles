@@ -2979,8 +2979,11 @@ In the bound profile, K signs the issuance DPoP proof, except that the
 WIT-SVID variant uses the WIT-SVID key; the X.509-SVID variant's DPoP
 key may differ from its TLS key. The input bounds the grant lifetime
 under {{grant-issuance}}. Each variant needs a Client Association for
-its authenticated client, which is `platform-sso` for the JWT-SVID and
-platform JWT variants ({{identity-binding}}). The dedicated-client
+its authenticated client ({{identity-binding}}): a separate one for
+`platform-sso` in the JWT-SVID and platform JWT variants, while in the
+WIT-SVID and X.509-SVID variants, where the authenticated client is the
+workload itself, it can be administered together with the binding. The
+dedicated-client
 rejection examples apply to each binding, except that replay rules
 follow the input specification.
 

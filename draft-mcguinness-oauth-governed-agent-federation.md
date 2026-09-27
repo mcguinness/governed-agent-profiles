@@ -1827,10 +1827,10 @@ is applied at the RAS, the RAS MUST:
 
 * Check current locally applied eligibility at grant redemption and
   refresh, in addition to grant validation and the actor gate.
-* Retain enough association to invalidate authorization derived from
-  grants by qualified agent and Target Tenant, including refresh tokens,
-  and invalidate it when the principal is disabled or its correlation
-  is removed.
+* Invalidate authorization derived from grants for that qualified agent
+  and Target Tenant, including refresh tokens, when the principal is
+  disabled or its correlation is removed. The RAS retains enough
+  association for this from the time it issues that authorization.
 * Not let refresh bypass a principal restriction or restore revoked
   authorization; reactivation permits new decisions only.
 * Report revoked or disabled authorization as inactive under
@@ -1966,6 +1966,8 @@ If the API delegates authorization evaluation to a policy decision
 service, it MUST preserve the distinction between the user, the
 issuer-qualified Agent Principal, and the OAuth client, and supply the
 tenant and token constraints needed to evaluate the requested operation.
+For a self-acting token, the local principal stands for the Agent
+Principal.
 {{AUTHZEN}} is one optional evaluation interface; this profile defines
 no mapping to it. A policy permit does not override the token's
 constraints.
@@ -2160,8 +2162,8 @@ delegated access, where the IdP-qualified actor survives in `act`. The
 RAS retains the correlation between the WAG's (`iss`, `sub`) and the
 local principal for the life of the derived authorization, which
 supports revocation by qualified agent ({{applied-changes}}) and audit.
-Neither the token nor its introspection response carries that identity;
-this document defines no claim or member for it.
+The token and its introspection response need not carry it; this
+document defines no claim or member for that purpose.
 
 ## Resource Processing {#wag-api}
 

@@ -1545,14 +1545,17 @@ mandatory in either profile.
 
 In both profiles:
 
-* **Supplied proof:** An endpoint that does not support DPoP MUST reject
-  a request containing a DPoP proof with `invalid_request`; it MUST NOT
-  silently ignore the proof. Where DPoP is supported, proof validation
-  and grant binding follow {{Section 9.8.1 of ID-JAG}}.
+* **Supplied proof:** A supplied DPoP proof MUST be validated under
+  {{RFC9449}}. An endpoint that does not support DPoP MUST reject a
+  request containing a DPoP proof with `invalid_request`; it MUST NOT
+  silently ignore the proof. At issuance, a valid proof MUST result in
+  `cnf.jkt` binding of the grant, as {{Section 9.8.1.1 of ID-JAG}}
+  specifies for the ID-JAG.
 * **Bound grant:** A grant containing `cnf` MUST have a valid, supported
-  `jkt` binding, which the RAS enforces under
-  {{Section 9.8.1.2 of ID-JAG}}. Missing proof, missing required
-  binding, unsupported confirmation, or key mismatch MUST fail with
+  `jkt` binding. The RAS MUST require a fresh DPoP proof whose public
+  key thumbprint matches exactly, as {{Section 9.8.1.2 of ID-JAG}}
+  specifies for the ID-JAG. Missing proof, missing required binding,
+  unsupported confirmation, or key mismatch MUST fail with
   `invalid_grant`.
 * **Unbound grant:** When policy permits a grant without `cnf`, the
   client MAY present a DPoP proof only at redemption to obtain a

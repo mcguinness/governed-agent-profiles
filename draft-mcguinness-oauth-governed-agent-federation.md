@@ -127,10 +127,10 @@ informative:
   RFC7644:
 --- abstract
 
-Enterprises govern agents as identities independent of the platforms,
-workloads, and OAuth clients that execute them. Service providers need a
-stable identity for such an agent without understanding each customer's
-runtime or credential model.
+Service providers need a stable identity for an enterprise-governed agent
+without understanding the runtime, workload credential, or OAuth client
+through which it executes. Enterprises govern such agents independently
+of those platforms, workloads, and clients.
 
 This document is an OAuth deployment profile that standardizes the
 boundary between execution identity and governed identity. An

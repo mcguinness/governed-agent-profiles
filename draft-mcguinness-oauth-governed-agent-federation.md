@@ -938,7 +938,7 @@ An Identity Binding is the approved record that supports resolution.
 
 ## Agent Resolution Inputs {#evidence}
 
-Each input below resolves an authenticated dedicated-client identity or
+Each input resolves an authenticated dedicated-client identity or
 an independently validated workload identity to one Agent Principal.
 Every input satisfies the same contract, which summarizes requirements
 stated in {{inputs}}, {{identity-binding}}, {{credential-requirements}},
@@ -984,151 +984,6 @@ shared-client input; the other inputs are optional
 from the authentication context of the token request, with actor-token
 parameters omitted; mode selection and rejection follow
 {{actor-inputs}}.
-
-### Dedicated Client Identity {#client-assertion-input}
-
-This mode resolves an authenticated OAuth client identity to its
-explicitly bound Agent Principal. Client authentication uses an
-asymmetrically signed assertion under {{RFC7523}}; no separate
-platform-issued credential is required. The common method is
-`private_key_jwt`; other configured asymmetric RFC 7523 methods MAY
-be supported.
-
-#### Presentation and Resolution
-
-The client presents its assertion as `client_assertion` under
-{{RFC7523}}. The assertion authenticates the client and is not
-independent workload evidence; in this explicitly configured mode, the
-validated client-authentication context is the resolution source. This
-composition differs from the dual-presentation input of
-{{ACTOR-PROFILE}} ({{dedicated-client-coordination}}).
-
-The IdP authenticates the client under {{Section 3 of RFC7523}} and its
-configured authentication method. The IdP MUST also:
-
-* **Key trust:** Use verification keys authorized for that client and
-  assertion issuer. Assertion-supplied keys or issuer claims MUST NOT
-  establish trust.
-* **Resolution:** Resolve the exact validated (`iss`, `sub`) in the
-  IdP's client-registration context under {{identity-binding}}.
-
-For `private_key_jwt`, the assertion issuer and subject are the client's
-registered identifier (Section 9 of {{OPENID}}).
-
-#### Assertion Audience
-
-RFC 7523 client authentication at the IdP and the RAS MUST follow the
-audience requirements of {{Section 4 of RFC7523bis}}: the assertion's
-`aud` contains the authorization server's issuer identifier as its sole
-value, never its token endpoint URL, and the server rejects any other
-audience. This profile adds no alternative audience configuration and
-does not change other credential classes' audience rules.
-
-#### Replay and Retries
-
-For dedicated-client resolution, these requirements narrow the base
-specifications and prohibit negotiated assertion reuse:
-
-* The assertion MUST contain a `jti`.
-* The IdP MUST reject reuse in another request while the assertion
-  remains acceptable.
-* Replay identifiers MUST be qualified by the validated issuer and
-  client.
-
-For a retry of a dedicated-client exchange, including after a
-`use_dpop_nonce` challenge under {{Section 8 of RFC9449}}:
-
-* The client MUST generate a new `client_assertion` with a fresh `jti`.
-* For a nonce retry, the client MUST also generate a fresh DPoP proof
-  containing the supplied nonce while retaining the grant proof key.
-
-Changing only the DPoP proof does not satisfy the assertion replay rule,
-because the IdP may already have consumed the previous assertion during
-authentication.
-
-#### Identity and Proof Boundaries
-
-This mode does not distinguish agents behind one shared client identity;
-such a client MUST use a supported workload-identity input that
-distinguishes its agents ({{imported-jwt-input}}). An additional agent claim
-in a self-signed client assertion MUST NOT select another Agent
-Principal under this input.
-
-Assertion signing authenticates the client; it does not bind the grant
-to that signing key or establish an attested runtime identity. Grant
-proof processing follows {{grant-protection}} independently, and the
-DPoP key MAY differ from the client-authentication key. An assertion
-carrying `cnf` MUST NOT be accepted unless its configured authentication
-method defines and validates the corresponding proof.
-
-{{client-assertion-example}} illustrates this input.
-
-### Existing Platform JWT {#imported-jwt-input}
-
-This input accepts existing signed platform JWTs without a new media
-type or reissuance in a federation-specific format. It is the common
-shared-client input; {{scope}} states when it is required. The client
-presents the JWT as `actor_token` in delegated issuance and as
-`subject_token` in self-acting issuance ({{wag-request}}), and
-authenticates separately with a configured method. The IdP MUST accept
-a platform JWT only from an explicitly configured issuer, for a
-configured credential class and authenticated client. Credential
-classification and rejection follow
-{{actor-inputs}}.
-
-The Identity Binding MUST specify an exact issuer and `sub` and MAY
-require additional string values from the JWT Claims Set, including
-nested claims. Additional selectors MUST use the JSON Pointer string
-representation in {{Section 5 of RFC6901}}, evaluated from the Claims
-Set root under {{Section 4 of RFC6901}}:
-
-* **Exact value:** Every selector MUST resolve unambiguously to a string
-  equal to its configured value, without type conversion, case folding,
-  or Unicode normalization. Missing paths, evaluation errors, non-string
-  values, or unequal values MUST prevent that binding from matching.
-* **No patterns:** Selectors MUST NOT use wildcard, prefix, or pattern
-  matching, and MUST NOT replace the exact issuer and `sub` checks.
-* **Claim authority:** A caller-controlled claim MUST NOT distinguish
-  agents unless trusted issuance policy constrains its values to
-  identities the caller is authorized to assert. A signature alone does
-  not establish that authority for request tags or other caller-supplied
-  attributes.
-
-Selectors constrain identity resolution, not the administrative
-configuration format. Configuration MUST also specify:
-
-| Item | Requirement |
-|---|---|
-| Key source and algorithms | Approved keys or an approved HTTPS JWK Set URI under {{RFC7517}}, retrieved with server authentication, and permitted asymmetric algorithms for the issuer |
-| Audiences | Values that authorize presentation to this IdP as workload evidence |
-| Time limits | Effective evidence deadline as defined below, permitted clock skew for a future issuance time, and any maximum age |
-| Credential class | The rule distinguishing workload credentials from user, management-API, or other tokens of the same issuer: an explicit `typ`, a dedicated issuer, or an accepted audience combined with exact selectors |
-{: title="Platform JWT configuration"}
-
-The IdP MUST determine an effective evidence deadline from `exp`, a
-configured maximum age measured from an authenticated issuance time
-(such as `iat`),
-or both. When both apply, the earlier deadline governs. The IdP MUST
-reject evidence with `invalid_grant` if a required time limit cannot be
-evaluated or no deadline can be determined. Receipt time MUST NOT
-substitute for issuance time. This deadline bounds grant expiration
-under {{grant-issuance}}; it does not require a new claim in existing
-credentials.
-
-The IdP MUST validate the JWT under {{RFC7519}} and {{RFC8725}} and the
-configured credential profile. Keys or URLs in the JWT MUST NOT
-override the approved key source. An accepted JWT MUST NOT be treated
-as OAuth client authentication unless it independently satisfies a
-configured client authentication method.
-
-This profile defines no new proof mechanism for platform JWTs. If `cnf`
-is present, the IdP MUST enforce its proof mechanism and MUST NOT give
-the credential bearer treatment when the binding is unsupported. A
-deployment accepting key-bound JWTs MUST configure their proof
-validation and any required relationship to the grant proof key. If the
-JWT is bearer evidence, {{credential-requirements}} applies.
-
-An AWS STS example appears in {{aws-example}}.
 
 ### Optional Inputs {#optional-inputs}
 
@@ -2370,10 +2225,11 @@ access, or both:
 
 * **Roles:** The IdP, RAS, and client MUST implement their respective
   requirements in {{model}}, {{identity}}, {{authorization}},
-  {{metadata}}, and {{security}}; in {{delegated-flow}} or {{wag-flow}}
-  for each supported realization; and in {{optional-input-profiles}} for
-  each supported optional input. The API MUST implement
-  {{api-processing}}, with {{wag-api}} for self-acting access.
+  {{metadata}}, {{security}}, and {{mandatory-input-profiles}}; in
+  {{delegated-flow}} or {{wag-flow}} for each supported realization; and
+  in {{optional-input-profiles}} for each supported optional input. The
+  API MUST implement {{api-processing}}, with {{wag-api}} for self-acting
+  access.
 * **Issuance:** The client and IdP MUST implement dedicated-client
   resolution using RFC 7523 `private_key_jwt` authentication
   ({{client-assertion-input}}), and for delegated access also ID Token
@@ -2769,6 +2625,158 @@ The WAG token type `urn:ietf:params:oauth:token-type:wag` and JWT type
 WAG.
 
 --- back
+
+# Mandatory Agent Resolution Inputs {#mandatory-input-profiles}
+
+This appendix is normative. It defines the two inputs that
+{{scope}} requires: dedicated-client identity, which is mandatory to
+implement, and the existing platform JWT, which shared-client support
+requires. Each satisfies the interface contract of {{evidence}}.
+
+## Dedicated Client Identity {#client-assertion-input}
+
+This mode resolves an authenticated OAuth client identity to its
+explicitly bound Agent Principal. Client authentication uses an
+asymmetrically signed assertion under {{RFC7523}}; no separate
+platform-issued credential is required. The common method is
+`private_key_jwt`; other configured asymmetric RFC 7523 methods MAY
+be supported.
+
+### Presentation and Resolution
+
+The client presents its assertion as `client_assertion` under
+{{RFC7523}}. The assertion authenticates the client and is not
+independent workload evidence; in this explicitly configured mode, the
+validated client-authentication context is the resolution source. This
+composition differs from the dual-presentation input of
+{{ACTOR-PROFILE}} ({{dedicated-client-coordination}}).
+
+The IdP authenticates the client under {{Section 3 of RFC7523}} and its
+configured authentication method. The IdP MUST also:
+
+* **Key trust:** Use verification keys authorized for that client and
+  assertion issuer. Assertion-supplied keys or issuer claims MUST NOT
+  establish trust.
+* **Resolution:** Resolve the exact validated (`iss`, `sub`) in the
+  IdP's client-registration context under {{identity-binding}}.
+
+For `private_key_jwt`, the assertion issuer and subject are the client's
+registered identifier (Section 9 of {{OPENID}}).
+
+### Assertion Audience
+
+RFC 7523 client authentication at the IdP and the RAS MUST follow the
+audience requirements of {{Section 4 of RFC7523bis}}: the assertion's
+`aud` contains the authorization server's issuer identifier as its sole
+value, never its token endpoint URL, and the server rejects any other
+audience. This profile adds no alternative audience configuration and
+does not change other credential classes' audience rules.
+
+### Replay and Retries
+
+For dedicated-client resolution, these requirements narrow the base
+specifications and prohibit negotiated assertion reuse:
+
+* The assertion MUST contain a `jti`.
+* The IdP MUST reject reuse in another request while the assertion
+  remains acceptable.
+* Replay identifiers MUST be qualified by the validated issuer and
+  client.
+
+For a retry of a dedicated-client exchange, including after a
+`use_dpop_nonce` challenge under {{Section 8 of RFC9449}}:
+
+* The client MUST generate a new `client_assertion` with a fresh `jti`.
+* For a nonce retry, the client MUST also generate a fresh DPoP proof
+  containing the supplied nonce while retaining the grant proof key.
+
+Changing only the DPoP proof does not satisfy the assertion replay rule,
+because the IdP may already have consumed the previous assertion during
+authentication.
+
+### Identity and Proof Boundaries
+
+This mode does not distinguish agents behind one shared client identity;
+such a client MUST use a supported workload-identity input that
+distinguishes its agents ({{imported-jwt-input}}). An additional agent claim
+in a self-signed client assertion MUST NOT select another Agent
+Principal under this input.
+
+Assertion signing authenticates the client; it does not bind the grant
+to that signing key or establish an attested runtime identity. Grant
+proof processing follows {{grant-protection}} independently, and the
+DPoP key MAY differ from the client-authentication key. An assertion
+carrying `cnf` MUST NOT be accepted unless its configured authentication
+method defines and validates the corresponding proof.
+
+{{client-assertion-example}} illustrates this input.
+
+## Existing Platform JWT {#imported-jwt-input}
+
+This input accepts existing signed platform JWTs without a new media
+type or reissuance in a federation-specific format. It is the common
+shared-client input; {{scope}} states when it is required. The client
+presents the JWT as `actor_token` in delegated issuance and as
+`subject_token` in self-acting issuance ({{wag-request}}), and
+authenticates separately with a configured method. The IdP MUST accept
+a platform JWT only from an explicitly configured issuer, for a
+configured credential class and authenticated client. Credential
+classification and rejection follow
+{{actor-inputs}}.
+
+The Identity Binding MUST specify an exact issuer and `sub` and MAY
+require additional string values from the JWT Claims Set, including
+nested claims. Additional selectors MUST use the JSON Pointer string
+representation in {{Section 5 of RFC6901}}, evaluated from the Claims
+Set root under {{Section 4 of RFC6901}}:
+
+* **Exact value:** Every selector MUST resolve unambiguously to a string
+  equal to its configured value, without type conversion, case folding,
+  or Unicode normalization. Missing paths, evaluation errors, non-string
+  values, or unequal values MUST prevent that binding from matching.
+* **No patterns:** Selectors MUST NOT use wildcard, prefix, or pattern
+  matching, and MUST NOT replace the exact issuer and `sub` checks.
+* **Claim authority:** A caller-controlled claim MUST NOT distinguish
+  agents unless trusted issuance policy constrains its values to
+  identities the caller is authorized to assert. A signature alone does
+  not establish that authority for request tags or other caller-supplied
+  attributes.
+
+Selectors constrain identity resolution, not the administrative
+configuration format. Configuration MUST also specify:
+
+| Item | Requirement |
+|---|---|
+| Key source and algorithms | Approved keys or an approved HTTPS JWK Set URI under {{RFC7517}}, retrieved with server authentication, and permitted asymmetric algorithms for the issuer |
+| Audiences | Values that authorize presentation to this IdP as workload evidence |
+| Time limits | Effective evidence deadline as defined below, permitted clock skew for a future issuance time, and any maximum age |
+| Credential class | The rule distinguishing workload credentials from user, management-API, or other tokens of the same issuer: an explicit `typ`, a dedicated issuer, or an accepted audience combined with exact selectors |
+{: title="Platform JWT configuration"}
+
+The IdP MUST determine an effective evidence deadline from `exp`, a
+configured maximum age measured from an authenticated issuance time
+(such as `iat`),
+or both. When both apply, the earlier deadline governs. The IdP MUST
+reject evidence with `invalid_grant` if a required time limit cannot be
+evaluated or no deadline can be determined. Receipt time MUST NOT
+substitute for issuance time. This deadline bounds grant expiration
+under {{grant-issuance}}; it does not require a new claim in existing
+credentials.
+
+The IdP MUST validate the JWT under {{RFC7519}} and {{RFC8725}} and the
+configured credential profile. Keys or URLs in the JWT MUST NOT
+override the approved key source. An accepted JWT MUST NOT be treated
+as OAuth client authentication unless it independently satisfies a
+configured client authentication method.
+
+This profile defines no new proof mechanism for platform JWTs. If `cnf`
+is present, the IdP MUST enforce its proof mechanism and MUST NOT give
+the credential bearer treatment when the binding is unsupported. A
+deployment accepting key-bound JWTs MUST configure their proof
+validation and any required relationship to the grant proof key. If the
+JWT is bearer evidence, {{credential-requirements}} applies.
+
+An AWS STS example appears in {{aws-example}}.
 
 # Optional Agent Resolution Inputs {#optional-input-profiles}
 

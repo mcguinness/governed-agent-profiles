@@ -615,9 +615,10 @@ profile ({{evidence}}).
 
 After a transfer to a different Governance Tenant under a different
 administrative authority, the IdP MUST assert the agent under a new
-Agent Principal identifier. Delegations and RAS principal links held
-for the previous identifier do not carry forward automatically
-({{delegation-authorization}}, {{agent-correlation}}). This document
+Agent Principal identifier. Delegations held for the previous identifier
+do not carry forward automatically ({{delegation-authorization}}). RAS
+principal links held for the previous identifier MUST NOT be re-keyed to
+the new identifier ({{agent-correlation}}). This document
 defines no cross-tenant identity migration protocol.
 
 For example:

@@ -2516,7 +2516,8 @@ identity granularity. {{svid-context-example}} illustrates both inputs.
   validity, and proof requirements, to the certificate and proof
   established by mutual TLS for this request. A certificate supplied
   only in a request parameter or an untrusted forwarding header MUST NOT
-  establish the workload identity. TLS termination follows
+  establish the workload identity, and the request then fails client
+  authentication. TLS termination follows
   {{Section 6.5 of RFC8705}}.
 * **Resolution:** The IdP MUST resolve the approved trust domain and
   exact SPIFFE ID in the certificate's URI Subject Alternative Name

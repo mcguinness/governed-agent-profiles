@@ -2459,9 +2459,9 @@ Servers MUST publish {{RFC8414}} metadata as follows:
     Authentication metadata alone does not advertise agent-resolution
     support; client and IdP MUST configure the input under
     {{actor-inputs}}.
-  * Support for self-acting WAG issuance ({{wag-flow}}) is established
-    by trusted configuration; this document defines no metadata
-    parameter for it.
+  * The WAG advertisement states a capability for self-acting issuance
+    ({{wag-flow}}); trusted configuration establishes permission to use
+    it.
 * **Both:** Advertise supported client authentication methods and, when
   DPoP is supported, DPoP algorithms, including {{flow-configuration}}'s
   common capabilities.

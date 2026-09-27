@@ -597,9 +597,9 @@ authenticated client to exercise that agent.
 The Agent Principal identifier MUST be unique and non-reassignable
 within the IdP issuer's namespace, across all Governance Tenants sharing
 that issuer identifier. Governance Tenant is not an additional component
-of the downstream agent identity. Tenant-local identifiers MUST be
-qualified to meet this issuer-wide uniqueness requirement before use
-as an Agent Principal identifier.
+of the downstream agent identity. A tenant-local identifier therefore
+needs qualification to meet this issuer-wide uniqueness requirement
+before use as an Agent Principal identifier.
 
 It need not equal an external subject, OAuth client identifier,
 SPIFFE ID, display name, or instance identifier. Identity continuity is
@@ -613,10 +613,12 @@ execution currently represents the agent; any such assurance comes from
 the validated evidence and proofs required by the resolution-input
 profile ({{evidence}}).
 
-A transfer to a different Governance Tenant under a different
-administrative authority MUST create a new Agent Principal identifier
-and MUST NOT automatically carry forward delegations or RAS principal
-links. This document defines no cross-tenant identity migration protocol.
+After a transfer to a different Governance Tenant under a different
+administrative authority, the IdP MUST assert the agent under a new
+Agent Principal identifier. Delegations and RAS principal links held
+for the previous identifier do not carry forward automatically
+({{delegation-authorization}}, {{agent-correlation}}). This document
+defines no cross-tenant identity migration protocol.
 
 For example:
 

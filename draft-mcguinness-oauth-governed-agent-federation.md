@@ -1137,8 +1137,9 @@ through trusted configuration and metadata.
 
 ## Grant Protection {#grant-protection}
 
-Client authentication and all governance requirements remain
-mandatory in either profile.
+These rules apply to both grants, the ID-JAG and the WAG. Client
+authentication and all governance requirements remain mandatory in
+either profile.
 
 | Applicable profile | Grant-protection requirement |
 |---|---|
@@ -1354,7 +1355,7 @@ the client MUST retain the DPoP key for redemption and SHOULD inspect
 the grant to confirm that `cnf.jkt` identifies that key, as specified in
 {{Section 9.8.1.1 of ID-JAG}}.
 
-## ID-JAG Redemption {#redemption}
+## Redemption {#redemption}
 
 ### Request {#redemption-request}
 
@@ -1757,9 +1758,8 @@ algorithm rules of {{flow-configuration}} apply. The IdP MUST:
 
 **Failures:** {{wag-errors}}.
 
-The client reuses a cached WAG only under {{client-token-reuse}} and
-redeems it under {{wag-redemption}}; {{wag-example}} shows the
-messages.
+The client redeems the WAG under {{wag-redemption}}; {{wag-example}}
+shows the messages.
 
 ## Issuance Request {#wag-request}
 
@@ -1846,8 +1846,9 @@ request of {{redemption-request}}.
 **Processing:** The RAS MUST:
 
 1. **Grant:** Validate the grant under {{RFC7523}}, consistent with
-   {{Section 5 of WAG}}, and require `iss` to be a configured governing
-   IdP for the asserted agent namespace.
+   {{Section 5 of WAG}}; require `iss` to be a configured governing IdP
+   for the asserted agent namespace; and reject a WAG that contains
+   `act` as an invalid grant.
 2. **Proof and client:** Apply {{grant-protection}} and client
    authentication as in {{redemption-validation}}.
 3. **Correlation:** Resolve the pair (`iss`, `sub`) under

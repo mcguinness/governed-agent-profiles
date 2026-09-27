@@ -1925,24 +1925,16 @@ authorization. This supports revocation by qualified agent
 response need not carry the correlation; this document defines no claim
 or member for it.
 
-**Shared rules:** With the WAG as the grant, these also apply:
-
-* {{algorithms}}, for client authentication and algorithms.
-* {{distributed-key-use}} and {{applied-changes}}.
-* {{introspection}}, without an `act` member.
-* {{client-token-reuse}}, without a user in the cached context.
-
-{{continuing-access}} does not apply; continued access obtains a new WAG
-(step 5).
-
 ## Access Token Issuance and Response {#access-token-response}
 
 After validation and authorization, the RAS MUST issue an access token
 with these claims under {{RFC9068}}, or equivalent context through
 {{introspection}}:
 
-* **Identity:** Resolved user as subject and validated `act` unchanged
-  under {{actor-preservation}}.
+* **Identity:** For delegated access, the resolved user as subject and
+  the validated `act` unchanged under {{actor-preservation}}. For
+  self-acting access, the local agent principal as subject and no `act`
+  ({{wag-redemption}}).
 * **Authority:** Redeemed resource as audience and non-empty authorized
   `scope` (otherwise `invalid_scope`), without broadening authority.
 * **Protection:** The binding selected under {{access-token-protection}}.
@@ -2033,8 +2025,9 @@ obtains equivalent context through token introspection {{RFC7662}}.
 For an active token:
 
 * **Identity and authority:** The response MUST carry `sub`, `aud`,
-  `scope`, `client_id`, and the validated `act` object unchanged, as the
-  `act` introspection member registered by {{Section 7.5 of RFC8693}}.
+  `scope`, `client_id`, and, for delegated access, the validated `act`
+  object unchanged, as the `act` introspection member registered by
+  {{Section 7.5 of RFC8693}}.
 * **Context:** The response MUST preserve the Target Tenant
   representation and any effective `authorization_details` required by
   {{access-token-response}}.
@@ -2207,7 +2200,8 @@ Deployments select a renewal model before scheduling unattended work:
 |---|---|
 | Redeem an existing ID-JAG | Grant remains valid; any required proof and current RAS policy apply ({{redemption}}) |
 | Obtain a new ID-JAG | Valid subject credential, current agent-resolution input, and a fresh IdP authorization decision ({{exchange-request}}) |
-| RAS refresh | Preserves authorization at the same RAS within its lifetime and policy limits ({{ras-refresh}}) |
+| RAS refresh (delegated access) | Preserves authorization at the same RAS within its lifetime and policy limits ({{ras-refresh}}) |
+| Obtain a new WAG | Current agent-resolution input and a fresh IdP authorization decision ({{wag-issuance}}); a WAG redemption yields no refresh token |
 {: title="Renewal mechanisms"}
 
 An IdP refresh token can supply the subject credential for a new
@@ -2219,7 +2213,7 @@ Otherwise, renewal may require user interaction.
 The client associates each cached grant, access token, and refresh
 token with its authorized context:
 
-* user and Agent Principal;
+* Agent Principal and, for delegated access, user;
 * Governance and Target Tenants;
 * OAuth client registrations and target RAS;
 * resource, authority, and applicable profile; and

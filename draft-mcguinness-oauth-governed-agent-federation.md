@@ -127,10 +127,10 @@ informative:
   RFC7644:
 --- abstract
 
-Enterprises govern agents as identities independent of the platforms,
-workloads, and OAuth clients that execute them. Service providers need a
-stable identity for such an agent without understanding each customer's
-runtime or credential model.
+Service providers need a stable identity for an enterprise-governed agent
+without understanding the runtime, workload credential, or OAuth client
+through which it executes. Enterprises govern such agents independently
+of those platforms, workloads, and clients.
 
 This document is an OAuth deployment profile that standardizes the
 boundary between execution identity and governed identity. An
@@ -174,7 +174,9 @@ and separate rules about which applications may use that account.
 This document applies that shape to agents. The Agent Principal is
 the account, an Identity Binding maps a validated, qualified client or
 workload identity to it, and a Client Association states which OAuth
-client may exercise that binding.
+client may exercise that binding. The account's identifier can be the
+same as the execution identity's; the binding decides which identity is
+authoritative for governance.
 
 Existing OAuth mechanisms authenticate clients and carry actors, but
 they leave three relationships open:
@@ -377,8 +379,9 @@ Shared client:
 Identity Binding:
 : An approved association from an exact client or workload identity,
   qualified by its registration context or credential authority, to one
-  Agent Principal. It is administered in a Governance Tenant and
-  establishes identity resolution, not permission to exercise the agent.
+  Agent Principal, which can have the same identifier as that identity.
+  It is administered in a Governance Tenant and establishes identity
+  resolution, not permission to exercise the agent.
 
 Client Association:
 : An approved permission for an authenticated OAuth client to use an
@@ -538,7 +541,10 @@ still justifies an action is outside this profile.
 
 ## Service Provider Contract {#sp-contract}
 
-A resource domain consumes an IdP-qualified Agent Principal. Its RAS
+The mapping from execution identity to Agent Principal is local to the
+IdP; the security contract across the boundary between the IdP and the
+resource domain is interoperable. A resource domain consumes an
+IdP-qualified Agent Principal. Its RAS
 performs no platform-specific credential validation or workload
 resolution, and it need not know whether the agent authenticated as a
 dedicated OAuth client or with a SPIFFE identity, Client Attestation, or
@@ -1475,7 +1481,9 @@ authorization or attribution.
 This section realizes the federation model as a normative profile of
 ID-JAG issuance and redemption, using the actor extension point in
 {{Section 9.7 of ID-JAG}}. Where it is silent, ID-JAG applies
-unchanged.
+unchanged. {{profile-additions}} lists every change this profile makes
+to ID-JAG; the sections after it state the processing rule behind each
+row.
 
 ## Relationship to Base Specifications {#profile-additions}
 

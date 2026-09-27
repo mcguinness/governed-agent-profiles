@@ -3073,9 +3073,9 @@ Table of Contents
          resolution support; client and IdP MUST configure the input
          under Section 6.4.3.
 
-      -  Support for self-acting WAG issuance (Section 7) is established
-         by trusted configuration; this document defines no metadata
-         parameter for it.
+      -  The WAG advertisement states a capability for self-acting
+         issuance (Section 7); trusted configuration establishes
+         permission to use it.
 
    *  *Both:* Advertise supported client authentication methods and,
       when DPoP is supported, DPoP algorithms, including Section 6.2's

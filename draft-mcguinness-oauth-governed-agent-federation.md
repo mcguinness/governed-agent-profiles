@@ -756,7 +756,7 @@ requirement.
 | Actor representation | One actor: Agent Principal as `act.sub`, IdP as `act.iss`; replaces Actor Profile's credential-to-actor copying | {{actor-construction}} |
 | Request narrowing | Configured resolution mode; one resource; non-empty scope; actor-token parameters required in presented-evidence mode and rejected otherwise; no incoming actor chain | {{issuance-request}}, {{root-request}}, {{actor-inputs}} |
 | Identity and client binding | Users and agents resolved separately; downstream `client_id` from an authoritative client-registration association | {{idp-subject-resolution}}, {{subject-resolution}}, {{agent-correlation}}, {{flow-configuration}} |
-| Grant narrowing | One resource URI (a string; singleton arrays accepted), scope constraints, input-specific expiration limits; DPoP and `cnf.jkt` in the bound profile | {{grant-common}}, {{grant-issuance}}, {{redemption-validation}}, {{grant-protection}} |
+| Grant narrowing | One resource URI (a string; singleton arrays accepted), scope constraints, input-specific expiration limits; DPoP and `cnf.jkt` in the bound profile | {{grant-common}}, {{grant-issuance}}, {{redemption-common}}, {{grant-protection}} |
 | Resource processing | Actor and tenant context preserved; user authority and actor gate enforced with the selected token protection | {{access-token-response}}, {{api-processing}} |
 | Refresh narrowing | Explicit policy, client binding, preserved proof binding and profile, finite absolute authorization expiration | {{ras-refresh}} |
 | Error processing | `invalid_grant`, not RFC 8693's default `invalid_request`, for actor credential or resolution failures; `actor_unauthorized` for a denied resolved actor | {{errors}} |
@@ -1435,7 +1435,7 @@ Each grant carries these claims in addition to those of its own section
 | Claim | Required result |
 |---|---|
 | `client_id` | The client's registration identifier at the RAS, derived under {{flow-configuration}} |
-| `resource` | The authorized resource URI, issued as a JSON string; receivers also accept a single-element array under {{redemption-validation}} |
+| `resource` | The authorized resource URI, issued as a JSON string; receivers also accept a single-element array under {{redemption-common}} |
 | `scope` | Non-empty authorized scope string, no broader than the approved request |
 | `cnf.jkt` | Thumbprint of the grant proof key when DPoP is used at issuance; REQUIRED for bound governed agent access ({{grant-protection}}) |
 | `exp`, `iat`, `jti` | As in {{Section 3.1 of ID-JAG}}, within the lifetime limits below |
@@ -1684,7 +1684,7 @@ applicable extension, authentication, and proof specifications.
 Servers MUST validate client authentication, credentials, and proofs
 before authorization. Proof, grant-binding, grant-claim, and
 authorization-detail failures use the errors specified in
-{{grant-protection}}, {{spiffe-input}}, {{redemption-validation}}, and
+{{grant-protection}}, {{spiffe-input}}, {{redemption-common}}, and
 {{issuance-request}}.
 
 | Failure | Error |
@@ -1743,10 +1743,12 @@ Token endpoint errors follow {{errors}} with these additions:
 
 ## Redemption Request {#redemption-request}
 
-The client sends the request of {{Section 4.4 of ID-JAG}} with the
-proof required by {{grant-protection}} and the applicable access-token
-protection. These additional parameters are REQUIRED unless marked
-OPTIONAL:
+The client redeems either grant at the RAS token endpoint with the JWT
+bearer grant type, `urn:ietf:params:oauth:grant-type:jwt-bearer`: an
+ID-JAG as in {{Section 4.4 of ID-JAG}}, and a WAG as in {{WAG}}. The
+request includes the proof required by {{grant-protection}} and the
+applicable access-token protection. These additional parameters are
+REQUIRED unless marked OPTIONAL:
 
 | Parameter | Value |
 |---|---|
@@ -1756,6 +1758,30 @@ OPTIONAL:
 
 The confirmation checks of {{Section 9.8.1.2 of ID-JAG}} apply to this
 grant type ({{bound-grant-coordination}}).
+
+## Common Grant Validation {#redemption-common}
+
+For either grant, the RAS MUST, in addition to the validation of
+{{redemption-validation}} or {{wag-redemption}}:
+
+1. **Proof and client:** Enforce {{grant-protection}}, including the
+   configured minimum profile even when `cnf` is absent, and
+   independently authenticate the client identified by `client_id`.
+2. **Authority:**
+   * **Resource claim:** Require `resource` to be one URI, encoded as a
+     JSON string or a single-element JSON array
+     ({{Section 3.1 of ID-JAG}}), and normalize it to that URI. Reject
+     a missing or invalid value, an empty array, or a multi-element
+     array with `invalid_grant`.
+   * **Requested resource:** The RAS MUST reject multiple `resource`
+     parameters, or a requested resource different from that URI, with
+     `invalid_target` under {{Section 2 of RFC8707}}.
+   * **Scope:** Require the grant's `scope` claim to be a non-empty
+     string. A supplied request `scope` MUST be a non-empty subset of
+     that claim, or the RAS MUST return `invalid_scope`.
+   * **Authorization details:** Apply ID-JAG's processing for
+     `authorization_details`. Reject the grant with `invalid_grant` if
+     its authority extends beyond that resource.
 
 ## Agent Principal Correlation {#agent-correlation}
 
@@ -1809,31 +1835,14 @@ conform to it.
 
 ### Grant Validation {#redemption-validation}
 
-The RAS MUST perform ID-JAG validation and additionally:
+The RAS MUST perform ID-JAG validation, apply {{redemption-common}}, and
+additionally:
 
 1. **Actor:** Require a single `act` object under Actor Profile's rules,
    with non-empty `iss` and `sub` and no nested `act`. Require `act.iss`
    to equal the ID-JAG issuer and configured trust to authorize
    assertion of that namespace.
-2. **Proof and client:** Enforce {{grant-protection}}, including the
-   configured minimum profile even when `cnf` is absent, and
-   independently authenticate the client identified by `client_id`.
-3. **Authority:**
-   * **Resource claim:** Require `resource` to be one URI, encoded as a
-     JSON string or a single-element JSON array
-     ({{Section 3.1 of ID-JAG}}), and normalize it to that URI. Reject
-     a missing or invalid value, an empty array, or a multi-element
-     array with `invalid_grant`.
-   * **Requested resource:** The RAS MUST reject multiple `resource`
-     parameters, or a requested resource different from that URI, with
-     `invalid_target` under {{Section 2 of RFC8707}}.
-   * **Scope:** Require the grant's `scope` claim to be a non-empty
-     string. A supplied request `scope` MUST be a non-empty subset of
-     that claim, or the RAS MUST return `invalid_scope`.
-   * **Authorization details:** Apply ID-JAG's processing for
-     `authorization_details`. Reject the grant with `invalid_grant` if
-     its authority extends beyond that resource.
-4. **Local authorization:** Resolve the user under
+2. **Local authorization:** Resolve the user under
    {{subject-resolution}} and the Agent Principal actor under
    {{agent-correlation}}, and apply current RAS policy to the
    user/actor relationship under {{actor-authorization}}, client,
@@ -1886,18 +1895,13 @@ The RAS:
 
 ## Self-Acting Redemption: WAG {#wag-redemption}
 
-**Request:** The client redeems the WAG at the RAS token endpoint with
-`urn:ietf:params:oauth:grant-type:jwt-bearer`, as in WAG, and the
-request of {{redemption-request}}.
-
 **Processing:** The RAS MUST:
 
 1. **Grant:** Validate the grant under {{RFC7523}}, consistent with
    {{Section 5 of WAG}}. Require `iss` to be a configured governing IdP
    for the asserted agent namespace. Reject a WAG that contains `act`
    with `invalid_grant`.
-2. **Proof and client:** Apply {{grant-protection}} and client
-   authentication as in {{redemption-validation}}.
+2. **Common checks:** Apply {{redemption-common}}.
 3. **Correlation:** Resolve the pair (`iss`, `sub`) under
    {{agent-correlation}} to one local agent principal in the authorized
    Target Tenant. The RAS MUST have that authorized correlation before
@@ -1905,8 +1909,7 @@ request of {{redemption-request}}.
    of previously unseen identifiers in {{Section 7 of WAG}}.
    {{jit-correlation}} covers just-in-time correlation where resource
    policy permits it.
-4. **Authority:** Validate resource, scope, and authorization details as
-   in {{redemption-validation}}. Apply current RAS policy for the agent,
+4. **Local authorization:** Apply current RAS policy for the agent,
    client, tenant, and resource. A valid grant sets an authority
    ceiling; it does not require issuance.
 5. **Output:** Issue an access token under {{access-token-response}} and

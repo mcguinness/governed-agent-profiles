@@ -754,16 +754,17 @@ for this scenario, using the complete message sequence in
 
 # Agent Principal Resolution {#identity}
 
-Resolution turns validated inputs into principals: an approved Identity
-Binding resolves a qualified client or workload identity to one Agent
-Principal, subject resolution identifies the user for delegated access,
-and the RAS correlates both with its local principals.
+Resolution turns validated inputs into principals:
+
+* An approved Identity Binding resolves a qualified client or workload
+  identity to one Agent Principal.
+* Subject resolution identifies the user for delegated access.
+* The RAS correlates both with its local principals.
 
 ## Agent Resolution Inputs {#evidence}
 
 Every agent-resolution input satisfies this contract, which summarizes
-requirements stated in {{inputs}}, {{identity-binding}},
-{{credential-requirements}}, and the input's own section:
+requirements stated in the cited sections and the input's own section:
 
 * **Independent validation:** The credential is validated under its
   configured credential profile before it is used for resolution
@@ -774,7 +775,7 @@ requirements stated in {{inputs}}, {{identity-binding}},
   ({{identity-binding}}).
 * **Credential authority:** For workload evidence, the IdP relies on the
   credential mechanism having authorized issuance for the asserted
-  workload identity; a caller-supplied subject or agent identifier alone
+  workload identity. A caller-supplied subject or agent identifier alone
   MUST NOT establish that identity. For dedicated clients, the IdP
   relies on the configured client-authentication method and approved
   binding.
@@ -786,15 +787,21 @@ Credential acquisition is outside this profile. Audience validation
 follows each input's credential specification and section; there is no
 universal IdP audience.
 
-| Input | Qualified identity | Mode ({{actor-inputs}}) | Reference |
-|---|---|---|---|
-| Dedicated client | Trusted assertion issuer and exact client `sub`, qualified by the IdP client-registration context | Authentication context | {{client-assertion-input}} |
-| Existing platform JWT | Approved issuer and exact `sub`, with configured additional selectors | Presented evidence | {{imported-jwt-input}} |
-| SPIFFE JWT-SVID | Approved trust domain and exact SPIFFE ID in `sub` | Authentication context | {{jwt-svid-input}} |
-| SPIFFE WIT-SVID | Approved trust domain and exact SPIFFE ID in the validated `sub` | Authentication context | {{spiffe-input}} |
-| SPIFFE X.509-SVID | Approved trust domain and exact SPIFFE ID in the certificate's URI Subject Alternative Name | Authentication context | {{spiffe-input}} |
-| Client Attestation | Trusted attester and validated `sub`, which identifies the OAuth client; the client-to-agent mapping is explicit | Authentication context | {{agent-evidence}} |
+| Input | Qualified identity | Reference |
+|---|---|---|
+| Dedicated client | Trusted assertion issuer and exact client `sub` | {{client-assertion-input}} |
+| Existing platform JWT | Approved issuer, exact `sub`, and configured additional selectors | {{imported-jwt-input}} |
+| SPIFFE JWT-SVID | Approved trust domain and exact SPIFFE ID in `sub` | {{jwt-svid-input}} |
+| SPIFFE WIT-SVID | Approved trust domain and exact SPIFFE ID in the validated `sub` | {{spiffe-input}} |
+| SPIFFE X.509-SVID | Approved trust domain and exact SPIFFE ID in the certificate's URI Subject Alternative Name | {{spiffe-input}} |
+| Client Attestation | Trusted attester and validated `sub` | {{agent-evidence}} |
 {: title="Agent-resolution inputs and qualified identities"}
+
+The IdP client-registration context qualifies a dedicated client's
+identity. For Client Attestation, `sub` identifies the OAuth client, and
+the client-to-agent mapping is explicit. The existing platform JWT uses
+presented-evidence mode; every other input uses authentication-context
+mode.
 
 Input support follows {{scope}} and {{optional-inputs}}; resolution mode
 selection and rejection follow {{actor-inputs}}.
@@ -810,19 +817,23 @@ X.509-SVID ({{spiffe-input}}).
 Where issuer endorsement of the proof key is required, the deployment
 needs a supported input that cryptographically binds the key, such as
 Client Attestation under {{agent-evidence}} or the WIT-SVID input under
-{{spiffe-input}}; DPoP co-presented with bearer JWT-SVID or unbound
+{{spiffe-input}}. DPoP co-presented with bearer JWT-SVID or unbound
 platform JWT evidence establishes possession only. DPoP MUST NOT
 substitute for a credential proof that the selected input requires.
 
 Bearer evidence establishes the credential authority's assertion of the
-workload identity, not a cryptographic binding of the current presenter
-to that workload. An attacker who holds acceptable bearer workload
-evidence and passes client authentication, Client Association, and
-either the user-credential and delegation checks or the
-agent-authorization check can obtain a grant, bound to a grant proof key
-of its choice, while impersonating the workload. In the JWT-SVID path,
-the same bearer credential also satisfies client authentication; that
-check is not an independent possession factor.
+workload identity. It does not cryptographically bind the current
+presenter to that workload. An attacker who holds acceptable bearer
+workload evidence can therefore impersonate the workload and obtain a
+grant, bound to a grant proof key of its choice, if it also passes:
+
+* client authentication;
+* Client Association; and
+* either the user-credential and delegation checks or the
+  agent-authorization check.
+
+In the JWT-SVID path, the same bearer credential also satisfies client
+authentication, so that check is not an independent possession factor.
 
 Short evidence lifetimes limit this exposure; sender-constraining the
 output does not prevent it ({{baseline-costs}}).
@@ -850,17 +861,22 @@ outstanding tokens; their treatment follows {{status-changes}}.
 **Client Association:** Before issuing a governed grant, the IdP MUST
 verify that a Client Association permits the authenticated client to use
 the selected Identity Binding, with the selected credential class, for
-the requested acting relationship ({{configuration}}). Permission for
-delegated issuance does not imply self-acting issuance, nor the reverse.
-The IdP MUST NOT substitute the client's identity for the resolved
-actor.
+the requested acting relationship ({{configuration}}). The IdP MUST NOT
+substitute the client's identity for the resolved actor.
 
-A Client Association can authorize several Identity Bindings.
-Authorization of one binding, a credential authority, a credential
-class, or the Agent Principal itself MUST NOT imply authorization of
-another binding unless the association's policy explicitly includes it.
-No association overrides a disabled binding. Policy representation and
-evaluation mechanisms are outside this profile.
+Association permissions have these limits:
+
+* Permission for delegated issuance does not imply self-acting
+  issuance, nor the reverse.
+* A Client Association can authorize several Identity Bindings.
+  Authorization of one binding, a credential authority, a credential
+  class, or the Agent Principal itself MUST NOT imply authorization of
+  another binding unless the association's policy explicitly includes
+  it.
+* No association overrides a disabled binding.
+
+Policy representation and evaluation mechanisms are outside this
+profile.
 
 For a dedicated client, deployments can administer the Identity Binding
 and the Client Association in one registration or policy object; they
@@ -894,9 +910,9 @@ the remaining checks.
 
 ## Subject Resolution and Linking {#subject-resolution}
 
-For ID-JAG, subject resolution identifies the user and linking
-associates that user with a local account; self-acting access resolves
-the agent as subject ({{wag-flow}}). Subject identifiers, tenant
+For ID-JAG, subject resolution identifies the user, and linking
+associates that user with a local account. Self-acting access resolves
+the agent as subject instead ({{wag-flow}}). Subject identifiers, tenant
 relationships, `aud_sub`, `aud_tenant`, and `sub_id` follow Sections
 3.1, 5, and 6 of {{ID-JAG}}, with these additions.
 
@@ -960,19 +976,22 @@ A changed Identity Binding or local agent link MUST NOT transfer an
 existing delegation to a different agent.
 
 **Actor preservation:** The RAS MUST preserve the complete validated
-`act` object in the access token or its introspection context, including
-`iss`, `sub`, and any `sub_profile`, under
-{{Section 3.6.3.2 of ACTOR-PROFILE}}. It MUST NOT add, remove, or
-rewrite actor members. Preservation applies to JSON members and values,
-not to serialization, whitespace, or member order. In particular, the
-RAS MUST NOT translate `act.sub` to its local agent-principal identifier
-or replace `act.iss` with its own issuer. That rule concerns the actor
-of a delegated token; for self-acting access the access token's subject
-is the local principal and the qualified identity is retained under
-{{wag-redemption}}.
+`act` object, including `iss`, `sub`, and any `sub_profile`, in the
+access token or its introspection context under
+{{Section 3.6.3.2 of ACTOR-PROFILE}}. Preservation applies to JSON
+members and values, not to serialization, whitespace, or member order.
+The RAS:
+
+* MUST NOT add, remove, or rewrite actor members.
+* MUST NOT translate `act.sub` to its local agent-principal identifier
+  or replace `act.iss` with its own issuer.
+
+These rules concern the actor of a delegated token. For self-acting
+access, the access token's subject is the local principal, and the
+qualified identity is retained under {{wag-redemption}}.
 
 The IdP or an authorized directory connector can provision local agent
-principals, keyed by the same pair; no provisioning protocol is required
+principals, keyed by the same pair. No provisioning protocol is required
 ({{operational-guidance}}). Once deactivation is applied, the RAS
 enforces {{applied-changes}}.
 
@@ -980,26 +999,28 @@ enforces {{applied-changes}}.
 
 Where the RAS requires a local agent record and none exists for the
 qualified pair in the authorized Target Tenant, resource policy MAY
-permit the RAS to create one from a validated grant: from (`act.iss`,
-`act.sub`) of an ID-JAG, or from (`iss`, `sub`) of a WAG under
-{{wag-redemption}}. The policy is disabled by default and enabled per
-governing issuer and Target Tenant. When it applies, the RAS:
+permit the RAS to create one from a validated grant. The pair comes
+from (`act.iss`, `act.sub`) of an ID-JAG, or from (`iss`, `sub`) of a
+WAG under {{wag-redemption}}. The policy is disabled by default and
+enabled per governing issuer and Target Tenant. When it applies, the
+RAS:
 
-* MUST key the created record by that exact pair and MUST NOT attach
-  the pair to an existing record by name or other descriptive match;
+* MUST key the created record by that exact pair;
+* MUST NOT attach the pair to an existing record by name or other
+  descriptive match;
 * MUST apply local restrictions, retained revocation state under
   {{applied-changes}}, and local policy before issuance; and
 * sets the record's initial eligibility by local policy; a record
   created ineligible denies the triggering request.
 
-Creating the record is correlation, not authorization: the actor gate
-({{actor-authorization}}) and resource policy still apply. A grant does
-not carry the IdP's administrative status, so creation does not
-substitute for propagating disablement: without provisioning, the RAS
-learns of disablement only through local action or another signal
-({{status-changes}}). {{AGENT-LIFECYCLE}} defines provisioning and
-reconciliation of a created record for Receivers that conform to it;
-this document does not.
+Creating the record is correlation, not authorization. The actor gate
+({{actor-authorization}}) and resource policy still apply. Creation
+does not substitute for propagating disablement, because a grant does
+not carry the IdP's administrative status. Without provisioning, the
+RAS learns of disablement only through local action or another signal
+({{status-changes}}). {{AGENT-LIFECYCLE}}, not this document, defines
+provisioning and reconciliation of a created record for Receivers that
+conform to it.
 
 # Authorization Relationship {#authorization}
 
@@ -1017,9 +1038,9 @@ in a delegated grant MUST be bounded by both:
 For a self-acting grant, the asserted authority MUST be bounded by the
 Agent Authorization ({{agent-authorization}}).
 
-The basis for Agent or Delegation Authorization is a deployment choice;
-administrator assignment, organizational policy, task authorization,
-and, for Delegation Authorization, user consent are all acceptable.
+The basis for Agent or Delegation Authorization is a deployment choice.
+Administrator assignment, organizational policy, and task authorization
+are all acceptable, as is user consent for Delegation Authorization.
 Assignment and approval records and their storage are outside this
 profile.
 
@@ -1034,7 +1055,7 @@ Issuance and denial follow these rules:
 * The IdP MAY narrow scope, reflecting the result in the grant and
   response under {{RFC8693}}. It MUST return `invalid_scope` if no scope
   can be granted.
-* It MUST NOT issue by dropping a required actor or binding,
+* The IdP MUST NOT issue by dropping a required actor or binding,
   substituting an external identifier for the Agent Principal, or
   weakening proof requirements.
 * Denied delegation MUST NOT fall back to self-acting access.
@@ -1043,13 +1064,15 @@ Issuance and denial follow these rules:
 
 For self-acting access, the IdP MUST authorize the resolved Agent
 Principal to access the requested RAS, resource, and authority on its
-own behalf in the requested client and tenant context before issuing a
-grant that names the agent as subject. The IdP MUST reject missing,
-revoked, expired, or insufficient Agent Authorization. Valid
-credentials, an active Identity Binding, or a Client Association MUST
-NOT imply it, and it MUST NOT be inferred from a Delegation
-Authorization involving the same agent. Denied self-acting access MUST
-NOT fall back to delegated access or to a broader authority.
+own behalf in the requested client and tenant context. The IdP MUST do
+so before issuing a grant that names the agent as subject.
+
+The IdP MUST reject missing, revoked, expired, or insufficient Agent
+Authorization. Valid credentials, an active Identity Binding, or a
+Client Association MUST NOT imply it. Agent Authorization MUST NOT be
+inferred from a Delegation Authorization involving the same agent.
+Denied self-acting access MUST NOT fall back to delegated access or to
+a broader authority.
 
 ## Delegation Authorization {#delegation-authorization}
 
@@ -1089,7 +1112,7 @@ For delegated access, the RAS and API MUST enforce both:
 * **Actor gate:** the issuer-qualified agent is permitted to act for
   that user in the selected tenant and resource, within the authorized
   delegation. A valid signature or an `act` claim alone does not open
-  the gate; failure to establish it MUST result in denial.
+  the gate. Failure to establish the gate MUST result in denial.
 
 The actor gate is an authorization condition, not a protocol object. It
 can be implemented through an agent registration, tenant assignment,
@@ -1100,19 +1123,19 @@ baseline requirement.
 Every operation the API permits MUST be covered by an applicable
 actor-gate authorization. The API MAY evaluate the gate directly or rely
 on a validated RAS authorization whose scope and freshness satisfy
-resource policy; a fresh policy-service evaluation is not required for
+resource policy. A fresh policy-service evaluation is not required for
 every request.
 
 An ID-JAG issued under this profile asserts that the IdP authorized the
-specified delegation within the grant's constraints; it does not assert
-that the RAS's policy has been satisfied or convey the IdP's underlying
-approval records. The RAS MUST independently decide whether to accept
-that delegation under its local user, actor, client, tenant, and
-resource policy.
+specified delegation within the grant's constraints. It does not assert
+that the RAS's policy has been satisfied, and it does not convey the
+IdP's underlying approval records. The RAS MUST independently decide
+whether to accept that delegation under its local user, actor, client,
+tenant, and resource policy.
 
 The client identifier MUST NOT stand in for the actor in authorization.
-Audit records that identify both the user and the issuer-qualified actor,
-rather than the client identifier alone, preserve attribution.
+Audit records that identify both the user and the issuer-qualified
+actor, rather than the client identifier alone, preserve attribution.
 
 # Delegated Access with ID-JAG {#delegated-flow}
 

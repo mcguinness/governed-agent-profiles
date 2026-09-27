@@ -279,7 +279,7 @@ federation model alone does not define their wire behavior.
 RFC 7523 client assertions, SPIFFE JWT Verifiable Identity Documents
 (JWT-SVIDs), and the other supported credentials supply inputs to the
 same identity model ({{evidence}},
-{{optional-inputs}}).
+{{optional-input-profiles}}).
 
 This document federates an agent governed by the IdP that issues the
 grant into a resource domain. It does not define identity continuity
@@ -1040,7 +1040,7 @@ authentication.
 
 This mode does not distinguish agents behind one shared client identity;
 such a client MUST use a supported workload-identity input that
-distinguishes its agents ({{actor-inputs}}). An additional agent claim
+distinguishes its agents ({{imported-jwt-input}}). An additional agent claim
 in a self-signed client assertion MUST NOT select another Agent
 Principal under this input.
 
@@ -1144,7 +1144,7 @@ In the JWT-SVID path, the same bearer credential also satisfies client
 authentication; that check is not an independent possession factor.
 
 Short evidence lifetimes limit this exposure; sender-constraining the
-output does not prevent it ({{security}}).
+output does not prevent it ({{baseline-costs}}).
 
 ## Identity Binding {#identity-binding}
 
@@ -1172,7 +1172,7 @@ follows {{status-changes}}.
 Before issuing a governed grant, the IdP MUST verify that a Client
 Association permits the authenticated client to use the selected
 Identity Binding, with the selected credential class, for the requested
-acting relationship ({{flow-configuration}}). Permission for delegated
+acting relationship ({{configuration}}). Permission for delegated
 issuance does not imply self-acting issuance, nor the reverse. The IdP
 MUST NOT substitute the client's identity for the resolved actor.
 
@@ -1486,7 +1486,7 @@ requirements.
 |---|---|---|
 | Actor extension | Resolve the agent through an Identity Binding; authorize client use through a separate Client Association | {{identity-binding}} |
 | Dedicated-client input | Resolve from authenticated client context; require the issuer identifier as the sole assertion audience and single-use `jti` | {{client-assertion-input}}, {{Section 4 of RFC7523bis}} |
-| Other authentication-context inputs | Resolve the identity validated by SPIFFE or Client Attestation authentication | {{optional-inputs}}, {{actor-inputs}} |
+| Other authentication-context inputs | Resolve the identity validated by SPIFFE or Client Attestation authentication | {{optional-input-profiles}}, {{actor-inputs}} |
 | Actor representation | One actor with the Agent Principal as `act.sub` and the IdP as `act.iss`; replaces Actor Profile's credential-to-actor copying | {{actor-construction}} |
 | Request narrowing | Configured resolution mode, exactly one resource, and non-empty scope required; actor-token parameters required in actor-evidence mode and rejected otherwise; no incoming actor chain | {{root-request}}, {{actor-inputs}} |
 | Identity and client binding | Resolve users and agents separately; derive downstream `client_id` from an authoritative client-registration association | {{subject-resolution}}, {{agent-correlation}}, {{flow-configuration}} |
@@ -2406,7 +2406,7 @@ therefore need a user authorization flow for each agent's client
 registration, though an existing IdP session may avoid another login
 prompt. A platform retaining its shared single sign-on (SSO) client instead
 uses an agreed independent workload input: the existing platform JWT
-({{imported-jwt-input}}) or an optional input ({{optional-inputs}}).
+({{imported-jwt-input}}) or an optional input ({{optional-input-profiles}}).
 
 ## Authorization Server and Client Metadata {#metadata}
 
@@ -2541,7 +2541,7 @@ The profile's security controls carry these deployment costs:
 | Dedicated-client resolution as the common mode | Reuses deployed client authentication and registered keys | Each client identity resolves to one Agent Principal; proves registered-client identity, not independent runtime or workload provenance |
 | Optional native JWT-SVID input | Reuses SPIFFE issuance, client authentication, and trust-domain validation | JWT-SVID is bearer evidence; deployments requiring issuer-bound presenter proof need another supported input |
 | Bound profile: DPoP at both token endpoints; grant bound to the grant proof key | A stolen ID-JAG cannot be redeemed without the key | Every client holds and proves a key. Grant binding does not make bearer evidence proof of an issuer-authorized presenter ({{credential-requirements}}) |
-| Bound grants: same key for issuance and redemption | No key-transition protocol to secure | A broker that obtains bound grants also redeems them ({{flow-configuration}}) |
+| Bound grants: same key for issuance and redemption | No key-transition protocol to secure | A broker that obtains bound grants also redeems them ({{distributed-key-use}}) |
 | Access-token context as JWT claims or introspection | The API reads `act`, `scope`, and `cnf` from the token or from an authenticated introspection response ({{introspection}}) | Opaque-token deployments add an introspection round trip and a freshness policy |
 | Actor-aware API processing | The actor gate is enforced where access happens | APIs parse `act` and consult the gate on delegated paths |
 | Sender-constrained access tokens by default | Token theft is contained | Resources without DPoP or mutual TLS need explicit configuration for bearer use |
@@ -2618,7 +2618,7 @@ union of unrelated issuers' keys does not establish the assertion's source.
 A holder of a shared private key can present any credential issued for
 that key. Agent isolation therefore depends on issuance controls and
 key custody as well as identity mapping. Sharing the grant proof key
-across components widens its exposure ({{flow-configuration}}).
+across components widens its exposure ({{distributed-key-use}}).
 
 ## Authorization Changes and Revocation {#status-changes}
 
@@ -2759,7 +2759,7 @@ This OPTIONAL input supports workload identity independently of the
 OAuth client identifier, including multiple agents behind a shared
 client. It resolves from authentication context, with actor-token
 parameters omitted ({{actor-inputs}}), and requires trusted
-configuration under {{flow-configuration}}.
+configuration under {{configuration}}.
 
 The client presents the JWT-SVID in `client_assertion` with
 `client_assertion_type`
@@ -2788,7 +2788,7 @@ Client Attestation is an OPTIONAL agent-resolution input where the
 attested OAuth client identity maps explicitly to one Agent Principal.
 It resolves from authentication context, with actor-token parameters
 omitted ({{actor-inputs}}), and requires trusted configuration under
-{{flow-configuration}}. The client authenticates with the configured
+{{configuration}}. The client authenticates with the configured
 {{ATTEST}} method.
 
 The IdP MUST validate the attestation and proof under {{ATTEST}} before
@@ -2820,7 +2820,7 @@ These OPTIONAL inputs resolve the workload identity validated during
 OAuth client authentication for this token request. They resolve from
 authentication context, with actor-token parameters omitted, and the
 client and IdP configure the accepted SVID class under {{actor-inputs}}
-and {{flow-configuration}}. WIT-SVID is the SPIFFE form of a Workload
+and {{configuration}}. WIT-SVID is the SPIFFE form of a Workload
 Identity Token (WIT), and X.509-SVID is a certificate input within the
 Workload Identity Certificate (WIC) model in {{WIT}}; general non-SPIFFE
 WIT and WIC inputs are excluded ({{excluded-compositions}}).
@@ -2946,7 +2946,7 @@ dependency on JWT DPoP Grant.
 This document explicitly defines delegated issuance from validated
 authentication context and an approved Identity Binding, without
 `actor_token`: dedicated-client identity under {{client-assertion-input}}
-or the SPIFFE and Client Attestation identities under {{optional-inputs}}.
+or the SPIFFE and Client Attestation identities under {{optional-input-profiles}}.
 ID-JAG makes that parameter optional and leaves actor processing to
 extensions ({{Section 9.7 of ID-JAG}}); its omission alone does not establish
 this composition.
@@ -2970,7 +2970,7 @@ Profile support does not advertise support for this composition.
 A control plane obtaining a bound grant for redemption by a different
 worker needs an authorized proof-key transition. This document defines
 no such transition: the holder of the issuance key also redeems the
-grant ({{flow-configuration}}). A future composition would need to bind
+grant ({{distributed-key-use}}). A future composition would need to bind
 the new key without weakening the applicable grant protection.
 
 ### Portable Authorization Deadlines {#deadline-gap}
@@ -3169,10 +3169,10 @@ this grant's 300-second lifetime. Alice's ID Token remains valid for
 at least that period. Adding another agent's identifier to the client
 assertion cannot select that agent.
 
-## Redemption Request and Response
+## Redemption Request and Response {#redemption-example}
 
 `RAS_CLIENT_ASSERTION` authenticates the corresponding RAS client with
-`iss=sub=analysis-api`, `aud=https://ras.example/token`, a short
+`iss=sub=analysis-api`, `aud=https://ras.example/`, a short
 expiration, and its own `jti`. It uses that registration's signing key.
 `RAS_DPOP_PROOF` is a fresh proof using K, `htm=POST`, and
 `htu=https://ras.example/token`.
@@ -3409,7 +3409,7 @@ decoded WAG uses `typ=wag+jwt` and this payload:
 }
 ~~~
 
-Redemption reuses the request in {{walkthrough}} with the WAG as the
+Redemption reuses the request in {{redemption-example}} with the WAG as the
 `assertion`. The RAS correlates (`https://idp.example/`, `agent-42`) to
 `service-principal-42`, applies its own policy for that principal, and
 issues an access token with `sub` `service-principal-42`, no `act`, the

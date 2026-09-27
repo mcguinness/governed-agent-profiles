@@ -1512,7 +1512,7 @@ requirements.
 
 ## Prerequisites and Common Capabilities {#flow-configuration}
 
-Before issuance, the IdP MUST establish the applicable identity,
+The IdP MUST issue an ID-JAG only under the applicable identity,
 client, delegation, and target relationships in {{configuration}}.
 
 The IdP MUST derive the ID-JAG `client_id` from an authoritative

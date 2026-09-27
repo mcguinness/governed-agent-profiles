@@ -2581,16 +2581,19 @@ particular workload-evidence protection, or access-token protection.
 
 Servers MUST publish {{RFC8414}} metadata as follows:
 
-* **RAS:** Include each supported governed profile URI and the base
-  `urn:ietf:params:oauth:grant-profile:id-jag` in
-  `authorization_grant_profiles_supported`. The self-acting URIs use the
+* **RAS:** Include each supported governed profile URI, and for
+  delegated access the base `urn:ietf:params:oauth:grant-profile:id-jag`,
+  in `authorization_grant_profiles_supported`. The self-acting URIs use the
   same parameter; that use is proposed for coordination with ID-JAG and
   WAG ({{wag-gaps}}).
   * Include `urn:ietf:params:oauth:grant-type:jwt-bearer` in
     `grant_types_supported` for this profile.
-* **IdP:** Advertise Token Exchange in `grant_types_supported` and
-  ID-JAG in `identity_chaining_requested_token_types_supported` under
-  {{Section 7.1 of ID-JAG}}.
+* **IdP:** Advertise Token Exchange in `grant_types_supported`. For
+  delegated access, advertise ID-JAG in
+  `identity_chaining_requested_token_types_supported` under
+  {{Section 7.1 of ID-JAG}}; for self-acting access, advertise the WAG
+  token type in the same parameter, a use proposed for coordination
+  with ID-JAG and WAG ({{wag-gaps}}).
   * Include `private_key_jwt` in `token_endpoint_auth_methods_supported`.
   * When SPIFFE authentication is supported, include `spiffe_jwt`,
     `spiffe_wit`, or `spiffe_x509` under {{Section 4 of SPIFFE-OAUTH}}.

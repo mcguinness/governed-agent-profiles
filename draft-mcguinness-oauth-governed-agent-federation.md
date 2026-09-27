@@ -291,8 +291,9 @@ platform connector that manages Agent Principals and their relationships
 at the IdP, whose System for Cross-domain Identity Management (SCIM)
 service is the IdP Service Provider. The Receiver is the resource-domain
 SCIM service together with the RAS components that accept IdP
-provisioning. "Service Provider" alone always denotes the IdP-side SCIM
-service.
+provisioning. In the companion SCIM profiles, "Service Provider" alone
+denotes the IdP-side SCIM service; the Service Provider Contract
+({{sp-contract}}) concerns the resource domain.
 
 ## Terms {#terms}
 

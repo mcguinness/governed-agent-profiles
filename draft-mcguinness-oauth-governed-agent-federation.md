@@ -1633,8 +1633,9 @@ shows the messages.
 Token exchange is used because only its `issued_token_type`
 ({{RFC8693}}) labels the output as an assertion for another token
 endpoint. The request carries the common parameters and rules of
-{{issuance-request}} and the parameters below. The subject token carries
-the agent-resolution input and is not processed under
+{{issuance-request}} and the parameters below, which are REQUIRED except
+where the table or the resolution mode specifies otherwise. The subject
+token carries the agent-resolution input and is not processed under
 {{subject-token-validation}}.
 
 | Parameter | Value |
@@ -1754,8 +1755,8 @@ grant type ({{bound-grant-coordination}}).
 
 ## Common Grant Validation {#redemption-common}
 
-For either grant, the RAS MUST, in addition to the validation of
-{{redemption-validation}} or {{wag-redemption}}:
+Both grants use these checks. {{redemption-validation}} and
+{{wag-redemption}} each apply them at the step that names them:
 
 1. **Proof and client:** Enforce {{grant-protection}}, including the
    configured minimum profile even when `cnf` is absent, and
@@ -1828,14 +1829,16 @@ conform to it.
 
 ### Grant Validation {#redemption-validation}
 
-The RAS MUST perform ID-JAG validation, apply {{redemption-common}}, and
-additionally:
+The RAS MUST perform ID-JAG validation and additionally:
 
 1. **Actor:** Require a single `act` object under Actor Profile's rules,
    with non-empty `iss` and `sub` and no nested `act`. Require `act.iss`
    to equal the ID-JAG issuer and configured trust to authorize
    assertion of that namespace.
-2. **Local authorization:** Resolve the user under
+2. **Proof and client:** Apply the proof and client checks of
+   {{redemption-common}}.
+3. **Authority:** Apply the authority checks of {{redemption-common}}.
+4. **Local authorization:** Resolve the user under
    {{subject-resolution}} and the Agent Principal actor under
    {{agent-correlation}}, and apply current RAS policy to the
    user/actor relationship under {{actor-authorization}}, client,
@@ -1895,7 +1898,8 @@ The RAS:
    {{Section 5 of WAG}}. Require `iss` to be a configured governing IdP
    for the asserted agent namespace. Reject a WAG that contains `act`
    with `invalid_grant`.
-2. **Common checks:** Apply {{redemption-common}}.
+2. **Proof and client:** Apply the proof and client checks of
+   {{redemption-common}}.
 3. **Correlation:** Resolve the pair (`iss`, `sub`) under
    {{agent-correlation}} to one local agent principal in the authorized
    Target Tenant. The RAS MUST have that authorized correlation before
@@ -1903,8 +1907,8 @@ The RAS:
    of previously unseen identifiers in {{Section 7 of WAG}}.
    {{jit-correlation}} covers just-in-time correlation where resource
    policy permits it.
-4. **Local authorization:** Apply current RAS policy for the agent,
-   client, tenant, and resource. A valid grant sets an authority
+4. **Authority:** Apply the authority checks of {{redemption-common}}
+   and current RAS policy for the agent, client, tenant, and resource. A valid grant sets an authority
    ceiling; it does not require issuance.
 5. **Output:** Issue an access token under {{access-token-response}} and
    {{access-token-protection}}, with the local agent principal as `sub`

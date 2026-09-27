@@ -4,8 +4,8 @@
 
 Web Authorization Protocol                                 K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                       26 September 2026
-Expires: 30 March 2027
+Intended status: Standards Track                       27 September 2026
+Expires: 31 March 2027
 
 
             OAuth 2.0 Profile for Governed Agent Federation
@@ -66,7 +66,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 30 March 2027.
+   This Internet-Draft will expire on 31 March 2027.
 
 Copyright Notice
 
@@ -3317,18 +3317,21 @@ Table of Contents
 
    Servers MUST publish [RFC8414] metadata as follows:
 
-   *  *RAS:* Include each supported governed profile URI and the base
-      urn:ietf:params:oauth:grant-profile:id-jag in
-      authorization_grant_profiles_supported.  The self-acting URIs use
-      the same parameter; that use is proposed for coordination with ID-
-      JAG and WAG (Appendix A.1.1).
+   *  *RAS:* Include each supported governed profile URI, and for
+      delegated access the base urn:ietf:params:oauth:grant-profile:id-
+      jag, in authorization_grant_profiles_supported.  The self-acting
+      URIs use the same parameter; that use is proposed for coordination
+      with ID-JAG and WAG (Appendix A.1.1).
 
       -  Include urn:ietf:params:oauth:grant-type:jwt-bearer in
          grant_types_supported for this profile.
 
-   *  *IdP:* Advertise Token Exchange in grant_types_supported and ID-
-      JAG in identity_chaining_requested_token_types_supported under
-      Section 7.1 of [ID-JAG].
+   *  *IdP:* Advertise Token Exchange in grant_types_supported.  For
+      delegated access, advertise ID-JAG in
+      identity_chaining_requested_token_types_supported under
+      Section 7.1 of [ID-JAG]; for self-acting access, advertise the WAG
+      token type in the same parameter, a use proposed for coordination
+      with ID-JAG and WAG (Appendix A.1.1).
 
       -  Include private_key_jwt in
          token_endpoint_auth_methods_supported.
@@ -4620,9 +4623,9 @@ B.2.  Exchange Request and Response
 B.3.  Redemption Request and Response
 
    RAS_CLIENT_ASSERTION authenticates the corresponding RAS client with
-   iss=sub=analysis-api, aud=https://ras.example/token, a short
-   expiration, and its own jti.  It uses that registration's signing
-   key.  RAS_DPOP_PROOF is a fresh proof using K, htm=POST, and
+   iss=sub=analysis-api, aud=https://ras.example/, a short expiration,
+   and its own jti.  It uses that registration's signing key.
+   RAS_DPOP_PROOF is a fresh proof using K, htm=POST, and
    htu=https://ras.example/token.  The RAS validates the grant binding
    regardless of the API's token mode.  It also accepts resource encoded
    as the single-element array ["https://api.example/tenants/acme-

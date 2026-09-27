@@ -496,10 +496,7 @@ explicit decision by the governing authority to preserve the same
 principal; it does not imply that the principal's permissions remain
 unchanged. It is not work continuity: whether an approved task, with its
 purpose, approval, and lifecycle, still justifies an action is outside
-this profile. An Agent Principal identity does not itself prove which
-runtime or execution currently represents the agent; any such assurance
-comes from the validated evidence and proofs required by the
-resolution-input profile ({{evidence}}).
+this profile.
 
 After a transfer to a different Governance Tenant under a different
 administrative authority, the IdP MUST assert the agent under a new
@@ -515,9 +512,8 @@ governance domain does not by itself change the principal.
 The IdP MUST establish an unambiguous Governance Tenant and, before
 issuance, the Target Tenant for the requested RAS and resource. The RAS
 MUST interpret an agent identifier in its asserted issuer context and
-MUST NOT key agent authorization on a bare `sub`. Failure to resolve the
-Governance Tenant uses `invalid_grant`; failure to resolve the Target
-Tenant for the requested resource uses `invalid_target`.
+MUST NOT key agent authorization on a bare `sub`. Tenant resolution
+failures use the errors in {{errors}}.
 
 ## Governance Boundary and Execution Independence {#governance-boundary}
 

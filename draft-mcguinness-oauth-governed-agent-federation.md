@@ -236,18 +236,14 @@ IdP's namespace is out of scope. Also out of scope ({{upstream-gaps}}):
 * client attester endorsement; and
 * enrollment or key-replacement protocols.
 
-{{scope}} states what each role implements. Implementers of the client,
-IdP, resource authorization server (RAS), and API (resource server) can
-read in this order:
-
-| Role | Start with | Then read |
-|---|---|---|
-| All roles | {{model}}, {{scope}} | {{metadata}}, {{security}} |
-| Client | {{evidence}}, {{root-request}}, {{wag-request}} | {{grant-protection}}, {{redemption-request}}, {{access-token-response}}, {{client-token-reuse}}, {{wag-redemption}}, {{discovery}}, {{errors}} |
-| IdP | {{identity}}, {{authorization}} | {{exchange-request}}, {{wag-issuance}}, {{errors}} |
-| RAS | {{sp-contract}}, {{redemption}} | {{agent-correlation}}, {{actor-authorization}}, {{wag-redemption}}, {{ras-refresh}}, {{errors}} |
-| API | {{api-processing}} | {{actor-authorization}}, {{access-token-protection}}, {{wag-api}} |
-{: title="Reading guide"}
+This document is organized by protocol stage. {{model}} and
+{{conformance-metadata}} apply to every role. {{issuance}},
+{{redemption}}, and {{api-processing}} give the processing of the IdP,
+the resource authorization server (RAS), and the API (resource server),
+each covering delegated and self-acting access. A client sends the
+requests of {{issuance-request}} and {{redemption-request}}, and
+{{continuing-access}} covers renewal, token reuse, and disablement.
+{{scope}} states what each role implements.
 
 # Conventions and Terminology
 

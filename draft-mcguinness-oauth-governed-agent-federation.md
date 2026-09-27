@@ -764,7 +764,7 @@ particular storage representation or administrative interface:
   permitted binding or binding set, acting relationship, and credential
   class.
 * **Resolution mode and proof:** IdP policy and client configuration
-  establish authentication-context resolution or a separate actor-evidence
+  establish authentication-context resolution or a separate presented-evidence
   input under {{actor-inputs}} for the client,
   applicable profile, and target. They establish accepted credential
   classes and proof requirements for that mode.
@@ -1489,7 +1489,7 @@ requirements.
 | Dedicated-client input | Resolve from authenticated client context; require the issuer identifier as the sole assertion audience and single-use `jti` | {{client-assertion-input}}, {{Section 4 of RFC7523bis}} |
 | Other authentication-context inputs | Resolve the identity validated by SPIFFE or Client Attestation authentication | {{optional-input-profiles}}, {{actor-inputs}} |
 | Actor representation | One actor with the Agent Principal as `act.sub` and the IdP as `act.iss`; replaces Actor Profile's credential-to-actor copying | {{actor-construction}} |
-| Request narrowing | Configured resolution mode, exactly one resource, and non-empty scope required; actor-token parameters required in actor-evidence mode and rejected otherwise; no incoming actor chain | {{root-request}}, {{actor-inputs}} |
+| Request narrowing | Configured resolution mode, exactly one resource, and non-empty scope required; actor-token parameters required in presented-evidence mode and rejected otherwise; no incoming actor chain | {{root-request}}, {{actor-inputs}} |
 | Identity and client binding | Resolve users and agents separately; derive downstream `client_id` from an authoritative client-registration association | {{subject-resolution}}, {{agent-correlation}}, {{flow-configuration}} |
 | Grant narrowing | One resource URI (a string; singleton arrays accepted), scope constraints, and input-specific expiration limits; bound profile requires DPoP and `cnf.jkt` | {{grant-issuance}}, {{redemption-validation}}, {{grant-protection}} |
 | Resource processing | Preserve actor and tenant context; enforce the user authority and actor gate with the selected token protection | {{access-token-response}}, {{api-processing}} |
@@ -1583,7 +1583,7 @@ specifies otherwise:
 | `requested_token_type` | `urn:ietf:params:oauth:token-type:id-jag` |
 | `subject_token` | User subject credential issued for the authenticated client ({{subject-token-validation}}) |
 | `subject_token_type` | `urn:ietf:params:oauth:token-type:id_token`, `urn:ietf:params:oauth:token-type:saml2`, or `urn:ietf:params:oauth:token-type:refresh_token` |
-| `actor_token` | Omitted for authentication-context resolution; REQUIRED for an actor-evidence input under {{actor-inputs}} |
+| `actor_token` | Omitted for authentication-context resolution; REQUIRED for a presented-evidence input under {{actor-inputs}} |
 | `actor_token_type` | Omitted when `actor_token` is omitted; REQUIRED, with value `urn:ietf:params:oauth:token-type:jwt`, whenever `actor_token` is present |
 | `audience` | One target RAS issuer identifier |
 | `resource` | Exactly one resource URI under {{RFC8707}}, served by the RAS named in `audience` |
@@ -1650,9 +1650,10 @@ change that mode.
   The client MUST omit `actor_token` and `actor_token_type`; the IdP MUST
   reject either parameter with `invalid_request`, including a duplicate
   authentication credential.
-* **Actor-evidence input:** The IdP MUST require both `actor_token` and
-  `actor_token_type`, and the type MUST be
-  `urn:ietf:params:oauth:token-type:jwt` ({{errors}}). Validate the
+* **Presented-evidence input:** In delegated issuance, the IdP MUST
+  require both `actor_token` and `actor_token_type`, and the type MUST be
+  `urn:ietf:params:oauth:token-type:jwt` ({{errors}}); in self-acting
+  issuance, the evidence is the subject token ({{wag-request}}). Validate the
   separate platform JWT under {{imported-jwt-input}}. Missing or
   rejected evidence MUST NOT trigger resolution from authentication
   context.
@@ -1665,7 +1666,7 @@ does not request ordinary EMA or subject-only impersonation.
 The IdP MUST select exactly one configured platform credential class for
 actor evidence, or reject with `invalid_request`. Native SPIFFE and
 Client Attestation inputs use authentication context and MUST NOT be
-accepted through actor-evidence mode.
+accepted through presented-evidence mode.
 
 Credential classes MUST have mutually exclusive validation rules under
 {{Section 3.12 of RFC8725}}. Within one token request, rejection under the
@@ -1686,7 +1687,7 @@ ID-JAG MUST contain one `act` object with:
 * `iss`: this IdP's issuer identifier.
 
 These values MUST come from the approved mapping, even when source and
-governed identifiers coincide. For actor-evidence inputs this replaces
+governed identifiers coincide. For presented-evidence inputs this replaces
 credential-to-actor copying in {{Section 6.3 of ACTOR-PROFILE}}.
 
 The object MUST follow {{Section 3.4 of ACTOR-PROFILE}}, including its
@@ -1981,8 +1982,8 @@ authorization-detail failures use the errors specified in
 | Failure | Error |
 |---|---|
 | Unsupported or invalid requested authorization details | `invalid_authorization_details` ({{Section 8 of RFC9396}}) |
-| Unsupported input combination, ambiguous credential classification, or unsupported `actor_token_type` in actor-evidence mode | `invalid_request` |
-| No unambiguous configured resolution mode, actor-token parameters in an authentication-context mode, a method inconsistent with that mode, or missing actor-token parameters in actor-evidence mode | `invalid_request`; no mode fallback |
+| Unsupported input combination, ambiguous credential classification, or unsupported `actor_token_type` in presented-evidence mode | `invalid_request` |
+| No unambiguous configured resolution mode, actor-token parameters in an authentication-context mode, a method inconsistent with that mode, or missing actor-token parameters in presented-evidence mode | `invalid_request`; no mode fallback |
 {: title="Request errors"}
 
 | Failure | Error |
@@ -2156,8 +2157,8 @@ IdP MUST:
    {{evidence}} and {{actor-inputs}}.
 2. Resolve the Agent Principal through an active Identity Binding
    ({{identity-binding}}) from the configured resolution input:
-   * **Presented workload resolution:** an independently validated
-     workload credential presented in the request, the actor-evidence
+   * **Presented-evidence resolution:** an independently validated
+     workload credential presented in the request, the presented-evidence
      input of {{actor-inputs}} carried as the subject token here.
    * **Authentication-context resolution:** the authenticated client
      identity, with no separate credential.
@@ -2194,7 +2195,7 @@ with these differences:
 | `audience`, `resource`, `scope` | As in {{root-request}} |
 {: title="Self-acting issuance request"}
 
-**Presented workload resolution.** The workload credential is the
+**Presented-evidence resolution.** The workload credential is the
 subject token, with `subject_token_type`
 `urn:ietf:params:oauth:token-type:jwt`, and the client authenticates
 separately; the existing platform JWT input ({{imported-jwt-input}}) is
@@ -3344,9 +3345,9 @@ errors follow {{errors}}; API errors follow {{resource-errors}}.
 
 | Changed condition | Rejecting party | Result |
 |---|---|---|
-| Dedicated-client exchange includes `actor_token` or `actor_token_type`, even a duplicate client assertion | IdP | HTTP 400, `invalid_request`; no switch to actor-evidence mode |
-| Configured actor-evidence exchange omits `actor_token` or its type | IdP | HTTP 400, `invalid_request`; no fallback to authentication-context resolution |
-| Configured actor-evidence exchange uses an unsupported `actor_token_type` | IdP | HTTP 400, `invalid_request` |
+| Dedicated-client exchange includes `actor_token` or `actor_token_type`, even a duplicate client assertion | IdP | HTTP 400, `invalid_request`; no switch to presented-evidence mode |
+| Configured presented-evidence exchange omits `actor_token` or its type | IdP | HTTP 400, `invalid_request`; no fallback to authentication-context resolution |
+| Configured presented-evidence exchange uses an unsupported `actor_token_type` | IdP | HTTP 400, `invalid_request` |
 | JWT-SVID, WIT-SVID, X.509-SVID, or Client Attestation resolution includes either actor-token parameter | IdP | HTTP 400, `invalid_request`; no resolution-mode switch |
 | A native credential authenticates successfully but has no enabled exact Identity Binding | IdP | HTTP 400, `invalid_grant`; authentication alone does not resolve the agent |
 | Valid WIT-SVID proof accompanies an issuance DPoP proof using a different key | IdP | HTTP 400, `invalid_grant`; no grant issued |

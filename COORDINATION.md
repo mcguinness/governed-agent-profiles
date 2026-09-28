@@ -20,7 +20,7 @@ Identification-00, and Client Attester Endorsement-00.
 |---|---|---|
 | WAG | Registration of the WAG token type and JWT type, and alignment on protection, linking, and subject presentation (`wag-gaps`) | The WAG token type and JWT type remain provisional values |
 | ID-JAG | Bound-grant example aligned with the normative `jwt-bearer` grant type, and grant-confirmation errors separated from RFC 9449 proof errors (`bound-grant-coordination`) | Confirmation checks are applied to `jwt-bearer` here |
-| Actor Profile | A reusable principal-resolution extension point separating credential validation, identity mapping, and actor construction; alignment with ID-JAG on re-redeeming an unbound grant that carries `act` (below) | The mapping is defined locally in `actor-construction`; an unbound governed ID-JAG redeems once |
+| Actor Profile | A reusable principal-resolution extension point separating credential validation, identity mapping, and actor construction; a grant-level condition for `jti` single use (below) | The mapping is defined locally in `actor-construction`; this profile states its own grant replay rule |
 
 #### WAG
 
@@ -73,22 +73,19 @@ uses `jwt-dpop`. This profile follows the normative grant type with
 explicit confirmation processing (`redemption`) and takes no
 dependency on JWT DPoP Grant.
 
-#### ID-JAG Re-redemption
+#### Grant Replay and Re-redemption
 
 Section 4.4.3 of ID-JAG lets a client re-submit an unexpired ID-JAG for
-a new access token in place of a refresh token. Section 4.2 of
-ACTOR-PROFILE requires an authorization server to reject an assertion
-carrying `act` whose `jti` it has already accepted, when redemption
-requires neither DPoP nor mutual TLS; for sender-constrained grants,
-that check is only a SHOULD. A governed ID-JAG always carries `act`,
-so an unbound one redeems once, while a bound one can be re-submitted
-unless the RAS applies the optional check. The renewal table in
-`continuing-access` states this.
+a new access token, and Section 8 of WAG leaves replay open. This
+profile decides by the grant's own binding (`redemption-common`): an
+unbound grant is single-use, and the RAS may accept a bound grant again
+under explicit policy with a fresh proof matching its `cnf.jkt`.
 
-Decision pending: keep Actor Profile's single-use rule for unbound
-grants, or relax it in Actor Profile, for example where the client is
-authenticated as the grant's `client_id`, so that unbound governed
-grants can be re-submitted as ID-JAG allows.
+Section 4.2 of ACTOR-PROFILE instead makes single use depend on whether
+the token endpoint requires DPoP or mutual TLS. That exempts an unbound
+grant redeemed with a DPoP proof that only binds the access token.
+Tracked in
+https://github.com/mcguinness/draft-mcguinness-oauth-actor-profile/issues/5.
 
 #### Client Instance Identification
 

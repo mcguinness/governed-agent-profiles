@@ -148,7 +148,10 @@ withdrawing it from all of them.
 What an enterprise needs instead is a principal it can authorize once,
 audit across resources, and disable everywhere. That principal's
 identity does not change when the agent moves between platforms or
-rotates credentials.
+rotates credentials. This profile establishes the identity and
+authorization relationships that disablement acts on; how far and how
+fast disablement propagates depends on the lifecycle mechanism a
+deployment selects, such as {{AGENT-LIFECYCLE}}.
 
 Enterprise identity already solves a version of this problem for people.
 A person has one account, several credentials linked to it, and separate
@@ -448,6 +451,14 @@ agent ({{subject-resolution}}). Correlation does not grant authority:
 the RAS decides within the grant's ceiling ({{actor-authorization}},
 {{wag-redemption}}).
 
+For example, two agents run behind one platform OAuth client, and one of
+them later moves to another runtime with a different workload
+credential. The resource domain keeps recognizing that agent through
+the same issuer-qualified Agent Principal, without merging it with the
+other agent, attributing its actions to the platform client, or
+learning the new runtime's credential format. {{identity-example}}
+works a shared-client case in full.
+
 ## Authentication, Resolution, and Proof {#inputs}
 
 The IdP MUST validate a credential according to its configured type
@@ -682,7 +693,7 @@ requirement.
 | Actor representation | One actor: Agent Principal as `act.sub`, IdP as `act.iss`; replaces Actor Profile's credential-to-actor copying | {{actor-construction}} |
 | Request narrowing | Configured resolution mode; one resource; non-empty scope; actor-token parameters required in presented-evidence mode and rejected otherwise; no incoming actor chain | {{issuance-request}}, {{root-request}}, {{actor-inputs}} |
 | Identity and client binding | Users and agents resolved separately; downstream `client_id` from an authoritative client-registration association | {{idp-subject-resolution}}, {{subject-resolution}}, {{agent-correlation}}, {{flow-configuration}} |
-| Grant narrowing | One resource URI (a string; singleton arrays accepted), scope constraints, input-specific expiration limits; DPoP and `cnf.jkt` in the bound profile | {{grant-common}}, {{grant-issuance}}, {{redemption-common}}, {{grant-protection}} |
+| Grant narrowing | One resource URI (a string; singleton arrays accepted), scope constraints, input-specific expiration limits; single use unless bound; DPoP and `cnf.jkt` in the bound profile | {{grant-common}}, {{grant-issuance}}, {{redemption-common}}, {{grant-protection}} |
 | Resource processing | Actor and tenant context preserved; user authority and actor gate enforced with the selected token protection | {{access-token-response}}, {{api-processing}} |
 | Refresh narrowing | Explicit policy, client binding, preserved proof binding and profile, finite absolute authorization expiration | {{ras-refresh}} |
 | Error processing | `invalid_grant`, not RFC 8693's default `invalid_request`, for subject or actor credential and resolution failures; `actor_unauthorized` for a denied resolved actor | {{issuance-errors}} |
@@ -691,11 +702,28 @@ requirement.
 
 ## Self-Acting Access with WAG {#wag-flow}
 
-Self-acting access is the peer of {{delegated-flow}}. The Agent
-Principal is the subject of a Workload Authorization Grant (WAG) {{WAG}}
-issued by the IdP ({{wag-issuance}}) and redeemed at the RAS
-({{wag-redemption}}). The WAG token and JWT types are provisional; their
-final spelling does not affect processing ({{wag-gaps}}).
+Self-acting access is a peer realization of the federation model: the
+Agent Principal is the subject of a Workload Authorization Grant (WAG)
+{{WAG}} issued by the IdP ({{wag-issuance}}) and redeemed at the RAS
+({{wag-redemption}}). This document specifies a governed composition of
+WAG, including the issuance exchange, client binding, principal
+correlation, and grant protection. Generic WAG support does not imply
+these requirements. This document defines the complete wire contract it
+relies on, so {{WAG}} is an informative reference, and the composition
+remains subject to alignment with the evolving WAG specification
+({{wag-gaps}}). The WAG token and JWT types are provisional.
+
+| Area | WAG-01 | This profile |
+|---|---|---|
+| Issuer | The Platform that created the agent | The governing IdP, through token exchange ({{wag-issuance}}) |
+| Client authentication | Not required; `client_id` carries no meaning | Required at issuance and redemption; `client_id` is the client's registration at the RAS ({{redemption-common}}) |
+| Grant binding | Bearer; proof of possession open | DPoP under {{grant-protection}}, required for the bound profile |
+| Explicit type | None defined | `typ` `wag+jwt`, checked at redemption ({{wag-redemption}}) |
+| Replay | Open | Unbound grants are single-use ({{redemption-common}}) |
+| `resource` | Recommended, not required | Exactly one ({{issuance-request}}) |
+| Previously unseen agents | Accepted on first assertion | Authorized correlation required ({{agent-correlation}}) |
+| Refresh tokens | Prohibited | Prohibited |
+{: title="Governed composition of WAG"}
 
 ## Adoption Profiles {#adoption-profiles}
 
@@ -769,9 +797,9 @@ credentials.
 Unless explicitly limited to bound grants or a named profile, the
 requirements of this document apply to both governed adoption profiles.
 Conformance claims MUST identify the supported profile by its URI
-({{metadata}}), the realization, the implemented role, and supported
-inputs. An implementation supports delegated access, self-acting
-access, or both.
+({{metadata}}), the realization, the implemented role, supported inputs,
+and any claim of generic shared-client interoperability. An
+implementation supports delegated access, self-acting access, or both.
 
 The IdP, RAS, and client MUST implement their respective
 requirements in:
@@ -795,14 +823,14 @@ Each realization has this mandatory interoperability path:
   for self-acting access.
 
 The inputs of {{optional-input-profiles}}, existing platform JWTs, SAML
-subjects, and IdP refresh-token subjects are OPTIONAL capabilities,
-except that:
-
-* An IdP that accepts any agent-resolution input other than
-  dedicated-client identity MUST also support the existing platform JWT
-  input ({{imported-jwt-input}}).
-* A client that relies on a shared client identity MUST be able to
-  present the existing platform JWT input.
+subjects, and IdP refresh-token subjects are OPTIONAL capabilities.
+Claiming an input requires that input's rules, not support for another
+input. An implementation that claims generic shared-client
+interoperability MUST support the existing platform JWT input
+({{imported-jwt-input}}): an IdP by accepting it, and a client by
+presenting it. Implementations that support only different native
+inputs do not interoperate on a shared client, and their conformance
+claims show this.
 
 ID-JAG requires support for Identity Assertions
 ({{Section 4.3 of ID-JAG}}). Requiring ID Token subjects specifically
@@ -1568,7 +1596,18 @@ Both grants use these checks. {{redemption-validation}} and
      that claim, or the RAS MUST return `invalid_scope`.
    * **Authorization details:** Apply ID-JAG's processing for
      `authorization_details`. Reject the grant with `invalid_grant` if
-     its authority extends beyond that resource.
+          its authority extends beyond that resource.
+
+**Grant replay:** For a grant without an enforced grant-level sender
+constraint, the RAS MUST reject a grant whose validated (`iss`, `jti`)
+it has already accepted while that grant remains acceptable. A proof
+used only for client authentication or access-token binding is not such
+a constraint. The RAS MAY accept a bound grant again under explicit
+policy, each time with a fresh proof that matches its `cnf.jkt`
+({{grant-protection}}). This narrows re-submission under
+{{Section 4.4.3 of ID-JAG}} for unbound ID-JAGs, and settles for the WAG
+the replay question that {{Section 8 of WAG}} leaves open. The retention
+rule of {{time-validation}} applies to accepted identifiers.
 
 ## Agent Principal Correlation {#agent-correlation}
 
@@ -1628,8 +1667,9 @@ The RAS MUST perform ID-JAG validation and additionally:
    assertion of that namespace.
 2. **Proof and client:** Apply the proof and client checks of
    {{redemption-common}}.
-3. **Authority:** Apply the authority checks of {{redemption-common}}.
-4. **Local authorization:** Resolve the user under
+3. **Replay:** Apply the grant replay rule of {{redemption-common}}.
+4. **Authority:** Apply the authority checks of {{redemption-common}}.
+5. **Local authorization:** Resolve the user under
    {{subject-resolution}} and the Agent Principal actor under
    {{agent-correlation}}, and apply current RAS policy to the
    user/actor relationship under {{actor-authorization}}, client,
@@ -1688,21 +1728,21 @@ The RAS:
    {{Section 5 of WAG}}. Require the JWT `typ` header parameter
    `wag+jwt` ({{Section 3.11 of RFC8725}}), so that an ID-JAG or another
    JWT from the same issuer cannot be accepted as a WAG. Require `iss`
-   to be a configured governing IdP
-   for the asserted agent namespace. Reject a WAG that contains `act`
-   with `invalid_grant`.
+   to be a configured governing IdP for the asserted agent namespace.
+   Reject a WAG that contains `act` with `invalid_grant`.
 2. **Proof and client:** Apply the proof and client checks of
    {{redemption-common}}.
-3. **Correlation:** Resolve the pair (`iss`, `sub`) under
+3. **Replay:** Apply the grant replay rule of {{redemption-common}}.
+4. **Correlation:** Resolve the pair (`iss`, `sub`) under
    {{agent-correlation}} to one local agent principal in the authorized
    Target Tenant. The RAS MUST have that authorized correlation before
    issuance. For governed agents, this replaces WAG's acceptance of
    previously unseen agents ({{Section 3 of WAG}}). {{jit-correlation}}
    covers just-in-time correlation where resource policy permits it.
-4. **Authority:** Apply the authority checks of {{redemption-common}}
+5. **Authority:** Apply the authority checks of {{redemption-common}}
    and current RAS policy for the agent, client, tenant, and resource. A
    valid grant sets an authority ceiling; it does not require issuance.
-5. **Output:** Issue an access token under {{access-token-response}} and
+6. **Output:** Issue an access token under {{access-token-response}} and
    {{access-token-protection}}, with the local agent principal as `sub`
    and no `act`. The RAS MUST NOT issue a refresh token for a WAG
    redemption.
@@ -1814,6 +1854,7 @@ RAS uses these errors:
 | Failure | Error |
 |---|---|
 | Invalid ID-JAG | `invalid_grant` |
+| Unbound grant whose (`iss`, `jti`) the RAS already accepted | `invalid_grant` |
 | WAG whose `sub` has no authorized correlation at the RAS | `invalid_grant` |
 | Invalid WAG, including one without `typ` `wag+jwt` or one that contains `act` | `invalid_grant` |
 {: title="Redemption errors"}
@@ -1843,6 +1884,14 @@ Separate client registrations, audiences, or issuers for the delegated
 and self-acting populations satisfy these rules. The absence of `act`
 alone does not: a delegated token lacking `act` would otherwise be
 accepted as self-acting.
+
+Conformance does not by itself provide a portable discriminator for
+every mixed-token deployment. For example, where one issuer serves
+ordinary, delegated, and self-acting access to one API, the RAS can use
+a separate client registration or audience for each population, and
+the API is configured with that mapping. A deployment that needs one
+registration and one audience for several populations needs an
+additional bilateral contract.
 
 ## Token Validation {#api-validation}
 
@@ -1930,7 +1979,7 @@ Deployments select a renewal model before scheduling unattended work:
 
 | Mechanism | Conditions |
 |---|---|
-| Redeem an existing ID-JAG | Grant remains valid and, where redemption requires neither DPoP nor mutual TLS, has not been redeemed before ({{Section 4.2 of ACTOR-PROFILE}}); any required proof and current RAS policy apply ({{redemption}}) |
+| Redeem an existing ID-JAG | Grant remains valid, and is bound with RAS policy permitting reuse; an unbound grant is single-use ({{redemption-common}}) |
 | Obtain a new ID-JAG | Valid subject credential, current agent-resolution input, and a fresh IdP authorization decision ({{exchange-request}}) |
 | RAS refresh (delegated access) | Preserves authorization at the same RAS within its lifetime and policy limits ({{ras-refresh}}) |
 | Obtain a new WAG | Current agent-resolution input and a fresh IdP authorization decision ({{wag-issuance}}); a WAG redemption yields no refresh token |
@@ -2161,7 +2210,9 @@ The profile's security controls carry these deployment costs:
 Governed agent access without grant binding adds agent authorization
 to existing enterprise access. It still leaves a stolen grant
 redeemable by an attacker who can authenticate as the grant's
-designated client, particularly a shared client. Binding only the
+designated client, particularly a shared client. Single use
+({{redemption-common}}) limits such a grant to one redemption; it does
+not prevent the first. Binding only the
 resulting access token
 does not prevent that redemption. Explicit acceptance policy, short
 grant lifetimes, credential confidentiality, and the no-fallback rules
@@ -2358,7 +2409,8 @@ mode.
 
 This normative appendix defines the two inputs that {{scope}}
 requires: dedicated-client identity, mandatory to implement, and the
-existing platform JWT, required for shared-client support. Each
+existing platform JWT, required for a claim of generic shared-client
+interoperability. Each
 satisfies the interface contract of {{evidence}}.
 
 ### Dedicated Client Identity {#client-assertion-input}
@@ -2883,16 +2935,17 @@ actor identities, scope, tenant checks, and actor gate are unchanged. An
 unbound grant can instead obtain a DPoP-bound access token by presenting
 a valid proof at redemption ({{grant-protection}}).
 
-### Renewal and Rejection Examples
+### Renewal and Negative Tests
 
 The redemption response contains no refresh token; after the access
 token expires, the client obtains a new ID-JAG ({{continuing-access}}).
 
-Each rejection below changes one condition in the walkthrough; all
-other credentials, proofs, and policy checks succeed. Token endpoint
-errors follow {{errors}}; API errors follow {{resource-errors}}.
+Each case below changes the walkthrough, or the named variant, as
+stated; all other credentials, proofs, and policy checks succeed. The
+last column is the required result. Token endpoint errors follow
+{{errors}}; API errors follow {{resource-errors}}.
 
-| Changed condition | Rejecting party | Result |
+| Changed condition | Checked by | Required result |
 |---|---|---|
 | Nonce retry with a fresh DPoP proof reuses the consumed `analysis-auth-1` assertion | IdP | HTTP 400, `invalid_client`; regenerate `client_assertion` |
 | Identity Binding disabled | IdP | HTTP 400, `invalid_grant`; successful authentication does not resolve the agent |
@@ -2900,7 +2953,12 @@ errors follow {{errors}}; API errors follow {{resource-errors}}.
 | Bound governed agent access required; grant has no `cnf` | RAS | HTTP 400, `invalid_grant`; no fallback to governed agent access |
 | Grant has `cnf.jkt`; redemption omits the proof | RAS | HTTP 400, `invalid_grant`; grant binding enforced |
 | Access token used in another tenant where Alice and the agent also have permissions, with a fresh valid proof | API | HTTP 401, `invalid_token`; no operation performed |
-{: title="Rejection examples"}
+| Governed agent access: the grant has no `cnf`, was redeemed once with a DPoP proof, and is presented again with a fresh proof by another key | RAS | HTTP 400, `invalid_grant`; an access-token proof does not make an unbound grant reusable ({{redemption-common}}) |
+| Self-acting variant ({{wag-example}}) under governed agent access: the WAG has no `cnf`, was redeemed once, and is presented again | RAS | HTTP 400, `invalid_grant`; an unbound WAG is single-use ({{redemption-common}}) |
+| Delegated access token without `act`, presented to an API configured for the governed delegated population | API | HTTP 401, `invalid_token`; a missing `act` does not make the token self-acting ({{api-applicability}}) |
+| Shared-client variant ({{shared-client-example}}): the platform client holds a token for `agent-42` and starts an operation for another agent with the same scope | Client | Obtains a grant for that agent; a matching `client_id` and scope do not permit reuse ({{client-token-reuse}}) |
+| Platform JWT variant ({{aws-example}}): the platform JWT fails validation | IdP | HTTP 400, `invalid_grant`; no retry from authentication context or under another credential class ({{actor-inputs}}) |
+{: title="Negative test cases"}
 
 The grant binding is enforced regardless of access-token protection,
 even when the resource accepts bearer access tokens or policy permits
@@ -2991,7 +3049,7 @@ as `client_id`. Across the variants:
   WIT-SVID and X.509-SVID variants, where the authenticated client is
   the workload itself, the association can be administered together
   with the binding.
-* **Rejections:** The dedicated-client rejection examples apply to each
+* **Negative tests:** The dedicated-client negative tests apply to each
   binding, except that replay rules follow the input specification.
 
 One Agent Principal can carry a binding for each platform it runs on

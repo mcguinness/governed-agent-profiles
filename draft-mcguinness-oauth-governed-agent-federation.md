@@ -2934,16 +2934,17 @@ actor identities, scope, tenant checks, and actor gate are unchanged. An
 unbound grant can instead obtain a DPoP-bound access token by presenting
 a valid proof at redemption ({{grant-protection}}).
 
-### Renewal and Rejection Examples
+### Renewal and Negative Tests
 
 The redemption response contains no refresh token; after the access
 token expires, the client obtains a new ID-JAG ({{continuing-access}}).
 
-Each rejection below changes one condition in the walkthrough; all
-other credentials, proofs, and policy checks succeed. Token endpoint
-errors follow {{errors}}; API errors follow {{resource-errors}}.
+Each case below changes the walkthrough, or the named variant, as
+stated; all other credentials, proofs, and policy checks succeed. The
+last column is the required result. Token endpoint errors follow
+{{errors}}; API errors follow {{resource-errors}}.
 
-| Changed condition | Rejecting party | Result |
+| Changed condition | Checked by | Required result |
 |---|---|---|
 | Nonce retry with a fresh DPoP proof reuses the consumed `analysis-auth-1` assertion | IdP | HTTP 400, `invalid_client`; regenerate `client_assertion` |
 | Identity Binding disabled | IdP | HTTP 400, `invalid_grant`; successful authentication does not resolve the agent |
@@ -2951,7 +2952,11 @@ errors follow {{errors}}; API errors follow {{resource-errors}}.
 | Bound governed agent access required; grant has no `cnf` | RAS | HTTP 400, `invalid_grant`; no fallback to governed agent access |
 | Grant has `cnf.jkt`; redemption omits the proof | RAS | HTTP 400, `invalid_grant`; grant binding enforced |
 | Access token used in another tenant where Alice and the agent also have permissions, with a fresh valid proof | API | HTTP 401, `invalid_token`; no operation performed |
-{: title="Rejection examples"}
+| Governed agent access: the grant has no `cnf`, was redeemed once with a DPoP proof, and is presented again with a fresh proof by another key | RAS | HTTP 400, `invalid_grant`; an access-token proof does not make an unbound grant reusable ({{redemption-common}}) |
+| Delegated access token without `act`, presented to an API configured for the governed delegated population | API | HTTP 401, `invalid_token`; a missing `act` does not make the token self-acting ({{api-applicability}}) |
+| Shared-client variant ({{shared-client-example}}): the platform client holds a token for `agent-42` and starts an operation for another agent with the same scope | Client | Obtains a grant for that agent; a matching `client_id` and scope do not permit reuse ({{client-token-reuse}}) |
+| Platform JWT variant ({{aws-example}}): the platform JWT fails validation | IdP | HTTP 400, `invalid_grant`; no retry from authentication context or under another credential class ({{actor-inputs}}) |
+{: title="Negative test cases"}
 
 The grant binding is enforced regardless of access-token protection,
 even when the resource accepts bearer access tokens or policy permits
@@ -3042,7 +3047,7 @@ as `client_id`. Across the variants:
   WIT-SVID and X.509-SVID variants, where the authenticated client is
   the workload itself, the association can be administered together
   with the binding.
-* **Rejections:** The dedicated-client rejection examples apply to each
+* **Negative tests:** The dedicated-client negative tests apply to each
   binding, except that replay rules follow the input specification.
 
 One Agent Principal can carry a binding for each platform it runs on

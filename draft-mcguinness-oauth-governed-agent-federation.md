@@ -1911,10 +1911,9 @@ The RAS:
 3. **Correlation:** Resolve the pair (`iss`, `sub`) under
    {{agent-correlation}} to one local agent principal in the authorized
    Target Tenant. The RAS MUST have that authorized correlation before
-   issuance. For governed agents, this replaces the required acceptance
-   of previously unseen identifiers in {{Section 7 of WAG}}.
-   {{jit-correlation}} covers just-in-time correlation where resource
-   policy permits it.
+   issuance. For governed agents, this replaces WAG's acceptance of
+   previously unseen agents ({{Section 3 of WAG}}). {{jit-correlation}}
+   covers just-in-time correlation where resource policy permits it.
 4. **Authority:** Apply the authority checks of {{redemption-common}}
    and current RAS policy for the agent, client, tenant, and resource. A
    valid grant sets an authority ceiling; it does not require issuance.
@@ -2465,9 +2464,10 @@ This document also requests:
 * Change Controller: IETF
 * Specification Document: {{metadata}} of this document.
 
-The WAG token type `urn:ietf:params:oauth:token-type:wag` and JWT type
-`wag+jwt` are not requested here; they are proposed for registration by
-WAG.
+This document does not request registration of the provisional WAG
+token type `urn:ietf:params:oauth:token-type:wag` or JWT type
+`wag+jwt`. {{WAG}} does not yet define either; registration awaits
+coordination ({{wag-gaps}}).
 
 --- back
 
@@ -3153,7 +3153,7 @@ of this document ({{access-token-subject-gap}}).
 # Dependencies and Deferred Work {#upstream-gaps}
 
 This informative appendix records dependencies and deferred work. They
-were assessed against WAG-00, ID-JAG-04, ICA-02, Actor Profile-00,
+were assessed against WAG-01, ID-JAG-04, ICA-02, Actor Profile-00,
 SPIFFE OAuth-02, ATTEST-11, WIT-02, CIMD-02, and the current drafts of
 Client Instance Identification and Client Attester Endorsement.
 
@@ -3168,15 +3168,16 @@ Client Instance Identification and Client Attester Endorsement.
 
 ### WAG {#wag-gaps}
 
-{{wag-issuance}} defines the IdP issuance that {{Section 5 of WAG}}
-anticipates. Open items are:
+In WAG terms, the IdP is the Platform that signs the grant
+({{Section 2 of WAG}}), and {{wag-issuance}} defines that issuance. Open
+items are:
 
-* registration of the WAG token type and `wag+jwt`, and their
-  advertisement with the self-acting profile URIs
-  ({{server-metadata}});
+* a token type and an explicit JWT type for the grant, which
+  {{Section 8 of WAG}} lists as open, their registration, and their
+  advertisement with the self-acting profile URIs ({{server-metadata}});
 * DPoP binding ({{grant-protection}});
-* authorized correlation in place of the acceptance of unseen
-  identifiers required by {{Section 7 of WAG}};
+* authorized correlation in place of WAG's acceptance of previously
+  unseen agents ({{Section 3 of WAG}});
 * a token exchange in which the authenticated client is the subject
   without a subject token ({{wag-request}}), which would also give
   X.509-SVID authentication a self-acting path; and

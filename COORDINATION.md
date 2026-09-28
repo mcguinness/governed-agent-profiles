@@ -10,7 +10,7 @@ adoption. Backquoted names refer to anchors and references in
 ## Dependencies and Deferred Work
 
 This informative appendix records dependencies and deferred work.
-Assessed revisions: WAG-00, ID-JAG-04, ICA-02, Actor
+Assessed revisions: WAG-01, ID-JAG-04, ICA-02, Actor
 Profile-00, SPIFFE OAuth-02, ATTEST-11, WIT-02, CIMD-02, and the
 current drafts of Client Instance Identification and Client Attester
 Endorsement.
@@ -25,26 +25,37 @@ Endorsement.
 
 #### WAG
 
-Section 5 of WAG anticipates IdP issuance through Token Exchange
-without specifying it and lists issuer placement among its open
-questions. `wag-flow` defines that composition. Coordination is
-needed on:
+In WAG-01 the Platform signs the grant (Section 2 of WAG).
+`wag-issuance` defines issuance by an IdP acting as that Platform.
+Coordination is needed on:
 
-* **Identifiers:** The token type `urn:ietf:params:oauth:token-type:wag`
-  and the JWT type `wag+jwt` are WAG's to register; this document uses
-  them as provisional values. Advertising them and the self-acting
+* **Identifiers:** WAG-01 defines neither a token type nor an explicit
+  JWT type. Section 8 of WAG lists the JWT type as open, and Section 9
+  notes the risk of another JWT being taken for the grant. This document
+  uses `urn:ietf:params:oauth:token-type:wag` and `wag+jwt` as
+  provisional values and requires the RAS to check the JWT type.
+  Registering them needs agreement. Advertising them and the self-acting
   profile URIs in ID-JAG's metadata parameters (`server-metadata`)
   also needs agreement.
-* **Protection:** WAG-00 is a bearer grant with proof of possession
-  open. This document proposes DPoP binding at issuance and redemption
+* **Protection:** WAG-01 is a bearer grant; Section 8 of WAG lists proof
+  of possession as open. This document proposes DPoP binding at issuance and redemption
   under `grant-protection`.
-* **Linking:** Section 7 of WAG requires acceptance of previously
-  unseen agent identifiers under trusted issuers. Governed agents
+* **Linking:** WAG accepts previously unseen agents on their first
+  assertion (Section 3 of WAG), and Section 9 lets an authorization
+  server cap new agents. Governed agents
   instead require an authorized local correlation, established in
   advance or, where resource policy permits, just in time
   (`wag-redemption`).
 * **Renewal:** This document adopts WAG's prohibition on refresh tokens;
-  continuing self-acting access re-issues the grant.
+  continuing self-acting access re-issues the grant. Section 5 of WAG-01
+  adds that access tokens SHOULD NOT outlive the assertion by a
+  significant period; this document leaves access-token lifetime to RAS
+  policy. Decision pending: adopt the SHOULD, or state the difference.
+* **Client registration:** Section 5 of WAG-01 says an authorization
+  server MUST NOT require a client registration per Agent. This
+  document's mandatory path resolves the agent from a dedicated client,
+  one Agent Principal per client identity at the IdP. Decision pending:
+  whether that conflicts at the RAS, where the client redeems the WAG.
 * **Subject presentation:** A token exchange in which the authenticated
   client is the subject, by permitting omission of `subject_token` in
   that case or by registering a subject token type for authenticated

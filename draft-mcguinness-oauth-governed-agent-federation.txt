@@ -1435,11 +1435,12 @@ Table of Contents
       identifies the client, not the agent.
 
    Similar names, unqualified identifiers, or a shared signing key MUST
-   NOT establish identity equivalence.  A client instance identifier
-   ([INSTANCE]) or another identifier of one execution MUST NOT select
-   or change the Agent Principal or satisfy a Client Association.  It
-   identifies an execution of the resolved client, not a governed
-   principal (Section 3.4).
+   NOT establish identity equivalence.  An identifier of one execution,
+   such as a process, replica, or container, MUST NOT select or change
+   the Agent Principal (Section 3.4).  A client instance identifier
+   ([INSTANCE]) MUST NOT select or change the Agent Principal except
+   through the managed-installation binding of Appendix A.2.2, and MUST
+   NOT satisfy a Client Association.
 
    *Disabling:* An Identity Binding can be disabled independently of the
    Agent Principal and its other bindings.  A disabled binding MUST NOT
@@ -2804,55 +2805,54 @@ Table of Contents
    effect after the change is applied at the enforcing server; it
    defines no new propagation mechanism:
 
-   +================+==========================+=======================+
-   | Administrative | Effect on new            | Previously issued     |
-   | action         | authorization            | authority             |
-   +================+==========================+=======================+
-   | Terminate an   | Stops that               | Credentials and       |
-   | execution      | execution; does not      | tokens remain subject |
-   |                | disable the agent or     | to their validation   |
-   |                | its approved             | and revocation rules  |
-   |                | relationships            |                       |
-   +----------------+--------------------------+-----------------------+
-   | Suspend one    | That instance fails      | Revocation and        |
-   | client         | authentication where     | introspection follow  |
-   | instance       | the suspension is        | Section 6.3 of        |
-   | ([INSTANCE])   | enforced; the agent      | [INSTANCE]            |
-   |                | and its other            |                       |
-   |                | instances continue       |                       |
-   +----------------+--------------------------+-----------------------+
-   | Disable one    | No new grant through     | Grants and RAS tokens |
-   | Identity       | that binding; other      | continue until        |
-   | Binding at the | enabled bindings         | separately revoked or |
-   | IdP            | remain usable with       | expired               |
-   |                | their own Client         |                       |
-   |                | Associations             |                       |
-   +----------------+--------------------------+-----------------------+
-   | Remove a       | No new grant through     | Grants and RAS tokens |
-   | Client         | that permission; the     | continue until        |
-   | Association at | Identity Binding can     | separately revoked or |
-   | the IdP        | remain valid             | expired               |
-   +----------------+--------------------------+-----------------------+
-   | Disable the    | No new grant for         | RAS issuance and      |
-   | Agent          | that agent,              | refresh stop once the |
-   | Principal at   | regardless of            | RAS receives and      |
-   | the IdP        | binding or client        | applies the change    |
-   +----------------+--------------------------+-----------------------+
-   | Withdraw the   | No new delegated         | RAS authorization can |
-   | user's         | grant for that           | continue until        |
-   | delegation at  | delegation               | revocation is applied |
-   | the IdP        |                          | or its absolute       |
-   |                |                          | expiration            |
-   +----------------+--------------------------+-----------------------+
-   | Disable the    | No new access tokens     | API access stops when |
-   | local agent or | or refresh for that      | its actor/user policy |
-   | user at the    | principal                | observes the change,  |
-   | RAS            |                          | introspection reports |
-   |                |                          | inactivity, or the    |
-   |                |                          | token expires         |
-   +----------------+--------------------------+-----------------------+
+    +================+=======================+=======================+
+    | Administrative | Effect on new         | Previously issued     |
+    | action         | authorization         | authority             |
+    +================+=======================+=======================+
+    | Terminate an   | Stops that execution; | Credentials and       |
+    | execution      | does not disable the  | tokens remain subject |
+    |                | agent or its approved | to their validation   |
+    |                | relationships         | and revocation rules  |
+    +----------------+-----------------------+-----------------------+
+    | Suspend one    | That instance fails   | Revocation and        |
+    | client         | authentication where  | introspection follow  |
+    | instance       | the suspension is     | Section 6.3 of        |
+    | ([INSTANCE])   | enforced; the agent's | [INSTANCE]            |
+    |                | other bindings and    |                       |
+    |                | instances continue    |                       |
+    +----------------+-----------------------+-----------------------+
+    | Disable one    | No new grant through  | Grants and RAS tokens |
+    | Identity       | that binding; other   | continue until        |
+    | Binding at the | enabled bindings      | separately revoked or |
+    | IdP            | remain usable with    | expired               |
+    |                | their own Client      |                       |
+    |                | Associations          |                       |
+    +----------------+-----------------------+-----------------------+
+    | Remove a       | No new grant through  | Grants and RAS tokens |
+    | Client         | that permission; the  | continue until        |
+    | Association at | Identity Binding can  | separately revoked or |
+    | the IdP        | remain valid          | expired               |
+    +----------------+-----------------------+-----------------------+
+    | Disable the    | No new grant for that | RAS issuance and      |
+    | Agent          | agent, regardless of  | refresh stop once the |
+    | Principal at   | binding or client     | RAS receives and      |
+    | the IdP        |                       | applies the change    |
+    +----------------+-----------------------+-----------------------+
+    | Withdraw the   | No new delegated      | RAS authorization can |
+    | user's         | grant for that        | continue until        |
+    | delegation at  | delegation            | revocation is applied |
+    | the IdP        |                       | or its absolute       |
+    |                |                       | expiration            |
+    +----------------+-----------------------+-----------------------+
+    | Disable the    | No new access tokens  | API access stops when |
+    | local agent or | or refresh for that   | its actor/user policy |
+    | user at the    | principal             | observes the change,  |
+    | RAS            |                       | introspection reports |
+    |                |                       | inactivity, or the    |
+    |                |                       | token expires         |
+    +----------------+-----------------------+-----------------------+
 
-                Table 23: Effects of administrative changes
+               Table 23: Effects of administrative changes
 
    The RAS requirements for applied changes are in Section 8.3.  The
    provisioning that feeds them is a deployment choice.
@@ -3207,30 +3207,33 @@ Table of Contents
 
 Appendix A.  Agent Resolution Input Profiles
 
-      +==============+=================================+===========+
-      | Input        | Qualified identity              | Reference |
-      +==============+=================================+===========+
-      | Dedicated    | Trusted assertion issuer and    | Appendix  |
-      | client       | exact client sub                | A.1.1     |
-      +--------------+---------------------------------+-----------+
-      | Existing     | Approved issuer, exact sub, and | Appendix  |
-      | platform JWT | configured additional selectors | A.1.2     |
-      +--------------+---------------------------------+-----------+
-      | SPIFFE JWT-  | Approved trust domain and exact | Appendix  |
-      | SVID         | SPIFFE ID in sub                | A.2.1     |
-      +--------------+---------------------------------+-----------+
-      | SPIFFE WIT-  | Approved trust domain and exact | Appendix  |
-      | SVID         | SPIFFE ID in the validated sub  | A.2.3     |
-      +--------------+---------------------------------+-----------+
-      | SPIFFE       | Approved trust domain and exact | Appendix  |
-      | X.509-SVID   | SPIFFE ID in the certificate's  | A.2.3     |
-      |              | URI Subject Alternative Name    |           |
-      +--------------+---------------------------------+-----------+
-      | Client       | Trusted attester and validated  | Appendix  |
-      | Attestation  | sub                             | A.2.2     |
-      +--------------+---------------------------------+-----------+
+   +=============+=========================================+===========+
+   | Input       | Qualified identity                      | Reference |
+   +=============+=========================================+===========+
+   | Dedicated   | Trusted assertion issuer and            | Appendix  |
+   | client      | exact client sub                        | A.1.1     |
+   +-------------+-----------------------------------------+-----------+
+   | Existing    | Approved issuer, exact sub, and         | Appendix  |
+   | platform    | configured additional selectors         | A.1.2     |
+   | JWT         |                                         |           |
+   +-------------+-----------------------------------------+-----------+
+   | SPIFFE JWT- | Approved trust domain and exact         | Appendix  |
+   | SVID        | SPIFFE ID in sub                        | A.2.1     |
+   +-------------+-----------------------------------------+-----------+
+   | SPIFFE WIT- | Approved trust domain and exact         | Appendix  |
+   | SVID        | SPIFFE ID in the validated sub          | A.2.3     |
+   +-------------+-----------------------------------------+-----------+
+   | SPIFFE      | Approved trust domain and exact         | Appendix  |
+   | X.509-SVID  | SPIFFE ID in the certificate's          | A.2.3     |
+   |             | URI Subject Alternative Name            |           |
+   +-------------+-----------------------------------------+-----------+
+   | Client      | Trusted attester and validated          | Appendix  |
+   | Attestation | sub; for a managed installation,        | A.2.2     |
+   |             | also the IdP Receiver Scope and         |           |
+   |             | client_instance_id                      |           |
+   +-------------+-----------------------------------------+-----------+
 
-        Table 24: Agent-resolution inputs and qualified identities
+         Table 24: Agent-resolution inputs and qualified identities
 
    The IdP client-registration context qualifies a dedicated client's
    identity.  For Client Attestation, sub identifies the OAuth client,
@@ -3428,9 +3431,9 @@ A.2.2.  Client Attestation
    registered client key.  It establishes runtime or workload provenance
    only as far as verified attestation claims and the attester's trusted
    issuance policy support.  It does not distinguish agents behind a
-   shared client.  Those agents need distinct workload evidence, such as
-   a JWT-SVID or platform JWT.  A client instance identifier does not
-   resolve the agent (Section 5.3.4).
+   shared client, except through the managed-installation binding below.
+   Otherwise those agents need distinct workload evidence, such as a
+   JWT-SVID or platform JWT.
 
    *  *Presentation:* Client authentication with the configured [ATTEST]
       method.
@@ -3453,6 +3456,20 @@ A.2.2.  Client Attestation
    *  *Resolution:* The IdP MUST resolve the trusted attester and the
       validated sub through an approved Identity Binding
       (Section 5.3.4).
+
+   *  *Managed installation:* Where agents share one OAuth client, a
+      Client Attestation carrying client_instance_id under [INSTANCE]
+      MAY resolve the agent instead.  The IdP MUST accept it only from
+      an attester configured to assign that identifier at Installation
+      granularity (Section 1.1 of [INSTANCE]) under the continuity rules
+      of Section 6 of [INSTANCE].  The Identity Binding names the exact
+      attester, client (sub), IdP Receiver Scope, and
+      client_instance_id.  Trusted configuration for the client selects
+      client-level or installation-level resolution.  Attestation claims
+      MUST NOT select the level, and a failed match MUST NOT fall back
+      to the other level.  A new enrollment yields a new identifier that
+      needs its own approved Identity Binding.  The IdP MUST NOT infer
+      continuity across identifiers or attesters.
 
    *  *Proof:* With attest_jwt_client_auth, any grant proof key MUST
       match the attestation's confirmation key.  This narrows the

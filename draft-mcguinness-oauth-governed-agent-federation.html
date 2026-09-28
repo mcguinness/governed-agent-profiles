@@ -3220,11 +3220,11 @@ prefix match. A client identifier, including a <span>[<a href="#CIMD" class="cit
 identifies the client, not the agent.<a href="#section-5.3.4-2.2.1" class="pilcrow">¶</a></p>
 </li>
           </ul>
-<p id="section-5.3.4-3">Similar names, unqualified identifiers, or a shared signing key <span class="bcp14">MUST NOT</span> establish identity equivalence. A client instance identifier
-(<span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>) or another identifier of one execution <span class="bcp14">MUST NOT</span> select or
-change the Agent Principal or satisfy a Client Association. It
-identifies an execution of the resolved client, not a governed principal
-(<a href="#governance-boundary" class="auto internal xref">Section 3.4</a>).<a href="#section-5.3.4-3" class="pilcrow">¶</a></p>
+<p id="section-5.3.4-3">Similar names, unqualified identifiers, or a shared signing key <span class="bcp14">MUST NOT</span> establish identity equivalence. An identifier of one execution, such
+as a process, replica, or container, <span class="bcp14">MUST NOT</span> select or change the Agent
+Principal (<a href="#governance-boundary" class="auto internal xref">Section 3.4</a>). A client instance identifier
+(<span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>) <span class="bcp14">MUST NOT</span> select or change the Agent Principal except
+through the managed-installation binding of <a href="#agent-evidence" class="auto internal xref">Appendix A.2.2</a>, and <span class="bcp14">MUST NOT</span> satisfy a Client Association.<a href="#section-5.3.4-3" class="pilcrow">¶</a></p>
 <p id="section-5.3.4-4"><strong>Disabling:</strong> An Identity Binding can be disabled independently of the
 Agent Principal and its other bindings. A disabled binding <span class="bcp14">MUST NOT</span>
 authorize new grant issuance. Disabling a binding does not itself revoke
@@ -5152,7 +5152,7 @@ propagation mechanism:<a href="#section-10.5-4" class="pilcrow">¶</a></p>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Suspend one client instance (<span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>)</td>
-              <td class="text-left" rowspan="1" colspan="1">That instance fails authentication where the suspension is enforced; the agent and its other instances continue</td>
+              <td class="text-left" rowspan="1" colspan="1">That instance fails authentication where the suspension is enforced; the agent's other bindings and instances continue</td>
               <td class="text-left" rowspan="1" colspan="1">Revocation and introspection follow <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-00#section-6.3" class="relref">Section 6.3</a> of [<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>
 </td>
             </tr>
@@ -5578,7 +5578,7 @@ coordination (<a href="#wag-gaps" class="auto internal xref">Appendix C.1.1</a>)
           </tr>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">Client Attestation</td>
-            <td class="text-left" rowspan="1" colspan="1">Trusted attester and validated <code>sub</code>
+            <td class="text-left" rowspan="1" colspan="1">Trusted attester and validated <code>sub</code>; for a managed installation, also the IdP Receiver Scope and <code>client_instance_id</code>
 </td>
             <td class="text-left" rowspan="1" colspan="1">
               <a href="#agent-evidence" class="auto internal xref">Appendix A.2.2</a>
@@ -5835,9 +5835,9 @@ to one Agent Principal. It relies on a trusted attester's attestation of
 the client identity and confirmation key, not a registered client key.
 It establishes runtime or workload provenance only as far as verified
 attestation claims and the attester's trusted issuance policy support.
-It does not distinguish agents behind a shared client. Those agents need
-distinct workload evidence, such as a JWT-SVID or platform JWT. A client
-instance identifier does not resolve the agent (<a href="#identity-binding" class="auto internal xref">Section 5.3.4</a>).<a href="#appendix-A.2.2-1" class="pilcrow">¶</a></p>
+It does not distinguish agents behind a shared client, except through
+the managed-installation binding below. Otherwise those agents need
+distinct workload evidence, such as a JWT-SVID or platform JWT.<a href="#appendix-A.2.2-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="appendix-A.2.2-2.1">
               <p id="appendix-A.2.2-2.1.1"><strong>Presentation:</strong> Client authentication with the configured <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span>
@@ -5866,11 +5866,25 @@ validated <code>sub</code> through an approved Identity Binding
 (<a href="#identity-binding" class="auto internal xref">Section 5.3.4</a>).<a href="#appendix-A.2.2-2.4.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="appendix-A.2.2-2.5">
-              <p id="appendix-A.2.2-2.5.1"><strong>Proof:</strong> With <code>attest_jwt_client_auth</code>, any grant proof key <span class="bcp14">MUST</span>
+              <p id="appendix-A.2.2-2.5.1"><strong>Managed installation:</strong> Where agents share one OAuth client, a
+Client Attestation carrying <code>client_instance_id</code> under <span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>
+                <span class="bcp14">MAY</span> resolve the agent instead. The IdP <span class="bcp14">MUST</span> accept it only from an
+attester configured to assign that identifier at Installation
+granularity (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-00#section-1.1" class="relref">Section 1.1</a> of [<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>) under the continuity rules
+of <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-00#section-6" class="relref">Section 6</a> of [<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>. The Identity Binding names the exact
+attester, client (<code>sub</code>), IdP Receiver Scope, and
+<code>client_instance_id</code>. Trusted configuration for the client selects
+client-level or installation-level resolution. Attestation claims <span class="bcp14">MUST NOT</span> select the level, and a failed match <span class="bcp14">MUST NOT</span> fall back to the
+other level. A new enrollment yields a new identifier that needs its
+own approved Identity Binding. The IdP <span class="bcp14">MUST NOT</span> infer continuity
+across identifiers or attesters.<a href="#appendix-A.2.2-2.5.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="appendix-A.2.2-2.6">
+              <p id="appendix-A.2.2-2.6.1"><strong>Proof:</strong> With <code>attest_jwt_client_auth</code>, any grant proof key <span class="bcp14">MUST</span>
 match the attestation's confirmation key. This narrows the allowance
 in <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-5.2" class="relref">Section 5.2</a> of [<a href="#ATTEST" class="cite xref">ATTEST</a>]</span> for a separate DPoP key. With
 <code>attest_jwt_client_auth_dpop</code>, one DPoP proof serves both roles. Key
-retention follows <a href="#resolution-key-lifecycle" class="auto internal xref">Appendix A.2.4</a>.<a href="#appendix-A.2.2-2.5.1" class="pilcrow">¶</a></p>
+retention follows <a href="#resolution-key-lifecycle" class="auto internal xref">Appendix A.2.4</a>.<a href="#appendix-A.2.2-2.6.1" class="pilcrow">¶</a></p>
 </li>
           </ul>
 <p id="appendix-A.2.2-3">With <span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>, instance keys differ per receiver scope

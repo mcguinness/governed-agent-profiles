@@ -1783,6 +1783,21 @@ representation applies. Its schema URI is:<a href="#section-4.3-1" class="pilcro
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">
+                <code>clientInstanceId</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">string</td>
+              <td class="text-left" rowspan="1" colspan="1">Exact client instance identifier; managed-installation <code>client-attestation</code> bindings only</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>receiverScope</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">string</td>
+              <td class="text-left" rowspan="1" colspan="1">IdP Receiver Scope of that identifier; present with <code>clientInstanceId</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
                 <code>active</code>
 </td>
               <td class="text-left" rowspan="1" colspan="1">boolean</td>
@@ -1839,6 +1854,17 @@ Selectors are permitted only for <code>platform-jwt</code>; they cannot replace
 selectors after creation requires a new binding, including when the
 original binding had no selectors. This narrows SCIM's permission to
 initially populate an unassigned immutable attribute.<a href="#section-4.3-8" class="pilcrow">¶</a></p>
+<p id="section-4.3-9"><code>clientInstanceId</code> and <code>receiverScope</code> are optional, single-valued,
+immutable, case-exact strings, returned by default, with uniqueness
+<code>none</code>. They are permitted only for <code>client-attestation</code>, where they
+make a managed-installation binding (<span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>), and <span class="bcp14">MUST</span> be both
+present or both absent. <code>clientInstanceId</code> is the exact
+<code>client_instance_id</code> (<span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>); <code>receiverScope</code> identifies the IdP
+Receiver Scope configured for that attester and client. The Service
+Provider <span class="bcp14">MUST</span> reject a binding whose level, client-level or
+installation-level, differs from the resolution level configured for
+that attester and client. Adding or removing them requires a new
+binding.<a href="#section-4.3-9" class="pilcrow">¶</a></p>
 <div id="classes">
 <section id="section-4.3.1">
           <h4 id="name-credential-classes">
@@ -1943,7 +1969,8 @@ Governance Tenant, regardless of active state. The uniqueness key is:<a href="#s
               <tr>
                 <td class="text-left" rowspan="1" colspan="1">External identity</td>
                 <td class="text-left" rowspan="1" colspan="1">
-                  <code>credentialClass</code>, <code>sourceAuthority</code>, <code>sourceSubject</code>, and selector set</td>
+                  <code>credentialClass</code>, <code>sourceAuthority</code>, <code>sourceSubject</code>, selector set, and any <code>receiverScope</code> and <code>clientInstanceId</code>
+</td>
               </tr>
             </tbody>
           </table>
@@ -2489,8 +2516,8 @@ Principal.<a href="#section-9.2-1.4.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-9.2-1.5">
             <p id="section-9.2-1.5.1">Single-value Attributes: <code>agent</code>, <code>credentialClass</code>, <code>client</code>,
-<code>sourceAuthority</code>,
-<code>sourceSubject</code>, <code>active</code>, defined in <a href="#binding-schema" class="auto internal xref">Section 4.3</a>.<a href="#section-9.2-1.5.1" class="pilcrow">¶</a></p>
+<code>sourceAuthority</code>, <code>sourceSubject</code>, <code>clientInstanceId</code>,
+<code>receiverScope</code>, and <code>active</code>, defined in <a href="#binding-schema" class="auto internal xref">Section 4.3</a>.<a href="#section-9.2-1.5.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-9.2-1.6">
             <p id="section-9.2-1.6.1">Multi-valued Attributes: <code>selectors</code>, defined in <a href="#binding-schema" class="auto internal xref">Section 4.3</a>.<a href="#section-9.2-1.6.1" class="pilcrow">¶</a></p>
@@ -2550,6 +2577,10 @@ registered. Credential-class names are local to this profile's schema.<a href="#
 <dt id="FEDERATION">[FEDERATION]</dt>
         <dd>
 <span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Profile for Governed Agent Federation"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-governed-agent-federation</span>, <time datetime="2026-09-18" class="refDate">18 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="INSTANCE">[INSTANCE]</dt>
+        <dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Client Instance Identification for Attestation-Based Client Authentication"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-client-instance-id-00</span>, <time datetime="2026-09-28" class="refDate">28 September 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-00">https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-00</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="SCIM-AGENT">[SCIM-AGENT]</dt>
         <dd>
@@ -3220,6 +3251,30 @@ values. Service-specific <code>meta</code> values are omitted from these definit
           "uniqueness": "none"
         }
       ]
+    },
+    {
+      "name": "clientInstanceId",
+      "description":
+        "Exact client_instance_id of a managed installation.",
+      "type": "string",
+      "multiValued": false,
+      "required": false,
+      "mutability": "immutable",
+      "returned": "default",
+      "caseExact": true,
+      "uniqueness": "none"
+    },
+    {
+      "name": "receiverScope",
+      "description":
+        "IdP Receiver Scope of the client instance identifier.",
+      "type": "string",
+      "multiValued": false,
+      "required": false,
+      "mutability": "immutable",
+      "returned": "default",
+      "caseExact": true,
+      "uniqueness": "none"
     },
     {
       "name": "active",

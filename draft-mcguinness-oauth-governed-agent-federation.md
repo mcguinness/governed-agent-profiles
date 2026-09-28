@@ -2514,7 +2514,7 @@ client identifier, including multiple agents behind a shared client.
 ### Client Attestation {#agent-evidence}
 
 This OPTIONAL input maps the attested OAuth client identity explicitly
-to one Agent Principal. It relies on a trusted attester's endorsement of
+to one Agent Principal. It relies on a trusted attester's attestation of
 the client identity and confirmation key, not a registered client key.
 It establishes runtime or workload provenance only as far as verified
 attestation claims and the attester's trusted issuance policy support.

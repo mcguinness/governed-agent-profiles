@@ -148,7 +148,10 @@ withdrawing it from all of them.
 What an enterprise needs instead is a principal it can authorize once,
 audit across resources, and disable everywhere. That principal's
 identity does not change when the agent moves between platforms or
-rotates credentials.
+rotates credentials. This profile establishes the identity and
+authorization relationships that disablement acts on; how far and how
+fast disablement propagates depends on the lifecycle mechanism a
+deployment selects, such as {{AGENT-LIFECYCLE}}.
 
 Enterprise identity already solves a version of this problem for people.
 A person has one account, several credentials linked to it, and separate
@@ -447,6 +450,14 @@ the RAS translates the user into its local namespace and preserves the
 agent ({{subject-resolution}}). Correlation does not grant authority:
 the RAS decides within the grant's ceiling ({{actor-authorization}},
 {{wag-redemption}}).
+
+For example, two agents run behind one platform OAuth client, and one of
+them later moves to another runtime with a different workload
+credential. The resource domain keeps recognizing that agent through
+the same issuer-qualified Agent Principal, without merging it with the
+other agent, attributing its actions to the platform client, or
+learning the new runtime's credential format. {{identity-example}}
+works a shared-client case in full.
 
 ## Authentication, Resolution, and Proof {#inputs}
 

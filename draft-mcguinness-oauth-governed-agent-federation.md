@@ -29,6 +29,8 @@ normative:
   SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth
   WIT: I-D.ietf-wimse-workload-creds
   ATTEST: I-D.ietf-oauth-attestation-based-client-auth
+  INSTANCE: I-D.mcguinness-oauth-client-instance-id
+  ATTESTER-ENDORSEMENT: I-D.mcguinness-oauth-client-attesters
   ACTOR-PROFILE: I-D.mcguinness-oauth-actor-profile
   ID-JAG: I-D.ietf-oauth-identity-assertion-authz-grant
   RFC7523bis: I-D.ietf-oauth-rfc7523bis
@@ -97,22 +99,6 @@ informative:
     target: https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/on-behalf-of-token-exchange.html
     author:
       - org: Amazon Web Services
-  INSTANCE:
-    title: "Client Instance Identification for Attestation-Based Client Authentication"
-    target: https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-id/draft-mcguinness-oauth-client-instance-id.html
-    author:
-      - name: Karl McGuinness
-    date: 2026-09-15
-    seriesinfo:
-      Internet-Draft: draft-mcguinness-oauth-client-instance-id
-  ATTESTER-ENDORSEMENT:
-    title: "OAuth 2.0 Client Attester Endorsement"
-    target: https://mcguinness.github.io/draft-mcguinness-oauth-client-attesters/draft-mcguinness-oauth-client-attesters.html
-    author:
-      - name: Karl McGuinness
-    date: 2026-09-15
-    seriesinfo:
-      Internet-Draft: draft-mcguinness-oauth-client-attesters
   ICA: I-D.mcguinness-oauth-id-continuation-assertion
   RFC6755:
   WAG: I-D.carleton-workload-authz-grant
@@ -232,8 +218,8 @@ IdP's namespace is out of scope. Also out of scope ({{upstream-gaps}}):
 * continuation composition;
 * provisioning protocols and account administration;
 * multi-agent delegation chains;
-* instance identification and propagation;
-* client attester endorsement; and
+* instance-level authorization and cross-domain propagation of
+  instance context; and
 * enrollment or key-replacement protocols.
 
 This document is organized by protocol stage. {{model}} and
@@ -1174,7 +1160,11 @@ IdP MUST:
   identifies the client, not the agent.
 
 Similar names, unqualified identifiers, or a shared signing key MUST
-NOT establish identity equivalence.
+NOT establish identity equivalence. A client instance identifier
+({{INSTANCE}}) or another identifier of one execution MUST NOT select or
+change the Agent Principal or satisfy a Client Association. It
+identifies an execution of the resolved client, not a governed principal
+({{governance-boundary}}).
 
 **Disabling:** An Identity Binding can be disabled independently of the
 Agent Principal and its other bindings. A disabled binding MUST NOT
@@ -1747,6 +1737,14 @@ with these claims under {{RFC9068}}, or equivalent context through
 client MUST reject an output that does not satisfy its configured
 protection requirement.
 
+**Instance context:** When the client authenticates at redemption with a
+Client Attestation validated under {{INSTANCE}}, the RAS MAY include
+instance context for that presenting instance under
+{{Section 7 of INSTANCE}}. The RAS MUST NOT copy or remap instance
+context from the ID-JAG or WAG. Instance context identifies an execution
+of the client; it is not an actor, and it does not replace `act`, `sub`,
+or `client_id`.
+
 Whether the response also carries a refresh token, and how that token
 is bound and used, follows {{ras-refresh}}.
 
@@ -1870,6 +1868,12 @@ policy. Without `exp`, the API MUST introspect again for subsequent
 requests rather than reuse an active response. This narrows
 {{Section 4 of RFC7662}} so cached authorization cannot outlive an
 expiration unknown to the API.
+
+**Instance context:** An API that uses instance context applies
+{{Section 7.5 of INSTANCE}}. It MUST NOT treat instance context as
+satisfying the actor gate or the agent's own permissions. Attributing a
+request to an instance requires the sender constraint of
+{{Section 7.3 of INSTANCE}}.
 
 ## Delegated Access {#api-delegated}
 
@@ -2239,6 +2243,7 @@ propagation mechanism:
 | Administrative action | Effect on new authorization | Previously issued authority |
 |---|---|---|
 | Terminate an execution | Stops that execution; does not disable the agent or its approved relationships | Credentials and tokens remain subject to their validation and revocation rules |
+| Suspend one client instance ({{INSTANCE}}) | That instance fails authentication where the suspension is enforced; the agent and its other instances continue | Revocation and introspection follow {{Section 6.3 of INSTANCE}} |
 | Disable one Identity Binding at the IdP | No new grant through that binding; other enabled bindings remain usable with their own Client Associations | Grants and RAS tokens continue until separately revoked or expired |
 | Remove a Client Association at the IdP | No new grant through that permission; the Identity Binding can remain valid | Grants and RAS tokens continue until separately revoked or expired |
 | Disable the Agent Principal at the IdP | No new grant for that agent, regardless of binding or client | RAS issuance and refresh stop once the RAS receives and applies the change |
@@ -2285,6 +2290,10 @@ authorized purpose. User and agent context remain separate when the
 agent acts for a user. The mapping in {{actor-construction}} keeps
 external workload identifiers out of the ID-JAG. This profile does not
 define pairwise actor translation.
+
+Instance context adds correlation of individual executions. Its
+identifiers are scoped per receiver and per consumer under
+{{Section 10 of INSTANCE}}.
 
 # IANA Considerations {#iana}
 
@@ -2510,9 +2519,8 @@ the client identity and confirmation key, not a registered client key.
 It establishes runtime or workload provenance only as far as verified
 attestation claims and the attester's trusted issuance policy support.
 It does not distinguish agents behind a shared client. Those agents need
-distinct workload evidence, such as a JWT-SVID or platform JWT.
-Instance-based resolution and attester endorsement are deferred
-({{excluded-compositions}}).
+distinct workload evidence, such as a JWT-SVID or platform JWT. A client
+instance identifier does not resolve the agent ({{identity-binding}}).
 
 * **Presentation:** Client authentication with the configured {{ATTEST}}
   method.
@@ -2521,6 +2529,14 @@ Instance-based resolution and attester endorsement are deferred
   unambiguously from the trusted verification key and configured
   attester-to-client associations. An `iss`, when present, MUST match
   that attester.
+* **Attester endorsement:** The IdP MAY derive the attester-to-client
+  association from an endorsement it accepts under
+  {{Section 2.1 of ATTESTER-ENDORSEMENT}}. An endorsement MUST NOT
+  create or change an Identity Binding or Client Association. Because
+  the binding names the attester, a newly endorsed attester resolves no
+  Agent Principal until an Identity Binding names it. An endorsement
+  accepted under that policy is not client metadata acting by itself
+  ({{inputs}}).
 * **Resolution:** The IdP MUST resolve the trusted attester and the
   validated `sub` through an approved Identity Binding
   ({{identity-binding}}).
@@ -2529,6 +2545,13 @@ Instance-based resolution and attester endorsement are deferred
   in {{Section 5.2 of ATTEST}} for a separate DPoP key. With
   `attest_jwt_client_auth_dpop`, one DPoP proof serves both roles. Key
   retention follows {{resolution-key-lifecycle}}.
+
+With {{INSTANCE}}, instance keys differ per receiver scope
+({{Section 4.1 of INSTANCE}}). A bound grant carries the IdP-scoped key.
+A client that also authenticates to the RAS with a Client Attestation
+therefore uses `attest_jwt_client_auth` there and proves the grant key
+with a separate DPoP proof, unless the IdP and RAS share a receiver
+scope.
 
 ### SPIFFE WIT-SVID and X.509-SVID Resolution {#spiffe-input}
 
@@ -3096,8 +3119,8 @@ of this document ({{access-token-subject-gap}}).
 
 This informative appendix records dependencies and deferred work. They
 were assessed against WAG-01, ID-JAG-04, ICA-02, Actor Profile-00,
-SPIFFE OAuth-02, ATTEST-11, WIT-02, CIMD-02, and the current drafts of
-Client Instance Identification and Client Attester Endorsement.
+SPIFFE OAuth-02, ATTEST-11, WIT-02, CIMD-02, Client Instance
+Identification-00, and Client Attester Endorsement-00.
 
 ## Upstream Dependencies
 
@@ -3170,8 +3193,7 @@ This document does not define the following compositions:
 | Asynchronous approval with {{AROP}} | External approval follows {{external-approval}}, {{authorization-lifetime}}, and {{issuance-authorization}} |
 | Continuation with {{ICA}} | Renewal follows {{continuing-access}} |
 | General WIMSE WIT/WIC inputs | Only the SPIFFE forms in {{spiffe-input}} are defined |
-| Instance-based resolution or instance context under {{INSTANCE}} | Workload evidence resolves the agent without a per-instance protocol; shared workload identity does not distinguish replicas {{SPIFFE-CONCEPTS}} |
-| Attester endorsement under {{ATTESTER-ENDORSEMENT}} | Attester trust is configured ({{agent-evidence}}) |
+| Instance context in an ID-JAG or WAG, or preserved across domains, under {{INSTANCE}} | The RAS conveys only an instance it validated ({{access-token-response}}); workload evidence resolves the agent, and a shared workload identity does not distinguish replicas {{SPIFFE-CONCEPTS}} |
 | Mutual-TLS-bound ID-JAG | Bound grants use DPoP; mutual TLS can protect access tokens ({{access-token-protection}}) |
 | Authorization details without scope | Scope is required; the scope-free mode of {{RFC9396}} is not defined |
 {: title="Excluded compositions"}

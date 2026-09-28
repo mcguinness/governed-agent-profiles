@@ -2166,7 +2166,7 @@ Deployments select a renewal model before scheduling unattended work:
 
 | Mechanism | Conditions |
 |---|---|
-| Redeem an existing ID-JAG | Grant remains valid; any required proof and current RAS policy apply ({{redemption}}) |
+| Redeem an existing ID-JAG | Grant remains valid and, where redemption requires neither DPoP nor mutual TLS, has not been redeemed before ({{Section 4.2 of ACTOR-PROFILE}}); any required proof and current RAS policy apply ({{redemption}}) |
 | Obtain a new ID-JAG | Valid subject credential, current agent-resolution input, and a fresh IdP authorization decision ({{exchange-request}}) |
 | RAS refresh (delegated access) | Preserves authorization at the same RAS within its lifetime and policy limits ({{ras-refresh}}) |
 | Obtain a new WAG | Current agent-resolution input and a fresh IdP authorization decision ({{wag-issuance}}); a WAG redemption yields no refresh token |

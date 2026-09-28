@@ -748,7 +748,7 @@ requirement.
 | Grant narrowing | One resource URI (a string; singleton arrays accepted), scope constraints, input-specific expiration limits; DPoP and `cnf.jkt` in the bound profile | {{grant-common}}, {{grant-issuance}}, {{redemption-common}}, {{grant-protection}} |
 | Resource processing | Actor and tenant context preserved; user authority and actor gate enforced with the selected token protection | {{access-token-response}}, {{api-processing}} |
 | Refresh narrowing | Explicit policy, client binding, preserved proof binding and profile, finite absolute authorization expiration | {{ras-refresh}} |
-| Error processing | `invalid_grant`, not RFC 8693's default `invalid_request`, for actor credential or resolution failures; `actor_unauthorized` for a denied resolved actor | {{issuance-errors}} |
+| Error processing | `invalid_grant`, not RFC 8693's default `invalid_request`, for subject or actor credential and resolution failures; `actor_unauthorized` for a denied resolved actor | {{issuance-errors}} |
 | Profile discovery | Governed profiles in existing ID-JAG metadata; trusted policy sets the minimum | {{metadata}} |
 {: title="Additions and narrowings to the base specifications"}
 
@@ -1384,7 +1384,7 @@ it runs on, each keyed by its own issuer and selectors:
 
  B2  platform JWT, managed container service            enabled
      issuer        https://sts.amazonaws.com/
-     sub           arn:aws:iam::123456789012:role/agent-42-runtime
+     sub           arn:aws:iam::123456789012:role/AgentRuntime
      selector      /https:~1~1sts.amazonaws.com~1/aws_account
                      = 123456789012
 
@@ -1722,8 +1722,9 @@ In addition to {{errors}}, the IdP uses these errors:
 | Approval requires a downstream lifetime condition that the selected composition cannot enforce, in delegated issuance ({{issuance-authorization}}) | `actor_unauthorized` |
 {: title="Identity resolution and delegation errors"}
 
-Agent-resolution credential failures use `invalid_grant` instead of
-the default `invalid_request` of {{Section 2.2.2 of RFC8693}}.
+Subject and agent-resolution credential failures use `invalid_grant`,
+as in the example of {{Section 4.3.4.3 of ID-JAG}}, instead of the
+default `invalid_request` of {{Section 2.2.2 of RFC8693}}.
 
 Self-acting issuance adds these errors:
 
@@ -1900,7 +1901,10 @@ The RAS:
 **Processing:** The RAS MUST:
 
 1. **Grant:** Validate the grant under {{RFC7523}}, consistent with
-   {{Section 5 of WAG}}. Require `iss` to be a configured governing IdP
+   {{Section 5 of WAG}}. Require the JWT `typ` header parameter
+   `wag+jwt` ({{Section 3.11 of RFC8725}}), so that an ID-JAG or another
+   JWT from the same issuer cannot be accepted as a WAG. Require `iss`
+   to be a configured governing IdP
    for the asserted agent namespace. Reject a WAG that contains `act`
    with `invalid_grant`.
 2. **Proof and client:** Apply the proof and client checks of
@@ -1908,10 +1912,9 @@ The RAS:
 3. **Correlation:** Resolve the pair (`iss`, `sub`) under
    {{agent-correlation}} to one local agent principal in the authorized
    Target Tenant. The RAS MUST have that authorized correlation before
-   issuance. For governed agents, this replaces the required acceptance
-   of previously unseen identifiers in {{Section 7 of WAG}}.
-   {{jit-correlation}} covers just-in-time correlation where resource
-   policy permits it.
+   issuance. For governed agents, this replaces WAG's acceptance of
+   previously unseen agents ({{Section 3 of WAG}}). {{jit-correlation}}
+   covers just-in-time correlation where resource policy permits it.
 4. **Authority:** Apply the authority checks of {{redemption-common}}
    and current RAS policy for the agent, client, tenant, and resource. A
    valid grant sets an authority ceiling; it does not require issuance.
@@ -2052,7 +2055,7 @@ RAS uses these errors:
 |---|---|
 | Invalid ID-JAG | `invalid_grant` |
 | WAG whose `sub` has no authorized correlation at the RAS | `invalid_grant` |
-| Invalid WAG, including one that contains `act` | `invalid_grant` |
+| Invalid WAG, including one without `typ` `wag+jwt` or one that contains `act` | `invalid_grant` |
 {: title="Redemption errors"}
 
 # Access at the Resource Server {#api-processing}
@@ -2164,7 +2167,7 @@ Deployments select a renewal model before scheduling unattended work:
 
 | Mechanism | Conditions |
 |---|---|
-| Redeem an existing ID-JAG | Grant remains valid; any required proof and current RAS policy apply ({{redemption}}) |
+| Redeem an existing ID-JAG | Grant remains valid and, where redemption requires neither DPoP nor mutual TLS, has not been redeemed before ({{Section 4.2 of ACTOR-PROFILE}}); any required proof and current RAS policy apply ({{redemption}}) |
 | Obtain a new ID-JAG | Valid subject credential, current agent-resolution input, and a fresh IdP authorization decision ({{exchange-request}}) |
 | RAS refresh (delegated access) | Preserves authorization at the same RAS within its lifetime and policy limits ({{ras-refresh}}) |
 | Obtain a new WAG | Current agent-resolution input and a fresh IdP authorization decision ({{wag-issuance}}); a WAG redemption yields no refresh token |
@@ -2306,6 +2309,11 @@ Credential classification and mutually exclusive validation follow
 {{actor-inputs}} and {{Section 3.12 of RFC8725}}. Signature validity
 alone establishes neither a credential's intended use nor permission to
 resolve or exercise an agent.
+
+Both grants are JWTs redeemed with the same grant type, so the RAS tells
+them apart by explicit type: `oauth-id-jag+jwt` for an ID-JAG
+({{Section 3.1 of ID-JAG}}) and `wag+jwt` for a WAG
+({{wag-redemption}}).
 
 ## Dedicated-Client Key Compromise
 
@@ -2457,9 +2465,10 @@ This document also requests:
 * Change Controller: IETF
 * Specification Document: {{metadata}} of this document.
 
-The WAG token type `urn:ietf:params:oauth:token-type:wag` and JWT type
-`wag+jwt` are not requested here; they are proposed for registration by
-WAG.
+This document does not request registration of the provisional WAG
+token type `urn:ietf:params:oauth:token-type:wag` or JWT type
+`wag+jwt`. {{WAG}} does not yet define either; registration awaits
+coordination ({{wag-gaps}}).
 
 --- back
 
@@ -2512,16 +2521,18 @@ input.
   authentication method defines and validates the corresponding proof.
 * **Replay:** These rules narrow the base specifications and prohibit
   negotiated assertion reuse. The assertion MUST contain a `jti`. The
-  IdP MUST reject reuse in another request while the assertion remains
-  acceptable; a reused assertion fails client authentication. Replay
-  identifiers MUST be qualified by the validated issuer and client.
-* **Retry:** For any retry of a dedicated-client exchange, including
-  after a `use_dpop_nonce` challenge under {{Section 8 of RFC9449}}, the
-  client MUST generate a new `client_assertion` with a fresh `jti`. For
-  a nonce retry, the client MUST also generate a fresh DPoP proof
-  containing the supplied nonce while retaining the grant proof key. A
-  new DPoP proof alone is not enough, because the IdP may already have
-  consumed the previous assertion during authentication.
+  IdP and the RAS MUST each reject reuse in another request while the
+  assertion remains acceptable; a reused assertion fails client
+  authentication. Replay identifiers MUST be qualified by the validated
+  issuer and client.
+* **Retry:** For any retry of a dedicated-client token request at either
+  server, including after a `use_dpop_nonce` challenge under
+  {{Section 8 of RFC9449}}, the client MUST generate a new
+  `client_assertion` with a fresh `jti`. For a nonce retry, the client
+  MUST also generate a fresh DPoP proof containing the supplied nonce
+  while retaining the grant proof key. A new DPoP proof alone is not
+  enough, because the server may already have consumed the previous
+  assertion during authentication.
 
 ### Existing Platform JWT {#imported-jwt-input}
 
@@ -3037,13 +3048,13 @@ decoded WAG uses `typ=wag+jwt` and this payload:
 }
 ~~~
 
-Redemption reuses the request in {{redemption-example}} with the WAG as
-the `assertion`. The RAS correlates (`https://idp.example/`,
-`agent-42`) to `service-principal-42` and applies its own policy for
-that principal. It issues an access token with `sub`
-`service-principal-42`, no `act`, the same audience, scope, and `cnf`,
-and no refresh token. The API enforces the agent's own permissions and
-the tenant; it applies no actor gate.
+Redemption follows {{redemption-example}}, with a fresh client assertion
+and DPoP proof and the WAG as the `assertion`. The RAS correlates
+(`https://idp.example/`, `agent-42`) to `service-principal-42` and
+applies its own policy for that principal. It issues an access token
+with `sub` `service-principal-42`, no `act`, the same audience, scope,
+and `cnf`, and no refresh token. The API enforces the agent's own
+permissions and the tenant; it applies no actor gate.
 
 ## Input Variants {#input-variants}
 
@@ -3145,7 +3156,7 @@ of this document ({{access-token-subject-gap}}).
 # Dependencies and Deferred Work {#upstream-gaps}
 
 This informative appendix records dependencies and deferred work. They
-were assessed against WAG-00, ID-JAG-04, ICA-02, Actor Profile-00,
+were assessed against WAG-01, ID-JAG-04, ICA-02, Actor Profile-00,
 SPIFFE OAuth-02, ATTEST-11, WIT-02, CIMD-02, and the current drafts of
 Client Instance Identification and Client Attester Endorsement.
 
@@ -3160,15 +3171,16 @@ Client Instance Identification and Client Attester Endorsement.
 
 ### WAG {#wag-gaps}
 
-{{wag-issuance}} defines the IdP issuance that {{Section 5 of WAG}}
-anticipates. Open items are:
+In WAG terms, the IdP is the Platform that signs the grant
+({{Section 2 of WAG}}), and {{wag-issuance}} defines that issuance. Open
+items are:
 
-* registration of the WAG token type and `wag+jwt`, and their
-  advertisement with the self-acting profile URIs
-  ({{server-metadata}});
+* a token type and an explicit JWT type for the grant, which
+  {{Section 8 of WAG}} lists as open, their registration, and their
+  advertisement with the self-acting profile URIs ({{server-metadata}});
 * DPoP binding ({{grant-protection}});
-* authorized correlation in place of the acceptance of unseen
-  identifiers required by {{Section 7 of WAG}};
+* authorized correlation in place of WAG's acceptance of previously
+  unseen agents ({{Section 3 of WAG}});
 * a token exchange in which the authenticated client is the subject
   without a subject token ({{wag-request}}), which would also give
   X.509-SVID authentication a self-acting path; and

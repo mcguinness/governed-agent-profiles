@@ -682,7 +682,7 @@ requirement.
 | Actor representation | One actor: Agent Principal as `act.sub`, IdP as `act.iss`; replaces Actor Profile's credential-to-actor copying | {{actor-construction}} |
 | Request narrowing | Configured resolution mode; one resource; non-empty scope; actor-token parameters required in presented-evidence mode and rejected otherwise; no incoming actor chain | {{issuance-request}}, {{root-request}}, {{actor-inputs}} |
 | Identity and client binding | Users and agents resolved separately; downstream `client_id` from an authoritative client-registration association | {{idp-subject-resolution}}, {{subject-resolution}}, {{agent-correlation}}, {{flow-configuration}} |
-| Grant narrowing | One resource URI (a string; singleton arrays accepted), scope constraints, input-specific expiration limits; DPoP and `cnf.jkt` in the bound profile | {{grant-common}}, {{grant-issuance}}, {{redemption-common}}, {{grant-protection}} |
+| Grant narrowing | One resource URI (a string; singleton arrays accepted), scope constraints, input-specific expiration limits; single use unless bound; DPoP and `cnf.jkt` in the bound profile | {{grant-common}}, {{grant-issuance}}, {{redemption-common}}, {{grant-protection}} |
 | Resource processing | Actor and tenant context preserved; user authority and actor gate enforced with the selected token protection | {{access-token-response}}, {{api-processing}} |
 | Refresh narrowing | Explicit policy, client binding, preserved proof binding and profile, finite absolute authorization expiration | {{ras-refresh}} |
 | Error processing | `invalid_grant`, not RFC 8693's default `invalid_request`, for subject or actor credential and resolution failures; `actor_unauthorized` for a denied resolved actor | {{issuance-errors}} |
@@ -1568,7 +1568,18 @@ Both grants use these checks. {{redemption-validation}} and
      that claim, or the RAS MUST return `invalid_scope`.
    * **Authorization details:** Apply ID-JAG's processing for
      `authorization_details`. Reject the grant with `invalid_grant` if
-     its authority extends beyond that resource.
+          its authority extends beyond that resource.
+
+**Grant replay:** For a grant without an enforced grant-level sender
+constraint, the RAS MUST reject a grant whose validated (`iss`, `jti`)
+it has already accepted while that grant remains acceptable. A proof
+used only for client authentication or access-token binding is not such
+a constraint. The RAS MAY accept a bound grant again under explicit
+policy, each time with a fresh proof that matches its `cnf.jkt`
+({{grant-protection}}). This narrows re-submission under
+{{Section 4.4.3 of ID-JAG}} for unbound ID-JAGs, and settles for the WAG
+the replay question that {{Section 8 of WAG}} leaves open. The retention
+rule of {{time-validation}} applies to accepted identifiers.
 
 ## Agent Principal Correlation {#agent-correlation}
 
@@ -1814,6 +1825,7 @@ RAS uses these errors:
 | Failure | Error |
 |---|---|
 | Invalid ID-JAG | `invalid_grant` |
+| Unbound grant whose (`iss`, `jti`) the RAS already accepted | `invalid_grant` |
 | WAG whose `sub` has no authorized correlation at the RAS | `invalid_grant` |
 | Invalid WAG, including one without `typ` `wag+jwt` or one that contains `act` | `invalid_grant` |
 {: title="Redemption errors"}
@@ -1930,7 +1942,7 @@ Deployments select a renewal model before scheduling unattended work:
 
 | Mechanism | Conditions |
 |---|---|
-| Redeem an existing ID-JAG | Grant remains valid and, where redemption requires neither DPoP nor mutual TLS, has not been redeemed before ({{Section 4.2 of ACTOR-PROFILE}}); any required proof and current RAS policy apply ({{redemption}}) |
+| Redeem an existing ID-JAG | Grant remains valid, and is bound with RAS policy permitting reuse; an unbound grant is single-use ({{redemption-common}}) |
 | Obtain a new ID-JAG | Valid subject credential, current agent-resolution input, and a fresh IdP authorization decision ({{exchange-request}}) |
 | RAS refresh (delegated access) | Preserves authorization at the same RAS within its lifetime and policy limits ({{ras-refresh}}) |
 | Obtain a new WAG | Current agent-resolution input and a fresh IdP authorization decision ({{wag-issuance}}); a WAG redemption yields no refresh token |
@@ -2161,7 +2173,9 @@ The profile's security controls carry these deployment costs:
 Governed agent access without grant binding adds agent authorization
 to existing enterprise access. It still leaves a stolen grant
 redeemable by an attacker who can authenticate as the grant's
-designated client, particularly a shared client. Binding only the
+designated client, particularly a shared client. Single use
+({{redemption-common}}) limits such a grant to one redemption; it does
+not prevent the first. Binding only the
 resulting access token
 does not prevent that redemption. Explicit acceptance policy, short
 grant lifetimes, credential confidentiality, and the no-fallback rules

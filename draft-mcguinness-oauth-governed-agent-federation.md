@@ -1873,6 +1873,14 @@ and self-acting populations satisfy these rules. The absence of `act`
 alone does not: a delegated token lacking `act` would otherwise be
 accepted as self-acting.
 
+Conformance does not by itself provide a portable discriminator for
+every mixed-token deployment. For example, where one issuer serves
+ordinary, delegated, and self-acting access to one API, the RAS can use
+a separate client registration or audience for each population, and
+the API is configured with that mapping. A deployment that needs one
+registration and one audience for several populations needs an
+additional bilateral contract.
+
 ## Token Validation {#api-validation}
 
 For tokens subject to this profile, the API MUST validate access tokens

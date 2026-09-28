@@ -691,11 +691,28 @@ requirement.
 
 ## Self-Acting Access with WAG {#wag-flow}
 
-Self-acting access is the peer of {{delegated-flow}}. The Agent
-Principal is the subject of a Workload Authorization Grant (WAG) {{WAG}}
-issued by the IdP ({{wag-issuance}}) and redeemed at the RAS
-({{wag-redemption}}). The WAG token and JWT types are provisional; their
-final spelling does not affect processing ({{wag-gaps}}).
+Self-acting access is a peer realization of the federation model: the
+Agent Principal is the subject of a Workload Authorization Grant (WAG)
+{{WAG}} issued by the IdP ({{wag-issuance}}) and redeemed at the RAS
+({{wag-redemption}}). This document specifies a governed composition of
+WAG, including the issuance exchange, client binding, principal
+correlation, and grant protection. Generic WAG support does not imply
+these requirements. This document defines the complete wire contract it
+relies on, so {{WAG}} is an informative reference, and the composition
+remains subject to alignment with the evolving WAG specification
+({{wag-gaps}}). The WAG token and JWT types are provisional.
+
+| Area | WAG-01 | This profile |
+|---|---|---|
+| Issuer | The Platform that created the agent | The governing IdP, through token exchange ({{wag-issuance}}) |
+| Client authentication | Not required; `client_id` carries no meaning | Required at issuance and redemption; `client_id` is the client's registration at the RAS ({{redemption-common}}) |
+| Grant binding | Bearer; proof of possession open | DPoP under {{grant-protection}}, required for the bound profile |
+| Explicit type | None defined | `typ` `wag+jwt`, checked at redemption ({{wag-redemption}}) |
+| Replay | Open | Unbound grants are single-use ({{redemption-common}}) |
+| `resource` | RECOMMENDED | Exactly one ({{issuance-request}}) |
+| Previously unseen agents | Accepted on first assertion | Authorized correlation required ({{agent-correlation}}) |
+| Refresh tokens | Prohibited | Prohibited |
+{: title="Governed composition of WAG"}
 
 ## Adoption Profiles {#adoption-profiles}
 

@@ -1720,9 +1720,13 @@ multi-valued complex attribute whose values are the endorsement objects,
 with the required sub-attributes <code>issuer</code> and <code>jwks_uri</code> as that section
 defines them. The Service Provider <span class="bcp14">MUST</span> accept a <code>client_attesters</code>
 value only from a provisioning client authorized to set endorsements for
-that client (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-attesters-00#section-2.2" class="relref">Section 2.2</a> of [<a href="#ATTESTER-ENDORSEMENT" class="cite xref">ATTESTER-ENDORSEMENT</a>]</span>); authority to
-manage the registration alone does not suffice. A value it does not
-accept follows that section. A CIMD resource carries no
+that client (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-attesters-00#section-2.2" class="relref">Section 2.2</a> of [<a href="#ATTESTER-ENDORSEMENT" class="cite xref">ATTESTER-ENDORSEMENT</a>]</span>), including when a
+request replaces or removes the attribute; authority to manage the
+registration alone does not suffice. An unauthorized change receives
+<code>403</code>. A malformed endorsement (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-attesters-00#section-3" class="relref">Section 3</a> of [<a href="#ATTESTER-ENDORSEMENT" class="cite xref">ATTESTER-ENDORSEMENT</a>]</span>),
+or one the Service Provider's policy does not accept, receives <code>400</code>
+with <code>invalidValue</code>. In either case the request fails and the stored
+resource is unchanged (<a href="#errors" class="auto internal xref">Section 5.4</a>). A CIMD resource carries no
 <code>client_attesters</code>; its endorsements come from the document.<a href="#section-4.2-7" class="pilcrow">¶</a></p>
 <p id="section-4.2-8">For locally managed metadata, creation <span class="bcp14">MUST</span> explicitly supply
 <code>token_endpoint_auth_method</code> and a non-empty <code>grant_types</code>. This profile

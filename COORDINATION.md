@@ -169,8 +169,7 @@ exclusion does not prevent the independently supported uses listed here.
 | Asynchronous approval with `AROP` | No approval transport or completion flow; external approval remains subject to `external-approval` and the lifetime limits in `authorization-lifetime` |
 | Continuation with `ICA` | No ICA issuance or continuation chain; supported renewal follows `continuing-access` |
 | General WIMSE WIT/WIC inputs | WIT-SVID and X.509-SVID resolution is defined in `spiffe-input`; non-SPIFFE credentials need an explicit OAuth presentation and proof composition |
-| Instance context carried in an ID-JAG or WAG, or preserved across domains, under `INSTANCE` | The RAS conveys only an instance it validated (`access-token-response`); instances resolve the agent only through a managed-installation binding
-(`agent-evidence`). Preservation would need this profile to define provenance and association under Section 7.4 of `INSTANCE` |
+| Instance context carried in an ID-JAG or WAG, or preserved across domains, under `INSTANCE` | The RAS conveys only an instance it validated (`access-token-response`); instances resolve the agent only through a managed-installation binding (`agent-evidence`). Preservation would need this profile to define provenance and association under Section 7.4 of `INSTANCE` |
 | Mutual-TLS-bound ID-JAG | Bound grants use DPoP. Mutual TLS remains available for access-token protection under `access-token-protection` |
 | Rich Authorization Requests without scope | This profile requires meaningful scope alongside any authorization details; it does not define the scope-free mode permitted by `RFC9396` |
 

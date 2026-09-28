@@ -1065,7 +1065,7 @@ svg {
 </tr></thead>
 <tfoot><tr>
 <td class="left">McGuinness</td>
-<td class="center">Expires 31 March 2027</td>
+<td class="center">Expires 1 April 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1078,12 +1078,12 @@ svg {
 <dd class="internet-draft">draft-mcguinness-oauth-governed-agent-federation-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-09-27" class="published">27 September 2026</time>
+<time datetime="2026-09-28" class="published">28 September 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2027-03-31">31 March 2027</time></dd>
+<dd class="expires"><time datetime="2027-04-01">1 April 2027</time></dd>
 <dt class="label-authors">Author:</dt>
 <dd class="authors">
 <div class="author">
@@ -1149,7 +1149,7 @@ subject.<a href="#section-abstract-3" class="pilcrow">¶</a></p>
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 31 March 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 1 April 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -2584,7 +2584,7 @@ requirement.<a href="#section-4.1.1-1" class="pilcrow">¶</a></p>
               <tr>
                 <td class="text-left" rowspan="1" colspan="1">Error processing</td>
                 <td class="text-left" rowspan="1" colspan="1">
-                  <code>invalid_grant</code>, not RFC 8693's default <code>invalid_request</code>, for actor credential or resolution failures; <code>actor_unauthorized</code> for a denied resolved actor</td>
+                  <code>invalid_grant</code>, not RFC 8693's default <code>invalid_request</code>, for subject or actor credential and resolution failures; <code>actor_unauthorized</code> for a denied resolved actor</td>
                 <td class="text-left" rowspan="1" colspan="1">
                   <a href="#issuance-errors" class="auto internal xref">Section 5.8</a>
 </td>
@@ -3581,7 +3581,7 @@ it runs on, each keyed by its own issuer and selectors:<a href="#section-5.3.4-1
 
  B2  platform JWT, managed container service            enabled
      issuer        https://sts.amazonaws.com/
-     sub           arn:aws:iam::123456789012:role/agent-42-runtime
+     sub           arn:aws:iam::123456789012:role/AgentRuntime
      selector      /https:~1~1sts.amazonaws.com~1/aws_account
                      = 123456789012
 
@@ -4252,8 +4252,9 @@ Principal, downstream client, and tenant are unambiguous.<a href="#section-5.7.2
             </tr>
           </tbody>
         </table>
-<p id="section-5.8-4">Agent-resolution credential failures use <code>invalid_grant</code> instead of
-the default <code>invalid_request</code> of <span><a href="https://rfc-editor.org/rfc/rfc8693#section-2.2.2" class="relref">Section 2.2.2</a> of [<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>.<a href="#section-5.8-4" class="pilcrow">¶</a></p>
+<p id="section-5.8-4">Subject and agent-resolution credential failures use <code>invalid_grant</code>,
+as in the example of <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04#section-4.3.4.3" class="relref">Section 4.3.4.3</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>, instead of the
+default <code>invalid_request</code> of <span><a href="https://rfc-editor.org/rfc/rfc8693#section-2.2.2" class="relref">Section 2.2.2</a> of [<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>.<a href="#section-5.8-4" class="pilcrow">¶</a></p>
 <p id="section-5.8-5">Self-acting issuance adds these errors:<a href="#section-5.8-5" class="pilcrow">¶</a></p>
 <span id="name-self-acting-issuance-errors"></span><table class="center" id="table-17">
           <caption>
@@ -4587,7 +4588,10 @@ or replace <code>act.iss</code> with its own issuer.<a href="#section-6.4.3-2.2.
 <ol start="1" type="1" class="normal type-1" id="section-6.5-2">
 <li id="section-6.5-2.1">
             <p id="section-6.5-2.1.1"><strong>Grant:</strong> Validate the grant under <span>[<a href="#RFC7523" class="cite xref">RFC7523</a>]</span>, consistent with
-<span><a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-01#section-5" class="relref">Section 5</a> of [<a href="#WAG" class="cite xref">WAG</a>]</span>. Require <code>iss</code> to be a configured governing IdP
+<span><a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-01#section-5" class="relref">Section 5</a> of [<a href="#WAG" class="cite xref">WAG</a>]</span>. Require the JWT <code>typ</code> header parameter
+<code>wag+jwt</code> (<span><a href="https://rfc-editor.org/rfc/rfc8725#section-3.11" class="relref">Section 3.11</a> of [<a href="#RFC8725" class="cite xref">RFC8725</a>]</span>), so that an ID-JAG or another
+JWT from the same issuer cannot be accepted as a WAG. Require <code>iss</code>
+to be a configured governing IdP
 for the asserted agent namespace. Reject a WAG that contains <code>act</code>
 with <code>invalid_grant</code>.<a href="#section-6.5-2.1.1" class="pilcrow">¶</a></p>
 </li>
@@ -4599,10 +4603,9 @@ with <code>invalid_grant</code>.<a href="#section-6.5-2.1.1" class="pilcrow">¶<
             <p id="section-6.5-2.3.1"><strong>Correlation:</strong> Resolve the pair (<code>iss</code>, <code>sub</code>) under
 <a href="#agent-correlation" class="auto internal xref">Section 6.3</a> to one local agent principal in the authorized
 Target Tenant. The RAS <span class="bcp14">MUST</span> have that authorized correlation before
-issuance. For governed agents, this replaces the required acceptance
-of previously unseen identifiers in <span><a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-01#section-7" class="relref">Section 7</a> of [<a href="#WAG" class="cite xref">WAG</a>]</span>.
-<a href="#jit-correlation" class="auto internal xref">Section 6.3.1</a> covers just-in-time correlation where resource
-policy permits it.<a href="#section-6.5-2.3.1" class="pilcrow">¶</a></p>
+issuance. For governed agents, this replaces WAG's acceptance of
+previously unseen agents (<span><a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-01#section-3" class="relref">Section 3</a> of [<a href="#WAG" class="cite xref">WAG</a>]</span>). <a href="#jit-correlation" class="auto internal xref">Section 6.3.1</a>
+covers just-in-time correlation where resource policy permits it.<a href="#section-6.5-2.3.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-6.5-2.4">
             <p id="section-6.5-2.4.1"><strong>Authority:</strong> Apply the authority checks of <a href="#redemption-common" class="auto internal xref">Section 6.2</a>
@@ -4833,7 +4836,7 @@ RAS uses these errors:<a href="#section-6.10-1" class="pilcrow">¶</a></p>
 </td>
             </tr>
             <tr>
-              <td class="text-left" rowspan="1" colspan="1">Invalid WAG, including one that contains <code>act</code>
+              <td class="text-left" rowspan="1" colspan="1">Invalid WAG, including one without <code>typ</code> <code>wag+jwt</code> or one that contains <code>act</code>
 </td>
               <td class="text-left" rowspan="1" colspan="1">
                 <code>invalid_grant</code>
@@ -5037,7 +5040,7 @@ actor-specific rejection details outside the trust domain.<a href="#section-7.6-
         <tbody>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">Redeem an existing ID-JAG</td>
-            <td class="text-left" rowspan="1" colspan="1">Grant remains valid; any required proof and current RAS policy apply (<a href="#redemption" class="auto internal xref">Section 6</a>)</td>
+            <td class="text-left" rowspan="1" colspan="1">Grant remains valid and, where redemption requires neither DPoP nor mutual TLS, has not been redeemed before (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-actor-profile-00#section-4.2" class="relref">Section 4.2</a> of [<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>); any required proof and current RAS policy apply (<a href="#redemption" class="auto internal xref">Section 6</a>)</td>
           </tr>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">Obtain a new ID-JAG</td>
@@ -5296,6 +5299,10 @@ possession of an issuer-authorized grant key.<a href="#section-9.1-4" class="pil
 <a href="#actor-inputs" class="auto internal xref">Section 5.3.3</a> and <span><a href="https://rfc-editor.org/rfc/rfc8725#section-3.12" class="relref">Section 3.12</a> of [<a href="#RFC8725" class="cite xref">RFC8725</a>]</span>. Signature validity
 alone establishes neither a credential's intended use nor permission to
 resolve or exercise an agent.<a href="#section-9.2-1" class="pilcrow">¶</a></p>
+<p id="section-9.2-2">Both grants are JWTs redeemed with the same grant type, so the RAS tells
+them apart by explicit type: <code>oauth-id-jag+jwt</code> for an ID-JAG
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04#section-3.1" class="relref">Section 3.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>) and <code>wag+jwt</code> for a WAG
+(<a href="#wag-redemption" class="auto internal xref">Section 6.5</a>).<a href="#section-9.2-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="dedicated-client-key-compromise">
@@ -5544,9 +5551,10 @@ metadata parameters.<a href="#section-11.1-5" class="pilcrow">¶</a></p>
             <p id="section-11.2-2.8.1">Specification Document: <a href="#metadata" class="auto internal xref">Section 4.10</a> of this document.<a href="#section-11.2-2.8.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-11.2-3">The WAG token type <code>urn:ietf:params:oauth:token-type:wag</code> and JWT type
-<code>wag+jwt</code> are not requested here; they are proposed for registration by
-WAG.<a href="#section-11.2-3" class="pilcrow">¶</a></p>
+<p id="section-11.2-3">This document does not request registration of the provisional WAG
+token type <code>urn:ietf:params:oauth:token-type:wag</code> or JWT type
+<code>wag+jwt</code>. <span>[<a href="#WAG" class="cite xref">WAG</a>]</span> does not yet define either; registration awaits
+coordination (<a href="#wag-gaps" class="auto internal xref">Appendix C.1.1</a>).<a href="#section-11.2-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -5822,18 +5830,20 @@ authentication method defines and validates the corresponding proof.<a href="#ap
             <li class="normal" id="appendix-A.1.1-2.6">
               <p id="appendix-A.1.1-2.6.1"><strong>Replay:</strong> These rules narrow the base specifications and prohibit
 negotiated assertion reuse. The assertion <span class="bcp14">MUST</span> contain a <code>jti</code>. The
-IdP <span class="bcp14">MUST</span> reject reuse in another request while the assertion remains
-acceptable; a reused assertion fails client authentication. Replay
-identifiers <span class="bcp14">MUST</span> be qualified by the validated issuer and client.<a href="#appendix-A.1.1-2.6.1" class="pilcrow">¶</a></p>
+IdP and the RAS <span class="bcp14">MUST</span> each reject reuse in another request while the
+assertion remains acceptable; a reused assertion fails client
+authentication. Replay identifiers <span class="bcp14">MUST</span> be qualified by the validated
+issuer and client.<a href="#appendix-A.1.1-2.6.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="appendix-A.1.1-2.7">
-              <p id="appendix-A.1.1-2.7.1"><strong>Retry:</strong> For any retry of a dedicated-client exchange, including
-after a <code>use_dpop_nonce</code> challenge under <span><a href="https://rfc-editor.org/rfc/rfc9449#section-8" class="relref">Section 8</a> of [<a href="#RFC9449" class="cite xref">RFC9449</a>]</span>, the
-client <span class="bcp14">MUST</span> generate a new <code>client_assertion</code> with a fresh <code>jti</code>. For
-a nonce retry, the client <span class="bcp14">MUST</span> also generate a fresh DPoP proof
-containing the supplied nonce while retaining the grant proof key. A
-new DPoP proof alone is not enough, because the IdP may already have
-consumed the previous assertion during authentication.<a href="#appendix-A.1.1-2.7.1" class="pilcrow">¶</a></p>
+              <p id="appendix-A.1.1-2.7.1"><strong>Retry:</strong> For any retry of a dedicated-client token request at either
+server, including after a <code>use_dpop_nonce</code> challenge under
+<span><a href="https://rfc-editor.org/rfc/rfc9449#section-8" class="relref">Section 8</a> of [<a href="#RFC9449" class="cite xref">RFC9449</a>]</span>, the client <span class="bcp14">MUST</span> generate a new
+<code>client_assertion</code> with a fresh <code>jti</code>. For a nonce retry, the client
+<span class="bcp14">MUST</span> also generate a fresh DPoP proof containing the supplied nonce
+while retaining the grant proof key. A new DPoP proof alone is not
+enough, because the server may already have consumed the previous
+assertion during authentication.<a href="#appendix-A.1.1-2.7.1" class="pilcrow">¶</a></p>
 </li>
           </ul>
 </section>
@@ -6543,13 +6553,13 @@ decoded WAG uses <code>typ=wag+jwt</code> and this payload:<a href="#appendix-B.
 }
 </pre><a href="#appendix-B.1.7-4" class="pilcrow">¶</a>
 </div>
-<p id="appendix-B.1.7-5">Redemption reuses the request in <a href="#redemption-example" class="auto internal xref">Appendix B.1.3</a> with the WAG as
-the <code>assertion</code>. The RAS correlates (<code>https://idp.example/</code>,
-<code>agent-42</code>) to <code>service-principal-42</code> and applies its own policy for
-that principal. It issues an access token with <code>sub</code>
-            <code>service-principal-42</code>, no <code>act</code>, the same audience, scope, and <code>cnf</code>,
-and no refresh token. The API enforces the agent's own permissions and
-the tenant; it applies no actor gate.<a href="#appendix-B.1.7-5" class="pilcrow">¶</a></p>
+<p id="appendix-B.1.7-5">Redemption follows <a href="#redemption-example" class="auto internal xref">Appendix B.1.3</a>, with a fresh client assertion
+and DPoP proof and the WAG as the <code>assertion</code>. The RAS correlates
+(<code>https://idp.example/</code>, <code>agent-42</code>) to <code>service-principal-42</code> and
+applies its own policy for that principal. It issues an access token
+with <code>sub</code> <code>service-principal-42</code>, no <code>act</code>, the same audience, scope,
+and <code>cnf</code>, and no refresh token. The API enforces the agent's own
+permissions and the tenant; it applies no actor gate.<a href="#appendix-B.1.7-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -6721,7 +6731,7 @@ of this document (<a href="#access-token-subject-gap" class="auto internal xref"
 <a href="#appendix-C" class="section-number selfRef">Appendix C. </a><a href="#name-dependencies-and-deferred-w" class="section-name selfRef">Dependencies and Deferred Work</a>
       </h2>
 <p id="appendix-C-1">This informative appendix records dependencies and deferred work. They
-were assessed against WAG-00, ID-JAG-04, ICA-02, Actor Profile-00,
+were assessed against WAG-01, ID-JAG-04, ICA-02, Actor Profile-00,
 SPIFFE OAuth-02, ATTEST-11, WIT-02, CIMD-02, and the current drafts of
 Client Instance Identification and Client Attester Endorsement.<a href="#appendix-C-1" class="pilcrow">¶</a></p>
 <div id="upstream-dependencies">
@@ -6765,20 +6775,21 @@ Client Instance Identification and Client Attester Endorsement.<a href="#appendi
           <h4 id="name-wag">
 <a href="#appendix-C.1.1" class="section-number selfRef">C.1.1. </a><a href="#name-wag" class="section-name selfRef">WAG</a>
           </h4>
-<p id="appendix-C.1.1-1"><a href="#wag-issuance" class="auto internal xref">Section 5.7</a> defines the IdP issuance that <span><a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-01#section-5" class="relref">Section 5</a> of [<a href="#WAG" class="cite xref">WAG</a>]</span>
-anticipates. Open items are:<a href="#appendix-C.1.1-1" class="pilcrow">¶</a></p>
+<p id="appendix-C.1.1-1">In WAG terms, the IdP is the Platform that signs the grant
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-01#section-2" class="relref">Section 2</a> of [<a href="#WAG" class="cite xref">WAG</a>]</span>), and <a href="#wag-issuance" class="auto internal xref">Section 5.7</a> defines that issuance. Open
+items are:<a href="#appendix-C.1.1-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="appendix-C.1.1-2.1">
-              <p id="appendix-C.1.1-2.1.1">registration of the WAG token type and <code>wag+jwt</code>, and their
-advertisement with the self-acting profile URIs
-(<a href="#server-metadata" class="auto internal xref">Section 4.10.1</a>);<a href="#appendix-C.1.1-2.1.1" class="pilcrow">¶</a></p>
+              <p id="appendix-C.1.1-2.1.1">a token type and an explicit JWT type for the grant, which
+<span><a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-01#section-8" class="relref">Section 8</a> of [<a href="#WAG" class="cite xref">WAG</a>]</span> lists as open, their registration, and their
+advertisement with the self-acting profile URIs (<a href="#server-metadata" class="auto internal xref">Section 4.10.1</a>);<a href="#appendix-C.1.1-2.1.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="appendix-C.1.1-2.2">
               <p id="appendix-C.1.1-2.2.1">DPoP binding (<a href="#grant-protection" class="auto internal xref">Section 4.4</a>);<a href="#appendix-C.1.1-2.2.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="appendix-C.1.1-2.3">
-              <p id="appendix-C.1.1-2.3.1">authorized correlation in place of the acceptance of unseen
-identifiers required by <span><a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-01#section-7" class="relref">Section 7</a> of [<a href="#WAG" class="cite xref">WAG</a>]</span>;<a href="#appendix-C.1.1-2.3.1" class="pilcrow">¶</a></p>
+              <p id="appendix-C.1.1-2.3.1">authorized correlation in place of WAG's acceptance of previously
+unseen agents (<span><a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-01#section-3" class="relref">Section 3</a> of [<a href="#WAG" class="cite xref">WAG</a>]</span>);<a href="#appendix-C.1.1-2.3.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="appendix-C.1.1-2.4">
               <p id="appendix-C.1.1-2.4.1">a token exchange in which the authenticated client is the subject

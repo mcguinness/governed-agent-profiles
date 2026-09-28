@@ -2520,16 +2520,18 @@ input.
   authentication method defines and validates the corresponding proof.
 * **Replay:** These rules narrow the base specifications and prohibit
   negotiated assertion reuse. The assertion MUST contain a `jti`. The
-  IdP MUST reject reuse in another request while the assertion remains
-  acceptable; a reused assertion fails client authentication. Replay
-  identifiers MUST be qualified by the validated issuer and client.
-* **Retry:** For any retry of a dedicated-client exchange, including
-  after a `use_dpop_nonce` challenge under {{Section 8 of RFC9449}}, the
-  client MUST generate a new `client_assertion` with a fresh `jti`. For
-  a nonce retry, the client MUST also generate a fresh DPoP proof
-  containing the supplied nonce while retaining the grant proof key. A
-  new DPoP proof alone is not enough, because the IdP may already have
-  consumed the previous assertion during authentication.
+  IdP and the RAS MUST each reject reuse in another request while the
+  assertion remains acceptable; a reused assertion fails client
+  authentication. Replay identifiers MUST be qualified by the validated
+  issuer and client.
+* **Retry:** For any retry of a dedicated-client token request at either
+  server, including after a `use_dpop_nonce` challenge under
+  {{Section 8 of RFC9449}}, the client MUST generate a new
+  `client_assertion` with a fresh `jti`. For a nonce retry, the client
+  MUST also generate a fresh DPoP proof containing the supplied nonce
+  while retaining the grant proof key. A new DPoP proof alone is not
+  enough, because the server may already have consumed the previous
+  assertion during authentication.
 
 ### Existing Platform JWT {#imported-jwt-input}
 

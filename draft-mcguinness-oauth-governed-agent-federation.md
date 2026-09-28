@@ -1667,8 +1667,9 @@ The RAS MUST perform ID-JAG validation and additionally:
    assertion of that namespace.
 2. **Proof and client:** Apply the proof and client checks of
    {{redemption-common}}.
-3. **Authority:** Apply the authority checks of {{redemption-common}}.
-4. **Local authorization:** Resolve the user under
+3. **Replay:** Apply the grant replay rule of {{redemption-common}}.
+4. **Authority:** Apply the authority checks of {{redemption-common}}.
+5. **Local authorization:** Resolve the user under
    {{subject-resolution}} and the Agent Principal actor under
    {{agent-correlation}}, and apply current RAS policy to the
    user/actor relationship under {{actor-authorization}}, client,
@@ -1727,21 +1728,21 @@ The RAS:
    {{Section 5 of WAG}}. Require the JWT `typ` header parameter
    `wag+jwt` ({{Section 3.11 of RFC8725}}), so that an ID-JAG or another
    JWT from the same issuer cannot be accepted as a WAG. Require `iss`
-   to be a configured governing IdP
-   for the asserted agent namespace. Reject a WAG that contains `act`
-   with `invalid_grant`.
+   to be a configured governing IdP for the asserted agent namespace.
+   Reject a WAG that contains `act` with `invalid_grant`.
 2. **Proof and client:** Apply the proof and client checks of
    {{redemption-common}}.
-3. **Correlation:** Resolve the pair (`iss`, `sub`) under
+3. **Replay:** Apply the grant replay rule of {{redemption-common}}.
+4. **Correlation:** Resolve the pair (`iss`, `sub`) under
    {{agent-correlation}} to one local agent principal in the authorized
    Target Tenant. The RAS MUST have that authorized correlation before
    issuance. For governed agents, this replaces WAG's acceptance of
    previously unseen agents ({{Section 3 of WAG}}). {{jit-correlation}}
    covers just-in-time correlation where resource policy permits it.
-4. **Authority:** Apply the authority checks of {{redemption-common}}
+5. **Authority:** Apply the authority checks of {{redemption-common}}
    and current RAS policy for the agent, client, tenant, and resource. A
    valid grant sets an authority ceiling; it does not require issuance.
-5. **Output:** Issue an access token under {{access-token-response}} and
+6. **Output:** Issue an access token under {{access-token-response}} and
    {{access-token-protection}}, with the local agent principal as `sub`
    and no `act`. The RAS MUST NOT issue a refresh token for a WAG
    redemption.
@@ -2953,6 +2954,7 @@ last column is the required result. Token endpoint errors follow
 | Grant has `cnf.jkt`; redemption omits the proof | RAS | HTTP 400, `invalid_grant`; grant binding enforced |
 | Access token used in another tenant where Alice and the agent also have permissions, with a fresh valid proof | API | HTTP 401, `invalid_token`; no operation performed |
 | Governed agent access: the grant has no `cnf`, was redeemed once with a DPoP proof, and is presented again with a fresh proof by another key | RAS | HTTP 400, `invalid_grant`; an access-token proof does not make an unbound grant reusable ({{redemption-common}}) |
+| Self-acting variant ({{wag-example}}) under governed agent access: the WAG has no `cnf`, was redeemed once, and is presented again | RAS | HTTP 400, `invalid_grant`; an unbound WAG is single-use ({{redemption-common}}) |
 | Delegated access token without `act`, presented to an API configured for the governed delegated population | API | HTTP 401, `invalid_token`; a missing `act` does not make the token self-acting ({{api-applicability}}) |
 | Shared-client variant ({{shared-client-example}}): the platform client holds a token for `agent-42` and starts an operation for another agent with the same scope | Client | Obtains a grant for that agent; a matching `client_id` and scope do not permit reuse ({{client-token-reuse}}) |
 | Platform JWT variant ({{aws-example}}): the platform JWT fails validation | IdP | HTTP 400, `invalid_grant`; no retry from authentication context or under another credential class ({{actor-inputs}}) |

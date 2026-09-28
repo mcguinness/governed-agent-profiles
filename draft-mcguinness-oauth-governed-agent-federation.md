@@ -1900,7 +1900,10 @@ The RAS:
 **Processing:** The RAS MUST:
 
 1. **Grant:** Validate the grant under {{RFC7523}}, consistent with
-   {{Section 5 of WAG}}. Require `iss` to be a configured governing IdP
+   {{Section 5 of WAG}}. Require the JWT `typ` header parameter
+   `wag+jwt` ({{Section 3.11 of RFC8725}}), so that an ID-JAG or another
+   JWT from the same issuer cannot be accepted as a WAG. Require `iss`
+   to be a configured governing IdP
    for the asserted agent namespace. Reject a WAG that contains `act`
    with `invalid_grant`.
 2. **Proof and client:** Apply the proof and client checks of
@@ -2052,7 +2055,7 @@ RAS uses these errors:
 |---|---|
 | Invalid ID-JAG | `invalid_grant` |
 | WAG whose `sub` has no authorized correlation at the RAS | `invalid_grant` |
-| Invalid WAG, including one that contains `act` | `invalid_grant` |
+| Invalid WAG, including one without `typ` `wag+jwt` or one that contains `act` | `invalid_grant` |
 {: title="Redemption errors"}
 
 # Access at the Resource Server {#api-processing}
@@ -2306,6 +2309,11 @@ Credential classification and mutually exclusive validation follow
 {{actor-inputs}} and {{Section 3.12 of RFC8725}}. Signature validity
 alone establishes neither a credential's intended use nor permission to
 resolve or exercise an agent.
+
+Both grants are JWTs redeemed with the same grant type, so the RAS tells
+them apart by explicit type: `oauth-id-jag+jwt` for an ID-JAG
+({{Section 3.1 of ID-JAG}}) and `wag+jwt` for a WAG
+({{wag-redemption}}).
 
 ## Dedicated-Client Key Compromise
 

@@ -454,28 +454,36 @@ Table of Contents
 
    urn:ietf:params:scim:schemas:core:2.0:AgentIdentityBinding
 
-      +=================+=========+=================================+
-      | Attribute       | Type    | Meaning                         |
-      +=================+=========+=================================+
-      | agent           | complex | Reference to the Agent whose    |
-      |                 |         | principal is resolved           |
-      +-----------------+---------+---------------------------------+
-      | credentialClass | string  | Input class from Section 4.3.1  |
-      +-----------------+---------+---------------------------------+
-      | client          | complex | OAuthClient reference; required |
-      |                 |         | only for dedicated-client       |
-      +-----------------+---------+---------------------------------+
-      | sourceAuthority | string  | Approved authority; required    |
-      |                 |         | for all other classes           |
-      +-----------------+---------+---------------------------------+
-      | sourceSubject   | string  | Exact external identity;        |
-      |                 |         | required for all other classes  |
-      +-----------------+---------+---------------------------------+
-      | selectors       | complex | Additional platform-JWT claim   |
-      |                 |         | constraints                     |
-      +-----------------+---------+---------------------------------+
-      | active          | boolean | Whether the binding may be used |
-      +-----------------+---------+---------------------------------+
+     +==================+=========+==================================+
+     | Attribute        | Type    | Meaning                          |
+     +==================+=========+==================================+
+     | agent            | complex | Reference to the Agent whose     |
+     |                  |         | principal is resolved            |
+     +------------------+---------+----------------------------------+
+     | credentialClass  | string  | Input class from Section 4.3.1   |
+     +------------------+---------+----------------------------------+
+     | client           | complex | OAuthClient reference; required  |
+     |                  |         | only for dedicated-client        |
+     +------------------+---------+----------------------------------+
+     | sourceAuthority  | string  | Approved authority; required for |
+     |                  |         | all other classes                |
+     +------------------+---------+----------------------------------+
+     | sourceSubject    | string  | Exact external identity;         |
+     |                  |         | required for all other classes   |
+     +------------------+---------+----------------------------------+
+     | selectors        | complex | Additional platform-JWT claim    |
+     |                  |         | constraints                      |
+     +------------------+---------+----------------------------------+
+     | clientInstanceId | string  | Exact client instance            |
+     |                  |         | identifier; managed-installation |
+     |                  |         | client-attestation bindings only |
+     +------------------+---------+----------------------------------+
+     | receiverScope    | string  | IdP Receiver Scope of that       |
+     |                  |         | identifier; present with         |
+     |                  |         | clientInstanceId                 |
+     +------------------+---------+----------------------------------+
+     | active           | boolean | Whether the binding may be used  |
+     +------------------+---------+----------------------------------+
 
                                   Table 4
 
@@ -526,6 +534,18 @@ Table of Contents
    creation requires a new binding, including when the original binding
    had no selectors.  This narrows SCIM's permission to initially
    populate an unassigned immutable attribute.
+
+   clientInstanceId and receiverScope are optional, single-valued,
+   immutable, case-exact strings, returned by default, with uniqueness
+   none.  They are permitted only for client-attestation, where they
+   make a managed-installation binding ([FEDERATION]), and MUST be both
+   present or both absent. clientInstanceId is the exact
+   client_instance_id ([INSTANCE]); receiverScope identifies the IdP
+   Receiver Scope configured for that attester and client.  The Service
+   Provider MUST reject a binding whose level, client-level or
+   installation-level, differs from the resolution level configured for
+   that attester and client.  Adding or removing them requires a new
+   binding.
 
 4.3.1.  Credential Classes
 
@@ -588,16 +608,18 @@ Table of Contents
    Governance Tenant, regardless of active state.  The uniqueness key
    is:
 
-         +===================+===================================+
-         | Input             | Uniqueness key                    |
-         +===================+===================================+
-         | Dedicated client  | credentialClass and client.value  |
-         +-------------------+-----------------------------------+
-         | External identity | credentialClass, sourceAuthority, |
-         |                   | sourceSubject, and selector set   |
-         +-------------------+-----------------------------------+
+           +===========+======================================+
+           | Input     | Uniqueness key                       |
+           +===========+======================================+
+           | Dedicated | credentialClass and client.value     |
+           | client    |                                      |
+           +-----------+--------------------------------------+
+           | External  | credentialClass, sourceAuthority,    |
+           | identity  | sourceSubject, selector set, and any |
+           |           | receiverScope and clientInstanceId   |
+           +-----------+--------------------------------------+
 
-                                  Table 6
+                                 Table 6
 
    The selector set is compared by decoded JSON Pointer paths and exact
    expected values, independent of array order.  The Agent reference is
@@ -1032,7 +1054,8 @@ Table of Contents
       Agent Principal.
 
    *  Single-value Attributes: agent, credentialClass, client,
-      sourceAuthority, sourceSubject, active, defined in Section 4.3.
+      sourceAuthority, sourceSubject, clientInstanceId, receiverScope,
+      and active, defined in Section 4.3.
 
    *  Multi-valued Attributes: selectors, defined in Section 4.3.
 
@@ -1076,6 +1099,13 @@ Table of Contents
               2026, <https://mcguinness.github.io/governed-agent-
               profiles/draft-mcguinness-oauth-governed-agent-
               federation.html>.
+
+   [INSTANCE] McGuinness, K., "Client Instance Identification for
+              Attestation-Based Client Authentication", Work in
+              Progress, Internet-Draft, draft-mcguinness-oauth-client-
+              instance-id-00, 28 September 2026,
+              <https://datatracker.ietf.org/doc/html/draft-mcguinness-
+              oauth-client-instance-id-00>.
 
    [SCIM-AGENT]
               Wahl, M., Zollner, D., Dingle, P., and I. Kazzouzi, "AI
@@ -1641,6 +1671,30 @@ C.2.  AgentIdentityBinding Schema
              "uniqueness": "none"
            }
          ]
+       },
+       {
+         "name": "clientInstanceId",
+         "description":
+           "Exact client_instance_id of a managed installation.",
+         "type": "string",
+         "multiValued": false,
+         "required": false,
+         "mutability": "immutable",
+         "returned": "default",
+         "caseExact": true,
+         "uniqueness": "none"
+       },
+       {
+         "name": "receiverScope",
+         "description":
+           "IdP Receiver Scope of the client instance identifier.",
+         "type": "string",
+         "multiValued": false,
+         "required": false,
+         "mutability": "immutable",
+         "returned": "default",
+         "caseExact": true,
+         "uniqueness": "none"
        },
        {
          "name": "active",

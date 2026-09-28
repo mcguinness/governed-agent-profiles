@@ -748,7 +748,7 @@ requirement.
 | Grant narrowing | One resource URI (a string; singleton arrays accepted), scope constraints, input-specific expiration limits; DPoP and `cnf.jkt` in the bound profile | {{grant-common}}, {{grant-issuance}}, {{redemption-common}}, {{grant-protection}} |
 | Resource processing | Actor and tenant context preserved; user authority and actor gate enforced with the selected token protection | {{access-token-response}}, {{api-processing}} |
 | Refresh narrowing | Explicit policy, client binding, preserved proof binding and profile, finite absolute authorization expiration | {{ras-refresh}} |
-| Error processing | `invalid_grant`, not RFC 8693's default `invalid_request`, for actor credential or resolution failures; `actor_unauthorized` for a denied resolved actor | {{issuance-errors}} |
+| Error processing | `invalid_grant`, not RFC 8693's default `invalid_request`, for subject or actor credential and resolution failures; `actor_unauthorized` for a denied resolved actor | {{issuance-errors}} |
 | Profile discovery | Governed profiles in existing ID-JAG metadata; trusted policy sets the minimum | {{metadata}} |
 {: title="Additions and narrowings to the base specifications"}
 
@@ -1384,7 +1384,7 @@ it runs on, each keyed by its own issuer and selectors:
 
  B2  platform JWT, managed container service            enabled
      issuer        https://sts.amazonaws.com/
-     sub           arn:aws:iam::123456789012:role/agent-42-runtime
+     sub           arn:aws:iam::123456789012:role/AgentRuntime
      selector      /https:~1~1sts.amazonaws.com~1/aws_account
                      = 123456789012
 
@@ -1722,8 +1722,9 @@ In addition to {{errors}}, the IdP uses these errors:
 | Approval requires a downstream lifetime condition that the selected composition cannot enforce, in delegated issuance ({{issuance-authorization}}) | `actor_unauthorized` |
 {: title="Identity resolution and delegation errors"}
 
-Agent-resolution credential failures use `invalid_grant` instead of
-the default `invalid_request` of {{Section 2.2.2 of RFC8693}}.
+Subject and agent-resolution credential failures use `invalid_grant`,
+as in the example of {{Section 4.3.4.3 of ID-JAG}}, instead of the
+default `invalid_request` of {{Section 2.2.2 of RFC8693}}.
 
 Self-acting issuance adds these errors:
 
@@ -3047,13 +3048,13 @@ decoded WAG uses `typ=wag+jwt` and this payload:
 }
 ~~~
 
-Redemption reuses the request in {{redemption-example}} with the WAG as
-the `assertion`. The RAS correlates (`https://idp.example/`,
-`agent-42`) to `service-principal-42` and applies its own policy for
-that principal. It issues an access token with `sub`
-`service-principal-42`, no `act`, the same audience, scope, and `cnf`,
-and no refresh token. The API enforces the agent's own permissions and
-the tenant; it applies no actor gate.
+Redemption follows {{redemption-example}}, with a fresh client assertion
+and DPoP proof and the WAG as the `assertion`. The RAS correlates
+(`https://idp.example/`, `agent-42`) to `service-principal-42` and
+applies its own policy for that principal. It issues an access token
+with `sub` `service-principal-42`, no `act`, the same audience, scope,
+and `cnf`, and no refresh token. The API enforces the agent's own
+permissions and the tenant; it applies no actor gate.
 
 ## Input Variants {#input-variants}
 

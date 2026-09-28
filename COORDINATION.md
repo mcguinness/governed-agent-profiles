@@ -93,8 +93,8 @@ grants can be re-submitted as ID-JAG allows.
 #### Client Instance Identification
 
 This document composes `INSTANCE` as evidence beside the governed agent:
-an instance identifier never selects the Agent Principal, and the RAS
-conveys instance context only for an instance it validated. Two items
+an instance identifier selects the Agent Principal only through an
+exact, approved managed-installation binding, and the RAS conveys instance context only for an instance it validated. Two items
 for the `INSTANCE` draft:
 
 * **Appendix A.3 example:** it names the issuing authorization server as
@@ -169,7 +169,8 @@ exclusion does not prevent the independently supported uses listed here.
 | Asynchronous approval with `AROP` | No approval transport or completion flow; external approval remains subject to `external-approval` and the lifetime limits in `authorization-lifetime` |
 | Continuation with `ICA` | No ICA issuance or continuation chain; supported renewal follows `continuing-access` |
 | General WIMSE WIT/WIC inputs | WIT-SVID and X.509-SVID resolution is defined in `spiffe-input`; non-SPIFFE credentials need an explicit OAuth presentation and proof composition |
-| Instance context carried in an ID-JAG or WAG, or preserved across domains, under `INSTANCE` | The RAS conveys only an instance it validated (`access-token-response`); instances never resolve the agent (`identity-binding`). Preservation would need this profile to define provenance and association under Section 7.4 of `INSTANCE` |
+| Instance context carried in an ID-JAG or WAG, or preserved across domains, under `INSTANCE` | The RAS conveys only an instance it validated (`access-token-response`); instances resolve the agent only through a managed-installation binding
+(`agent-evidence`). Preservation would need this profile to define provenance and association under Section 7.4 of `INSTANCE` |
 | Mutual-TLS-bound ID-JAG | Bound grants use DPoP. Mutual TLS remains available for access-token protection under `access-token-protection` |
 | Rich Authorization Requests without scope | This profile requires meaningful scope alongside any authorization details; it does not define the scope-free mode permitted by `RFC9396` |
 

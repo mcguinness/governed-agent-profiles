@@ -2115,9 +2115,11 @@ Table of Contents
    2.  *Proof and client:* Apply the proof and client checks of
        Section 6.2.
 
-   3.  *Authority:* Apply the authority checks of Section 6.2.
+   3.  *Replay:* Apply the grant replay rule of Section 6.2.
 
-   4.  *Local authorization:* Resolve the user under Section 6.4.2 and
+   4.  *Authority:* Apply the authority checks of Section 6.2.
+
+   5.  *Local authorization:* Resolve the user under Section 6.4.2 and
        the Agent Principal actor under Section 6.3, and apply current
        RAS policy to the user/actor relationship under Section 3.6.4,
        client, tenant, and resource.  A valid grant sets an authority
@@ -2187,19 +2189,21 @@ Table of Contents
    2.  *Proof and client:* Apply the proof and client checks of
        Section 6.2.
 
-   3.  *Correlation:* Resolve the pair (iss, sub) under Section 6.3 to
+   3.  *Replay:* Apply the grant replay rule of Section 6.2.
+
+   4.  *Correlation:* Resolve the pair (iss, sub) under Section 6.3 to
        one local agent principal in the authorized Target Tenant.  The
        RAS MUST have that authorized correlation before issuance.  For
        governed agents, this replaces WAG's acceptance of previously
        unseen agents (Section 3 of [WAG]).  Section 6.3.1 covers just-
        in-time correlation where resource policy permits it.
 
-   4.  *Authority:* Apply the authority checks of Section 6.2 and
+   5.  *Authority:* Apply the authority checks of Section 6.2 and
        current RAS policy for the agent, client, tenant, and resource.
        A valid grant sets an authority ceiling; it does not require
        issuance.
 
-   5.  *Output:* Issue an access token under Section 6.6 and
+   6.  *Output:* Issue an access token under Section 6.6 and
        Section 6.7, with the local agent principal as sub and no act.
        The RAS MUST NOT issue a refresh token for a WAG redemption.
 
@@ -3920,6 +3924,12 @@ B.1.6.  Renewal and Negative Tests
    | proof, and is presented again |         | does not make an        |
    | with a fresh proof by another |         | unbound grant reusable  |
    | key                           |         | (Section 6.2)           |
+   +-------------------------------+---------+-------------------------+
+   | Self-acting variant           | RAS     | HTTP 400,               |
+   | (Appendix B.1.7) under        |         | invalid_grant; an       |
+   | governed agent access: the    |         | unbound WAG is single-  |
+   | WAG has no cnf, was redeemed  |         | use (Section 6.2)       |
+   | once, and is presented again  |         |                         |
    +-------------------------------+---------+-------------------------+
    | Delegated access token        | API     | HTTP 401,               |
    | without act, presented to an  |         | invalid_token; a        |

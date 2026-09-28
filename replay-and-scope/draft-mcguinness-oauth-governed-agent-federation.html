@@ -4210,15 +4210,18 @@ assertion of that namespace.<a href="#section-6.4.1-2.1.1" class="pilcrow">¶</a
 <a href="#redemption-common" class="auto internal xref">Section 6.2</a>.<a href="#section-6.4.1-2.2.1" class="pilcrow">¶</a></p>
 </li>
             <li id="section-6.4.1-2.3">
-              <p id="section-6.4.1-2.3.1"><strong>Authority:</strong> Apply the authority checks of <a href="#redemption-common" class="auto internal xref">Section 6.2</a>.<a href="#section-6.4.1-2.3.1" class="pilcrow">¶</a></p>
+              <p id="section-6.4.1-2.3.1"><strong>Replay:</strong> Apply the grant replay rule of <a href="#redemption-common" class="auto internal xref">Section 6.2</a>.<a href="#section-6.4.1-2.3.1" class="pilcrow">¶</a></p>
 </li>
             <li id="section-6.4.1-2.4">
-              <p id="section-6.4.1-2.4.1"><strong>Local authorization:</strong> Resolve the user under
+              <p id="section-6.4.1-2.4.1"><strong>Authority:</strong> Apply the authority checks of <a href="#redemption-common" class="auto internal xref">Section 6.2</a>.<a href="#section-6.4.1-2.4.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-6.4.1-2.5">
+              <p id="section-6.4.1-2.5.1"><strong>Local authorization:</strong> Resolve the user under
 <a href="#subject-resolution" class="auto internal xref">Section 6.4.2</a> and the Agent Principal actor under
 <a href="#agent-correlation" class="auto internal xref">Section 6.3</a>, and apply current RAS policy to the
 user/actor relationship under <a href="#actor-authorization" class="auto internal xref">Section 3.6.4</a>, client,
 tenant, and resource. A valid grant sets an authority ceiling; it
-does not require issuance.<a href="#section-6.4.1-2.4.1" class="pilcrow">¶</a></p>
+does not require issuance.<a href="#section-6.4.1-2.5.1" class="pilcrow">¶</a></p>
 </li>
           </ol>
 </section>
@@ -4311,32 +4314,34 @@ or replace <code>act.iss</code> with its own issuer.<a href="#section-6.4.3-2.2.
 <span><a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-01#section-5" class="relref">Section 5</a> of [<a href="#WAG" class="cite xref">WAG</a>]</span>. Require the JWT <code>typ</code> header parameter
 <code>wag+jwt</code> (<span><a href="https://rfc-editor.org/rfc/rfc8725#section-3.11" class="relref">Section 3.11</a> of [<a href="#RFC8725" class="cite xref">RFC8725</a>]</span>), so that an ID-JAG or another
 JWT from the same issuer cannot be accepted as a WAG. Require <code>iss</code>
-to be a configured governing IdP
-for the asserted agent namespace. Reject a WAG that contains <code>act</code>
-with <code>invalid_grant</code>.<a href="#section-6.5-2.1.1" class="pilcrow">¶</a></p>
+to be a configured governing IdP for the asserted agent namespace.
+Reject a WAG that contains <code>act</code> with <code>invalid_grant</code>.<a href="#section-6.5-2.1.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-6.5-2.2">
             <p id="section-6.5-2.2.1"><strong>Proof and client:</strong> Apply the proof and client checks of
 <a href="#redemption-common" class="auto internal xref">Section 6.2</a>.<a href="#section-6.5-2.2.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-6.5-2.3">
-            <p id="section-6.5-2.3.1"><strong>Correlation:</strong> Resolve the pair (<code>iss</code>, <code>sub</code>) under
+            <p id="section-6.5-2.3.1"><strong>Replay:</strong> Apply the grant replay rule of <a href="#redemption-common" class="auto internal xref">Section 6.2</a>.<a href="#section-6.5-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-6.5-2.4">
+            <p id="section-6.5-2.4.1"><strong>Correlation:</strong> Resolve the pair (<code>iss</code>, <code>sub</code>) under
 <a href="#agent-correlation" class="auto internal xref">Section 6.3</a> to one local agent principal in the authorized
 Target Tenant. The RAS <span class="bcp14">MUST</span> have that authorized correlation before
 issuance. For governed agents, this replaces WAG's acceptance of
 previously unseen agents (<span><a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-01#section-3" class="relref">Section 3</a> of [<a href="#WAG" class="cite xref">WAG</a>]</span>). <a href="#jit-correlation" class="auto internal xref">Section 6.3.1</a>
-covers just-in-time correlation where resource policy permits it.<a href="#section-6.5-2.3.1" class="pilcrow">¶</a></p>
-</li>
-          <li id="section-6.5-2.4">
-            <p id="section-6.5-2.4.1"><strong>Authority:</strong> Apply the authority checks of <a href="#redemption-common" class="auto internal xref">Section 6.2</a>
-and current RAS policy for the agent, client, tenant, and resource. A
-valid grant sets an authority ceiling; it does not require issuance.<a href="#section-6.5-2.4.1" class="pilcrow">¶</a></p>
+covers just-in-time correlation where resource policy permits it.<a href="#section-6.5-2.4.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-6.5-2.5">
-            <p id="section-6.5-2.5.1"><strong>Output:</strong> Issue an access token under <a href="#access-token-response" class="auto internal xref">Section 6.6</a> and
+            <p id="section-6.5-2.5.1"><strong>Authority:</strong> Apply the authority checks of <a href="#redemption-common" class="auto internal xref">Section 6.2</a>
+and current RAS policy for the agent, client, tenant, and resource. A
+valid grant sets an authority ceiling; it does not require issuance.<a href="#section-6.5-2.5.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-6.5-2.6">
+            <p id="section-6.5-2.6.1"><strong>Output:</strong> Issue an access token under <a href="#access-token-response" class="auto internal xref">Section 6.6</a> and
 <a href="#access-token-protection" class="auto internal xref">Section 6.7</a>, with the local agent principal as <code>sub</code>
 and no <code>act</code>. The RAS <span class="bcp14">MUST NOT</span> issue a refresh token for a WAG
-redemption.<a href="#section-6.5-2.5.1" class="pilcrow">¶</a></p>
+redemption.<a href="#section-6.5-2.6.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
 </section>
@@ -6446,6 +6451,11 @@ last column is the required result. Token endpoint errors follow
                 <td class="text-left" rowspan="1" colspan="1">Governed agent access: the grant has no <code>cnf</code>, was redeemed once with a DPoP proof, and is presented again with a fresh proof by another key</td>
                 <td class="text-left" rowspan="1" colspan="1">RAS</td>
                 <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>invalid_grant</code>; an access-token proof does not make an unbound grant reusable (<a href="#redemption-common" class="auto internal xref">Section 6.2</a>)</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">Self-acting variant (<a href="#wag-example" class="auto internal xref">Appendix B.1.7</a>) under governed agent access: the WAG has no <code>cnf</code>, was redeemed once, and is presented again</td>
+                <td class="text-left" rowspan="1" colspan="1">RAS</td>
+                <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>invalid_grant</code>; an unbound WAG is single-use (<a href="#redemption-common" class="auto internal xref">Section 6.2</a>)</td>
               </tr>
               <tr>
                 <td class="text-left" rowspan="1" colspan="1">Delegated access token without <code>act</code>, presented to an API configured for the governed delegated population</td>

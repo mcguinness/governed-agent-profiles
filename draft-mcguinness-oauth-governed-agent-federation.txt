@@ -311,9 +311,8 @@ Table of Contents
 
    *  multi-agent delegation chains;
 
-   *  instance identification and propagation;
-
-   *  client attester endorsement; and
+   *  instance-level authorization and cross-domain propagation of
+      instance context; and
 
    *  enrollment or key-replacement protocols.
 
@@ -1436,7 +1435,11 @@ Table of Contents
       identifies the client, not the agent.
 
    Similar names, unqualified identifiers, or a shared signing key MUST
-   NOT establish identity equivalence.
+   NOT establish identity equivalence.  A client instance identifier
+   ([INSTANCE]) or another identifier of one execution MUST NOT select
+   or change the Agent Principal or satisfy a Client Association.  It
+   identifies an execution of the resolved client, not a governed
+   principal (Section 3.4).
 
    *Disabling:* An Identity Binding can be disabled independently of the
    Agent Principal and its other bindings.  A disabled binding MUST NOT
@@ -2170,6 +2173,14 @@ Table of Contents
    client MUST reject an output that does not satisfy its configured
    protection requirement.
 
+   *Instance context:* When the client authenticates at redemption with
+   a Client Attestation validated under [INSTANCE], the RAS MAY include
+   instance context for that presenting instance under Section 7 of
+   [INSTANCE].  The RAS MUST NOT copy or remap instance context from the
+   ID-JAG or WAG.  Instance context identifies an execution of the
+   client; it is not an actor, and it does not replace act, sub, or
+   client_id.
+
    Whether the response also carries a refresh token, and how that token
    is bound and used, follows Section 8.2.
 
@@ -2318,6 +2329,12 @@ Table of Contents
    requests rather than reuse an active response.  This narrows
    Section 4 of [RFC7662] so cached authorization cannot outlive an
    expiration unknown to the API.
+
+   *Instance context:* An API that uses instance context applies
+   Section 7.5 of [INSTANCE].  It MUST NOT treat instance context as
+   satisfying the actor gate or the agent's own permissions.
+   Attributing a request to an instance requires the sender constraint
+   of Section 7.3 of [INSTANCE].
 
 7.3.  Delegated Access
 
@@ -2787,46 +2804,55 @@ Table of Contents
    effect after the change is applied at the enforcing server; it
    defines no new propagation mechanism:
 
-   +================+=========================+=======================+
-   | Administrative | Effect on new           | Previously issued     |
-   | action         | authorization           | authority             |
-   +================+=========================+=======================+
-   | Terminate an   | Stops that execution;   | Credentials and       |
-   | execution      | does not disable the    | tokens remain subject |
-   |                | agent or its approved   | to their validation   |
-   |                | relationships           | and revocation rules  |
-   +----------------+-------------------------+-----------------------+
-   | Disable one    | No new grant through    | Grants and RAS tokens |
-   | Identity       | that binding; other     | continue until        |
-   | Binding at the | enabled bindings remain | separately revoked or |
-   | IdP            | usable with their own   | expired               |
-   |                | Client Associations     |                       |
-   +----------------+-------------------------+-----------------------+
-   | Remove a       | No new grant through    | Grants and RAS tokens |
-   | Client         | that permission; the    | continue until        |
-   | Association at | Identity Binding can    | separately revoked or |
-   | the IdP        | remain valid            | expired               |
-   +----------------+-------------------------+-----------------------+
-   | Disable the    | No new grant for that   | RAS issuance and      |
-   | Agent          | agent, regardless of    | refresh stop once the |
-   | Principal at   | binding or client       | RAS receives and      |
-   | the IdP        |                         | applies the change    |
-   +----------------+-------------------------+-----------------------+
-   | Withdraw the   | No new delegated grant  | RAS authorization can |
-   | user's         | for that delegation     | continue until        |
-   | delegation at  |                         | revocation is applied |
-   | the IdP        |                         | or its absolute       |
-   |                |                         | expiration            |
-   +----------------+-------------------------+-----------------------+
-   | Disable the    | No new access tokens or | API access stops when |
-   | local agent or | refresh for that        | its actor/user policy |
-   | user at the    | principal               | observes the change,  |
-   | RAS            |                         | introspection reports |
-   |                |                         | inactivity, or the    |
-   |                |                         | token expires         |
-   +----------------+-------------------------+-----------------------+
+   +================+==========================+=======================+
+   | Administrative | Effect on new            | Previously issued     |
+   | action         | authorization            | authority             |
+   +================+==========================+=======================+
+   | Terminate an   | Stops that               | Credentials and       |
+   | execution      | execution; does not      | tokens remain subject |
+   |                | disable the agent or     | to their validation   |
+   |                | its approved             | and revocation rules  |
+   |                | relationships            |                       |
+   +----------------+--------------------------+-----------------------+
+   | Suspend one    | That instance fails      | Revocation and        |
+   | client         | authentication where     | introspection follow  |
+   | instance       | the suspension is        | Section 6.3 of        |
+   | ([INSTANCE])   | enforced; the agent      | [INSTANCE]            |
+   |                | and its other            |                       |
+   |                | instances continue       |                       |
+   +----------------+--------------------------+-----------------------+
+   | Disable one    | No new grant through     | Grants and RAS tokens |
+   | Identity       | that binding; other      | continue until        |
+   | Binding at the | enabled bindings         | separately revoked or |
+   | IdP            | remain usable with       | expired               |
+   |                | their own Client         |                       |
+   |                | Associations             |                       |
+   +----------------+--------------------------+-----------------------+
+   | Remove a       | No new grant through     | Grants and RAS tokens |
+   | Client         | that permission; the     | continue until        |
+   | Association at | Identity Binding can     | separately revoked or |
+   | the IdP        | remain valid             | expired               |
+   +----------------+--------------------------+-----------------------+
+   | Disable the    | No new grant for         | RAS issuance and      |
+   | Agent          | that agent,              | refresh stop once the |
+   | Principal at   | regardless of            | RAS receives and      |
+   | the IdP        | binding or client        | applies the change    |
+   +----------------+--------------------------+-----------------------+
+   | Withdraw the   | No new delegated         | RAS authorization can |
+   | user's         | grant for that           | continue until        |
+   | delegation at  | delegation               | revocation is applied |
+   | the IdP        |                          | or its absolute       |
+   |                |                          | expiration            |
+   +----------------+--------------------------+-----------------------+
+   | Disable the    | No new access tokens     | API access stops when |
+   | local agent or | or refresh for that      | its actor/user policy |
+   | user at the    | principal                | observes the change,  |
+   | RAS            |                          | introspection reports |
+   |                |                          | inactivity, or the    |
+   |                |                          | token expires         |
+   +----------------+--------------------------+-----------------------+
 
-               Table 23: Effects of administrative changes
+                Table 23: Effects of administrative changes
 
    The RAS requirements for applied changes are in Section 8.3.  The
    provisioning that feeds them is a deployment choice.
@@ -2866,6 +2892,10 @@ Table of Contents
    agent acts for a user.  The mapping in Section 5.6.4 keeps external
    workload identifiers out of the ID-JAG.  This profile does not define
    pairwise actor translation.
+
+   Instance context adds correlation of individual executions.  Its
+   identifiers are scoped per receiver and per consumer under Section 10
+   of [INSTANCE].
 
 12.  IANA Considerations
 
@@ -2942,6 +2972,20 @@ Table of Contents
               based-client-auth-11, 3 September 2026,
               <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
               attestation-based-client-auth-11>.
+
+   [INSTANCE] McGuinness, K., "Client Instance Identification for
+              Attestation-Based Client Authentication", Work in
+              Progress, Internet-Draft, draft-mcguinness-oauth-client-
+              instance-id-00, 28 September 2026,
+              <https://datatracker.ietf.org/doc/html/draft-mcguinness-
+              oauth-client-instance-id-00>.
+
+   [ATTESTER-ENDORSEMENT]
+              McGuinness, K., "OAuth 2.0 Client Attester Endorsement",
+              Work in Progress, Internet-Draft, draft-mcguinness-oauth-
+              client-attesters-00, 28 September 2026,
+              <https://datatracker.ietf.org/doc/html/draft-mcguinness-
+              oauth-client-attesters-00>.
 
    [ACTOR-PROFILE]
               McGuinness, K., "OAuth Actor Profile for Delegation", Work
@@ -3112,22 +3156,6 @@ Table of Contents
               AgentCore Identity", n.d., <https://docs.aws.amazon.com/
               bedrock-agentcore/latest/devguide/on-behalf-of-token-
               exchange.html>.
-
-   [INSTANCE] McGuinness, K., "Client Instance Identification for
-              Attestation-Based Client Authentication", Work in
-              Progress, Internet-Draft, draft-mcguinness-oauth-client-
-              instance-id, 15 September 2026,
-              <https://mcguinness.github.io/draft-mcguinness-oauth-
-              client-instance-id/draft-mcguinness-oauth-client-instance-
-              id.html>.
-
-   [ATTESTER-ENDORSEMENT]
-              McGuinness, K., "OAuth 2.0 Client Attester Endorsement",
-              Work in Progress, Internet-Draft, draft-mcguinness-oauth-
-              client-attesters, 15 September 2026,
-              <https://mcguinness.github.io/draft-mcguinness-oauth-
-              client-attesters/draft-mcguinness-oauth-client-
-              attesters.html>.
 
    [ICA]      McGuinness, K. and A. Parecki, "Identity Continuation
               Assertion for OAuth 2.0 Token Exchange", Work in Progress,
@@ -3396,13 +3424,13 @@ A.2.2.  Client Attestation
 
    This OPTIONAL input maps the attested OAuth client identity
    explicitly to one Agent Principal.  It relies on a trusted attester's
-   endorsement of the client identity and confirmation key, not a
+   attestation of the client identity and confirmation key, not a
    registered client key.  It establishes runtime or workload provenance
    only as far as verified attestation claims and the attester's trusted
    issuance policy support.  It does not distinguish agents behind a
    shared client.  Those agents need distinct workload evidence, such as
-   a JWT-SVID or platform JWT.  Instance-based resolution and attester
-   endorsement are deferred (Appendix C.2.4).
+   a JWT-SVID or platform JWT.  A client instance identifier does not
+   resolve the agent (Section 5.3.4).
 
    *  *Presentation:* Client authentication with the configured [ATTEST]
       method.
@@ -3413,6 +3441,15 @@ A.2.2.  Client Attestation
       configured attester-to-client associations.  An iss, when present,
       MUST match that attester.
 
+   *  *Attester endorsement:* The IdP MAY derive the attester-to-client
+      association from an endorsement it accepts under Section 2.1 of
+      [ATTESTER-ENDORSEMENT].  An endorsement MUST NOT create or change
+      an Identity Binding or Client Association.  Because the binding
+      names the attester, a newly endorsed attester resolves no Agent
+      Principal until an Identity Binding names it.  An endorsement
+      accepted under that policy is not client metadata acting by itself
+      (Section 3.2).
+
    *  *Resolution:* The IdP MUST resolve the trusted attester and the
       validated sub through an approved Identity Binding
       (Section 5.3.4).
@@ -3422,6 +3459,13 @@ A.2.2.  Client Attestation
       allowance in Section 5.2 of [ATTEST] for a separate DPoP key.
       With attest_jwt_client_auth_dpop, one DPoP proof serves both
       roles.  Key retention follows Appendix A.2.4.
+
+   With [INSTANCE], instance keys differ per receiver scope (Section 4.1
+   of [INSTANCE]).  A bound grant carries the IdP-scoped key.  A client
+   that also authenticates to the RAS with a Client Attestation
+   therefore uses attest_jwt_client_auth there and proves the grant key
+   with a separate DPoP proof, unless the IdP and RAS share a receiver
+   scope.
 
 A.2.3.  SPIFFE WIT-SVID and X.509-SVID Resolution
 
@@ -4044,9 +4088,8 @@ Appendix C.  Dependencies and Deferred Work
 
    This informative appendix records dependencies and deferred work.
    They were assessed against WAG-01, ID-JAG-04, ICA-02, Actor Profile-
-   00, SPIFFE OAuth-02, ATTEST-11, WIT-02, CIMD-02, and the current
-   drafts of Client Instance Identification and Client Attester
-   Endorsement.
+   00, SPIFFE OAuth-02, ATTEST-11, WIT-02, CIMD-02, Client Instance
+   Identification-00, and Client Attester Endorsement-00.
 
 C.1.  Upstream Dependencies
 
@@ -4133,36 +4176,34 @@ C.2.4.  Excluded Compositions
 
    This document does not define the following compositions:
 
-   +==========================+========================================+
-   | Composition              | Boundary in this document              |
-   +==========================+========================================+
-   | Asynchronous approval    | External approval follows              |
-   | with [AROP]              | Section 10.6, Section 3.6.3, and       |
-   |                          | Section 5.4                            |
-   +--------------------------+----------------------------------------+
-   | Continuation with        | Renewal follows Section 8              |
-   | [ICA]                    |                                        |
-   +--------------------------+----------------------------------------+
-   | General WIMSE WIT/WIC    | Only the SPIFFE forms in               |
-   | inputs                   | Appendix A.2.3 are defined             |
-   +--------------------------+----------------------------------------+
-   | Instance-based           | Workload evidence resolves the agent   |
-   | resolution or instance   | without a per-instance protocol;       |
-   | context under            | shared workload identity does not      |
-   | [INSTANCE]               | distinguish replicas [SPIFFE-CONCEPTS] |
-   +--------------------------+----------------------------------------+
-   | Attester endorsement     | Attester trust is configured           |
-   | under                    | (Appendix A.2.2)                       |
-   | [ATTESTER-ENDORSEMENT]   |                                        |
-   +--------------------------+----------------------------------------+
-   | Mutual-TLS-bound ID-     | Bound grants use DPoP; mutual TLS can  |
-   | JAG                      | protect access tokens (Section 6.7)    |
-   +--------------------------+----------------------------------------+
-   | Authorization details    | Scope is required; the scope-free mode |
-   | without scope            | of [RFC9396] is not defined            |
-   +--------------------------+----------------------------------------+
+      +===================+========================================+
+      | Composition       | Boundary in this document              |
+      +===================+========================================+
+      | Asynchronous      | External approval follows              |
+      | approval with     | Section 10.6, Section 3.6.3, and       |
+      | [AROP]            | Section 5.4                            |
+      +-------------------+----------------------------------------+
+      | Continuation with | Renewal follows Section 8              |
+      | [ICA]             |                                        |
+      +-------------------+----------------------------------------+
+      | General WIMSE     | Only the SPIFFE forms in               |
+      | WIT/WIC inputs    | Appendix A.2.3 are defined             |
+      +-------------------+----------------------------------------+
+      | Instance context  | The RAS conveys only an instance it    |
+      | in an ID-JAG or   | validated (Section 6.6); workload      |
+      | WAG, or preserved | evidence resolves the agent, and a     |
+      | across domains,   | shared workload identity does not      |
+      | under [INSTANCE]  | distinguish replicas [SPIFFE-CONCEPTS] |
+      +-------------------+----------------------------------------+
+      | Mutual-TLS-bound  | Bound grants use DPoP; mutual TLS can  |
+      | ID-JAG            | protect access tokens (Section 6.7)    |
+      +-------------------+----------------------------------------+
+      | Authorization     | Scope is required; the scope-free mode |
+      | details without   | of [RFC9396] is not defined            |
+      | scope             |                                        |
+      +-------------------+----------------------------------------+
 
-                      Table 30: Excluded compositions
+                     Table 30: Excluded compositions
 
 C.3.  Operational Dependencies
 

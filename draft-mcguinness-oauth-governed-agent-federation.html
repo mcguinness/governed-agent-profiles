@@ -1744,13 +1744,11 @@ IdP's namespace is out of scope. Also out of scope (<a href="#upstream-gaps" cla
           <p id="section-1-14.5.1">multi-agent delegation chains;<a href="#section-1-14.5.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-1-14.6">
-          <p id="section-1-14.6.1">instance identification and propagation;<a href="#section-1-14.6.1" class="pilcrow">¶</a></p>
+          <p id="section-1-14.6.1">instance-level authorization and cross-domain propagation of
+instance context; and<a href="#section-1-14.6.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-1-14.7">
-          <p id="section-1-14.7.1">client attester endorsement; and<a href="#section-1-14.7.1" class="pilcrow">¶</a></p>
-</li>
-        <li class="normal" id="section-1-14.8">
-          <p id="section-1-14.8.1">enrollment or key-replacement protocols.<a href="#section-1-14.8.1" class="pilcrow">¶</a></p>
+          <p id="section-1-14.7.1">enrollment or key-replacement protocols.<a href="#section-1-14.7.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 <p id="section-1-15">This document is organized by protocol stage. <a href="#model" class="auto internal xref">Section 3</a> and
@@ -3222,7 +3220,11 @@ prefix match. A client identifier, including a <span>[<a href="#CIMD" class="cit
 identifies the client, not the agent.<a href="#section-5.3.4-2.2.1" class="pilcrow">¶</a></p>
 </li>
           </ul>
-<p id="section-5.3.4-3">Similar names, unqualified identifiers, or a shared signing key <span class="bcp14">MUST NOT</span> establish identity equivalence.<a href="#section-5.3.4-3" class="pilcrow">¶</a></p>
+<p id="section-5.3.4-3">Similar names, unqualified identifiers, or a shared signing key <span class="bcp14">MUST NOT</span> establish identity equivalence. A client instance identifier
+(<span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>) or another identifier of one execution <span class="bcp14">MUST NOT</span> select or
+change the Agent Principal or satisfy a Client Association. It
+identifies an execution of the resolved client, not a governed principal
+(<a href="#governance-boundary" class="auto internal xref">Section 3.4</a>).<a href="#section-5.3.4-3" class="pilcrow">¶</a></p>
 <p id="section-5.3.4-4"><strong>Disabling:</strong> An Identity Binding can be disabled independently of the
 Agent Principal and its other bindings. A disabled binding <span class="bcp14">MUST NOT</span>
 authorize new grant issuance. Disabling a binding does not itself revoke
@@ -4306,8 +4308,15 @@ limit.<a href="#section-6.6-2.6.1" class="pilcrow">¶</a></p>
 <p id="section-6.6-3"><strong>Response:</strong> The response follows <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04#section-4.4.2" class="relref">Section 4.4.2</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>. The
 client <span class="bcp14">MUST</span> reject an output that does not satisfy its configured
 protection requirement.<a href="#section-6.6-3" class="pilcrow">¶</a></p>
-<p id="section-6.6-4">Whether the response also carries a refresh token, and how that token
-is bound and used, follows <a href="#ras-refresh" class="auto internal xref">Section 8.2</a>.<a href="#section-6.6-4" class="pilcrow">¶</a></p>
+<p id="section-6.6-4"><strong>Instance context:</strong> When the client authenticates at redemption with a
+Client Attestation validated under <span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>, the RAS <span class="bcp14">MAY</span> include
+instance context for that presenting instance under
+<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-00#section-7" class="relref">Section 7</a> of [<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>. The RAS <span class="bcp14">MUST NOT</span> copy or remap instance
+context from the ID-JAG or WAG. Instance context identifies an execution
+of the client; it is not an actor, and it does not replace <code>act</code>, <code>sub</code>,
+or <code>client_id</code>.<a href="#section-6.6-4" class="pilcrow">¶</a></p>
+<p id="section-6.6-5">Whether the response also carries a refresh token, and how that token
+is bound and used, follows <a href="#ras-refresh" class="auto internal xref">Section 8.2</a>.<a href="#section-6.6-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="access-token-protection">
@@ -4523,6 +4532,11 @@ policy. Without <code>exp</code>, the API <span class="bcp14">MUST</span> intros
 requests rather than reuse an active response. This narrows
 <span><a href="https://rfc-editor.org/rfc/rfc7662#section-4" class="relref">Section 4</a> of [<a href="#RFC7662" class="cite xref">RFC7662</a>]</span> so cached authorization cannot outlive an
 expiration unknown to the API.<a href="#section-7.2-3" class="pilcrow">¶</a></p>
+<p id="section-7.2-4"><strong>Instance context:</strong> An API that uses instance context applies
+<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-00#section-7.5" class="relref">Section 7.5</a> of [<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>. It <span class="bcp14">MUST NOT</span> treat instance context as
+satisfying the actor gate or the agent's own permissions. Attributing a
+request to an instance requires the sender constraint of
+<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-00#section-7.3" class="relref">Section 7.3</a> of [<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>.<a href="#section-7.2-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="api-delegated">
@@ -5137,6 +5151,12 @@ propagation mechanism:<a href="#section-10.5-4" class="pilcrow">¶</a></p>
               <td class="text-left" rowspan="1" colspan="1">Credentials and tokens remain subject to their validation and revocation rules</td>
             </tr>
             <tr>
+              <td class="text-left" rowspan="1" colspan="1">Suspend one client instance (<span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>)</td>
+              <td class="text-left" rowspan="1" colspan="1">That instance fails authentication where the suspension is enforced; the agent and its other instances continue</td>
+              <td class="text-left" rowspan="1" colspan="1">Revocation and introspection follow <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-00#section-6.3" class="relref">Section 6.3</a> of [<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>
+</td>
+            </tr>
+            <tr>
               <td class="text-left" rowspan="1" colspan="1">Disable one Identity Binding at the IdP</td>
               <td class="text-left" rowspan="1" colspan="1">No new grant through that binding; other enabled bindings remain usable with their own Client Associations</td>
               <td class="text-left" rowspan="1" colspan="1">Grants and RAS tokens continue until separately revoked or expired</td>
@@ -5209,6 +5229,9 @@ authorized purpose. User and agent context remain separate when the
 agent acts for a user. The mapping in <a href="#actor-construction" class="auto internal xref">Section 5.6.4</a> keeps
 external workload identifiers out of the ID-JAG. This profile does not
 define pairwise actor translation.<a href="#section-11-2" class="pilcrow">¶</a></p>
+<p id="section-11-3">Instance context adds correlation of individual executions. Its
+identifiers are scoped per receiver and per consumer under
+<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-00#section-10" class="relref">Section 10</a> of [<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>.<a href="#section-11-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="iana">
@@ -5316,6 +5339,14 @@ coordination (<a href="#wag-gaps" class="auto internal xref">Appendix C.1.1</a>)
 <dt id="ATTEST">[ATTEST]</dt>
         <dd>
 <span class="refAuthor">Looker, T.</span>, <span class="refAuthor">Bastian, P.</span>, and <span class="refAuthor">C. Bormann</span>, <span class="refTitle">"OAuth 2.0 Attestation-Based Client Authentication"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-attestation-based-client-auth-11</span>, <time datetime="2026-09-03" class="refDate">3 September 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="INSTANCE">[INSTANCE]</dt>
+        <dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Client Instance Identification for Attestation-Based Client Authentication"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-client-instance-id-00</span>, <time datetime="2026-09-28" class="refDate">28 September 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-00">https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-00</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="ATTESTER-ENDORSEMENT">[ATTESTER-ENDORSEMENT]</dt>
+        <dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Client Attester Endorsement"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-client-attesters-00</span>, <time datetime="2026-09-28" class="refDate">28 September 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-attesters-00">https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-attesters-00</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="ACTOR-PROFILE">[ACTOR-PROFILE]</dt>
         <dd>
@@ -5451,14 +5482,6 @@ coordination (<a href="#wag-gaps" class="auto internal xref">Appendix C.1.1</a>)
 <dt id="AWS-AGENTCORE-OBO">[AWS-AGENTCORE-OBO]</dt>
         <dd>
 <span class="refAuthor">Amazon Web Services</span>, <span class="refTitle">"On-behalf-of token exchange with AgentCore Identity"</span>, <span>n.d.</span>, <span>&lt;<a href="https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/on-behalf-of-token-exchange.html">https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/on-behalf-of-token-exchange.html</a>&gt;</span>. </dd>
-<dd class="break"></dd>
-<dt id="INSTANCE">[INSTANCE]</dt>
-        <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Client Instance Identification for Attestation-Based Client Authentication"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-client-instance-id</span>, <time datetime="2026-09-15" class="refDate">15 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-id/draft-mcguinness-oauth-client-instance-id.html">https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-id/draft-mcguinness-oauth-client-instance-id.html</a>&gt;</span>. </dd>
-<dd class="break"></dd>
-<dt id="ATTESTER-ENDORSEMENT">[ATTESTER-ENDORSEMENT]</dt>
-        <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Client Attester Endorsement"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-client-attesters</span>, <time datetime="2026-09-15" class="refDate">15 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/draft-mcguinness-oauth-client-attesters/draft-mcguinness-oauth-client-attesters.html">https://mcguinness.github.io/draft-mcguinness-oauth-client-attesters/draft-mcguinness-oauth-client-attesters.html</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="ICA">[ICA]</dt>
         <dd>
@@ -5808,14 +5831,13 @@ this input rather than treat DPoP as that proof
 <a href="#appendix-A.2.2" class="section-number selfRef">A.2.2. </a><a href="#name-client-attestation" class="section-name selfRef">Client Attestation</a>
           </h4>
 <p id="appendix-A.2.2-1">This <span class="bcp14">OPTIONAL</span> input maps the attested OAuth client identity explicitly
-to one Agent Principal. It relies on a trusted attester's endorsement of
+to one Agent Principal. It relies on a trusted attester's attestation of
 the client identity and confirmation key, not a registered client key.
 It establishes runtime or workload provenance only as far as verified
 attestation claims and the attester's trusted issuance policy support.
 It does not distinguish agents behind a shared client. Those agents need
-distinct workload evidence, such as a JWT-SVID or platform JWT.
-Instance-based resolution and attester endorsement are deferred
-(<a href="#excluded-compositions" class="auto internal xref">Appendix C.2.4</a>).<a href="#appendix-A.2.2-1" class="pilcrow">¶</a></p>
+distinct workload evidence, such as a JWT-SVID or platform JWT. A client
+instance identifier does not resolve the agent (<a href="#identity-binding" class="auto internal xref">Section 5.3.4</a>).<a href="#appendix-A.2.2-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="appendix-A.2.2-2.1">
               <p id="appendix-A.2.2-2.1.1"><strong>Presentation:</strong> Client authentication with the configured <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span>
@@ -5829,18 +5851,34 @@ attester-to-client associations. An <code>iss</code>, when present, <span class=
 that attester.<a href="#appendix-A.2.2-2.2.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="appendix-A.2.2-2.3">
-              <p id="appendix-A.2.2-2.3.1"><strong>Resolution:</strong> The IdP <span class="bcp14">MUST</span> resolve the trusted attester and the
-validated <code>sub</code> through an approved Identity Binding
-(<a href="#identity-binding" class="auto internal xref">Section 5.3.4</a>).<a href="#appendix-A.2.2-2.3.1" class="pilcrow">¶</a></p>
+              <p id="appendix-A.2.2-2.3.1"><strong>Attester endorsement:</strong> The IdP <span class="bcp14">MAY</span> derive the attester-to-client
+association from an endorsement it accepts under
+<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-attesters-00#section-2.1" class="relref">Section 2.1</a> of [<a href="#ATTESTER-ENDORSEMENT" class="cite xref">ATTESTER-ENDORSEMENT</a>]</span>. An endorsement <span class="bcp14">MUST NOT</span>
+create or change an Identity Binding or Client Association. Because
+the binding names the attester, a newly endorsed attester resolves no
+Agent Principal until an Identity Binding names it. An endorsement
+accepted under that policy is not client metadata acting by itself
+(<a href="#inputs" class="auto internal xref">Section 3.2</a>).<a href="#appendix-A.2.2-2.3.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="appendix-A.2.2-2.4">
-              <p id="appendix-A.2.2-2.4.1"><strong>Proof:</strong> With <code>attest_jwt_client_auth</code>, any grant proof key <span class="bcp14">MUST</span>
+              <p id="appendix-A.2.2-2.4.1"><strong>Resolution:</strong> The IdP <span class="bcp14">MUST</span> resolve the trusted attester and the
+validated <code>sub</code> through an approved Identity Binding
+(<a href="#identity-binding" class="auto internal xref">Section 5.3.4</a>).<a href="#appendix-A.2.2-2.4.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="appendix-A.2.2-2.5">
+              <p id="appendix-A.2.2-2.5.1"><strong>Proof:</strong> With <code>attest_jwt_client_auth</code>, any grant proof key <span class="bcp14">MUST</span>
 match the attestation's confirmation key. This narrows the allowance
 in <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-5.2" class="relref">Section 5.2</a> of [<a href="#ATTEST" class="cite xref">ATTEST</a>]</span> for a separate DPoP key. With
 <code>attest_jwt_client_auth_dpop</code>, one DPoP proof serves both roles. Key
-retention follows <a href="#resolution-key-lifecycle" class="auto internal xref">Appendix A.2.4</a>.<a href="#appendix-A.2.2-2.4.1" class="pilcrow">¶</a></p>
+retention follows <a href="#resolution-key-lifecycle" class="auto internal xref">Appendix A.2.4</a>.<a href="#appendix-A.2.2-2.5.1" class="pilcrow">¶</a></p>
 </li>
           </ul>
+<p id="appendix-A.2.2-3">With <span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>, instance keys differ per receiver scope
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-00#section-4.1" class="relref">Section 4.1</a> of [<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>). A bound grant carries the IdP-scoped key.
+A client that also authenticates to the RAS with a Client Attestation
+therefore uses <code>attest_jwt_client_auth</code> there and proves the grant key
+with a separate DPoP proof, unless the IdP and RAS share a receiver
+scope.<a href="#appendix-A.2.2-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="spiffe-input">
@@ -6677,8 +6715,8 @@ of this document (<a href="#access-token-subject-gap" class="auto internal xref"
       </h2>
 <p id="appendix-C-1">This informative appendix records dependencies and deferred work. They
 were assessed against WAG-01, ID-JAG-04, ICA-02, Actor Profile-00,
-SPIFFE OAuth-02, ATTEST-11, WIT-02, CIMD-02, and the current drafts of
-Client Instance Identification and Client Attester Endorsement.<a href="#appendix-C-1" class="pilcrow">¶</a></p>
+SPIFFE OAuth-02, ATTEST-11, WIT-02, CIMD-02, Client Instance
+Identification-00, and Client Attester Endorsement-00.<a href="#appendix-C-1" class="pilcrow">¶</a></p>
 <div id="upstream-dependencies">
 <section id="appendix-C.1">
         <h3 id="name-upstream-dependencies">
@@ -6843,15 +6881,10 @@ with ID-JAG, not only a new <code>subject_token_type</code>.<a href="#appendix-C
                 <td class="text-left" rowspan="1" colspan="1">Only the SPIFFE forms in <a href="#spiffe-input" class="auto internal xref">Appendix A.2.3</a> are defined</td>
               </tr>
               <tr>
-                <td class="text-left" rowspan="1" colspan="1">Instance-based resolution or instance context under <span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>
+                <td class="text-left" rowspan="1" colspan="1">Instance context in an ID-JAG or WAG, or preserved across domains, under <span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>
 </td>
-                <td class="text-left" rowspan="1" colspan="1">Workload evidence resolves the agent without a per-instance protocol; shared workload identity does not distinguish replicas <span>[<a href="#SPIFFE-CONCEPTS" class="cite xref">SPIFFE-CONCEPTS</a>]</span>
+                <td class="text-left" rowspan="1" colspan="1">The RAS conveys only an instance it validated (<a href="#access-token-response" class="auto internal xref">Section 6.6</a>); workload evidence resolves the agent, and a shared workload identity does not distinguish replicas <span>[<a href="#SPIFFE-CONCEPTS" class="cite xref">SPIFFE-CONCEPTS</a>]</span>
 </td>
-              </tr>
-              <tr>
-                <td class="text-left" rowspan="1" colspan="1">Attester endorsement under <span>[<a href="#ATTESTER-ENDORSEMENT" class="cite xref">ATTESTER-ENDORSEMENT</a>]</span>
-</td>
-                <td class="text-left" rowspan="1" colspan="1">Attester trust is configured (<a href="#agent-evidence" class="auto internal xref">Appendix A.2.2</a>)</td>
               </tr>
               <tr>
                 <td class="text-left" rowspan="1" colspan="1">Mutual-TLS-bound ID-JAG</td>

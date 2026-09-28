@@ -1711,25 +1711,40 @@ server policy.<a href="#section-4.2-4" class="pilcrow">¶</a></p>
         </table>
 <p id="section-4.2-6">Multi-valued attributes use arrays of strings, preserving the OAuth
 metadata representation rather than adding SCIM complex-value wrappers.
+The exception is <code>client_attesters</code>, below.
 SCIM attribute-name matching is case-insensitive; values use their OAuth
 comparison rules. Responses <span class="bcp14">SHOULD</span> use the spelling in this table.<a href="#section-4.2-6" class="pilcrow">¶</a></p>
-<p id="section-4.2-7">For locally managed metadata, creation <span class="bcp14">MUST</span> explicitly supply
+<p id="section-4.2-7">The optional <code>client_attesters</code> attribute carries Client Attester
+Endorsements (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-attesters-00#section-3" class="relref">Section 3</a> of [<a href="#ATTESTER-ENDORSEMENT" class="cite xref">ATTESTER-ENDORSEMENT</a>]</span>). It is a
+multi-valued complex attribute whose values are the endorsement objects,
+with the required sub-attributes <code>issuer</code> and <code>jwks_uri</code> as that section
+defines them. The Service Provider <span class="bcp14">MUST</span> accept a <code>client_attesters</code>
+value only from a provisioning client authorized to set endorsements for
+that client (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-attesters-00#section-2.2" class="relref">Section 2.2</a> of [<a href="#ATTESTER-ENDORSEMENT" class="cite xref">ATTESTER-ENDORSEMENT</a>]</span>), including when a
+request replaces or removes the attribute; authority to manage the
+registration alone does not suffice. An unauthorized change receives
+<code>403</code>. A malformed endorsement (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-attesters-00#section-3" class="relref">Section 3</a> of [<a href="#ATTESTER-ENDORSEMENT" class="cite xref">ATTESTER-ENDORSEMENT</a>]</span>),
+or one the Service Provider's policy does not accept, receives <code>400</code>
+with <code>invalidValue</code>. In either case the request fails and the stored
+resource is unchanged (<a href="#errors" class="auto internal xref">Section 5.4</a>). A CIMD resource carries no
+<code>client_attesters</code>; its endorsements come from the document.<a href="#section-4.2-7" class="pilcrow">¶</a></p>
+<p id="section-4.2-8">For locally managed metadata, creation <span class="bcp14">MUST</span> explicitly supply
 <code>token_endpoint_auth_method</code> and a non-empty <code>grant_types</code>. This profile
 therefore does not apply RFC 7591's omission defaults for those
 attributes. For flows using the authorization endpoint, the request <span class="bcp14">MUST</span>
 also supply the required <code>response_types</code> and <code>redirect_uris</code>. For other
 flows, omission of <code>response_types</code> means no authorization-endpoint
 response is enabled. These are explicit profile narrowings, not changes
-to RFC 7591 endpoints.<a href="#section-4.2-7" class="pilcrow">¶</a></p>
-<p id="section-4.2-8">The Service Provider <span class="bcp14">MUST</span> validate the effective registration against
+to RFC 7591 endpoints.<a href="#section-4.2-8" class="pilcrow">¶</a></p>
+<p id="section-4.2-9">The Service Provider <span class="bcp14">MUST</span> validate the effective registration against
 <span>[<a href="#RFC7591" class="cite xref">RFC7591</a>]</span>, applicable grant and authentication profiles, and OAuth
 security requirements in <span>[<a href="#RFC9700" class="cite xref">RFC9700</a>]</span>. Registration does not enable a grant
 or response type prohibited by those requirements. An inactive resource
-is not permission to store an invalid registration.<a href="#section-4.2-8" class="pilcrow">¶</a></p>
-<p id="section-4.2-9">Accepted metadata is the authoritative configuration returned by the
+is not permission to store an invalid registration.<a href="#section-4.2-9" class="pilcrow">¶</a></p>
+<p id="section-4.2-10">Accepted metadata is the authoritative configuration returned by the
 server. A provisioning client <span class="bcp14">MUST</span> inspect that configuration before
 relying on requested capabilities. Registration <code>scope</code> does not itself
-supply user consent, delegation, or resource authorization.<a href="#section-4.2-9" class="pilcrow">¶</a></p>
+supply user consent, delegation, or resource authorization.<a href="#section-4.2-10" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="cimd">
@@ -2157,7 +2172,7 @@ requires Expert Review and RFC publication under <span><a href="https://rfc-edit
 </li>
           <li class="normal" id="section-9.2-1.6">
             <p id="section-9.2-1.6.1">Multi-valued Attributes: <code>grant_types</code>, <code>response_types</code>, <code>redirect_uris</code>,
-and <code>contacts</code>, defined in <a href="#metadata" class="auto internal xref">Section 4.2</a>.<a href="#section-9.2-1.6.1" class="pilcrow">¶</a></p>
+<code>contacts</code>, and <code>client_attesters</code>, defined in <a href="#metadata" class="auto internal xref">Section 4.2</a>.<a href="#section-9.2-1.6.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 <p id="section-9.2-2">No OAuth client metadata, token-endpoint authentication method, or event
@@ -2177,6 +2192,10 @@ type is registered by this document.<a href="#section-9.2-2" class="pilcrow">¶<
 <a href="#section-10.1" class="section-number selfRef">10.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
         </h3>
 <dl class="references">
+<dt id="ATTESTER-ENDORSEMENT">[ATTESTER-ENDORSEMENT]</dt>
+        <dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Client Attester Endorsement"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-client-attesters-00</span>, <time datetime="2026-09-28" class="refDate">28 September 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-attesters-00">https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-attesters-00</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="CIMD">[CIMD]</dt>
         <dd>
 <span class="refAuthor">Parecki, A.</span> and <span class="refAuthor">E. Smith</span>, <span class="refTitle">"OAuth Client ID Metadata Document"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-client-id-metadata-document-02</span>, <time datetime="2026-07-06" class="refDate">6 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-02">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-02</a>&gt;</span>. </dd>
@@ -2728,6 +2747,40 @@ applicable even though ResourceType marks the extension optional.<a href="#appen
       "returned": "default",
       "caseExact": true,
       "uniqueness": "none"
+    },
+    {
+      "name": "client_attesters",
+      "description": "Client Attester Endorsements.",
+      "type": "complex",
+      "multiValued": true,
+      "required": false,
+      "mutability": "readWrite",
+      "returned": "default",
+      "uniqueness": "none",
+      "subAttributes": [
+        {
+          "name": "issuer",
+          "description": "Exact iss value of the endorsed attester.",
+          "type": "string",
+          "multiValued": false,
+          "required": true,
+          "mutability": "readWrite",
+          "returned": "default",
+          "caseExact": true,
+          "uniqueness": "none"
+        },
+        {
+          "name": "jwks_uri",
+          "description": "URL of the endorsed attester's JWK Set.",
+          "type": "string",
+          "multiValued": false,
+          "required": true,
+          "mutability": "readWrite",
+          "returned": "default",
+          "caseExact": true,
+          "uniqueness": "none"
+        }
+      ]
     }
   ]
 }

@@ -21,7 +21,7 @@ Endorsement.
 |---|---|---|
 | WAG | Registration of the WAG token type and JWT type, and alignment on protection, linking, and subject presentation (`wag-gaps`) | The WAG token type and JWT type remain provisional values |
 | ID-JAG | Bound-grant example aligned with the normative `jwt-bearer` grant type, and grant-confirmation errors separated from RFC 9449 proof errors (`bound-grant-coordination`) | Confirmation checks are applied to `jwt-bearer` here |
-| Actor Profile | A reusable principal-resolution extension point separating credential validation, identity mapping, and actor construction | The mapping is defined locally in `actor-construction` |
+| Actor Profile | A reusable principal-resolution extension point separating credential validation, identity mapping, and actor construction; alignment with ID-JAG on re-redeeming an unbound grant that carries `act` (below) | The mapping is defined locally in `actor-construction`; an unbound governed ID-JAG redeems once |
 
 #### WAG
 
@@ -73,6 +73,23 @@ Section 4.4 of ID-JAG requires `jwt-bearer` while its bound-grant example
 uses `jwt-dpop`. This profile follows the normative grant type with
 explicit confirmation processing (`redemption`) and takes no
 dependency on JWT DPoP Grant.
+
+#### ID-JAG Re-redemption
+
+Section 4.4.3 of ID-JAG lets a client re-submit an unexpired ID-JAG for
+a new access token in place of a refresh token. Section 4.2 of
+ACTOR-PROFILE requires an authorization server to reject an assertion
+carrying `act` whose `jti` it has already accepted, when redemption
+requires neither DPoP nor mutual TLS; for sender-constrained grants,
+that check is only a SHOULD. A governed ID-JAG always carries `act`,
+so an unbound one redeems once, while a bound one can be re-submitted
+unless the RAS applies the optional check. The renewal table in
+`continuing-access` states this.
+
+Decision pending: keep Actor Profile's single-use rule for unbound
+grants, or relax it in Actor Profile, for example where the client is
+authenticated as the grant's `client_id`, so that unbound governed
+grants can be re-submitted as ID-JAG allows.
 
 #### Resolution from Authentication Context
 

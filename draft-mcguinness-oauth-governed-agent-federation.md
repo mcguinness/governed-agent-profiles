@@ -769,9 +769,9 @@ credentials.
 Unless explicitly limited to bound grants or a named profile, the
 requirements of this document apply to both governed adoption profiles.
 Conformance claims MUST identify the supported profile by its URI
-({{metadata}}), the realization, the implemented role, and supported
-inputs. An implementation supports delegated access, self-acting
-access, or both.
+({{metadata}}), the realization, the implemented role, supported inputs,
+and any claim of generic shared-client interoperability. An
+implementation supports delegated access, self-acting access, or both.
 
 The IdP, RAS, and client MUST implement their respective
 requirements in:
@@ -795,14 +795,14 @@ Each realization has this mandatory interoperability path:
   for self-acting access.
 
 The inputs of {{optional-input-profiles}}, existing platform JWTs, SAML
-subjects, and IdP refresh-token subjects are OPTIONAL capabilities,
-except that:
-
-* An IdP that accepts any agent-resolution input other than
-  dedicated-client identity MUST also support the existing platform JWT
-  input ({{imported-jwt-input}}).
-* A client that relies on a shared client identity MUST be able to
-  present the existing platform JWT input.
+subjects, and IdP refresh-token subjects are OPTIONAL capabilities.
+Claiming an input requires that input's rules, not support for another
+input. An implementation that claims generic shared-client
+interoperability MUST support the existing platform JWT input
+({{imported-jwt-input}}): an IdP by accepting it, and a client by
+presenting it. Implementations that support only different native
+inputs do not interoperate on a shared client, and their conformance
+claims show this.
 
 ID-JAG requires support for Identity Assertions
 ({{Section 4.3 of ID-JAG}}). Requiring ID Token subjects specifically
@@ -2372,7 +2372,8 @@ mode.
 
 This normative appendix defines the two inputs that {{scope}}
 requires: dedicated-client identity, mandatory to implement, and the
-existing platform JWT, required for shared-client support. Each
+existing platform JWT, required for a claim of generic shared-client
+interoperability. Each
 satisfies the interface contract of {{evidence}}.
 
 ### Dedicated Client Identity {#client-assertion-input}

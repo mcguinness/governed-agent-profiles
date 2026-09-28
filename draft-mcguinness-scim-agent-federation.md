@@ -40,6 +40,7 @@ normative:
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-federation
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
+  INSTANCE: I-D.mcguinness-oauth-client-instance-id
   SCIM-AGENT: I-D.wzdk-scim-agent-resource
   RFC7643:
   RFC7644:
@@ -352,6 +353,8 @@ representation applies. Its schema URI is:
 | `sourceAuthority` | string | Approved authority; required for all other classes |
 | `sourceSubject` | string | Exact external identity; required for all other classes |
 | `selectors` | complex | Additional platform-JWT claim constraints |
+| `clientInstanceId` | string | Exact client instance identifier; managed-installation `client-attestation` bindings only |
+| `receiverScope` | string | IdP Receiver Scope of that identifier; present with `clientInstanceId` |
 | `active` | boolean | Whether the binding may be used |
 
 `selectors` is optional and multi-valued. `active` is required and
@@ -402,6 +405,18 @@ selectors after creation requires a new binding, including when the
 original binding had no selectors. This narrows SCIM's permission to
 initially populate an unassigned immutable attribute.
 
+`clientInstanceId` and `receiverScope` are optional, single-valued,
+immutable, case-exact strings, returned by default, with uniqueness
+`none`. They are permitted only for `client-attestation`, where they
+make a managed-installation binding ({{FEDERATION}}), and MUST be both
+present or both absent. `clientInstanceId` is the exact
+`client_instance_id` ({{INSTANCE}}); `receiverScope` identifies the IdP
+Receiver Scope configured for that attester and client. The Service
+Provider MUST reject a binding whose level, client-level or
+installation-level, differs from the resolution level configured for
+that attester and client. Adding or removing them requires a new
+binding.
+
 ### Credential Classes {#classes}
 
 These names identify management input classes, not OAuth token types or
@@ -446,7 +461,7 @@ Governance Tenant, regardless of active state. The uniqueness key is:
 | Input | Uniqueness key |
 |---|---|
 | Dedicated client | `credentialClass` and `client.value` |
-| External identity | `credentialClass`, `sourceAuthority`, `sourceSubject`, and selector set |
+| External identity | `credentialClass`, `sourceAuthority`, `sourceSubject`, selector set, and any `receiverScope` and `clientInstanceId` |
 
 The selector set is compared by decoded JSON Pointer paths and exact
 expected values, independent of array order. The Agent reference is not
@@ -806,8 +821,8 @@ namespace registrations require Expert Review and RFC publication under
 * Purpose: Manage an approved resolution identity's binding to an Agent
   Principal.
 * Single-value Attributes: `agent`, `credentialClass`, `client`,
-  `sourceAuthority`,
-  `sourceSubject`, `active`, defined in {{binding-schema}}.
+  `sourceAuthority`, `sourceSubject`, `clientInstanceId`,
+  `receiverScope`, and `active`, defined in {{binding-schema}}.
 * Multi-valued Attributes: `selectors`, defined in {{binding-schema}}.
 
 ## Agent Client Association
@@ -1317,6 +1332,30 @@ values. Service-specific `meta` values are omitted from these definitions.
           "uniqueness": "none"
         }
       ]
+    },
+    {
+      "name": "clientInstanceId",
+      "description":
+        "Exact client_instance_id of a managed installation.",
+      "type": "string",
+      "multiValued": false,
+      "required": false,
+      "mutability": "immutable",
+      "returned": "default",
+      "caseExact": true,
+      "uniqueness": "none"
+    },
+    {
+      "name": "receiverScope",
+      "description":
+        "IdP Receiver Scope of the client instance identifier.",
+      "type": "string",
+      "multiValued": false,
+      "required": false,
+      "mutability": "immutable",
+      "returned": "default",
+      "caseExact": true,
+      "uniqueness": "none"
     },
     {
       "name": "active",

@@ -120,9 +120,10 @@ SPIFFE variant. Continuing access uses eligible subject credentials for new
 grants or policy-permitted RAS refresh within retained authorization and
 lifetime limits. Existing SSO refresh tokens do not automatically authorize
 downstream resources. Client instances and attester endorsements compose
-as evidence beside the governed agent: an instance never resolves the
-agent, and an endorsement never creates a binding. Key transition and
-Identity Continuation Assertion compositions remain deferred.
+with the governed agent: an instance resolves an agent only through an
+exact, approved installation binding, and an endorsement never creates a
+binding. Key transition and Identity Continuation Assertion compositions
+remain deferred.
 
 * [Editor's Copy](https://mcguinness.github.io/governed-agent-profiles/#go.draft-mcguinness-oauth-governed-agent-federation.html)
 * [Datatracker Page](https://datatracker.ietf.org/doc/draft-mcguinness-oauth-governed-agent-federation)

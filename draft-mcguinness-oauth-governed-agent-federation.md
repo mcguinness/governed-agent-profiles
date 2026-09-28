@@ -1160,11 +1160,12 @@ IdP MUST:
   identifies the client, not the agent.
 
 Similar names, unqualified identifiers, or a shared signing key MUST
-NOT establish identity equivalence. A client instance identifier
-({{INSTANCE}}) or another identifier of one execution MUST NOT select or
-change the Agent Principal or satisfy a Client Association. It
-identifies an execution of the resolved client, not a governed principal
-({{governance-boundary}}).
+NOT establish identity equivalence. An identifier of one execution, such
+as a process, replica, or container, MUST NOT select or change the Agent
+Principal ({{governance-boundary}}). A client instance identifier
+({{INSTANCE}}) MUST NOT select or change the Agent Principal except
+through the managed-installation binding of {{agent-evidence}}, and MUST
+NOT satisfy a Client Association.
 
 **Disabling:** An Identity Binding can be disabled independently of the
 Agent Principal and its other bindings. A disabled binding MUST NOT
@@ -2243,7 +2244,7 @@ propagation mechanism:
 | Administrative action | Effect on new authorization | Previously issued authority |
 |---|---|---|
 | Terminate an execution | Stops that execution; does not disable the agent or its approved relationships | Credentials and tokens remain subject to their validation and revocation rules |
-| Suspend one client instance ({{INSTANCE}}) | That instance fails authentication where the suspension is enforced; the agent and its other instances continue | Revocation and introspection follow {{Section 6.3 of INSTANCE}} |
+| Suspend one client instance ({{INSTANCE}}) | That instance fails authentication where the suspension is enforced; the agent's other bindings and instances continue | Revocation and introspection follow {{Section 6.3 of INSTANCE}} |
 | Disable one Identity Binding at the IdP | No new grant through that binding; other enabled bindings remain usable with their own Client Associations | Grants and RAS tokens continue until separately revoked or expired |
 | Remove a Client Association at the IdP | No new grant through that permission; the Identity Binding can remain valid | Grants and RAS tokens continue until separately revoked or expired |
 | Disable the Agent Principal at the IdP | No new grant for that agent, regardless of binding or client | RAS issuance and refresh stop once the RAS receives and applies the change |
@@ -2344,7 +2345,7 @@ coordination ({{wag-gaps}}).
 | SPIFFE JWT-SVID | Approved trust domain and exact SPIFFE ID in `sub` | {{jwt-svid-input}} |
 | SPIFFE WIT-SVID | Approved trust domain and exact SPIFFE ID in the validated `sub` | {{spiffe-input}} |
 | SPIFFE X.509-SVID | Approved trust domain and exact SPIFFE ID in the certificate's URI Subject Alternative Name | {{spiffe-input}} |
-| Client Attestation | Trusted attester and validated `sub` | {{agent-evidence}} |
+| Client Attestation | Trusted attester and validated `sub`; for a managed installation, also the IdP Receiver Scope and `client_instance_id` | {{agent-evidence}} |
 {: title="Agent-resolution inputs and qualified identities"}
 
 The IdP client-registration context qualifies a dedicated client's
@@ -2518,9 +2519,9 @@ to one Agent Principal. It relies on a trusted attester's attestation of
 the client identity and confirmation key, not a registered client key.
 It establishes runtime or workload provenance only as far as verified
 attestation claims and the attester's trusted issuance policy support.
-It does not distinguish agents behind a shared client. Those agents need
-distinct workload evidence, such as a JWT-SVID or platform JWT. A client
-instance identifier does not resolve the agent ({{identity-binding}}).
+It does not distinguish agents behind a shared client, except through
+the managed-installation binding below. Otherwise those agents need
+distinct workload evidence, such as a JWT-SVID or platform JWT.
 
 * **Presentation:** Client authentication with the configured {{ATTEST}}
   method.
@@ -2540,6 +2541,19 @@ instance identifier does not resolve the agent ({{identity-binding}}).
 * **Resolution:** The IdP MUST resolve the trusted attester and the
   validated `sub` through an approved Identity Binding
   ({{identity-binding}}).
+* **Managed installation:** Where agents share one OAuth client, a
+  Client Attestation carrying `client_instance_id` under {{INSTANCE}}
+  MAY resolve the agent instead. The IdP MUST accept it only from an
+  attester configured to assign that identifier at Installation
+  granularity ({{Section 1.1 of INSTANCE}}) under the continuity rules
+  of {{Section 6 of INSTANCE}}. The Identity Binding names the exact
+  attester, client (`sub`), IdP Receiver Scope, and
+  `client_instance_id`. Trusted configuration for the client selects
+  client-level or installation-level resolution. Attestation claims MUST
+  NOT select the level, and a failed match MUST NOT fall back to the
+  other level. A new enrollment yields a new identifier that needs its
+  own approved Identity Binding. The IdP MUST NOT infer continuity
+  across identifiers or attesters.
 * **Proof:** With `attest_jwt_client_auth`, any grant proof key MUST
   match the attestation's confirmation key. This narrows the allowance
   in {{Section 5.2 of ATTEST}} for a separate DPoP key. With

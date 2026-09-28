@@ -318,9 +318,13 @@ multi-valued complex attribute whose values are the endorsement objects,
 with the required sub-attributes `issuer` and `jwks_uri` as that section
 defines them. The Service Provider MUST accept a `client_attesters`
 value only from a provisioning client authorized to set endorsements for
-that client ({{Section 2.2 of ATTESTER-ENDORSEMENT}}); authority to
-manage the registration alone does not suffice. A value it does not
-accept follows that section. A CIMD resource carries no
+that client ({{Section 2.2 of ATTESTER-ENDORSEMENT}}), including when a
+request replaces or removes the attribute; authority to manage the
+registration alone does not suffice. An unauthorized change receives
+`403`. A malformed endorsement ({{Section 3 of ATTESTER-ENDORSEMENT}}),
+or one the Service Provider's policy does not accept, receives `400`
+with `invalidValue`. In either case the request fails and the stored
+resource is unchanged ({{errors}}). A CIMD resource carries no
 `client_attesters`; its endorsements come from the document.
 
 For locally managed metadata, creation MUST explicitly supply
@@ -503,7 +507,7 @@ Client eligibility is separate from any Agent Principal's eligibility:
 disabling a shared client does not declare its associated agents
 disabled.
 
-## Errors
+## Errors {#errors}
 
 | Failure | Response |
 |---|---|

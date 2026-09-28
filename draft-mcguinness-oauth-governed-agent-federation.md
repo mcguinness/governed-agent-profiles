@@ -720,7 +720,7 @@ remains subject to alignment with the evolving WAG specification
 | Grant binding | Bearer; proof of possession open | DPoP under {{grant-protection}}, required for the bound profile |
 | Explicit type | None defined | `typ` `wag+jwt`, checked at redemption ({{wag-redemption}}) |
 | Replay | Open | Unbound grants are single-use ({{redemption-common}}) |
-| `resource` | RECOMMENDED | Exactly one ({{issuance-request}}) |
+| `resource` | Recommended, not required | Exactly one ({{issuance-request}}) |
 | Previously unseen agents | Accepted on first assertion | Authorized correlation required ({{agent-correlation}}) |
 | Refresh tokens | Prohibited | Prohibited |
 {: title="Governed composition of WAG"}

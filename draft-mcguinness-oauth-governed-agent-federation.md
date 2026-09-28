@@ -241,7 +241,9 @@ This document is organized by protocol stage. {{model}} and
 {{redemption}}, and {{api-processing}} give the processing of the IdP,
 the resource authorization server (RAS), and the API (resource server),
 each covering delegated and self-acting access, and
-{{continuing-access}} covers renewal, token reuse, and disablement.
+{{continuing-access}} covers renewal, token reuse, and disablement, and
+{{implementation}} collects non-normative configuration and deployment
+guidance.
 {{scope}} states what each role implements. Client requirements
 accompany the requests and responses at each stage.
 
@@ -673,7 +675,7 @@ The client identifier MUST NOT stand in for the actor in authorization.
 Audit records that identify both the user and the issuer-qualified
 actor, rather than the client identifier alone, preserve attribution.
 
-# Profiles, Configuration, and Conformance {#conformance-metadata}
+# Profiles and Conformance {#conformance-metadata}
 
 ## Delegated Access with ID-JAG {#delegated-flow}
 
@@ -1016,8 +1018,8 @@ Before using either path:
 ## Issuance Prerequisites {#flow-configuration}
 
 **Relationships:** The IdP MUST issue a grant only under the applicable
-identity, client, delegation, and target relationships in
-{{configuration}}.
+identity, client, delegation, and target relationships ({{model}});
+{{configuration}} describes their configuration.
 
 **Downstream client:** The IdP MUST derive the grant's `client_id` from
 an authoritative association between the authenticated IdP client and
@@ -1050,10 +1052,10 @@ not the IdP's Governance Tenant.
 **Scope and authorization details:** `authorization_details` MAY
 accompany the required non-empty `scope` and is processed under ID-JAG.
 The IdP MUST constrain all granted scope and `authorization_details` to
-that resource. If requested authorization details cannot be confined to
-it, the IdP MUST reject the request with `invalid_authorization_details`
-under {{Section 6 of RFC9396}} rather than authorize additional
-resources.
+the requested resource. If requested authorization details cannot be
+confined to it, the IdP MUST reject the request with
+`invalid_authorization_details` under {{Section 6 of RFC9396}} rather
+than authorize additional resources.
 
 {{root-request}} and {{wag-request}} add the parameters of each grant.
 
@@ -1067,7 +1069,8 @@ local principals ({{agent-correlation}}, {{subject-resolution}}).
 ### Agent Resolution Inputs {#evidence}
 
 Every agent-resolution input satisfies this contract, which summarizes
-requirements stated in the cited sections and the input's own section:
+requirements stated in the cited sections and the input's own section
+({{input-profiles}}):
 
 * **Independent validation:** The credential is validated under its
   configured credential profile before it is used for resolution
@@ -1181,7 +1184,7 @@ outstanding tokens; their treatment follows {{status-changes}}.
 **Client Association:** Before issuing a governed grant, the IdP MUST
 verify that a Client Association permits the authenticated client to use
 the selected Identity Binding, with the selected credential class, for
-the requested acting relationship ({{configuration}}). The IdP MUST NOT
+the requested acting relationship ({{terms}}). The IdP MUST NOT
 substitute the client's identity for the resolved actor.
 
 Association permissions have these limits:
@@ -2954,15 +2957,16 @@ as `client_id`. Across the variants:
 * **Rejections:** The dedicated-client rejection examples apply to each
   binding, except that replay rules follow the input specification.
 
-One Agent Principal can carry a binding for each platform it runs on,
-each keyed by its own issuer and selectors:
+One Agent Principal can carry a binding for each platform it runs on
+({{identity-binding}}), each keyed by its own issuer and selectors:
 
 ~~~
  Agent Principal: agent-42
 
  B1  JWT-SVID, orchestrated runtime                     enabled
-     trust domain  acme.example
-     SPIFFE ID     spiffe://acme.example/ns/ml/sa/bot
+     trust domain  platform.example
+     SPIFFE ID     spiffe://platform.example/accounts/acme/
+                     agents/workload-7
 
  B2  platform JWT, managed container service            enabled
      issuer        https://sts.amazonaws.com/

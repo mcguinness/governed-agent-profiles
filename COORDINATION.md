@@ -11,9 +11,8 @@ adoption. Backquoted names refer to anchors and references in
 
 This informative appendix records dependencies and deferred work.
 Assessed revisions: WAG-01, ID-JAG-04, ICA-02, Actor
-Profile-00, SPIFFE OAuth-02, ATTEST-11, WIT-02, CIMD-02, and the
-current drafts of Client Instance Identification and Client Attester
-Endorsement.
+Profile-00, SPIFFE OAuth-02, ATTEST-11, WIT-02, CIMD-02, Client Instance
+Identification-00, and Client Attester Endorsement-00.
 
 ### Upstream Dependencies
 
@@ -91,6 +90,22 @@ grants, or relax it in Actor Profile, for example where the client is
 authenticated as the grant's `client_id`, so that unbound governed
 grants can be re-submitted as ID-JAG allows.
 
+#### Client Instance Identification
+
+This document composes `INSTANCE` as evidence beside the governed agent:
+an instance identifier never selects the Agent Principal, and the RAS
+conveys instance context only for an instance it validated. Two items
+for the `INSTANCE` draft:
+
+* **Appendix A.3 example:** it names the issuing authorization server as
+  `act.iss`. Under governed actor preservation, the RAS keeps the IdP's
+  issuer in `act.iss`, so the example should use an IdP issuer distinct
+  from the token issuer.
+* **Grant-carried context:** if a deployment needs the instance that
+  obtained the grant, not only the one that redeemed it, this document
+  would become a consuming profile under Section 7.4 of `INSTANCE` and
+  define provenance and association for context in the ID-JAG or WAG.
+
 #### Resolution from Authentication Context
 
 This document explicitly defines delegated issuance from validated
@@ -154,8 +169,7 @@ exclusion does not prevent the independently supported uses listed here.
 | Asynchronous approval with `AROP` | No approval transport or completion flow; external approval remains subject to `external-approval` and the lifetime limits in `authorization-lifetime` |
 | Continuation with `ICA` | No ICA issuance or continuation chain; supported renewal follows `continuing-access` |
 | General WIMSE WIT/WIC inputs | WIT-SVID and X.509-SVID resolution is defined in `spiffe-input`; non-SPIFFE credentials need an explicit OAuth presentation and proof composition |
-| Instance-based resolution or propagated instance context under `INSTANCE` | Workload evidence resolves the agent; no per-instance enrollment or continuity protocol is required. Shared workload identity does not distinguish replicas `SPIFFE-CONCEPTS` |
-| Client attester endorsement under `ATTESTER-ENDORSEMENT` | Attester trust is configured under `agent-evidence` |
+| Instance context carried in an ID-JAG or WAG, or preserved across domains, under `INSTANCE` | The RAS conveys only an instance it validated (`access-token-response`); instances never resolve the agent (`identity-binding`). Preservation would need this profile to define provenance and association under Section 7.4 of `INSTANCE` |
 | Mutual-TLS-bound ID-JAG | Bound grants use DPoP. Mutual TLS remains available for access-token protection under `access-token-protection` |
 | Rich Authorization Requests without scope | This profile requires meaningful scope alongside any authorization details; it does not define the scope-free mode permitted by `RFC9396` |
 

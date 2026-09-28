@@ -24,6 +24,7 @@ author:
    organization: Independent
    email: public@karlmcguinness.com
 normative:
+  ATTESTER-ENDORSEMENT: I-D.mcguinness-oauth-client-attesters
   CIMD: I-D.ietf-oauth-client-id-metadata-document
   RFC6749:
   RFC7591:
@@ -307,8 +308,24 @@ server policy.
 
 Multi-valued attributes use arrays of strings, preserving the OAuth
 metadata representation rather than adding SCIM complex-value wrappers.
+The exception is `client_attesters`, below.
 SCIM attribute-name matching is case-insensitive; values use their OAuth
 comparison rules. Responses SHOULD use the spelling in this table.
+
+The optional `client_attesters` attribute carries Client Attester
+Endorsements ({{Section 3 of ATTESTER-ENDORSEMENT}}). It is a
+multi-valued complex attribute whose values are the endorsement objects,
+with the required sub-attributes `issuer` and `jwks_uri` as that section
+defines them. The Service Provider MUST accept a `client_attesters`
+value only from a provisioning client authorized to set endorsements for
+that client ({{Section 2.2 of ATTESTER-ENDORSEMENT}}), including when a
+request replaces or removes the attribute; authority to manage the
+registration alone does not suffice. An unauthorized change receives
+`403`. A malformed endorsement ({{Section 3 of ATTESTER-ENDORSEMENT}}),
+or one the Service Provider's policy does not accept, receives `400`
+with `invalidValue`. In either case the request fails and the stored
+resource is unchanged ({{errors}}). A CIMD resource carries no
+`client_attesters`; its endorsements come from the document.
 
 For locally managed metadata, creation MUST explicitly supply
 `token_endpoint_auth_method` and a non-empty `grant_types`. This profile
@@ -490,7 +507,7 @@ Client eligibility is separate from any Agent Principal's eligibility:
 disabling a shared client does not declare its associated agents
 disabled.
 
-## Errors
+## Errors {#errors}
 
 | Failure | Response |
 |---|---|
@@ -607,7 +624,7 @@ requires Expert Review and RFC publication under {{Section 10.3.1 of RFC7643}}.
   `jwks_uri`, `client_name`, `client_uri`, `logo_uri`, `tos_uri`,
   `policy_uri`, `software_id`, and `software_version`, defined in {{metadata}}.
 * Multi-valued Attributes: `grant_types`, `response_types`, `redirect_uris`,
-  and `contacts`, defined in {{metadata}}.
+  `contacts`, and `client_attesters`, defined in {{metadata}}.
 
 No OAuth client metadata, token-endpoint authentication method, or event
 type is registered by this document.
@@ -1026,6 +1043,40 @@ applicable even though ResourceType marks the extension optional.
       "returned": "default",
       "caseExact": true,
       "uniqueness": "none"
+    },
+    {
+      "name": "client_attesters",
+      "description": "Client Attester Endorsements.",
+      "type": "complex",
+      "multiValued": true,
+      "required": false,
+      "mutability": "readWrite",
+      "returned": "default",
+      "uniqueness": "none",
+      "subAttributes": [
+        {
+          "name": "issuer",
+          "description": "Exact iss value of the endorsed attester.",
+          "type": "string",
+          "multiValued": false,
+          "required": true,
+          "mutability": "readWrite",
+          "returned": "default",
+          "caseExact": true,
+          "uniqueness": "none"
+        },
+        {
+          "name": "jwks_uri",
+          "description": "URL of the endorsed attester's JWK Set.",
+          "type": "string",
+          "multiValued": false,
+          "required": true,
+          "mutability": "readWrite",
+          "returned": "default",
+          "caseExact": true,
+          "uniqueness": "none"
+        }
+      ]
     }
   ]
 }

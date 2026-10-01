@@ -120,11 +120,12 @@ Table of Contents
      D.2.  Register the Agent
      D.3.  Operate on the Platform
      D.4.  Report a Credential Change
-     D.5.  Raise the Agent's Risk
-     D.6.  Disable the Agent
-     D.7.  Re-enable
-     D.8.  Reach a Third-Party Resource
-     D.9.  Retire the Agent
+     D.5.  Report Anomalous Behavior
+     D.6.  Raise the Agent's Risk
+     D.7.  Disable the Agent
+     D.8.  Re-enable
+     D.9.  Reach a Third-Party Resource
+     D.10. Retire the Agent
    Appendix E.  Document History
    Acknowledgments
    Author's Address
@@ -809,6 +810,10 @@ Table of Contents
               <https://openid.net/specs/openid-sharedsignals-framework-
               1_0-final.html>.
 
+   [WISE]     Lombardo, J., Sneeggen, D., and S. O'Dell, "OpenID WISE
+              Profile Specification 1.0, draft 03", 28 September 2026,
+              <https://openid.github.io/ssf-wise-profile/>.
+
    [RFC8417]  Hunt, P., Ed., Jones, M., Denniss, W., and M. Ansari,
               "Security Event Token (SET)", RFC 8417,
               DOI 10.17487/RFC8417, July 2018,
@@ -904,10 +909,6 @@ Table of Contents
    [RFC7009]  Lodderstedt, T., Ed., Dronia, S., and M. Scurtescu, "OAuth
               2.0 Token Revocation", RFC 7009, DOI 10.17487/RFC7009,
               August 2013, <https://www.rfc-editor.org/rfc/rfc7009>.
-
-   [WISE]     WISE Contributors, "Workload Identity Security Events
-              (WISE) Profile", n.d., <https://github.com/identitymonk/
-              openid-wise/blob/main/openid-wise-profile-1_0.md>.
 
    [WAG]      Carleton, P., Steele, N., Parecki, A., Schwenkschuster,
               A., and B. Campbell, "Workload Authorization Grant", Work
@@ -1023,6 +1024,13 @@ A.2.  SCIM Reconciliation Triggers
    removal and inaccessible sources follow the incomplete reconciliation
    rules; they are not deletion instructions.
 
+   A Receiver that accepts [WISE] lifecycle events about a provisioned
+   principal from a configured Transmitter applies the same asymmetry.
+   workload-disabled and workload-purged MAY cause a provisional Local
+   Suspension pending reconciliation. workload-enabled and workload-
+   restored trigger retrieval of current state and MUST NOT activate the
+   principal directly.
+
 A.3.  Platform Signals to the IdP
 
    A platform hosting registered agents (Section 9) MAY transmit events
@@ -1030,25 +1038,38 @@ A.3.  Platform Signals to the IdP
    the platform as Transmitter for the agents its connector registered,
    and the IdP MUST reject an event about any other agent.
 
-   *  *Subject:* The iss_sub format of Section 3.2.3 of [RFC9493], with
-      iss the IdP issuer and sub the registered Agent Principal
-      identifier.
+   *  *Subject:* The aliases format of Section 3.2.8 of [RFC9493],
+      containing the iss_sub identifier (the IdP issuer and the
+      registered Agent Principal identifier) and the uri workload
+      identifier that [WISE] uses, which the platform registered as the
+      Agent's externalId.  The IdP MUST correlate both identifiers with
+      the same registered Agent, or reject the event.
 
-   *  *Events:* CAEP credential-change when the agent's credentials
-      change, session-revoked when the platform revokes the agent's
-      sessions, and risk-level-change for risk the platform assesses
-      ([CAEP]).  CAEP defines no principal value for an agent, so stream
-      configuration MUST establish the value used in risk-level-change
-      for registered agents, in both directions.
+   *  *Credential events:* [WISE] credential-issued, credential-rotated,
+      credential-revoked, and credential-compromised for the agent's
+      workload credentials.
+
+   *  *Posture events:* [WISE] workload-compromised, anomalous-behavior-
+      detected, workload-degraded, workload-restored, workload-baseline-
+      changed, posture evaluation results, and workload-vulnerability-
+      status-changed.
+
+   *  *Sessions:* CAEP session-revoked when the platform revokes the
+      agent's sessions ([CAEP]).
 
    *  *Effect:* An event informs IdP policy and monitoring.  It does not
       change the Agent's administrative state, which changes only
       through [AGENT-MANAGEMENT].
 
-   The IdP MAY send risk-level-change for a registered agent to the
-   platform over a stream in the other direction.  The platform applies
-   it under its own policy; a risk event is not an administrative
-   disablement.
+   A platform's own workload-disabled, workload-enabled, or workload-
+   purged reports its local control of the agent.  It does not change
+   the IdP's active.
+
+   The IdP MAY send CAEP risk-level-change for a registered agent to the
+   platform over a stream in the other direction.  CAEP defines no
+   principal value for an agent, so stream configuration MUST establish
+   the value used.  The platform applies the event under its own policy;
+   a risk event is not an administrative disablement.
 
 A.4.  Grant-Derived Session Revocation
 
@@ -1342,28 +1363,28 @@ Appendix D.  Platform-Hosted Agent Walkthrough
    executed implementation test.  Signatures, credentials, and tokens
    are omitted or shown as placeholders.
 
-        +=======================+=================================+
-        | Party                 | Identifier                      |
-        +=======================+=================================+
-        | Enterprise IdP        | https://idp.example/, SCIM base |
-        |                       | https://idp.example/scim/acme   |
-        +-----------------------+---------------------------------+
-        | Data platform         | https://dataplatform.example/   |
-        +-----------------------+---------------------------------+
-        | Platform's identifier | agt-31                          |
-        | for the agent         |                                 |
-        +-----------------------+---------------------------------+
-        | IdP SCIM resource for | /Agents/a58                     |
-        | the agent             |                                 |
-        +-----------------------+---------------------------------+
-        | Agent Principal       | (https://idp.example/, agent-   |
-        |                       | 58)                             |
-        +-----------------------+---------------------------------+
-        | Agent owner, an IdP   | u-2819                          |
-        | User                  |                                 |
-        +-----------------------+---------------------------------+
+      +=====================+======================================+
+      | Party               | Identifier                           |
+      +=====================+======================================+
+      | Enterprise IdP      | https://idp.example/, SCIM base      |
+      |                     | https://idp.example/scim/acme        |
+      +---------------------+--------------------------------------+
+      | Data platform       | https://dataplatform.example/        |
+      +---------------------+--------------------------------------+
+      | Platform's workload | wimse://dataplatform.example/agents/ |
+      | identifier for the  | agt-31                               |
+      | agent (agt-31)      |                                      |
+      +---------------------+--------------------------------------+
+      | IdP SCIM resource   | /Agents/a58                          |
+      | for the agent       |                                      |
+      +---------------------+--------------------------------------+
+      | Agent Principal     | (https://idp.example/, agent-58)     |
+      +---------------------+--------------------------------------+
+      | Agent owner, an IdP | u-2819                               |
+      | User                |                                      |
+      +---------------------+--------------------------------------+
 
-                      Table 9: Walkthrough identifiers
+                     Table 9: Walkthrough identifiers
 
 D.1.  Configure the Relationship
 
@@ -1375,12 +1396,13 @@ D.1.  Configure the Relationship
       the IdP disabled;
 
    *  configures a stream from the IdP to the platform for SCIM change
-      notices about the Agents that connector registered, and for risk-
-      level-change; and
+      notices about the Agents that connector registered, and for CAEP
+      risk-level-change with principal value AGENT agreed for registered
+      agents; and
 
-   *  configures a stream from the platform to the IdP for credential-
-      change, session-revoked, and risk-level-change about those Agents,
-      with principal value AGENT agreed for registered agents.
+   *  configures a stream from the platform to the IdP for WISE
+      credential and posture events and CAEP session-revoked about those
+      Agents.
 
    The platform needs nothing else from the IdP to run its agents.  This
    deployment sets no revalidation bound, so the platform keeps
@@ -1389,8 +1411,9 @@ D.1.  Configure the Relationship
 D.2.  Register the Agent
 
    At 14:00 UTC on September 17, 2026, a customer creates a report-
-   building agent on the platform.  The platform assigns agt-31 and its
-   connector registers the agent:
+   building agent on the platform.  The platform names it agt-31, with
+   workload identifier wimse://dataplatform.example/agents/agt-31, and
+   its connector registers the agent:
 
    POST /scim/acme/Agents HTTP/1.1
    Host: idp.example
@@ -1404,7 +1427,7 @@ D.2.  Register the Agent
      ],
     "urn:ietf:params:scim:schemas:extension:agent-federation:2.0:Agent":
        {},
-     "externalId": "agt-31",
+     "externalId": "wimse://dataplatform.example/agents/agt-31",
      "agentUserName": "report-builder",
      "displayName": "Quarterly report builder",
      "description": "Builds finance reports from platform tables",
@@ -1435,7 +1458,7 @@ D.3.  Operate on the Platform
      "action": "table.read",
      "resource": "finance.q3_ledger",
      "agent": {
-       "platform_id": "agt-31",
+       "platform_id": "wimse://dataplatform.example/agents/agt-31",
        "principal": {"iss": "https://idp.example/", "sub": "agent-58"}
      }
    }
@@ -1446,8 +1469,8 @@ D.3.  Operate on the Platform
 
 D.4.  Report a Credential Change
 
-   At 14:20, the platform rotates the agent's X.509 workload certificate
-   and reports it to the IdP in a SET with these claims:
+   At 14:20, the platform rotates the agent's Workload Identity
+   Certificate and reports it to the IdP in a SET with these claims:
 
    {
      "iss": "https://dataplatform.example/",
@@ -1455,36 +1478,53 @@ D.4.  Report a Credential Change
      "iat": 1789654800,
      "jti": "pl-cred-31-7",
      "sub_id": {
-       "format": "iss_sub",
-       "iss": "https://idp.example/",
-       "sub": "agent-58"
+       "format": "aliases",
+       "identifiers": [
+         {
+           "format": "iss_sub",
+           "iss": "https://idp.example/",
+           "sub": "agent-58"
+         },
+         {
+           "format": "uri",
+           "uri": "wimse://dataplatform.example/agents/agt-31"
+         }
+       ]
      }
    }
 
-   Its events claim has one member, keyed by the CAEP event type
-   https://schemas.openid.net/secevent/caep/event-type/credential-
-   change, whose value is:
+   Its events claim has one member, whose value is below.  The member's
+   key is the WISE event type URI, the base
+   https://schemas.openid.net/secevent/wise/event-type/ followed by
+   credential-rotated:
 
    {
-     "credential_type": "x509",
-     "change_type": "create",
+     "credential_type": "wic",
+     "previous_credential_id": "serial:31-0006",
+     "new_credential_id": "serial:31-0007",
      "event_timestamp": 1789654800,
      "initiating_entity": "system"
    }
 
    The IdP accepts the event because this stream's Transmitter
-   registered agent-58.  The event updates the IdP's view of the agent;
-   it does not change active.
+   registered agent-58 and both identifiers name that Agent.  The event
+   updates the IdP's view of the agent; it does not change active.
 
-D.5.  Raise the Agent's Risk
+D.5.  Report Anomalous Behavior
 
-   At 14:30, the IdP's risk analysis rates the agent HIGH, for example
-   from correlated activity elsewhere, and sends risk-level-change with
-   principal AGENT and current_level HIGH to the platform.  Platform
-   policy restricts the agent to read-only operations.  The agent
-   remains active; a risk event is not a disablement.
+   At 14:25, the platform observes the agent reading tables outside its
+   usual pattern and sends WISE anomalous-behavior-detected with
+   severity high and the same subject.  The event is advisory.
 
-D.6.  Disable the Agent
+D.6.  Raise the Agent's Risk
+
+   At 14:30, the IdP's risk analysis, combining the platform's report
+   with other signals, rates the agent HIGH.  It sends CAEP risk-level-
+   change with principal AGENT and current_level HIGH to the platform.
+   Platform policy restricts the agent to read-only operations.  The
+   agent remains active; a risk event is not a disablement.
+
+D.7.  Disable the Agent
 
    At 14:31, an IdP administrator disables agent-58.  The IdP sends the
    platform a SCIM change notice for /Agents/a58, as in Appendix C.  The
@@ -1504,7 +1544,7 @@ D.6.  Disable the Agent
    reconciliation retrieves the Agent.  An unreachable IdP neither
    disables nor re-enables the agent.
 
-D.7.  Re-enable
+D.8.  Re-enable
 
    At 15:00, the IdP administrator re-enables the Agent, and the
    platform retrieves and applies active: true.  The agent can obtain
@@ -1515,23 +1555,35 @@ D.7.  Re-enable
    If the platform had suspended the agent itself, re-enablement at the
    IdP would not clear that Local Suspension.
 
-D.8.  Reach a Third-Party Resource
+D.9.  Reach a Third-Party Resource
 
-   Later, the agent needs a third-party API.  An administrator
-   authorized for bindings adds an Identity Binding to /Agents/a58 with
-   credential class platform-jwt, source authority
-   https://dataplatform.example/, and source subject agt-31.  The
+   Later, the agent needs a third-party API on behalf of Alice, a
+   finance analyst who is not its owner.  An administrator authorized
+   for bindings adds an Identity Binding to /Agents/a58 with credential
+   class platform-jwt, source authority https://dataplatform.example/,
+   and source subject wimse://dataplatform.example/agents/agt-31.  The
    administrator also adds a Client Association permitting the
-   platform's OAuth client to use that binding.  The binding and
-   association follow [AGENT-MANAGEMENT].
+   platform's OAuth client to use that binding ([AGENT-MANAGEMENT]).
+   Separately, the IdP records Alice's delegation authorization for the
+   agent at that resource and scope.  The Agent's owners do not
+   establish that delegation.
 
-   The platform presents its JWT for agt-31 in a token exchange, and the
-   IdP issues an ID-JAG whose act is (https://idp.example/, agent-58)
+   For access on Alice's behalf, the platform authenticates its OAuth
+   client and presents Alice's ID Token as subject_token and its JWT for
+   agt-31 as actor_token.  After validating delegation authorization for
+   the requested resource and scope, the IdP issues an ID-JAG
+   identifying Alice in sub and (https://idp.example/, agent-58) in act
    under [FEDERATION].  The third-party RAS correlates that pair as in
-   Appendix B.  The principal identifier, owner, and audit history
+   Appendix B.
+
+   For the agent's own access, with no user, the IdP would instead need
+   Agent Authorization and a Client Association for self-acting
+   issuance, and would issue a WAG with agent-58 as sub.
+
+   Either way, the principal identifier, owner, and audit history
    registered at 14:00 carry over unchanged.
 
-D.9.  Retire the Agent
+D.10.  Retire the Agent
 
    At 16:00, the customer deletes the agent.  The connector deletes
    /Agents/a58 at the IdP.  The binding and association become unusable,

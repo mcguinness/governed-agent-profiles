@@ -2824,6 +2824,24 @@ grant would otherwise be accepted, including the maximum allowed skew.<a href="#
 (<span><a href="https://rfc-editor.org/rfc/rfc8725#section-3.8" class="relref">Section 3.8</a> of [<a href="#RFC8725" class="cite xref">RFC8725</a>]</span>).<a href="#section-4.7-3" class="pilcrow">¶</a></p>
 <p id="section-4.7-4">A fresh proof does not renew an expired credential; an unchanged
 identifier does not authorize a new proof key.<a href="#section-4.7-4" class="pilcrow">¶</a></p>
+<p id="section-4.7-5">An IdP that accepts <span>[<a href="#WISE" class="cite xref">WISE</a>]</span> events from a credential authority it
+trusts <span class="bcp14">MUST</span> stop accepting, for agent resolution, the following from
+the time each event takes effect (Section 2.3 of <span>[<a href="#WISE" class="cite xref">WISE</a>]</span>):<a href="#section-4.7-5" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.7-6.1">
+            <p id="section-4.7-6.1.1">a credential that <code>credential-revoked</code> or <code>credential-compromised</code>
+identifies;<a href="#section-4.7-6.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.7-6.2">
+            <p id="section-4.7-6.2.1">trust material that <code>trust-anchor-revoked</code> identifies; and<a href="#section-4.7-6.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.7-6.3">
+            <p id="section-4.7-6.3.1">credentials from a trust domain that <code>trust-domain-federation-revoked</code>
+names.<a href="#section-4.7-6.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-4.7-7">Disabling an Identity Binding or the Agent Principal in response is
+IdP policy (<a href="#status-changes" class="auto internal xref">Section 10.5</a>): an agent can have other valid bindings.<a href="#section-4.7-7" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="errors">
@@ -5433,6 +5451,10 @@ coordination (<a href="#wag-gaps" class="auto internal xref">Appendix C.1.1</a>)
 <dt id="WIT">[WIT]</dt>
         <dd>
 <span class="refAuthor">Campbell, B.</span>, <span class="refAuthor">Salowey, J. A.</span>, <span class="refAuthor">Schwenkschuster, A.</span>, <span class="refAuthor">Sheffer, Y.</span>, and <span class="refAuthor">Y. Rosomakho</span>, <span class="refTitle">"WIMSE Workload Credentials"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-wimse-workload-creds-02</span>, <time datetime="2026-07-02" class="refDate">2 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-wimse-workload-creds-02">https://datatracker.ietf.org/doc/html/draft-ietf-wimse-workload-creds-02</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="WISE">[WISE]</dt>
+        <dd>
+<span class="refAuthor">Lombardo, J.</span>, <span class="refAuthor">Sneeggen, D.</span>, and <span class="refAuthor">S. O'Dell</span>, <span class="refTitle">"OpenID WISE Profile Specification 1.0, draft 03"</span>, <time datetime="2026-09-28" class="refDate">28 September 2026</time>, <span>&lt;<a href="https://openid.github.io/ssf-wise-profile/">https://openid.github.io/ssf-wise-profile/</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="ATTEST">[ATTEST]</dt>
         <dd>

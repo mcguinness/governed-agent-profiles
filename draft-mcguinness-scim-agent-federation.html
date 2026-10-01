@@ -2409,7 +2409,9 @@ Client Association, so under <a href="#issuance" class="auto internal xref">Sect
 <li class="normal" id="section-7-3.1">
           <p id="section-7-3.1.1"><strong>Registration:</strong> The connector sets <code>externalId</code> to the platform's
 identifier for the agent and supplies descriptive attributes such as
-<code>displayName</code>, <code>description</code>, and <code>owners</code>. The Service Provider
+<code>displayName</code>, <code>description</code>, and <code>owners</code>. A platform that sends WISE
+events about the agent uses their workload identifier URI
+(<span>[<a href="#LIFECYCLE" class="cite xref">LIFECYCLE</a>]</span>). The Service Provider
 assigns <code>AgentFederation.subject</code>; the platform retains the qualified
 Agent Principal identifier as its correlation to the Agent.<a href="#section-7-3.1.1" class="pilcrow">¶</a></p>
 </li>
@@ -2441,7 +2443,8 @@ where the input requires one, a Client Association to the same Agent.
 governance history do not change.<a href="#section-7-4" class="pilcrow">¶</a></p>
 <p id="section-7-5">This profile defines registration by the platform. An IdP can also
 discover hosted agents by reading a platform's agent inventory; that
-interface is outside this profile.<a href="#section-7-5" class="pilcrow">¶</a></p>
+interface is outside this profile. <span>[<a href="#LIFECYCLE" class="cite xref">LIFECYCLE</a>]</span> walks one
+platform-hosted agent from registration to retirement.<a href="#section-7-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="security-considerations">

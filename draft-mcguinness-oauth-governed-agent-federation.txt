@@ -1144,6 +1144,21 @@ Table of Contents
    A fresh proof does not renew an expired credential; an unchanged
    identifier does not authorize a new proof key.
 
+   An IdP that accepts [WISE] events from a credential authority it
+   trusts MUST stop accepting, for agent resolution, the following from
+   the time each event takes effect (Section 2.3 of [WISE]):
+
+   *  a credential that credential-revoked or credential-compromised
+      identifies;
+
+   *  trust material that trust-anchor-revoked identifies; and
+
+   *  credentials from a trust domain that trust-domain-federation-
+      revoked names.
+
+   Disabling an Identity Binding or the Agent Principal in response is
+   IdP policy (Section 10.5): an agent can have other valid bindings.
+
 4.8.  Token Endpoint Errors
 
    Token endpoint errors follow Section 5.2 of [RFC6749] and the
@@ -3042,6 +3057,10 @@ Table of Contents
               ietf-wimse-workload-creds-02, 2 July 2026,
               <https://datatracker.ietf.org/doc/html/draft-ietf-wimse-
               workload-creds-02>.
+
+   [WISE]     Lombardo, J., Sneeggen, D., and S. O'Dell, "OpenID WISE
+              Profile Specification 1.0, draft 03", 28 September 2026,
+              <https://openid.github.io/ssf-wise-profile/>.
 
    [ATTEST]   Looker, T., Bastian, P., and C. Bormann, "OAuth 2.0
               Attestation-Based Client Authentication", Work in

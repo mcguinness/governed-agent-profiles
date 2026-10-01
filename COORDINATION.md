@@ -12,7 +12,7 @@ adoption. Backquoted names refer to anchors and references in
 This informative appendix records dependencies and deferred work.
 Assessed revisions: WAG-01, ID-JAG-04, ICA-02, Actor
 Profile-00, SPIFFE OAuth-02, ATTEST-11, WIT-02, CIMD-02, Client Instance
-Identification-00, and Client Attester Endorsement-00.
+Identification-00, Client Attester Endorsement-00, and WISE draft 03.
 
 ### Upstream Dependencies
 
@@ -102,6 +102,30 @@ for the `INSTANCE` draft:
   obtained the grant, not only the one that redeemed it, this document
   would become a consuming profile under Section 7.4 of `INSTANCE` and
   define provenance and association for context in the ID-JAG or WAG.
+
+#### Shared Signals: WISE and CAEP
+
+The family uses WISE (OpenID Shared Signals WG, draft 03) for workload
+facts and CAEP for sessions and IdP risk:
+
+* **Platform to IdP:** WISE credential and posture events about
+  platform-hosted agents, with an RFC 9493 `aliases` subject carrying
+  both the WISE `uri` workload identifier and `iss_sub` for the governed
+  Agent Principal (`platform-signals`). WISE names only the `uri`
+  format; coordination is needed so that an `aliases` subject including
+  `iss_sub` is a recognized WISE subject for governed agents.
+* **Credential authority to IdP:** WISE credential and trust events stop
+  resolution through the affected credentials and trust material
+  (`time-validation`).
+* **Lifecycle state:** WISE `workload-enabled` carries state. This
+  family keeps the notice-then-retrieve asymmetry, so enabled events
+  only trigger retrieval (`scim-events`).
+* **Agent principal:** CAEP `risk-level-change` requires a `principal`,
+  and neither CAEP nor SSF defines one for an agent; stream
+  configuration fixes it today. A registered agent principal value in
+  CAEP or SSF would remove that configuration.
+* **Reference:** draft 03 is cited at its working-group editor's copy;
+  move the reference to openid.net once a revision is published there.
 
 #### Resolution from Authentication Context
 

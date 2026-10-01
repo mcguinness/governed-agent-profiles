@@ -592,8 +592,10 @@ For a registered agent:
   or periodic reconciliation ({{recovery}}) indicates a change.
 * **Disablement:** Once it applies `active: false`, the platform MUST
   deny new authorization for the agent and revoke the agent's existing
-  authorization in its own authorization system. Reactivation permits
-  new decisions; it does not restore revoked authorization.
+  authorization in its own authorization system. This includes an Agent
+  registered inactive pending approval ({{AGENT-MANAGEMENT}}).
+  Reactivation permits new decisions; it does not restore revoked
+  authorization.
 * **Local control:** The platform's own deactivation or suspension of
   the agent is a Local Suspension, which upstream activation cannot
   clear. Effective eligibility follows {{eligibility}}.

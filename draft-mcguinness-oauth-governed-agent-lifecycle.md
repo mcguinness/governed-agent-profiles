@@ -1030,7 +1030,7 @@ shown as placeholders.
 |---|---|
 | Enterprise IdP | `https://idp.example/`, SCIM base `https://idp.example/scim/acme` |
 | Data platform | `https://dataplatform.example/` |
-| Platform's identifier for the agent | `agt-31` |
+| Platform's workload identifier for the agent (`agt-31`) | `wimse://dataplatform.example/agents/agt-31` |
 | IdP SCIM resource for the agent | `/Agents/a58` |
 | Agent Principal | (`https://idp.example/`, `agent-58`) |
 | Agent owner, an IdP User | `u-2819` |
@@ -1045,12 +1045,11 @@ Once, before any agent exists, the IdP administrator:
   Bindings or Client Associations, or to enable an Agent the IdP
   disabled;
 * configures a stream from the IdP to the platform for SCIM change
-  notices about the Agents that connector registered, and for
-  `risk-level-change`; and
-* configures a stream from the platform to the IdP for
-  `credential-change`, `session-revoked`, and `risk-level-change` about
-  those Agents, with `principal` value `AGENT` agreed for registered
-  agents.
+  notices about the Agents that connector registered, and for CAEP
+  `risk-level-change` with `principal` value `AGENT` agreed for
+  registered agents; and
+* configures a stream from the platform to the IdP for WISE credential
+  and posture events and CAEP `session-revoked` about those Agents.
 
 The platform needs nothing else from the IdP to run its agents. This
 deployment sets no revalidation bound, so the platform keeps
@@ -1059,7 +1058,8 @@ authorizing on locally applied state while the IdP is unreachable.
 ## Register the Agent
 
 At 14:00 UTC on September 17, 2026, a customer creates a
-report-building agent on the platform. The platform assigns `agt-31`
+report-building agent on the platform. The platform names it `agt-31`,
+with workload identifier `wimse://dataplatform.example/agents/agt-31`,
 and its connector registers the agent:
 
 ~~~ http
@@ -1075,7 +1075,7 @@ Content-Type: application/scim+json
   ],
  "urn:ietf:params:scim:schemas:extension:agent-federation:2.0:Agent":
     {},
-  "externalId": "agt-31",
+  "externalId": "wimse://dataplatform.example/agents/agt-31",
   "agentUserName": "report-builder",
   "displayName": "Quarterly report builder",
   "description": "Builds finance reports from platform tables",
@@ -1108,7 +1108,7 @@ example:
   "action": "table.read",
   "resource": "finance.q3_ledger",
   "agent": {
-    "platform_id": "agt-31",
+    "platform_id": "wimse://dataplatform.example/agents/agt-31",
     "principal": {"iss": "https://idp.example/", "sub": "agent-58"}
   }
 }
@@ -1120,8 +1120,8 @@ SCIM resource and the events below on the qualified identifier.
 
 ## Report a Credential Change
 
-At 14:20, the platform rotates the agent's X.509 workload certificate
-and reports it to the IdP in a SET with these claims:
+At 14:20, the platform rotates the agent's Workload Identity
+Certificate and reports it to the IdP in a SET with these claims:
 
 ~~~ json
 {
@@ -1130,34 +1130,51 @@ and reports it to the IdP in a SET with these claims:
   "iat": 1789654800,
   "jti": "pl-cred-31-7",
   "sub_id": {
-    "format": "iss_sub",
-    "iss": "https://idp.example/",
-    "sub": "agent-58"
+    "format": "aliases",
+    "identifiers": [
+      {
+        "format": "iss_sub",
+        "iss": "https://idp.example/",
+        "sub": "agent-58"
+      },
+      {
+        "format": "uri",
+        "uri": "wimse://dataplatform.example/agents/agt-31"
+      }
+    ]
   }
 }
 ~~~
 
-Its `events` claim has one member, keyed by the CAEP event type
-`https://schemas.openid.net/secevent/caep/event-type/credential-change`,
-whose value is:
+Its `events` claim has one member, whose value is below. The member's
+key is the WISE event type URI, the base
+`https://schemas.openid.net/secevent/wise/event-type/` followed by
+`credential-rotated`:
 
 ~~~ json
 {
-  "credential_type": "x509",
-  "change_type": "create",
+  "credential_type": "wic",
+  "previous_credential_id": "serial:31-0006",
+  "new_credential_id": "serial:31-0007",
   "event_timestamp": 1789654800,
   "initiating_entity": "system"
 }
 ~~~
 
 The IdP accepts the event because this stream's Transmitter registered
-`agent-58`. The event updates the IdP's view of the agent; it does not
-change `active`.
+`agent-58` and both identifiers name that Agent. The event updates the
+IdP's view of the agent; it does not change `active`.
+
+## Report Anomalous Behavior
+
+At 14:25, the platform observes the agent reading tables outside its
+usual pattern and sends WISE `anomalous-behavior-detected` with
+`severity` `high` and the same subject. The event is advisory.
 
 ## Raise the Agent's Risk
 
-At 14:30, the IdP's risk analysis rates the agent HIGH, for example
-from correlated activity elsewhere, and sends `risk-level-change`
+At 14:30, the IdP's risk analysis, combining the platform's report with
+other signals, rates the agent HIGH. It sends CAEP `risk-level-change`
 with `principal` `AGENT` and `current_level` `HIGH` to the platform.
 Platform policy restricts the agent to read-only operations. The agent
 remains active; a risk event is not a disablement.
@@ -1193,18 +1210,31 @@ IdP would not clear that Local Suspension.
 
 ## Reach a Third-Party Resource
 
-Later, the agent needs a third-party API. An administrator authorized
-for bindings adds an Identity Binding to `/Agents/a58` with credential
-class `platform-jwt`, source authority `https://dataplatform.example/`,
-and source subject `agt-31`. The administrator also adds a Client
-Association permitting the platform's OAuth client to use that binding.
-The binding and association follow {{AGENT-MANAGEMENT}}.
+Later, the agent needs a third-party API on behalf of Alice, a finance
+analyst who is not its owner. An administrator authorized for bindings
+adds an Identity Binding to `/Agents/a58` with credential class
+`platform-jwt`, source authority `https://dataplatform.example/`, and
+source subject `wimse://dataplatform.example/agents/agt-31`. The
+administrator also adds a Client Association permitting the platform's
+OAuth client to use that binding ({{AGENT-MANAGEMENT}}). Separately,
+the IdP records Alice's delegation authorization for the agent at that
+resource and scope. The Agent's `owners` do not establish that
+delegation.
 
-The platform presents its JWT for `agt-31` in a token exchange, and the
-IdP issues an ID-JAG whose `act` is (`https://idp.example/`,
-`agent-58`) under {{FEDERATION}}. The third-party RAS correlates that
-pair as in {{example}}. The principal identifier, owner, and audit
-history registered at 14:00 carry over unchanged.
+For access on Alice's behalf, the platform authenticates its OAuth
+client and presents Alice's ID Token as `subject_token` and its JWT for
+`agt-31` as `actor_token`. After validating delegation authorization for
+the requested resource and scope, the IdP issues an ID-JAG identifying
+Alice in `sub` and (`https://idp.example/`, `agent-58`) in `act` under
+{{FEDERATION}}. The third-party RAS correlates that pair as in
+{{example}}.
+
+For the agent's own access, with no user, the IdP would instead need
+Agent Authorization and a Client Association for self-acting issuance,
+and would issue a WAG with `agent-58` as `sub`.
+
+Either way, the principal identifier, owner, and audit history
+registered at 14:00 carry over unchanged.
 
 ## Retire the Agent
 

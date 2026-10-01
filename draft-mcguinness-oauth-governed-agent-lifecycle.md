@@ -751,7 +751,9 @@ registered, and the IdP MUST reject an event about any other agent.
 * **Events:** CAEP `credential-change` when the agent's credentials
   change, `session-revoked` when the platform revokes the agent's
   sessions, and `risk-level-change` for risk the platform assesses
-  ({{CAEP}}).
+  ({{CAEP}}). CAEP defines no `principal` value for an agent, so stream
+  configuration MUST establish the value used in `risk-level-change` for
+  registered agents, in both directions.
 * **Effect:** An event informs IdP policy and monitoring. It does not
   change the Agent's administrative state, which changes only through
   {{AGENT-MANAGEMENT}}.

@@ -996,6 +996,202 @@ No principal-state update is implied. Revocation covers every session
 derived from `grant-7`, not another grant's sessions or every session
 involving the same agent.
 
+# Platform-Hosted Agent Walkthrough {#platform-example}
+
+This non-normative walkthrough follows one first-party agent on a data
+platform from creation to retirement, under {{platform-hosted}} and
+{{AGENT-MANAGEMENT}}. It is a specification walkthrough, not an executed
+implementation test. Signatures, credentials, and tokens are omitted or
+shown as placeholders.
+
+| Party | Identifier |
+|---|---|
+| Enterprise IdP | `https://idp.example/`, SCIM base `https://idp.example/scim/acme` |
+| Data platform | `https://dataplatform.example/` |
+| Platform's identifier for the agent | `agt-31` |
+| IdP SCIM resource for the agent | `/Agents/a58` |
+| Agent Principal | (`https://idp.example/`, `agent-58`) |
+| Agent owner, an IdP User | `u-2819` |
+{: title="Walkthrough identifiers"}
+
+## Configure the Relationship
+
+Once, before any agent exists, the IdP administrator:
+
+* authorizes the platform's connector to register and describe Agents
+  in Governance Tenant `acme`, without authority to create Identity
+  Bindings or Client Associations, or to enable an Agent the IdP
+  disabled;
+* configures a stream from the IdP to the platform for SCIM change
+  notices about the Agents that connector registered, and for
+  `risk-level-change`; and
+* configures a stream from the platform to the IdP for
+  `credential-change`, `session-revoked`, and `risk-level-change` about
+  those Agents, with `principal` value `AGENT` agreed for registered
+  agents.
+
+The platform needs nothing else from the IdP to run its agents. This
+deployment sets no revalidation bound, so the platform keeps
+authorizing on locally applied state while the IdP is unreachable.
+
+## Register the Agent
+
+At 14:00 UTC on September 17, 2026, a customer creates a
+report-building agent on the platform. The platform assigns `agt-31`
+and its connector registers the agent:
+
+~~~ http
+POST /scim/acme/Agents HTTP/1.1
+Host: idp.example
+Authorization: Bearer CONNECTOR_ACCESS_TOKEN
+Content-Type: application/scim+json
+
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:Agent",
+  "urn:ietf:params:scim:schemas:extension:agent-federation:2.0:Agent"
+  ],
+ "urn:ietf:params:scim:schemas:extension:agent-federation:2.0:Agent":
+    {},
+  "externalId": "agt-31",
+  "agentUserName": "report-builder",
+  "displayName": "Quarterly report builder",
+  "description": "Builds finance reports from platform tables",
+  "owners": [{"value": "u-2819"}],
+  "active": true
+}
+~~~
+
+IdP policy approves registrations from this connector automatically,
+so the Agent is created active. The response carries SCIM `id` `a58`
+and `AgentFederation.subject` `agent-58`. The platform stores the
+correlation from `agt-31` to (`https://idp.example/`, `agent-58`). The
+Agent has no Identity Binding or Client Association, so the IdP issues
+it no grant.
+
+Under an approval policy, the IdP would instead create the Agent with
+`active: false`, and the platform would deny the agent authorization
+until the IdP activated it.
+
+## Operate on the Platform
+
+The agent reads finance tables and writes reports through the
+platform's own authorization; no request reaches the IdP. The
+platform's audit record for one read carries both identifiers, for
+example:
+
+~~~ json
+{
+  "time": "2026-09-17T14:05:00Z",
+  "action": "table.read",
+  "resource": "finance.q3_ledger",
+  "agent": {
+    "platform_id": "agt-31",
+    "principal": {"iss": "https://idp.example/", "sub": "agent-58"}
+  }
+}
+~~~
+
+This shape is illustrative; {{platform-hosted}} defines no log format.
+The IdP, a SIEM, or a posture tool joins this record with the Agent's
+SCIM resource and the events below on the qualified identifier.
+
+## Report a Credential Change
+
+At 14:20, the platform rotates the agent's X.509 workload certificate
+and reports it to the IdP in a SET with these claims:
+
+~~~ json
+{
+  "iss": "https://dataplatform.example/",
+  "aud": ["https://idp.example/signals"],
+  "iat": 1789654800,
+  "jti": "pl-cred-31-7",
+  "sub_id": {
+    "format": "iss_sub",
+    "iss": "https://idp.example/",
+    "sub": "agent-58"
+  }
+}
+~~~
+
+Its `events` claim has one member, keyed by the CAEP event type
+`https://schemas.openid.net/secevent/caep/event-type/credential-change`,
+whose value is:
+
+~~~ json
+{
+  "credential_type": "x509",
+  "change_type": "create",
+  "event_timestamp": 1789654800,
+  "initiating_entity": "system"
+}
+~~~
+
+The IdP accepts the event because this stream's Transmitter registered
+`agent-58`. The event updates the IdP's view of the agent; it does not
+change `active`.
+
+## Raise the Agent's Risk
+
+At 14:30, the IdP's risk analysis rates the agent HIGH, for example
+from correlated activity elsewhere, and sends `risk-level-change`
+with `principal` `AGENT` and `current_level` `HIGH` to the platform.
+Platform policy restricts the agent to read-only operations. The agent
+remains active; a risk event is not a disablement.
+
+## Disable the Agent
+
+At 14:31, an IdP administrator disables `agent-58`. The IdP sends the
+platform a SCIM change notice for `/Agents/a58`, as in
+{{signal-examples}}. The platform retrieves `/Agents/a58` from the IdP,
+observes `active: false`, and under {{platform-hosted}}:
+
+* denies new authorization for `agt-31`;
+* revokes the agent's existing sessions and tokens in its own
+  authorization; and
+* reports `session-revoked` for `agent-58` to the IdP, so the IdP sees
+  that the platform applied the change.
+
+If the notice is lost or the IdP is unreachable, the platform keeps its
+last applied state, here active and read-only, until its periodic
+reconciliation retrieves the Agent. An unreachable IdP neither disables
+nor re-enables the agent.
+
+## Re-enable
+
+At 15:00, the IdP administrator re-enables the Agent, and the platform
+retrieves and applies `active: true`. The agent can obtain new
+authorization. The sessions revoked at 14:31 stay revoked, and the
+read-only restriction from the risk event remains until platform policy
+lifts it.
+
+If the platform had suspended the agent itself, re-enablement at the
+IdP would not clear that Local Suspension.
+
+## Reach a Third-Party Resource
+
+Later, the agent needs a third-party API. An administrator authorized
+for bindings adds an Identity Binding to `/Agents/a58` with credential
+class `platform-jwt`, source authority `https://dataplatform.example/`,
+and source subject `agt-31`. The administrator also adds a Client
+Association permitting the platform's OAuth client to use that binding.
+The binding and association follow {{AGENT-MANAGEMENT}}.
+
+The platform presents its JWT for `agt-31` in a token exchange, and the
+IdP issues an ID-JAG whose `act` is (`https://idp.example/`,
+`agent-58`) under {{FEDERATION}}. The third-party RAS correlates that
+pair as in {{example}}. The principal identifier, owner, and audit
+history registered at 14:00 carry over unchanged.
+
+## Retire the Agent
+
+At 16:00, the customer deletes the agent. The connector deletes
+`/Agents/a58` at the IdP. The binding and association become unusable,
+and `agent-58` is never assigned to another agent. A third-party
+resource domain provisioned for `agent-58` applies the deletion under
+{{application}}.
+
 # Document History
 
 RFC Editor: Remove this section before publication.

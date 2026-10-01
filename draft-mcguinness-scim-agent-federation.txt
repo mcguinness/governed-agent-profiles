@@ -4,8 +4,8 @@
 
 System for Cross-domain Identity Management                K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                       28 September 2026
-Expires: 1 April 2027
+Intended status: Standards Track                          1 October 2026
+Expires: 4 April 2027
 
 
          SCIM Profile for Governed Agent Federation Management
@@ -64,7 +64,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 1 April 2027.
+   This Internet-Draft will expire on 4 April 2027.
 
 Copyright Notice
 
@@ -101,17 +101,18 @@ Table of Contents
      5.5.  Discovery
      5.6.  Errors
    6.  Effect on Grant Issuance
-   7.  Security Considerations
-     7.1.  Administrative Privilege and Confused Deputies
-     7.2.  Independent Controls and Stale State
-   8.  Privacy Considerations
-   9.  IANA Considerations
-     9.1.  Agent Federation Extension
-     9.2.  Agent Identity Binding
-     9.3.  Agent Client Association
-   10. References
-     10.1.  Normative References
-     10.2.  Informative References
+   7.  Platform-Hosted Agents
+   8.  Security Considerations
+     8.1.  Administrative Privilege and Confused Deputies
+     8.2.  Independent Controls and Stale State
+   9.  Privacy Considerations
+   10. IANA Considerations
+     10.1.  Agent Federation Extension
+     10.2.  Agent Identity Binding
+     10.3.  Agent Client Association
+   11. References
+     11.1.  Normative References
+     11.2.  Informative References
    Appendix A.  Example: Platform Onboarding
      A.1.  Obtain the OAuthClient Reference
      A.2.  Create an Inactive Agent
@@ -205,10 +206,11 @@ Table of Contents
 1.1.  Scope
 
    This profile defines explicit bindings and associations for delegated
-   ID-JAG issuance.  It supports the federation draft's dedicated-
-   client, SPIFFE, Client Attestation, and existing platform JWT
-   resolution inputs.  Implementations need only support the credential
-   classes they accept under [FEDERATION].
+   ID-JAG issuance, and registration of platform-hosted agents for
+   governance without issuance (Section 7).  It supports the federation
+   draft's dedicated-client, SPIFFE, Client Attestation, and existing
+   platform JWT resolution inputs.  Implementations need only support
+   the credential classes they accept under [FEDERATION].
 
    The following remain outside this profile:
 
@@ -963,9 +965,56 @@ Table of Contents
    relationship revocation event or automatic cancellation of existing
    work.
 
-7.  Security Considerations
+7.  Platform-Hosted Agents
 
-7.1.  Administrative Privilege and Confused Deputies
+   A platform can host agents that use only its own resources, so the
+   IdP issues them no grants.  Registering such agents as Agents gives
+   the IdP inventory and governance over them without placing the IdP in
+   the platform's runtime path.  A registered Agent has no Identity
+   Binding or Client Association, so under Section 6 it obtains no
+   grant.
+
+   For a registered Agent:
+
+   *  *Registration:* The connector sets externalId to the platform's
+      identifier for the agent and supplies descriptive attributes such
+      as displayName, description, and owners.  The Service Provider
+      assigns AgentFederation.subject; the platform retains the
+      qualified Agent Principal identifier as its correlation to the
+      Agent.
+
+   *  *Administrative state:* The IdP decides active.  Authority to
+      register or describe Agents MUST NOT include authority to set
+      active: true on an Agent that the IdP disabled.  The platform's
+      own deactivation of an agent is local to the platform
+      ([LIFECYCLE]).
+
+   *  *Retirement:* When the platform deletes the agent, the connector
+      deletes the Agent (Section 5.3).  Its qualified identity is not
+      reused.
+
+   *  *Approval:* IdP policy MAY create registered Agents with active:
+      false until it approves them.  Until approval, the platform denies
+      authorization for the agent, as for any inactive Agent.  After
+      activation, it authorizes from locally applied state without
+      requiring the IdP on its runtime path.  A deployment whose agents
+      operate before approval does not use this policy; this profile
+      defines no separate approval state.
+
+   The platform applies the IdP's administrative state to its own
+   authorization under [LIFECYCLE].  To give the agent access beyond the
+   platform later, an authorized administrator adds an Identity Binding
+   and, where the input requires one, a Client Association to the same
+   Agent.  [FEDERATION] then applies, and the Agent Principal identifier
+   and its governance history do not change.
+
+   This profile defines registration by the platform.  An IdP can also
+   discover hosted agents by reading a platform's agent inventory; that
+   interface is outside this profile.
+
+8.  Security Considerations
+
+8.1.  Administrative Privilege and Confused Deputies
 
    Binding and association writes can enable impersonation of an Agent
    Principal.  The Service Provider MUST check the connector's authority
@@ -980,7 +1029,7 @@ Table of Contents
    client key cannot authorize an administrative write by itself.
    References do not permit cross-tenant attachment or SSRF.
 
-7.2.  Independent Controls and Stale State
+8.2.  Independent Controls and Stale State
 
    OAuthClient, Agent, binding, and association enablement have distinct
    effects.  An owner, group, or display-name update MUST NOT implicitly
@@ -1008,7 +1057,7 @@ Table of Contents
    Audit records SHOULD identify principals and configuration changes
    without retaining reusable workload credentials.
 
-8.  Privacy Considerations
+9.  Privacy Considerations
 
    The profile correlates platform records, workload identities,
    enterprise principals, and OAuth clients.  SCIM readers SHOULD
@@ -1018,14 +1067,14 @@ Table of Contents
    authorization is independent of permission to exercise the agent at a
    token endpoint.
 
-9.  IANA Considerations
+10.  IANA Considerations
 
    This document requests the following entries in the SCIM Schema URIs
    registry using Section 10.3.2 of [RFC7643].  The proposed core:2.0
    namespace registrations require Expert Review and RFC publication
    under Section 10.3.1 of [RFC7643].
 
-9.1.  Agent Federation Extension
+10.1.  Agent Federation Extension
 
    *  Schema URI: urn:ietf:params:scim:schemas:extension:agent-
       federation:2.0:Agent
@@ -1041,7 +1090,7 @@ Table of Contents
 
    *  Multi-valued Attributes: None.
 
-9.2.  Agent Identity Binding
+10.2.  Agent Identity Binding
 
    *  Schema URI:
       urn:ietf:params:scim:schemas:core:2.0:AgentIdentityBinding
@@ -1059,7 +1108,7 @@ Table of Contents
 
    *  Multi-valued Attributes: selectors, defined in Section 4.3.
 
-9.3.  Agent Client Association
+10.3.  Agent Client Association
 
    *  Schema URI:
       urn:ietf:params:scim:schemas:core:2.0:AgentClientAssociation
@@ -1080,9 +1129,9 @@ Table of Contents
    is registered.  Credential-class names are local to this profile's
    schema.
 
-10.  References
+11.  References
 
-10.1.  Normative References
+11.1.  Normative References
 
    [OAUTH-CLIENT]
               McGuinness, K., "SCIM Profile for OAuth 2.0 Client
@@ -1143,7 +1192,7 @@ Table of Contents
               2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
               May 2017, <https://www.rfc-editor.org/info/rfc8174>.
 
-10.2.  Informative References
+11.2.  Informative References
 
    [LIFECYCLE]
               McGuinness, K., "Governed Agent Lifecycle Profile for SCIM

@@ -38,6 +38,14 @@ normative:
     author:
       - org: OpenID Foundation
     date: 2025-08-29
+  WISE:
+    title: "OpenID WISE Profile Specification 1.0, draft 03"
+    target: https://openid.github.io/ssf-wise-profile/
+    author:
+      - name: J. Lombardo
+      - name: D. Sneeggen
+      - name: S. O'Dell
+    date: 2026-09-28
   RFC8417:
   RFC9493:
   RFC9967:
@@ -73,11 +81,6 @@ informative:
       Internet-Draft: draft-mcguinness-scim-agent-federation
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html
   RFC7009:
-  WISE:
-    title: "Workload Identity Security Events (WISE) Profile"
-    target: https://github.com/identitymonk/openid-wise/blob/main/openid-wise-profile-1_0.md
-    author:
-      - org: WISE Contributors
   WAG: I-D.carleton-workload-authz-grant
 --- abstract
 
@@ -738,6 +741,13 @@ independent Local Suspension. Feed removal and inaccessible sources
 follow the incomplete reconciliation rules; they are not deletion
 instructions.
 
+A Receiver that accepts {{WISE}} lifecycle events about a provisioned
+principal from a configured Transmitter applies the same asymmetry.
+`workload-disabled` and `workload-purged` MAY cause a provisional Local
+Suspension pending reconciliation. `workload-enabled` and
+`workload-restored` trigger retrieval of current state and MUST NOT
+activate the principal directly.
+
 ## Platform Signals to the IdP {#platform-signals}
 
 A platform hosting registered agents ({{platform-hosted}}) MAY transmit
@@ -745,22 +755,34 @@ events about them to the IdP. Trusted stream configuration MUST
 establish the platform as Transmitter for the agents its connector
 registered, and the IdP MUST reject an event about any other agent.
 
-* **Subject:** The `iss_sub` format of {{Section 3.2.3 of RFC9493}},
-  with `iss` the IdP issuer and `sub` the registered Agent Principal
-  identifier.
-* **Events:** CAEP `credential-change` when the agent's credentials
-  change, `session-revoked` when the platform revokes the agent's
-  sessions, and `risk-level-change` for risk the platform assesses
-  ({{CAEP}}). CAEP defines no `principal` value for an agent, so stream
-  configuration MUST establish the value used in `risk-level-change` for
-  registered agents, in both directions.
+* **Subject:** The `aliases` format of {{Section 3.2.8 of RFC9493}},
+  containing the `iss_sub` identifier (the IdP issuer and the registered
+  Agent Principal identifier) and the `uri` workload identifier that
+  {{WISE}} uses, which the platform registered as the Agent's
+  `externalId`. The IdP MUST correlate both identifiers with the same
+  registered Agent, or reject the event.
+* **Credential events:** {{WISE}} `credential-issued`,
+  `credential-rotated`, `credential-revoked`, and
+  `credential-compromised` for the agent's workload credentials.
+* **Posture events:** {{WISE}} `workload-compromised`,
+  `anomalous-behavior-detected`, `workload-degraded`,
+  `workload-restored`, `workload-baseline-changed`, posture evaluation
+  results, and `workload-vulnerability-status-changed`.
+* **Sessions:** CAEP `session-revoked` when the platform revokes the
+  agent's sessions ({{CAEP}}).
 * **Effect:** An event informs IdP policy and monitoring. It does not
   change the Agent's administrative state, which changes only through
   {{AGENT-MANAGEMENT}}.
 
-The IdP MAY send `risk-level-change` for a registered agent to the
-platform over a stream in the other direction. The platform applies it
-under its own policy; a risk event is not an administrative disablement.
+A platform's own `workload-disabled`, `workload-enabled`, or
+`workload-purged` reports its local control of the agent. It does not
+change the IdP's `active`.
+
+The IdP MAY send CAEP `risk-level-change` for a registered agent to the
+platform over a stream in the other direction. CAEP defines no
+`principal` value for an agent, so stream configuration MUST establish
+the value used. The platform applies the event under its own policy; a
+risk event is not an administrative disablement.
 
 ## Grant-Derived Session Revocation {#grant-revocation}
 

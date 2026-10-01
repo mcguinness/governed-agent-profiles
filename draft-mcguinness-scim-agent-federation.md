@@ -138,7 +138,8 @@ identity.
 ## Scope
 
 This profile defines explicit bindings and associations for delegated
-ID-JAG issuance. It supports the federation draft's dedicated-client,
+ID-JAG issuance, and registration of platform-hosted agents for
+governance without issuance ({{platform-hosted}}). It supports the federation draft's dedicated-client,
 SPIFFE, Client Attestation, and existing platform JWT resolution inputs.
 Implementations need only support the credential classes they accept
 under {{FEDERATION}}.
@@ -740,6 +741,43 @@ ID-JAGs, resource access tokens, and RAS refresh authorizations require
 their own validation and revocation processing. {{LIFECYCLE}} addresses
 agent-wide propagation; this document defines no selective relationship
 revocation event or automatic cancellation of existing work.
+
+# Platform-Hosted Agents {#platform-hosted}
+
+A platform can host agents that use only its own resources, so the IdP
+issues them no grants. Registering such agents as Agents gives the IdP
+inventory and governance over them without placing the IdP in the
+platform's runtime path. A registered Agent has no Identity Binding or
+Client Association, so under {{issuance}} it obtains no grant.
+
+For a registered Agent:
+
+* **Registration:** The connector sets `externalId` to the platform's
+  identifier for the agent and supplies descriptive attributes such as
+  `displayName`, `description`, and `owners`. The Service Provider
+  assigns `AgentFederation.subject`; the platform retains the qualified
+  Agent Principal identifier as its correlation to the Agent.
+* **Administrative state:** The IdP decides `active`. Authority to
+  register or describe Agents MUST NOT include authority to set
+  `active: true` on an Agent that the IdP disabled. The platform's own
+  deactivation of an agent is local to the platform ({{LIFECYCLE}}).
+* **Retirement:** When the platform deletes the agent, the connector
+  deletes the Agent ({{deletion}}). Its qualified identity is not reused.
+* **Approval:** IdP policy MAY create registered Agents with
+  `active: false` until it approves them. That makes activation, not operation,
+  depend on the IdP; the platform decides whether to hold a new agent
+  until then.
+
+The platform applies the IdP's administrative state to its own
+authorization under {{LIFECYCLE}}. To give the agent access beyond the
+platform later, an authorized administrator adds an Identity Binding and,
+where the input requires one, a Client Association to the same Agent.
+{{FEDERATION}} then applies, and the Agent Principal identifier and its
+governance history do not change.
+
+This profile defines registration by the platform. An IdP can also
+discover hosted agents by reading a platform's agent inventory; that
+interface is outside this profile.
 
 # Security Considerations
 

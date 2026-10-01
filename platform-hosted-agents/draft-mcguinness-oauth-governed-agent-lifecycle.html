@@ -2013,8 +2013,10 @@ or periodic reconciliation (<a href="#recovery" class="auto internal xref">Secti
         <li class="normal" id="section-9-3.3">
           <p id="section-9-3.3.1"><strong>Disablement:</strong> Once it applies <code>active: false</code>, the platform <span class="bcp14">MUST</span>
 deny new authorization for the agent and revoke the agent's existing
-authorization in its own authorization system. Reactivation permits
-new decisions; it does not restore revoked authorization.<a href="#section-9-3.3.1" class="pilcrow">¶</a></p>
+authorization in its own authorization system. This includes an Agent
+registered inactive pending approval (<span>[<a href="#AGENT-MANAGEMENT" class="cite xref">AGENT-MANAGEMENT</a>]</span>).
+Reactivation permits new decisions; it does not restore revoked
+authorization.<a href="#section-9-3.3.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-9-3.4">
           <p id="section-9-3.4.1"><strong>Local control:</strong> The platform's own deactivation or suspension of

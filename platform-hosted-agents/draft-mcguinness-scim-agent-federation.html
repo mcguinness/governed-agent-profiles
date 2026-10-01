@@ -2425,9 +2425,12 @@ deletes the Agent (<a href="#deletion" class="auto internal xref">Section 5.3</a
 </li>
         <li class="normal" id="section-7-3.4">
           <p id="section-7-3.4.1"><strong>Approval:</strong> IdP policy <span class="bcp14">MAY</span> create registered Agents with
-<code>active: false</code> until it approves them. That makes activation, not operation,
-depend on the IdP; the platform decides whether to hold a new agent
-until then.<a href="#section-7-3.4.1" class="pilcrow">¶</a></p>
+<code>active: false</code> until it approves them. Until approval, the platform
+denies authorization for the agent, as for any inactive Agent. After
+activation, it authorizes from locally applied state without requiring
+the IdP on its runtime path. A deployment whose agents operate before
+approval does not use this policy; this profile defines no separate
+approval state.<a href="#section-7-3.4.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 <p id="section-7-4">The platform applies the IdP's administrative state to its own

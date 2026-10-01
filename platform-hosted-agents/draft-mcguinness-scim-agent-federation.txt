@@ -994,9 +994,12 @@ Table of Contents
       reused.
 
    *  *Approval:* IdP policy MAY create registered Agents with active:
-      false until it approves them.  That makes activation, not
-      operation, depend on the IdP; the platform decides whether to hold
-      a new agent until then.
+      false until it approves them.  Until approval, the platform denies
+      authorization for the agent, as for any inactive Agent.  After
+      activation, it authorizes from locally applied state without
+      requiring the IdP on its runtime path.  A deployment whose agents
+      operate before approval does not use this policy; this profile
+      defines no separate approval state.
 
    The platform applies the IdP's administrative state to its own
    authorization under [LIFECYCLE].  To give the agent access beyond the

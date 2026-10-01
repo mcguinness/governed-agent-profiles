@@ -28,6 +28,14 @@ author:
 normative:
   SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth
   WIT: I-D.ietf-wimse-workload-creds
+  WISE:
+    title: "OpenID WISE Profile Specification 1.0, draft 03"
+    target: https://openid.github.io/ssf-wise-profile/
+    author:
+      - name: J. Lombardo
+      - name: D. Sneeggen
+      - name: S. O'Dell
+    date: 2026-09-28
   ATTEST: I-D.ietf-oauth-attestation-based-client-auth
   INSTANCE: I-D.mcguinness-oauth-client-instance-id
   ATTESTER-ENDORSEMENT: I-D.mcguinness-oauth-client-attesters
@@ -892,6 +900,19 @@ Key lookup MUST retain the issuer or trust-domain association
 
 A fresh proof does not renew an expired credential; an unchanged
 identifier does not authorize a new proof key.
+
+An IdP that accepts {{WISE}} events from a credential authority it
+trusts MUST stop accepting, for agent resolution, the following from
+the time each event takes effect (Section 2.3 of {{WISE}}):
+
+* a credential that `credential-revoked` or `credential-compromised`
+  identifies;
+* trust material that `trust-anchor-revoked` identifies; and
+* credentials from a trust domain that `trust-domain-federation-revoked`
+  names.
+
+Disabling an Identity Binding or the Agent Principal in response is
+IdP policy ({{status-changes}}): an agent can have other valid bindings.
 
 ## Token Endpoint Errors {#errors}
 

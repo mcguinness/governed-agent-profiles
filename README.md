@@ -211,9 +211,10 @@ without putting the IdP in the platform's runtime path:
   agents. When the IdP disables one, the platform denies new authorization and
   revokes the agent's existing authorization in its own system. Its own
   suspension is a Local Suspension the IdP cannot clear.
-* **Signal both ways.** The platform can send CAEP credential, session, and
-  risk events about its agents to the IdP, and the IdP can send risk changes
-  back. Events inform policy; they do not change administrative state.
+* **Signal both ways.** The platform sends WISE credential and posture events
+  and CAEP session events about its agents to the IdP, and the IdP can send
+  CAEP risk changes back. Events inform policy; they do not change
+  administrative state.
 * **One correlation key.** The issuer-qualified Agent Principal identifier
   appears in SCIM, in events, and in the platform's audit records and
   telemetry, next to the platform's own identifier. Logs, observability, and
@@ -223,9 +224,10 @@ without putting the IdP in the platform's runtime path:
     Association to the same Agent. Its identifier and governance history carry
   over.
 
-The lifecycle draft's platform-hosted walkthrough follows one agent from
-registration through risk signals, disablement, re-enablement, third-party
-access, and retirement.
+The lifecycle draft's
+[platform-hosted walkthrough](https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#platform-example)
+follows one agent from registration through risk signals, disablement,
+re-enablement, third-party access, and retirement.
 
 
 ## Beyond these drafts

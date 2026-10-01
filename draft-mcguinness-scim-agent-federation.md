@@ -754,7 +754,9 @@ For a registered Agent:
 
 * **Registration:** The connector sets `externalId` to the platform's
   identifier for the agent and supplies descriptive attributes such as
-  `displayName`, `description`, and `owners`. The Service Provider
+  `displayName`, `description`, and `owners`. A platform that sends WISE
+  events about the agent uses their workload identifier URI
+  ({{LIFECYCLE}}). The Service Provider
   assigns `AgentFederation.subject`; the platform retains the qualified
   Agent Principal identifier as its correlation to the Agent.
 * **Administrative state:** The IdP decides `active`. Authority to

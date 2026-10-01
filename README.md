@@ -192,6 +192,37 @@ agent identity, and permission to use that identity remain separate.
 * [OAuthClient profile source](draft-mcguinness-scim-oauth-client-management.md)
 * [OAuthClient editor's copy](https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-oauth-client-management.html)
 
+## Platform-hosted agents
+
+A platform such as a data or application platform can host agents for a
+customer that use only the platform's own tools and resources. The IdP issues
+those agents nothing, and the platform must keep running when the IdP is
+unavailable. The enterprise still wants them in one inventory, under one
+governance decision, and visible in its monitoring. The drafts support this
+without putting the IdP in the platform's runtime path:
+
+* **Register, don't federate.** The platform's connector registers each hosted
+  agent at the IdP as an Agent with no Identity Binding or Client Association.
+  The agent is visible and governed but cannot obtain an IdP grant.
+* **Split authority.** The platform owns the agent's existence, description,
+  and deletion. The IdP owns the governance decision, `active`, and the
+  connector cannot re-enable an agent the IdP disabled.
+* **Apply governance locally.** The platform is the Receiver for its own
+  agents. When the IdP disables one, the platform denies new authorization and
+  revokes the agent's existing authorization in its own system. Its own
+  suspension is a Local Suspension the IdP cannot clear.
+* **Signal both ways.** The platform can send CAEP credential, session, and
+  risk events about its agents to the IdP, and the IdP can send risk changes
+  back. Events inform policy; they do not change administrative state.
+* **One correlation key.** The issuer-qualified Agent Principal identifier
+  appears in SCIM, in events, and in the platform's audit records and
+  telemetry, next to the platform's own identifier. Logs, observability, and
+  posture tools join on it; the drafts define no log format.
+* **Federate later, same principal.** When the agent needs a resource beyond
+  the platform, an administrator adds an Identity Binding and Client
+  Association to the same Agent. Its identifier and governance history carry
+  over.
+
 ## Beyond these drafts
 
 Identity, authority, and approved work have separate owners, checks, and

@@ -165,7 +165,8 @@ upstream state, and upstream activation cannot clear it.
 ## Scope
 
 This profile covers IdP-to-resource-domain provisioning for delegated
-Federation. It does not define:
+Federation, and a platform applying the IdP's administrative state to
+agents it hosts ({{platform-hosted}}). It does not define:
 
 * Platform enrollment or administration of Identity Bindings and Client
   Associations; {{AGENT-MANAGEMENT}} defines that separate interface.
@@ -201,9 +202,11 @@ Governing IdP:
 
 Receiver:
 : The resource-domain SCIM service provider and the components applying
-  accepted changes at the RAS. They form one administrative deployment;
-  they need not run in one process. It is the resource-domain
-  counterpart of the IdP Service Provider in {{AGENT-MANAGEMENT}}.
+  accepted changes at the RAS, or, for a platform-hosted agent, in the
+  platform's own authorization ({{platform-hosted}}). They form one
+  administrative deployment; they need not run in one process. It is the
+  resource-domain counterpart of the IdP Service Provider in
+  {{AGENT-MANAGEMENT}}.
 
 Provisioning Domain:
 : Trusted configuration identifying one governing IdP issuer and one
@@ -225,7 +228,8 @@ Local Suspension:
 Conformance requires the SCIM provisioning and OAuth receiver behavior in
 this document. Events are optional; a deployment using them MUST apply
 {{signals}}. Support for events alone is not conformance to this
-lifecycle profile.
+lifecycle profile. A platform applying state to agents it hosts conforms
+through {{platform-hosted}} instead of the OAuth receiver behavior.
 
 Before provisioning, the parties MUST establish:
 
@@ -413,7 +417,8 @@ Deleting a local representation does not prove that the IdP retired the
 Agent Principal globally. Permanent retirement and non-reassignment
 remain authority responsibilities under {{FEDERATION}}.
 
-## Effective Eligibility
+## Effective Eligibility {#eligibility}
+
 
 The SCIM `active` value reports administrative state received through
 this interface. Effective eligibility also requires an authorized
@@ -567,6 +572,47 @@ actor in `act`; self-acting access represents the correlated agent as a
 local subject. Their authority remains distinct. This document defines
 no {{WAG}} wire composition or additional WAG claim.
 
+# Platform-Hosted Agents {#platform-hosted}
+
+A platform that hosts agents and authorizes them for its own resources
+can register them with the IdP for governance ({{AGENT-MANAGEMENT}}).
+The platform is then also the Receiver for those agents, and its own
+resources form the resource domain. The IdP issues those agents no
+grants, so {{enforcement}} does not apply; the platform applies the same
+outcomes in its own authorization.
+
+For a registered agent:
+
+* **Correlation:** The platform correlates its agent with the qualified
+  Agent Principal identifier that registration returned. Just-in-time
+  correlation does not apply.
+* **Administrative state:** The platform obtains the Agent's `active`
+  value from IdP provisioning under {{scim}}, or by retrieving its
+  registered Agent from the IdP when a change notice ({{scim-events}})
+  or periodic reconciliation ({{recovery}}) indicates a change.
+* **Disablement:** Once it applies `active: false`, the platform MUST
+  deny new authorization for the agent and revoke the agent's existing
+  authorization in its own authorization system. This includes an Agent
+  registered inactive pending approval ({{AGENT-MANAGEMENT}}).
+  Reactivation permits new decisions; it does not restore revoked
+  authorization.
+* **Local control:** The platform's own deactivation or suspension of
+  the agent is a Local Suspension, which upstream activation cannot
+  clear. Effective eligibility follows {{eligibility}}.
+
+The IdP is not part of the platform's runtime path. The platform
+authorizes its agents from locally applied state, and an unreachable IdP
+neither disables nor re-enables them; transport failures follow
+{{recovery}}. A deployment that needs to bound how long the platform
+relies on unrefreshed state uses the revalidation policy of
+{{recovery}}, which then denies new authorization when that bound
+expires.
+
+Audit records and telemetry about a registered agent's actions SHOULD
+carry the qualified Agent Principal identifier alongside the platform's
+own identifier for the agent, so that the IdP and other consumers can
+correlate them. This document defines no log or telemetry format.
+
 # Security Considerations
 
 Provisioning writers can enable principals and change eligibility. Their
@@ -691,6 +737,28 @@ can clear that provisional restriction under local policy, but not an
 independent Local Suspension. Feed removal and inaccessible sources
 follow the incomplete reconciliation rules; they are not deletion
 instructions.
+
+## Platform Signals to the IdP {#platform-signals}
+
+A platform hosting registered agents ({{platform-hosted}}) MAY transmit
+events about them to the IdP. Trusted stream configuration MUST
+establish the platform as Transmitter for the agents its connector
+registered, and the IdP MUST reject an event about any other agent.
+
+* **Subject:** The `iss_sub` format of {{Section 3.2.3 of RFC9493}},
+  with `iss` the IdP issuer and `sub` the registered Agent Principal
+  identifier.
+* **Events:** CAEP `credential-change` when the agent's credentials
+  change, `session-revoked` when the platform revokes the agent's
+  sessions, and `risk-level-change` for risk the platform assesses
+  ({{CAEP}}).
+* **Effect:** An event informs IdP policy and monitoring. It does not
+  change the Agent's administrative state, which changes only through
+  {{AGENT-MANAGEMENT}}.
+
+The IdP MAY send `risk-level-change` for a registered agent to the
+platform over a stream in the other direction. The platform applies it
+under its own policy; a risk event is not an administrative disablement.
 
 ## Grant-Derived Session Revocation {#grant-revocation}
 

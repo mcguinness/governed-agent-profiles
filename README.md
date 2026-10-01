@@ -220,8 +220,13 @@ without putting the IdP in the platform's runtime path:
   posture tools join on it; the drafts define no log format.
 * **Federate later, same principal.** When the agent needs a resource beyond
   the platform, an administrator adds an Identity Binding and Client
-  Association to the same Agent. Its identifier and governance history carry
+    Association to the same Agent. Its identifier and governance history carry
   over.
+
+The lifecycle draft's platform-hosted walkthrough follows one agent from
+registration through risk signals, disablement, re-enablement, third-party
+access, and retirement.
+
 
 ## Beyond these drafts
 

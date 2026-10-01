@@ -780,7 +780,8 @@ governance history do not change.
 
 This profile defines registration by the platform. An IdP can also
 discover hosted agents by reading a platform's agent inventory; that
-interface is outside this profile.
+interface is outside this profile. {{LIFECYCLE}} walks one
+platform-hosted agent from registration to retirement.
 
 # Security Considerations
 

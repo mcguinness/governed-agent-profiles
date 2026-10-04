@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-10-01T02:52:11.577879+00:00",
+  "timestamp": "2026-10-04T03:13:31.065289+00:00",
   "repo": "mcguinness/governed-agent-profiles",
   "labels": [
     {
@@ -480,6 +480,62 @@
       "mergedBy": "mcguinness",
       "mergeCommit": {
         "oid": "13e0f0b28ee5cc55cb16b884eeff0f2ddceb39f9"
+      },
+      "comments": [],
+      "reviews": []
+    },
+    {
+      "number": 16,
+      "id": "PR_kwDOUa5iRM8AAAABGMVk9Q",
+      "title": "Govern platform-hosted agents without putting the IdP on the runtime path",
+      "url": "https://github.com/mcguinness/governed-agent-profiles/pull/16",
+      "state": "MERGED",
+      "author": "mcguinness",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "Some platforms host agents for a customer that use only the platform's own tools and resources, for example a data platform's first-party agents. The IdP issues those agents nothing and may not know they exist. The platform must keep operating without the IdP, but the enterprise wants one inventory, one governance decision, and centralized monitoring for them, and may later need them to reach third-party resources.\n\nThe family didn't address this. Every companion assumed the IdP was on the runtime path:\n- Agent management said \"the IdP remains the authority for the Agent Principal\", and its scope was delegated ID-JAG issuance.\n- Lifecycle ran one way, IdP \u2192 resource domain, and enforced only at an OAuth RAS.\n- Nothing carried events from the platform to the IdP.\n\nMost of the machinery already existed. Agents need no binding. Lifecycle's effective eligibility is already an AND of IdP state and a Local Suspension, and transport failure is already not deletion. This PR states the pattern and adds the missing direction.\n\n## Changes\n\n| Draft | Change | Keywords |\n|---|---|---|\n| SCIM agent management (220f7e9) | New **Platform-Hosted Agents** section. The connector registers each hosted agent as an Agent with no binding or association, so it gets no grant. It sets `externalId` to the platform's identifier and supplies `owners` and descriptive attributes, and the platform keeps the returned qualified identifier as its correlation. The IdP decides `active`: registration or description authority MUST NOT include setting `active: true` on an Agent the IdP disabled. Deleting the agent deletes the Agent, and its identity is not reused. IdP policy MAY create registered Agents inactive until approved, which makes activation, not operation, depend on the IdP. To federate later, an administrator adds a binding and association to the same Agent | +1 MUST NOT, +1 MAY |\n| Lifecycle (23b5be8) | New **Platform-Hosted Agents** section, described below. New **Platform Signals to the IdP**, also below. Scope, Receiver definition, and conformance name the platform case | +3 MUST, +1 SHOULD, +2 MAY |\n| README (1f31616) | A **Platform-hosted agents** section summarizing the pattern | None |\n\n**Lifecycle, Platform-Hosted Agents:**\n- The platform is the Receiver for its registered agents, and its own resources are the resource domain.\n- Correlation is the identifier registration returned.\n- The platform gets `active` from IdP provisioning, or by retrieving its registered Agent on a change notice or during reconciliation.\n- On `active: false`, it MUST deny new authorization and revoke the agent's existing authorization in its own system. Its own suspension is a Local Suspension the IdP cannot clear.\n- **The IdP is not on the platform's runtime path:** an unreachable IdP neither disables nor re-enables agents. The existing revalidation policy is the optional staleness bound.\n- Audit records and telemetry SHOULD carry the qualified identifier as the join key; no log format is defined.\n\n**Lifecycle, Platform Signals to the IdP:**\n- The platform MAY transmit CAEP `credential-change`, `session-revoked`, and `risk-level-change` for agents its connector registered, identified with an `iss_sub` subject (RFC 9493 \u00a73.2.3).\n- Stream configuration MUST establish that scope, and the IdP MUST reject events about other agents.\n- Events inform policy; they don't change administrative state.\n- The IdP MAY send `risk-level-change` back to the platform; it is not a disablement.\n\n## Defaults chosen (author decisions)\n\n- **Push registration:** the platform registers its agents at the IdP. IdP discovery by reading a platform's inventory is noted as outside the profile.\n- **IdP disablement binds the platform:** once the platform applies `active: false`, it MUST deny and revoke.\n- **Approval before activation is optional IdP policy.** It is not the default, because the platform must operate independently. When used, an Agent registered inactive is denied like any inactive Agent until approved; there is no separate approval state (addc110, from review).\n\n## Out of scope, unchanged\n\n- Log and telemetry formats.\n- Risk engines and posture models.\n\nThe drafts supply the correlation key and the control and event channels. The README already places telemetry outside this architecture.\n\nBoth drafts build clean. The lifecycle draft's 29 over-long lines predate this PR and are left as they were.\n",
+      "createdAt": "2026-10-01T22:50:06Z",
+      "updatedAt": "2026-10-01T23:01:03Z",
+      "baseRepository": "mcguinness/governed-agent-profiles",
+      "baseRefName": "main",
+      "baseRefOid": "13e0f0b28ee5cc55cb16b884eeff0f2ddceb39f9",
+      "headRepository": "mcguinness/governed-agent-profiles",
+      "headRefName": "platform-hosted-agents",
+      "headRefOid": "addc110c1ac7eddc9759d58f261f4e1b4af2e216",
+      "closedAt": "2026-10-01T23:00:31Z",
+      "mergedAt": "2026-10-01T23:00:30Z",
+      "mergedBy": "mcguinness",
+      "mergeCommit": {
+        "oid": "b4e9648c09f97fb97103997bfb147f7bd265c48b"
+      },
+      "comments": [],
+      "reviews": []
+    },
+    {
+      "number": 17,
+      "id": "PR_kwDOUa5iRM8AAAABGMezWg",
+      "title": "Platform-hosted agent walkthrough, and WISE for workload signals",
+      "url": "https://github.com/mcguinness/governed-agent-profiles/pull/17",
+      "state": "MERGED",
+      "author": "mcguinness",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "Adds an end-to-end scenario for a first-party agent on a platform, using the pattern merged in #16. It also adopts the OpenID Shared Signals WG's WISE profile ([draft 03](https://openid.github.io/ssf-wise-profile/)) for workload signals, with CAEP kept for sessions and IdP risk.\n\n## Walkthrough (bf7ae7f, 5c3954c)\n\nA new lifecycle appendix, **Platform-Hosted Agent Walkthrough**, follows one data-platform agent: `agt-31`, registered with workload identifier `wimse://dataplatform.example/agents/agt-31` and assigned `agent-58` at the IdP.\n\n1. **Configure:**\n   - The connector may register and describe agents. It cannot create bindings or associations, or enable an Agent the IdP disabled.\n   - IdP \u2192 platform: SCIM change notices and CAEP `risk-level-change`.\n   - Platform \u2192 IdP: WISE credential and posture events and CAEP `session-revoked`.\n   - No revalidation bound is set.\n2. **Register (14:00):**\n   - A SCIM POST with `owners`, and the workload URI as `externalId`.\n   - The IdP returns `agent-58`. With no binding, the agent gets no grant.\n   - The approval-first variant is described.\n3. **Operate:** platform-native authorization with no IdP call. An illustrative audit record carries both identifiers.\n4. **Credential change (14:20):** WISE `credential-rotated` (`wic`) with an RFC 9493 `aliases` subject naming the Agent Principal (`iss_sub`) and the workload (`uri`).\n5. **Anomaly (14:25):** WISE `anomalous-behavior-detected`, which is advisory.\n6. **Risk (14:30):** the IdP's analysis sends CAEP `risk-level-change` (HIGH). The platform restricts the agent to read-only; this is not a disablement.\n7. **Disable (14:31):**\n   - SCIM change notice, then retrieval.\n   - The platform denies new authorization, revokes sessions, and reports `session-revoked` back.\n   - The case where the IdP is unreachable is shown.\n8. **Re-enable (15:00):** revoked sessions stay revoked, and a Local Suspension isn't cleared.\n9. **Third-party access, with explicit delegation (from review):**\n   - Alice, who is not the owner, delegates to the agent.\n   - The platform presents her ID Token as `subject_token` and its JWT as `actor_token`. The ID-JAG has Alice in `sub` and `agent-58` in `act`.\n   - `owners` do not establish delegation.\n   - Self-acting access would instead need Agent Authorization and a WAG.\n10. **Retire (16:00):** DELETE at the IdP. The identifier is never reused.\n\n## Signals\n\n| Commit | Change | Keywords |\n|---|---|---|\n| d3ea619, 099e4ca | CAEP defines no agent `principal`, so stream configuration MUST fix it. After the WISE change, this applies only to the IdP's `risk-level-change` | +1 MUST |\n| 099e4ca | **Platform Signals to the IdP use WISE** for credential and posture events, with CAEP `session-revoked` for sessions. The subject is `aliases` (`iss_sub` plus the WISE `uri` the platform registered), and the IdP MUST correlate both with the same Agent or reject the event. A platform's own WISE workload-disabled, -enabled, or -purged reports local control, not IdP `active`. **SCIM Reconciliation Triggers:** WISE `workload-disabled` and `-purged` MAY cause a provisional Local Suspension. WISE `workload-enabled` and `-restored` trigger retrieval and MUST NOT activate directly, which keeps the notice-then-retrieve safety property. The WISE reference moves from an old personal repository (informative) to WG draft 03 (normative) | +1 MUST, +1 MUST NOT, +1 MAY |\n| 3294c96 | **Core:** an IdP that accepts WISE events from a credential authority MUST stop resolving through credentials that `credential-revoked` or `-compromised` identifies, trust material that `trust-anchor-revoked` identifies, and trust domains that `trust-domain-federation-revoked` names. Disabling a binding or the agent in response stays IdP policy | +1 MUST |\n| ee4f92b | Agent management: a platform that sends WISE events uses their workload URI as `externalId`. README: direct link to the walkthrough (from review), and the signals bullet names WISE and CAEP | None |\n| e2a0f92 | COORDINATION.md records the WISE `aliases` subject ask, the enabled-event asymmetry, the missing agent principal value, and moving the reference to openid.net once published | None |\n\n## Notes\n\n- WISE is a working-group draft, cited at its editor's copy because draft 03 is not yet on openid.net. Its normative use is limited to deployments that enable these signals.\n- Builds are clean, and all walkthrough JSON parses. The core draft goes from 95 to 97 pages: the rule and its reference add 21 lines, which shift page breaks.\n",
+      "createdAt": "2026-10-01T23:11:41Z",
+      "updatedAt": "2026-10-01T23:28:06Z",
+      "baseRepository": "mcguinness/governed-agent-profiles",
+      "baseRefName": "main",
+      "baseRefOid": "b4e9648c09f97fb97103997bfb147f7bd265c48b",
+      "headRepository": "mcguinness/governed-agent-profiles",
+      "headRefName": "platform-hosted-example",
+      "headRefOid": "e2a0f92f421cbd267c3996d14b384de4eefdb178",
+      "closedAt": "2026-10-01T23:27:48Z",
+      "mergedAt": "2026-10-01T23:27:47Z",
+      "mergedBy": "mcguinness",
+      "mergeCommit": {
+        "oid": "6a318b2eba7d065534ea659bf04def62a251850f"
       },
       "comments": [],
       "reviews": []

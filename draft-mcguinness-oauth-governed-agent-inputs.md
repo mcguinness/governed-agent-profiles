@@ -258,7 +258,7 @@ Continued use requires retaining the corresponding proof key.
 Otherwise, the client obtains a new grant with the replacement key and
 new RAS authorization. Any subject-credential binding still applies and
 may require a new subject credential. Key migration is deferred
-("Grant Key Transition" in {{FEDERATION}}).
+("Excluded Compositions" in {{FEDERATION}}).
 
 # Security Considerations
 

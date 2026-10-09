@@ -2,8 +2,10 @@
 
 # Governed Agent Profiles
 
-This is the working area for four related Internet-Drafts on governing
-agents across platform, identity-provider, and resource-domain boundaries.
+This is the working area for five related Internet-Drafts on governing
+agents across platform, identity-provider, and resource-domain boundaries,
+and an [implementer's guide](docs/implementers-guide.md) to the federation
+profile.
 
 ## The problem
 
@@ -104,9 +106,10 @@ both. Delegated access uses an ID Token issued for the dedicated client,
 `jwt-bearer` redemption. Self-acting access uses the same dedicated-client
 resolution and redemption with a WAG naming the Agent Principal as subject.
 The WAG token type and JWT type are provisional values until WAG registers
-them. SPIFFE JWT-SVID, WIT-SVID, X.509-SVID, and Client Attestation inputs
-are optional; shared platforms use the existing platform JWT input to
-distinguish the agents behind their SSO client. No new credential format or
+them. Optional SPIFFE JWT-SVID, WIT-SVID, X.509-SVID, and Client
+Attestation inputs are defined in the input profiles companion; shared
+platforms use the existing platform JWT input to distinguish the agents
+behind their SSO client. No new credential format or
 per-replica registration is required.
 
 Two governed profiles support incremental adoption. Bound governed agent
@@ -116,8 +119,10 @@ is a separate choice: DPoP, mutual TLS, or explicitly permitted bearer use.
 For delegated access, the API enforces user authority and the actor gate.
 For self-acting access, it enforces the agent's own authority.
 
-The appendices walk through the dedicated-client flow and a shared-client
-SPIFFE variant. Continuing access uses eligible subject credentials for new
+An appendix walks through the dedicated-client flow, with self-acting and
+platform JWT variants, and the [implementer's
+guide](docs/implementers-guide.md) explains both flows, the federation
+configuration, and deployment tradeoffs. Continuing access uses eligible subject credentials for new
 grants or policy-permitted RAS refresh within retained authorization and
 lifetime limits. Existing SSO refresh tokens do not automatically authorize
 downstream resources. Client instances and attester endorsements compose
@@ -127,6 +132,7 @@ binding. Key transition and Identity Continuation Assertion compositions
 remain deferred.
 
 * [Editor's Copy](https://mcguinness.github.io/governed-agent-profiles/#go.draft-mcguinness-oauth-governed-agent-federation.html)
+* [Implementer's Guide](docs/implementers-guide.md)
 * [Datatracker Page](https://datatracker.ietf.org/doc/draft-mcguinness-oauth-governed-agent-federation)
 * [Individual Draft](https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-governed-agent-federation)
 * [Compare Editor's Copy to Individual Draft](https://mcguinness.github.io/governed-agent-profiles/#go.draft-mcguinness-oauth-governed-agent-federation.diff)

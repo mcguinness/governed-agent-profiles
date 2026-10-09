@@ -154,7 +154,7 @@ attributed, and authorization cannot be withdrawn from one agent without
 withdrawing it from all of them.
 
 What an enterprise needs instead is a principal it can authorize once,
-audit across resources, and disable everywhere. That principal's
+audit across resources, and disable as a unit. That principal's
 identity does not change when the agent moves between platforms or
 rotates credentials.
 
@@ -185,9 +185,10 @@ which agent is acting. The identity provider (IdP) maps an authenticated
 client or workload identity to a stable Agent Principal and checks
 whether the client may use that identity. It issues a grant identifying
 the agent. The resource domain correlates that identity with its local
-principal and applies its own authorization policy. Delegated access
-identifies both the user and the agent; self-acting access identifies
-the agent as the subject.
+principal (an account it manages) and applies its own authorization
+policy at its resource authorization server (RAS) and API. Delegated
+access identifies both the user and the agent; self-acting access
+identifies the agent as the subject.
 
 ~~~
  Client authentication or workload evidence
@@ -218,14 +219,15 @@ the agent as the subject.
 
 Each relationship answers one question:
 
-* **Identity Binding:** Which governed agent does this credential
+* **Identity Binding (IdP):** Which governed agent does this credential
   identify?
-* **Client Association:** May this OAuth client use that agent's
+* **Client Association (IdP):** May this OAuth client use that agent's
   identity?
-* **Agent or Delegation Authorization:** What authority may the agent
-  request, on its own or for a user?
-* **Local correlation and resource policy:** What access will the
-  resource domain permit?
+* **Agent or Delegation Authorization (IdP):** What authority may the
+  agent request, on its own or for a user?
+* **Correlation and resource policy (RAS and API):** What access will
+  the resource domain permit? For delegated access, this includes the
+  actor gate: may this agent act for this user?
 
 For example, an Identity Binding maps the platform identity
 `workload-7`, qualified by its issuer, to the Agent Principal
@@ -252,16 +254,16 @@ no permission, owning an agent does not establish a user's delegation to
 it, and how far and how fast disablement propagates depends on the
 lifecycle mechanism a deployment selects, such as {{AGENT-LIFECYCLE}}.
 
-The mandatory baseline is a dedicated OAuth client authenticating with
-`private_key_jwt`, an ID Token subject for delegated access, and the
-processing of {{issuance}}, {{redemption}}, and {{api-processing}}
-({{scope}}). Other inputs, subject tokens, and token protections are
-options, each stated with its applicability.
+The mandatory baseline resolves the agent from a dedicated OAuth client,
+one per agent, authenticating with `private_key_jwt`, with an ID Token
+subject when delegated access is claimed ({{scope}}). A shared client
+uses the existing platform JWT input instead. The IdP's processing is in
+{{issuance}}, the RAS's in {{redemption}}, and the API's in
+{{api-processing}}; a client starts with {{issuance-request}}.
 
-The profile sits within the broader framework for agent identity
-management that AIMS {{AIMS}} describes. It is not a governance
-framework: it defines how the identities in one transaction relate
-across authorization domains.
+The profile sits within the agent identity management framework that
+AIMS {{AIMS}} describes and defines how the identities in one
+transaction relate across authorization domains.
 
 The federation model ({{model}}) is independent of the grant that
 carries it. Two peer realizations carry it, each with its own mandatory
@@ -270,13 +272,13 @@ path, and an implementation claims one or both ({{scope}}):
 * **Delegated access ({{delegated-flow}}):** ID-JAG, with the user as
   subject and the Agent Principal as actor.
 * **Self-acting access ({{wag-flow}}):** the Workload Authorization
-  Grant (WAG), with the Agent Principal as subject.
+  Grant (WAG) {{WAG}}, with the Agent Principal as subject.
 
-Other grant realizations require their own composition rules. The
-federation model alone does not define their wire behavior. RFC 7523
-client assertions, SPIFFE JWT Verifiable Identity Documents (JWT-SVIDs),
-and the other supported credentials supply inputs to the same identity
-model ({{evidence}}, {{optional-input-profiles}}).
+Other grant realizations need their own composition rules.
+Dedicated-client assertions, existing platform JWTs, and other
+credentials, such as SPIFFE JWT Verifiable Identity Documents
+(JWT-SVIDs), supply inputs to the same identity model ({{evidence}},
+{{optional-input-profiles}}).
 
 This document federates an agent governed by the IdP that issues the
 grant into a resource domain. It does not define identity continuity
@@ -285,16 +287,15 @@ IdP's namespace is out of scope. Also out of scope ({{upstream-gaps}}):
 
 * task or mission authorization;
 * asynchronous approval;
-* continuation composition;
+* continuation of approved work across grants;
 * provisioning protocols and account administration;
 * multi-agent delegation chains;
-* instance-level authorization and cross-domain propagation of
-  instance context; and
+* authorization of individual client instances, and propagation of
+  instance context across domains; and
 * enrollment or key-replacement protocols.
 
-Processing chapters follow the protocol stages, each covering delegated
-and self-acting access, with client requirements beside the requests and
-responses. {{implementation}} collects non-normative guidance.
+Each processing chapter covers delegated and self-acting access, with
+client requirements beside the requests and responses.
 
 # Conventions and Terminology
 
@@ -433,10 +434,7 @@ Agent Principal.
 
 # Federation Model {#model}
 
-The IdP controls Identity Bindings, Client Associations, and Agent and
-Delegation Authorization. The RAS controls local principal correlation
-and authorization ({{agent-correlation}}). {{overview-figure}} shows how
-they compose.
+{{overview-figure}} shows how the relationships compose.
 
 One Agent Principal can carry several Identity Bindings and several
 Client Associations ({{identity-binding}}).
@@ -469,11 +467,6 @@ the RAS translates the user into its local namespace and preserves the
 agent ({{subject-resolution}}). Correlation does not grant authority:
 the RAS decides within the grant's ceiling ({{actor-authorization}},
 {{wag-redemption}}).
-
-If one agent behind a shared client moves to another runtime with a
-different workload credential, the resource domain keeps recognizing it
-through the same Agent Principal, without learning the new credential's
-format.
 
 ## Authentication, Resolution, and Proof {#inputs}
 

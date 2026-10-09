@@ -146,7 +146,9 @@ inputs that satisfy the same contract: SPIFFE JWT-SVIDs, WIT-SVIDs, and
 X.509-SVIDs, and Client Attestation, including resolution of a managed
 installation behind a shared client by its client instance identifier. An
 implementation that claims none of these inputs needs only the federation
-draft.
+draft. Because the federation draft requires an implementation that uses
+JWT-SVID client authentication to follow this companion, the two drafts
+reference each other normatively and are published together.
 
 * [Editor's Copy](https://mcguinness.github.io/governed-agent-profiles/#go.draft-mcguinness-oauth-governed-agent-inputs.html)
 

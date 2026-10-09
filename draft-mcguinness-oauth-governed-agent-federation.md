@@ -62,6 +62,14 @@ normative:
   RFC9396:
   RFC9449:
   RFC9700:
+  INPUTS:
+    title: "Agent Resolution Input Profiles for Governed Agent Federation"
+    author:
+      - name: Karl McGuinness
+    date: 2026-10-09
+    seriesinfo:
+      Internet-Draft: draft-mcguinness-oauth-governed-agent-inputs
+    target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html
 informative:
   AGENT-MANAGEMENT:
     title: "SCIM Profile for Governed Agent Federation Management"
@@ -119,14 +127,6 @@ informative:
       - name: Karl McGuinness
     date: false
     target: https://github.com/mcguinness/governed-agent-profiles/blob/main/docs/implementers-guide.md
-  INPUTS:
-    title: "Agent Resolution Input Profiles for Governed Agent Federation"
-    author:
-      - name: Karl McGuinness
-    date: 2026-10-09
-    seriesinfo:
-      Internet-Draft: draft-mcguinness-oauth-governed-agent-inputs
-    target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html
   SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth
 --- abstract
 

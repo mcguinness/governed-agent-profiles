@@ -156,24 +156,7 @@ withdrawing it from all of them.
 What an enterprise needs instead is a principal it can authorize once,
 audit across resources, and disable everywhere. That principal's
 identity does not change when the agent moves between platforms or
-rotates credentials. This profile establishes the identity and
-authorization relationships that disablement acts on; how far and how
-fast disablement propagates depends on the lifecycle mechanism a
-deployment selects, such as {{AGENT-LIFECYCLE}}.
-
-Enterprise identity already solves a version of this problem for people.
-A person has one account, several credentials linked to it, and separate
-rules about which applications may use that account. This document
-applies that shape to agents:
-
-* The Agent Principal is the account.
-* An Identity Binding maps a validated, qualified client or workload
-  identity to it.
-* A Client Association states which OAuth client may exercise that
-  binding.
-
-The account's identifier can be the same as the execution identity's.
-The binding decides which identity is authoritative for governance.
+rotates credentials.
 
 Existing OAuth mechanisms authenticate clients and carry actors, but
 they leave three relationships open:
@@ -192,12 +175,88 @@ they leave three relationships open:
    client or workload credential, or how a resource domain correlates
    that name with local state.
 
-This document is an OAuth deployment profile that fills those gaps. An
-identity provider (IdP) resolves an authenticated client or workload
-identity to an Agent Principal, and OAuth grants carry that principal
-into the resource domain. A service provider can then authorize, audit,
-and disable a stable, enterprise-governed agent without understanding
-the runtime or credential that currently executes it.
+This document is an OAuth deployment profile that fills those gaps.
+
+## Protocol Overview {#overview}
+
+A platform runs several agents behind one OAuth client. Client
+authentication identifies the platform, but the resource needs to know
+which agent is acting. The identity provider (IdP) maps an authenticated
+client or workload identity to a stable Agent Principal and checks
+whether the client may use that identity. It issues a grant identifying
+the agent. The resource domain correlates that identity with its local
+principal and applies its own authorization policy. Delegated access
+identifies both the user and the agent; self-acting access identifies
+the agent as the subject.
+
+~~~
+ Client authentication or workload evidence
+                      |
+               Identity Binding .......... which agent?
+                      v
+       Agent Principal (IdP namespace)
+                      |
+              Client Association ........ may this client use it?
+                      |
+          +-----------+------------+
+          |                        |
+ Delegation Authorization    Agent Authorization
+   agent acts for user         agent acts for itself
+          |                        |
+ ID-JAG: sub = user          WAG: sub = agent
+         act = agent               |
+          |                        |
+          +-----------+------------+
+                      |
+                      v
+ RAS: validate grant; correlate agent with local principal
+                      |
+                      v
+ RAS and API: resource authorization; actor gate if delegated
+~~~
+{: #overview-figure title="One governed transaction"}
+
+Each relationship answers one question:
+
+* **Identity Binding:** Which governed agent does this credential
+  identify?
+* **Client Association:** May this OAuth client use that agent's
+  identity?
+* **Agent or Delegation Authorization:** What authority may the agent
+  request, on its own or for a user?
+* **Local correlation and resource policy:** What access will the
+  resource domain permit?
+
+For example, an Identity Binding maps the platform identity
+`workload-7`, qualified by its issuer, to the Agent Principal
+(`https://idp.example/`, `agent-42`). Grants carry that IdP-qualified
+principal, not the platform identity:
+
+~~~
+Platform identity:  https://platform.example/  workload-7
+                            |  Identity Binding at the IdP
+                            v
+Agent Principal:    https://idp.example/       agent-42
+
+Delegated ID-JAG (excerpt):
+  "sub": "alice",
+  "act": {"iss": "https://idp.example/", "sub": "agent-42"}
+
+Self-acting WAG (excerpt):
+  "iss": "https://idp.example/", "sub": "agent-42"
+~~~
+{: title="One identity transformation"}
+
+The relationships do not imply one another. Mapping an identity grants
+no permission, owning an agent does not establish a user's delegation to
+it, and how far and how fast disablement propagates depends on the
+lifecycle mechanism a deployment selects, such as {{AGENT-LIFECYCLE}}.
+
+The mandatory baseline is a dedicated OAuth client authenticating with
+`private_key_jwt`, an ID Token subject for delegated access, and the
+processing of {{issuance}}, {{redemption}}, and {{api-processing}}
+({{scope}}). Other inputs, subject tokens, and token protections are
+options, each stated with its applicability.
 
 The profile sits within the broader framework for agent identity
 management that AIMS {{AIMS}} describes. It is not a governance
@@ -233,16 +292,9 @@ IdP's namespace is out of scope. Also out of scope ({{upstream-gaps}}):
   instance context; and
 * enrollment or key-replacement protocols.
 
-This document is organized by protocol stage. {{model}} and
-{{conformance-metadata}} apply to every role. {{issuance}},
-{{redemption}}, and {{api-processing}} give the processing of the IdP,
-the resource authorization server (RAS), and the API (resource server),
-each covering delegated and self-acting access, and
-{{continuing-access}} covers renewal, token reuse, and disablement, and
-{{implementation}} collects non-normative configuration and deployment
-guidance.
-{{scope}} states what each role implements. Client requirements
-accompany the requests and responses at each stage.
+Processing chapters follow the protocol stages, each covering delegated
+and self-acting access, with client requirements beside the requests and
+responses. {{implementation}} collects non-normative guidance.
 
 # Conventions and Terminology
 
@@ -280,25 +332,12 @@ API (resource server):
 
 One service can implement several roles.
 
-Two companion profiles complete the family:
-
-* {{AGENT-MANAGEMENT}} establishes the relationships at the IdP, and
-  this document exercises them to obtain authorization.
-* {{AGENT-LIFECYCLE}} carries the principal's administrative state into
-  the resource domain and revokes what depends on it.
-
-The companion profiles add two administrative roles:
-
-Provisioning Client:
-: A platform connector that manages Agent Principals and their
-  relationships at the IdP. The IdP's System for Cross-domain Identity
-  Management (SCIM) service is the IdP Service Provider.
-
-Receiver:
-: The resource-domain SCIM service together with the RAS components that
-  accept IdP provisioning.
-
-In the companion SCIM profiles, "Service Provider" alone denotes the
+Two companion profiles complete the family and define their own
+administrative roles. {{AGENT-MANAGEMENT}} establishes the relationships
+at the IdP, and {{AGENT-LIFECYCLE}} carries the principal's
+administrative state into the resource domain and revokes what depends
+on it. In those System for Cross-domain Identity Management (SCIM)
+profiles, "Service Provider" alone denotes the
 IdP-side SCIM service. The Service Provider Contract ({{sp-contract}})
 concerns the resource domain.
 
@@ -396,36 +435,8 @@ Agent Principal.
 
 The IdP controls Identity Bindings, Client Associations, and Agent and
 Delegation Authorization. The RAS controls local principal correlation
-and authorization ({{agent-correlation}}).
-
-The relationships compose into one model; the grant that carries the
-result depends on the acting relationship:
-
-~~~
- Client authentication or workload evidence
-                      |
-               Identity Binding .......... which agent?
-                      v
-       Agent Principal (IdP namespace)
-                      |
-              Client Association ........ may this client use it?
-                      |
-          +-----------+------------+
-          |                        |
- Delegation Authorization    Agent Authorization
-   agent acts for user         agent acts for itself
-          |                        |
- ID-JAG: sub = user          WAG: sub = agent
-         act = agent               |
-          |                        |
-          +-----------+------------+
-                      |
-                      v
- RAS: validate grant; correlate agent with local principal
-                      |
-                      v
- RAS and API: resource authorization; actor gate if delegated
-~~~
+and authorization ({{agent-correlation}}). {{overview-figure}} shows how
+they compose.
 
 One Agent Principal can carry several Identity Bindings and several
 Client Associations ({{identity-binding}}).
@@ -459,13 +470,10 @@ agent ({{subject-resolution}}). Correlation does not grant authority:
 the RAS decides within the grant's ceiling ({{actor-authorization}},
 {{wag-redemption}}).
 
-For example, two agents run behind one platform OAuth client, and one of
-them later moves to another runtime with a different workload
-credential. The resource domain keeps recognizing that agent through
-the same issuer-qualified Agent Principal, without merging it with the
-other agent, attributing its actions to the platform client, or
-learning the new runtime's credential format. {{identity-example}}
-works a shared-client case in full.
+If one agent behind a shared client moves to another runtime with a
+different workload credential, the resource domain keeps recognizing it
+through the same Agent Principal, without learning the new credential's
+format.
 
 ## Authentication, Resolution, and Proof {#inputs}
 

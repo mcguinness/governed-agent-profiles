@@ -187,6 +187,16 @@ policy at its resource authorization server (RAS) and API. Delegated
 access identifies both the user and the agent; self-acting access
 identifies the agent as the subject.
 
+The client makes three requests, which {{walkthrough}} shows message by
+message:
+
+1. To the IdP token endpoint, an OAuth Token Exchange request
+   {{RFC8693}} ({{issuance-request}}). The IdP returns the grant: a
+   short-lived JWT, signed by the IdP, for one resource at one RAS.
+2. To the RAS token endpoint, presenting the grant with the JWT bearer
+   grant type ({{redemption-request}}). The RAS returns an access token.
+3. To the API, with the access token ({{api-processing}}).
+
 ~~~
  Client authentication or workload evidence
                       |
@@ -251,15 +261,20 @@ no permission, owning an agent does not establish a user's delegation to
 it, and how far and how fast disablement propagates depends on the
 lifecycle mechanism a deployment selects, such as {{AGENT-LIFECYCLE}}.
 
-The mandatory baseline resolves the agent from a dedicated OAuth client,
-one per agent, authenticating with `private_key_jwt`, with an ID Token
-subject when delegated access is claimed. A shared client uses the
-existing platform JWT input, which a claim of generic shared-client
-interoperability requires, or another supported input ({{scope}}). {{model}} and {{common-rules}}
-apply to every role. The IdP's processing is in {{issuance}}, the RAS's
-in {{redemption}}, and the API's in {{api-processing}}; a client starts
-with {{issuance-request}}. {{GUIDE}} adds a primer and deployment
-guidance.
+Every implementation supports a dedicated client: one OAuth client per
+agent, authenticating with `private_key_jwt`, so that client
+authentication identifies the agent ({{client-assertion-input}}). For
+delegated access, the mandatory subject credential is the user's ID
+Token. A platform that keeps one shared client instead presents an
+existing platform JWT naming the agent's workload with each request
+({{imported-jwt-input}}; {{aws-example}} shows one). An implementation
+that claims interoperability with shared clients supports that input
+({{scope}}).
+
+{{model}} and {{common-rules}} apply to every role. The IdP's processing
+is in {{issuance}}, the RAS's in {{redemption}}, and the API's in
+{{api-processing}}. {{GUIDE}} adds a primer and the configuration each
+party maintains.
 
 The profile sits within the agent identity management framework that
 AIMS {{AIMS}} describes and defines how the identities in one

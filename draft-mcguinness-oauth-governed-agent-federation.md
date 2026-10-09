@@ -265,15 +265,15 @@ no permission, owning an agent does not establish a user's delegation to
 it, and how far and how fast disablement propagates depends on the
 lifecycle mechanism a deployment selects, such as {{AGENT-LIFECYCLE}}.
 
-Every implementation supports a dedicated client: one OAuth client per
-agent, authenticating with `private_key_jwt`, so that client
+Clients and IdPs support dedicated-client resolution: one OAuth client
+per agent, authenticating with `private_key_jwt`, so that client
 authentication identifies the agent ({{client-assertion-input}}). For
-delegated access, the mandatory subject credential is the user's ID
-Token. A platform that keeps one shared client instead presents an
-existing platform JWT naming the agent's workload with each request
-({{imported-jwt-input}}; {{aws-example}} shows one). An implementation
-that claims interoperability with shared clients supports that input
-({{scope}}).
+delegated access, they also support ID Token subjects. Deployments may
+use other mutually supported inputs. The existing platform JWT input is
+required for generic shared-client interoperability; when used, it
+accompanies each grant-issuance request to the IdP
+({{imported-jwt-input}}; {{aws-example}} shows one). Conformance follows
+{{scope}}.
 
 {{model}} and {{common-rules}} apply to every role. The IdP's processing
 is in {{issuance}}, the RAS's in {{redemption}}, and the API's in

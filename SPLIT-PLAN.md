@@ -1,241 +1,353 @@
-# Plan: split the federation draft into a core profile, an input-profiles companion, and an implementer's guide
+# Plan: make the federation core approachable, then split specialized inputs and guidance
 
-Status: proposal for review. Measured against `main` at `6a318b2`
-(October 9, 2026). Nothing in the drafts changes until the decisions in
-[Decisions requested](#decisions-requested) are made.
+Status: revised plan, October 9, 2026. The measurements below describe
+scratch builds against `main` at `6a318b2`; they have not been repeated
+for this revised structure. This update changes the plan only.
 
-## Problem
+## Goal
 
-The core draft, *OAuth 2.0 Profile for Governed Agent Federation*, is 97
-pages. Its mandatory path is not complex: a dedicated client
-authenticates with `private_key_jwt`, the IdP resolves one Agent
-Principal, and the IdP issues an ID-JAG (with the user as `sub` and the
-agent as `act`) or a WAG (with the agent as `sub`). The RAS validates and
-correlates the agent, and the API enforces the actor gate. The concern
-is that readers stop before they reach that path, and that the document
-does not make clear which parts are core, which are optional, which are
-examples, and which are guidance.
+Readers should understand the core contract in the first few pages and
+find their role's processing rules without reading every capability.
+Preserve every requirement, definition, exception, and security boundary
+needed for independent implementations to interoperate.
 
-## Measurements
+The current federation draft is 97 pages. Its size and the amount of
+material before issuance can obscure a straightforward transaction:
+the IdP resolves and authorizes a governed agent, a grant carries its
+identity, and the resource domain correlates and authorizes that agent.
+Delegated access also carries and checks a user's identity and authority.
+The complete specification must cover more cases than this explanation.
+Its structure should make that distinction apparent.
 
-Each row is a scratch build with the listed material removed. Page
-counts come from the rendered text.
+The work has two parts, in this order:
+
+1. Explain the contract early and organize processing predictably.
+2. Move specialized credential inputs and deployment guidance into
+   separate documents while preserving complete core transactions.
+
+Retain the earlier 20–30% reduction objective as a secondary target.
+Comprehension and interoperability determine acceptance. A repository
+primer supplements the explanation inside the specification.
+
+## Opening and reader experience
+
+### Explain the transaction before the detailed vocabulary
+
+Aim for a complete conceptual explanation within the first three to
+five pages of body text, excluding front matter and the contents list.
+Use the shared-client problem to explain why the profile exists:
+
+> A platform runs several agents behind one OAuth client. Client
+> authentication identifies the platform, but the resource needs to know
+> which agent is acting. The IdP maps an authenticated client or workload
+> identity to a stable Agent Principal and checks whether the client may
+> use that identity. It issues a grant identifying the agent. The resource
+> domain correlates that identity with its local principal and applies
+> its authorization policy. Delegated access identifies both the user and
+> the agent; self-acting access identifies the agent as the subject.
+
+Add one compact flow diagram:
+
+Client → IdP resolves and authorizes → grant → RAS validates and
+correlates → access token → API enforces.
+
+Explain each relationship through the question it answers:
+
+* **Identity Binding:** Which governed agent does this credential identify?
+* **Client Association:** May this OAuth client use that agent identity?
+* **Agent or Delegation Authorization:** What authority may the agent
+  request, on its own or for a user?
+* **Local correlation and resource policy:** What access will the
+  resource domain permit?
+
+Show one identity transformation: a qualified platform identity for
+`workload-7` maps to (`https://idp.example/`, `agent-42`). A delegated
+grant carries a user in `sub` and the agent in `act`; a self-acting
+grant carries the agent in `sub`. Show the issuer qualification and
+label abbreviated claims as excerpts. The resource domain applies its
+own authorization to the correlated agent.
+
+State the limits briefly: identity mapping does not grant permission,
+agent ownership does not establish user delegation, and disablement
+propagation depends on the lifecycle mechanism. Link to the authoritative
+rules. Keep the overview informative and check it against those rules.
+
+### Make the structure carry the explanation
+
+* Introduce terms as the model uses them; defer specialized credential
+  vocabulary to the applicable input profile.
+* Use the same order within each processing chapter: inputs, common
+  checks, delegated/self-acting differences, and output. Keep client
+  requirements beside the corresponding requests and responses.
+* Give optional capabilities explicit headings and opening applicability
+  conditions, such as "Optional: RAS refresh tokens" or "When using
+  instance context". Put grant-protection conditions beside their rules.
+* Use the shared-client case for motivation and the dedicated-client
+  exchange for the mandatory interoperability baseline. Show platform
+  JWT as a compact shared-client variation.
+* Preserve the stage structure and both peer grant realizations. No
+  reading-guide table is needed; headings should reveal the organization.
+
+## Target core structure
+
+1. **Introduction and protocol overview:** the problem, transaction,
+   identity transformation, and a short statement of the baseline.
+2. **Identity and authorization model:** essential terminology,
+   relationships, tenant boundaries, and the two grant realizations.
+3. **Grant issuance at the IdP:** common input interface, dedicated-client
+   and platform JWT profiles, common validation and authorization, then
+   ID-JAG and WAG issuance and errors.
+4. **Grant redemption at the RAS:** common checks and correlation,
+   grant-specific checks, access-token issuance and protection, and errors.
+5. **Access at the resource server:** applicability, common validation,
+   delegated actor enforcement, and self-acting authorization.
+6. **Continuing access and authorization changes:** reuse, optional
+   refresh, applied disablement, and revocation.
+7. **Profiles, conformance, and capability advertisement:** full claims,
+   algorithms, discovery, and metadata. Keep the "Additions and narrowings"
+   and "Delegated and self-acting access compared" tables with the
+   grant/model material they explain.
+8. **Security and privacy considerations.**
+9. **IANA considerations.**
+10. **Worked exchanges and acceptance cases**, followed by compact
+    dependencies and excluded compositions.
+
+Place common grant-protection definitions before the processing rules
+that need them. Moving detailed conformance later must not make those
+rules depend on an unexplained profile choice. Keep precise errors near
+their processing stage, with one authoritative home for shared rules.
+
+## Measurements and their limits
+
+These existing scratch builds removed the listed material. Page counts
+come from rendered text; they do not establish a minimum possible length.
 
 | Version | Pages |
 |---|---:|
-| Today | 97 |
+| Baseline at `6a318b2` | 97 |
 | Optional inputs, guidance, coordination notes, and all examples moved out | 71 |
 | As above, keeping the core walkthrough and negative tests | 78 |
-| As above, also keeping a compact dependencies appendix (two tables) | **81** |
+| As above, also keeping a compact dependencies appendix | 81 |
 | Core with a compact dependencies appendix and no examples | 73 |
-| As in row 2, also moving the platform JWT input | 68 |
-| As in row 2, also moving the optional features inside the stage chapters | 66 |
-| Mandatory path only: dedicated client, ID Token subject, both grants, no examples | 64 |
+| As in the 71-page build, also moving the platform JWT input | 68 |
+| As in the 71-page build, also moving optional features inside stage chapters | 66 |
+| Dedicated client, ID Token subject, both grants, no examples | 64 |
 
-The optional features inside the stage chapters are RAS refresh, SAML and
-IdP refresh-token subjects, mutual TLS access tokens, instance context,
-and WISE.
+The stage features in that experiment were RAS refresh, SAML and IdP
+refresh-token subjects, mutual TLS access tokens, instance context, and
+WISE. The proposed split keeps them in the core.
 
-For comparison, measured as body word counts excluding front matter and
-references:
+The 81-page result reduces length by 16.5%; the 73-page result by 24.7%.
+Keep useful examples provisionally and remeasure after restructuring.
+The 64-page experiment is an extraction result, not a lower bound.
+Definitions and prose without BCP 14 keywords can be essential while
+still allowing clearer wording, placement, or consolidation.
+
+Earlier body-word comparisons, excluding front matter and references:
 
 | Specification | Body words |
 |---|---:|
 | This draft, sections 1–11 | 15,217 |
 | This draft, appendices | 5,431 |
-| ID-JAG-04 (65 pages) | 11,237 |
+| ID-JAG-04 | 11,237 |
 | ATTEST-11 | 10,842 |
-| RFC 9449 (DPoP) | 10,523 |
-| RFC 9700 (OAuth Security BCP) | 14,624 |
+| RFC 9449 | 10,523 |
+| RFC 9700 | 14,624 |
 
-Three conclusions:
+These comparisons provide context, not an acceptance threshold. Record
+core and whole-family word/page counts separately so extraction is not
+reported as an equivalent reduction in total material. Preserve the
+commands and source revision used for the next measurements.
 
-1. Moving optional inputs, guidance, coordination notes, and peripheral
-   examples out of the core takes it from 97 to about 81 pages, or 73
-   without examples.
-2. The mandatory contract itself is about 64 pages, about the size of
-   ID-JAG. That covers two grants, three processing roles, conformance,
-   metadata, and security. A split cannot make the core short.
-3. Of the main body, 41% is prose without BCP 14 keywords. That is not a
-   free cut: the September trim pass removed the restatements, and
-   reviewers confirmed that the rest is definitional. This plan does not
-   count on cutting it.
+## Document boundaries
 
-So the split fixes classification, and the length perception needs an
-on-ramp outside the spec: a short primer.
+| Document | Status | Responsibility |
+|---|---|---|
+| Core profile | Standards Track | Complete dedicated-client and platform JWT transactions; both grants; IdP, RAS, client, and API rules; continuing access; conformance; security; core examples and acceptance cases |
+| Agent Resolution Input Profiles | Standards Track; applies to implementations claiming its inputs | SPIFFE JWT-SVID, WIT-SVID, and X.509-SVID; Client Attestation, endorsement, and managed-installation resolution; input-specific proof and lifetime rules; examples and acceptance cases |
+| Implementer's guide | Repository Markdown initially | Supplemental primer, Federation Configuration, distributed deployment guidance, adoption tradeoffs, and deployment examples |
+| `COORDINATION.md` | Repository notes | Detailed upstream discussions and deferred work |
 
-## Proposal
-
-| Document | Status | Contents | Size |
-|---|---|---|---|
-| Core profile (this draft) | Standards Track | Model; both grants; dedicated-client and platform JWT inputs; grant protection; IdP, RAS, and API processing; continuing access; errors; metadata; security; IANA; dedicated-client walkthrough, self-acting variant, and negative tests; a compact dependencies appendix | ~81 pp (73 without examples) |
-| Agent Resolution Input Profiles (new) | Standards Track, optional | SPIFFE JWT-SVID, WIT-SVID, and X.509-SVID; Client Attestation with the managed-installation binding; endorsement and instance-context composition; resolution-key lifecycle; input-variant examples | ~8–12 pp (rough build: 7) |
-| Implementer's guide (new) | Repository Markdown now; an Informational draft later if the working group wants one | Primer (the model, one flow, what each role builds); Federation Configuration (kept whole); distributed platforms; adoption tradeoffs; identity-mapping and intermediate-adoption examples | Not paginated |
-| Coordination notes | `COORDINATION.md` (exists) | Appendix C prose notes not kept in the compact appendix | — |
-
-Working file name for the companion:
+Working companion name:
 `draft-mcguinness-oauth-governed-agent-inputs`.
 
-This follows the order a reviewer gave on September 28: "split
-peripheral input machinery before splitting the central contract." One
-transaction still reads in one document.
+Keep managed-installation resolution with Client Attestation: its
+attester, matching, continuity, receiver-scope, and proof rules form one
+composition. Keep downstream RAS/API instance-context processing in the
+core. A client using attestation at the RAS need not have used it to
+resolve the agent at the IdP.
+
+The guide has no unique implementation prerequisite. Federation
+Configuration remains together there; its underlying protocol
+requirements retain authoritative homes in the core or companion.
 
 ## Move map
 
-### To the Input Profiles companion
+### Specialized input material
 
-| Unit today | Anchor | Notes |
-|---|---|---|
-| Optional Input Profiles (A.2) | `optional-input-profiles` | Section moves whole |
-| SPIFFE JWT-SVID | `jwt-svid-input` | |
-| Client Attestation, including the managed-installation binding and endorsement | `agent-evidence` | |
-| SPIFFE WIT-SVID and X.509-SVID | `spiffe-input` | |
-| Resolution-Key Lifecycle | `resolution-key-lifecycle` | |
-| Input variants: Shared Platform Client with SPIFFE; WIT-SVID and X.509-SVID | `shared-client-example`, `svid-context-example` | |
-| The optional-inputs list in Conformance | `optional-inputs` | Replaced by a pointer to the companion |
-| Body sentences specific to these inputs | various | For example, the JWT-SVID row of the mandatory-to-implement table, and the instance-context paragraphs in Access Token Issuance and Token Validation |
-
-### To the implementer's guide
-
-| Unit today | Anchor |
+| Existing unit or anchor | Destination and treatment |
 |---|---|
-| Implementation Considerations (Federation Configuration, Distributed Platforms and Key Use) | `implementation`, `configuration`, `distributed-key-use` |
-| Adoption Tradeoffs | `baseline-costs` |
-| Identity Mapping Example | `identity-example` |
-| Intermediate Adoption Variant | — |
+| `optional-input-profiles`, `jwt-svid-input`, `agent-evidence`, `spiffe-input` | Companion, including managed-installation resolution and attester endorsement |
+| `resolution-key-lifecycle` | Companion; retain the core's general proof-key and no-rebinding rules |
+| JWT-SVID row in `algorithms` | Companion, preserving its conditional algorithm requirements |
+| Optional-input rows in `grant-common` lifetime table | Companion; core retains the generic lifetime rule and dedicated-client exception; each moved input states its exact bound |
+| `optional-inputs` and conditional conformance requirements | Core identifies the extension and where its conformance requirements live; companion defines claims for its inputs |
+| Input-specific security and privacy material | Inventory individually; specialized rules move with their inputs, while general security boundaries stay in core |
+| `shared-client-example`, `svid-context-example` | Companion |
+| `input-variants` table and shared explanatory text | Partition by input: platform JWT stays in core; native-input details accompany their companion examples |
+| Negative tests referencing optional native inputs | Move input-specific cases to companion; retain generic shared-client token-reuse coverage in core using the platform JWT case |
 
-### Appendix C
+### Core material and examples
 
-The compact appendix keeps the Upstream Dependencies table, the WAG open
-items, and the Excluded Compositions table, which the body cites 8
-times. These move to `COORDINATION.md`, and the body's 7 citations of
-them are reworded or pointed at the kept tables:
-
-* ID-JAG Bound Grants;
-* Resolution from Authentication Context;
-* the remaining Deferred Compositions notes;
-* Operational Dependencies.
-
-### Stays in the core
-
-These hooks stay in the core, so the companion fills an extension point
-rather than redefining processing. The list follows the September trim
-analysis.
-
-* The input interface contract.
-* The authentication-context and presented-evidence modes.
-* The credential-class exclusion rules.
-* Bearer Evidence Limits.
-* The WAG byte-identical subject-token rule.
-* The generic grant-lifetime rule.
-* The dedicated-client input, which is mandatory to implement.
-* The platform JWT input, which carries the generic shared-client claim; see decision 2.
-
-## Cross-references and companion-draft impact
-
-| Item | Change |
+| Existing unit or anchor | Treatment |
 |---|---|
-| Citations to moved anchors | 37 citations in the body: <br>• 13 to companion sections, which become citations of the companion; <br>• 9 to guide sections, which become informative references to the guide; <br>• 15 to Appendix C notes, of which 8 survive in the compact appendix and 7 are reworded. <br>Citations inside moved sections move with them. |
-| SCIM agent management | Its `spiffe-jwt`, `spiffe-wit`, `spiffe-x509`, and `client-attestation` credential classes cite the core for validation; they cite the companion instead. This is about 14 mentions. |
-| Lifecycle | No change. It cites `{{FEDERATION}}` without section numbers. |
-| Conformance | Core claims stay as they are. A claim of an optional input names the companion. The generic shared-client claim stays in the core with the platform JWT. |
-| References | The companion normatively references the core. The core informatively references the companion, which is optional. |
-| IANA | No change. The four profile URIs stay in the core, and the companion registers nothing. |
-| Repository | Add the companion draft to the i-d-template build and to the README's drafts table. |
+| `evidence`, `actor-inputs`, `credential-requirements` | Keep input interface, mode selection, credential-class exclusion, no-fallback rules, and bearer-evidence limits in core |
+| `client-assertion-input`, `imported-jwt-input` | Keep in core near issuance; platform JWT supports the generic shared-client claim |
+| `identity-binding` | Keep generic matching and authorization boundaries; audit the managed-installation exception's reference and applicability |
+| `wag-request` | Keep byte-identical subject-token rule and the explicit lack of an X.509-SVID self-acting path; companion states supported realizations consistently |
+| `access-token-response`, `api-validation` instance-context paragraphs | Keep in core, including the prohibition on copying grant-carried context and on substituting instance context for authorization |
+| `ras-refresh`, subject-token variants, access-token protection, WISE processing | Keep in core with explicit applicability; governed agent access and bound governed agent access both remain |
+| `walkthrough`, `wag-example`, core negative tests | Keep in core; retain issuer/tenant, user-delegation, proof, replay, and failure checks |
+| `aws-example` | Keep with platform JWT as a compact input variation; retain its evidence and conformance limits |
 
-## What does not change
+### Guidance and coordination
 
-* No requirement changes: every BCP 14 sentence lands, unchanged, in
-  the core or the companion.
-* Author rulings hold:
-  * WAG stays a peer realization in the core.
-  * The stage structure stays.
-  * Just-in-time correlation stays in the core.
-  * Federation Configuration stays in one place (the guide).
-  * The "Additions and narrowings" and "Delegated and self-acting access
-    compared" tables stay.
-* No reading-guide table returns to the draft. The primer lives in the
-  repository, outside the spec; see decision 4.
-* No section numbers are cited across drafts today, so renumbering is
-  free.
+| Existing unit or anchor | Destination and treatment |
+|---|---|
+| `implementation`, `configuration`, `distributed-key-use` | Guide; audit every incoming citation for a protocol dependency |
+| `baseline-costs` | Deployment tradeoffs move to guide; preserve essential threat explanations in core Security Considerations |
+| `identity-example`, Intermediate Adoption Variant | Guide; the core's new conceptual example remains independent of specialized inputs |
+| Appendix C Upstream Dependencies table, WAG open items, Excluded Compositions table | Compact core appendix; update internal references |
+| `bound-grant-coordination`, `dedicated-client-coordination`, remaining Deferred Compositions and Operational Dependencies notes | Reconcile into existing `COORDINATION.md`; retain operative restrictions in core and avoid duplicating existing notes |
 
-## Decisions requested
+Before extraction, expand this map into a complete requirements and
+reference inventory. Every affected paragraph, table row, exception,
+and example receives a destination. Do not treat absence of BCP 14
+keywords as evidence that material is disposable.
 
-1. **Adopt the three-document split, and do it before -00 is
-   submitted.** Recommended. Before submission, splitting is a repository
-   change. After submission, it means renamed or replacement drafts and
-   reference churn.
-2. **Keep the platform JWT input in the core.** Recommended, at about
-   +3 pp. The core's motivating case is a shared platform client, so
-   the core should be implementable for that case on its own. If the
-   input moves instead, the generic shared-client conformance claim moves
-   with it, and the core's shared-client story depends on the companion.
-3. **Keep the dedicated-client walkthrough, self-acting variant, and
-   negative tests in the core**, at about 81 pp. Recommended. They show
-   exactly the mandatory path, and a reviewer asked for the negative
-   tests so the contract is checkable. The alternative moves all examples
-   to the guide, at about 73 pp.
-4. **Write the primer.** Recommended. It is the change that addresses
-   the length perception. It is close to the earlier ruling against a
-   reading-guide table, so it needs explicit confirmation: it lives
-   outside the draft and is not navigation inside it.
-5. **Leave the optional features inside the stage chapters in the core.**
-   Recommended. These are RAS refresh, SAML and refresh-token subjects,
-   mutual TLS, instance context, WISE, and the unbound "governed agent
-   access" profile. Moving them saves about 5 pp. But their hooks sit
-   inside baseline rules, and a reader would cross documents
-   mid-transaction. Revisit after the split.
+## References and conformance
+
+The companion normatively references the core. Classify each reference
+from the core by its actual dependency. Optional support alone does not
+make a reference informative: see
+[RFC 3967, Section 1.1](https://www.rfc-editor.org/rfc/rfc3967.html#section-1.1).
+An informative pointer is appropriate when the core remains complete
+without the target; a rule importing required behavior or an exception
+needs a normative dependency or an explicitly defined extension boundary.
+
+* Audit the managed-installation exception in `identity-binding`,
+  conditional conformance, lifetime rules, and all guide citations.
+* Preserve conformance meaning: profile URI, realization, role,
+  supported inputs, and the generic shared-client claim. Optional-input
+  claims identify the applicable companion requirements.
+* Repoint SCIM agent management's native credential validation references
+  to the companion. Check its selectors and key semantics against the
+  moved rules.
+* Review lifecycle references and examples for meaning even where no
+  section number or anchor changes.
+* Keep the four profile URIs in the core. No new registration is planned.
+* Add the companion to the build and README, with direct links to the
+  overview, examples, and guide. Check rendered links across all drafts.
+
+## Preservation and acceptance criteria
+
+Protocol behavior remains unchanged. WAG stays a peer realization,
+just-in-time correlation stays in the core, and Federation Configuration
+stays together in the guide. Editorial changes to requirements must
+preserve their role, conditions, exceptions, and force. Any proposed
+behavior change is separate work.
+
+### Semantic preservation
+
+For each affected rule record:
+
+Existing location → destination → implementing role → applicability →
+exceptions → expected acceptance or rejection behavior.
+
+Include definitions, tables, security limits, and exclusions. Specifically
+track grant lifetime bounds, credential-class isolation, installation
+continuity, proof-key relationships across receiver scopes, replay, WAG
+subject presentation, and unsupported input/grant combinations.
+
+Paragraph comparisons and BCP 14 counts are supporting checks. Account
+for every difference, including reference rewrites and new framing. The
+same words or keyword count do not prove the same meaning.
+
+### Comprehension
+
+Give the revised opening to a reader unfamiliar with the draft. After
+five minutes, ask them to explain:
+
+* the problem the profile solves;
+* the differences among client, workload identity, and Agent Principal;
+* the IdP's decisions and the resource domain's decisions;
+* delegated versus self-acting access; and
+* where they would begin implementing their role.
+
+They should be able to answer from the draft without the guide. Record
+where they hesitate or follow the wrong section, and revise those areas.
+This reader exercise is a validation step, not a new table in the draft.
+
+### Implementation and build checks
+
+* Trace dedicated-client and platform JWT shared-client transactions for
+  both grants and both protection profiles using the core and its base
+  specifications, without unique requirements from the guide or input
+  companion. Include client, IdP, RAS, and API behavior and failure cases.
+* Trace each companion input through its supported realizations using
+  core plus companion. Check key mismatches, expired credentials,
+  forbidden fallback, and unsupported X.509-SVID self-acting issuance.
+* Build all affected drafts, parse changed JSON examples, resolve local
+  and cross-document links, and inspect rendered tables and headings.
+* Repeat the size measurements and report comprehension findings beside
+  them. An 81-page result can be an intermediate outcome; further editing
+  must preserve the contract.
 
 ## Execution
 
-Each step is its own PR with the same discipline as the stage
-restructure (#10).
+Use separate PRs so explanatory changes, relocation, and compression
+can each be reviewed against the preceding version.
 
-1. **Companion, move only.**
-   * Create the companion with its front matter, a short introduction,
-     terminology, security and privacy considerations for the moved
-     inputs, and references.
-   * Move the units in the move map.
-   * Repoint citations in the core and in SCIM agent management.
-   * Verification:
-     * the paragraph multiset of core plus companion equals today's
-       draft, minus what moves to the guide, plus new framing text that
-       is listed;
-     * the BCP 14 keyword census across the two drafts is unchanged;
-     * every anchor resolves;
-     * both drafts build.
-2. **Guide and Appendix C.**
-   * Create `docs/implementers-guide.md` with the guidance units.
-   * Trim Appendix C to the compact form.
-   * Move its prose notes to `COORDINATION.md`.
-   * Repoint the guide citations as informative references.
-3. **Primer**, if decision 4 is yes: a short, non-normative walk through
-   the model, one delegated and one self-acting flow, and what each
-   role builds, linking into the core.
-4. **Independent checks.**
-   * A requirements verifier across both drafts.
-   * A cold implementer trace that answers: can an IdP, RAS, and API
-     interoperate on the mandatory path using only the core?
+1. **Opening and protocol overview.** Write the conceptual transaction,
+   identity example, and short baseline statement inside the core. Run
+   the comprehension exercise before extracting material. Replace
+   overlapping introductory prose so this is not only an addition.
+2. **Core organization.** Start the requirements/reference inventory for
+   affected material. Apply the target contents, predictable stage
+   structure, and optional-feature headings. Move detailed conformance
+   and metadata later while keeping prerequisites beside processing.
+   Check semantic preservation before merging this reorganization.
+3. **Specialized inputs.** Complete the requirements/reference inventory,
+   create the companion, move the assigned material, and update the core,
+   SCIM management, build, and README references. Preserve input-specific
+   security and privacy considerations and run the semantic checks.
+4. **Guide and coordination.** Create `docs/implementers-guide.md`, move
+   the assigned guidance, and reconcile Appendix C with `COORDINATION.md`.
+   Add a supplemental primer explaining both flows and role responsibilities.
+5. **Compression and final review.** Consolidate repetition and simplify
+   wording where the requirements map demonstrates equivalence. Run the
+   implementation traces, comprehension exercise, builds, and measurements.
 
-## Risks
+## Risks and remaining review points
 
-* **The core is still long.** At about 81 pages, it stays ID-JAG-sized.
-  The primer is the mitigation; further cuts to the core would change
-  what it requires.
-* **More documents to maintain.** The family grows from four drafts to
-  five, plus the guide.
-* **Optional inputs span two documents.** An implementer of an optional
-  input reads the core and the companion. That is the usual pattern for
-  OAuth extensions, but it adds one hop.
-* **Timing.** The case for splitting now rests on the draft not yet
-  being submitted.
+* **A clear overview can omit a decisive condition.** Check examples
+  against the full rules, particularly delegation, tenant qualification,
+  correlation, and proof. Label excerpts and informative explanations.
+* **Moving text can change applicability.** Review requirement scope and
+  references, including conditional rules that remain in the core.
+* **The family grows from four drafts to five plus a guide.** Assign one
+  authoritative home to each rule and report total material separately
+  from core length.
+* **Specialized inputs require two documents.** Keep all rules specific
+  to an input together and verify a complete transaction across that
+  boundary.
+* **The core may remain long.** Judge whether readers understand the
+  contract early and can locate their processing rules. Continue measured
+  editing without assuming that every remaining paragraph is irreducible.
 
-## Review questions
-
-1. Is the core/companion boundary right? In particular, should the
-   managed-installation binding stay with Client Attestation in the
-   companion?
-2. Should the guide start as repository Markdown, or as an Informational
-   draft from the outset?
-3. Is about 81 pages acceptable for the core, given that the mandatory
-   contract alone is about 64?
+The recommended boundaries are platform JWT and downstream instance
+context in core, managed-installation resolution with Client Attestation,
+and an initially Markdown guide. Review the resulting contents and
+reader evidence before treating the extraction size as final. Completing
+the split before the first submission may reduce early reference churn;
+the approachability and dependency benefits are the primary rationale.

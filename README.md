@@ -33,6 +33,7 @@ shared client is acting for.
 | Draft | What it covers |
 |---|---|
 | [OAuth 2.0 Profile for Governed Agent Federation](#oauth-20-profile-for-governed-agent-federation) | Resolves client and workload identities to a stable Agent Principal and carries it into a resource domain |
+| [Agent Resolution Input Profiles for Governed Agent Federation](#agent-resolution-input-profiles-for-governed-agent-federation) | Optional SPIFFE and Client Attestation inputs, including managed-installation resolution |
 | [SCIM Profile for Governed Agent Federation Management](#scim-profile-for-governed-agent-federation-management) | Platform-to-IdP management of Agent Principals, Identity Bindings, and Client Associations |
 | [Governed Agent Lifecycle Profile for SCIM and OAuth](#governed-agent-lifecycle-profile-for-scim-and-oauth) | IdP-to-resource-domain provisioning, administrative disablement, and session revocation |
 | [SCIM Profile for OAuth 2.0 Client Management](#scim-profile-for-oauth-20-client-management) | Generic SCIM management of OAuth client registrations, including CIMD clients |
@@ -129,6 +130,19 @@ remain deferred.
 * [Datatracker Page](https://datatracker.ietf.org/doc/draft-mcguinness-oauth-governed-agent-federation)
 * [Individual Draft](https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-governed-agent-federation)
 * [Compare Editor's Copy to Individual Draft](https://mcguinness.github.io/governed-agent-profiles/#go.draft-mcguinness-oauth-governed-agent-federation.diff)
+
+## Agent Resolution Input Profiles for Governed Agent Federation
+
+The federation draft defines the agent-resolution input contract and two
+inputs: dedicated-client identity, which every implementation supports, and
+the existing platform JWT for shared clients. This companion defines further
+inputs that satisfy the same contract: SPIFFE JWT-SVIDs, WIT-SVIDs, and
+X.509-SVIDs, and Client Attestation, including resolution of a managed
+installation behind a shared client by its client instance identifier. An
+implementation that claims none of these inputs needs only the federation
+draft.
+
+* [Editor's Copy](https://mcguinness.github.io/governed-agent-profiles/#go.draft-mcguinness-oauth-governed-agent-inputs.html)
 
 ## SCIM Profile for Governed Agent Federation Management
 

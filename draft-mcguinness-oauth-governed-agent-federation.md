@@ -167,24 +167,12 @@ audit across resources, and disable as a unit. That principal's
 identity does not change when the agent moves between platforms or
 rotates credentials.
 
-Existing OAuth mechanisms authenticate clients and carry actors, but
-they leave three relationships open:
-
-1. How different client and workload identities resolve to the same
-   governed principal. {{ATTEST}} and {{SPIFFE-OAUTH}} authenticate
-   OAuth clients, not the agents a shared client serves.
-2. How authority to use that principal is separated from identity
-   resolution. The Identity Assertion JWT Authorization Grant (ID-JAG)
-   leaves two things to extensions ({{Section 9.7 of ID-JAG}}):
-   validating and authorizing an actor, and relating client, subject,
-   and actor.
-3. How the resulting principal is represented and correlated across
-   authorization domains. {{RFC8693}} defines the `act` claim. It does
-   not define how that claim names an actor authenticated through a
-   client or workload credential, or how a resource domain correlates
-   that name with local state.
-
-This document is an OAuth deployment profile that fills those gaps.
+Existing OAuth mechanisms authenticate clients and carry actors. They do
+not resolve different client and workload identities to one governed
+principal, separate authority to use that principal from identity
+resolution, or correlate it across authorization domains
+({{profile-additions}}). This document is an OAuth deployment profile
+that fills those gaps.
 
 ## Protocol Overview {#overview}
 
@@ -281,8 +269,9 @@ The federation model ({{model}}) is independent of the grant that
 carries it. Two peer realizations carry it, each with its own mandatory
 path, and an implementation claims one or both ({{scope}}):
 
-* **Delegated access ({{delegated-flow}}):** ID-JAG, with the user as
-  subject and the Agent Principal as actor.
+* **Delegated access ({{delegated-flow}}):** the Identity Assertion JWT
+  Authorization Grant (ID-JAG) {{ID-JAG}}, with the user as subject
+  and the Agent Principal as actor.
 * **Self-acting access ({{wag-flow}}):** the Workload Authorization
   Grant (WAG) {{WAG}}, with the Agent Principal as subject.
 
@@ -702,8 +691,23 @@ applies unchanged.
 
 ### Relationship to Base Specifications {#profile-additions}
 
-This table is non-normative; the referenced sections define each
-requirement.
+Existing OAuth mechanisms leave three relationships open:
+
+1. How different client and workload identities resolve to the same
+   governed principal. {{ATTEST}} and {{SPIFFE-OAUTH}} authenticate
+   OAuth clients, not the agents a shared client serves.
+2. How authority to use that principal is separated from identity
+   resolution. ID-JAG leaves two things to extensions
+   ({{Section 9.7 of ID-JAG}}): validating and authorizing an actor,
+   and relating client, subject, and actor.
+3. How the resulting principal is represented and correlated across
+   authorization domains. {{RFC8693}} defines the `act` claim. It does
+   not define how that claim names an actor authenticated through a
+   client or workload credential, or how a resource domain correlates
+   that name with local state.
+
+The following table lists how this profile fills them. It is
+non-normative; the referenced sections define each requirement.
 
 | Area | Profile requirement | Defined in |
 |---|---|---|

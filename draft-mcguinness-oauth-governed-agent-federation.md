@@ -1224,17 +1224,23 @@ IdP MUST:
 Similar names, unqualified identifiers, or a shared signing key MUST NOT
 establish identity equivalence. An identifier of one execution, such as
 a process, replica, or container, MUST NOT select or change the Agent
-Principal ({{governance-boundary}}). A client instance identifier
-({{INSTANCE}}) MUST NOT satisfy a Client Association, and MUST NOT
-select or change the Agent Principal except through installation-level
-resolution that an input profile defines with an exact Identity Binding
-naming the identifier and its attester, client, and receiver scope; with
-an attester configured to assign the identifier at Installation
-granularity ({{Section 1.1 of INSTANCE}}) under the continuity rules of
-{{Section 6 of INSTANCE}}; with the resolution level selected only by
-trusted configuration and no fallback between levels; and with no
-continuity inferred across identifiers or attesters. {{INPUTS}} defines such resolution for Client
-Attestation.
+Principal ({{governance-boundary}}).
+
+A client instance identifier ({{INSTANCE}}) MUST NOT satisfy a Client
+Association. It MUST NOT select or change the Agent Principal except
+through installation-level resolution that an input profile defines with
+all of the following:
+
+* an exact Identity Binding naming the identifier and its attester,
+  client, and receiver scope;
+* an attester configured to assign the identifier at Installation
+  granularity ({{Section 1.1 of INSTANCE}}), under the continuity rules
+  of {{Section 6 of INSTANCE}};
+* a resolution level selected only by trusted configuration, with no
+  fallback between levels; and
+* no continuity inferred across identifiers or attesters.
+
+{{INPUTS}} defines such resolution for Client Attestation.
 
 **Disabling:** An Identity Binding can be disabled independently of the
 Agent Principal and its other bindings. A disabled binding MUST NOT

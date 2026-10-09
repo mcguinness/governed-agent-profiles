@@ -7,18 +7,18 @@
 <title>OAuth 2.0 Profile for Governed Agent Federation</title>
 <meta content="Karl McGuinness" name="author">
 <meta content="
-       Service providers need a stable identity for an enterprise-governed agent
+       Resource domains need a stable identity for an enterprise-governed agent
 without understanding the runtime, workload credential, or OAuth client
 through which it executes. Enterprises govern such agents independently
 of those platforms, workloads, and clients. 
        This document is an OAuth deployment profile that standardizes the
 boundary between execution identity and governed identity. An
 enterprise identity provider resolves an authenticated OAuth client or
-workload identity to a governed Agent Principal, whose identifier can be
-the same as the execution identity's or different, and conveys that
-principal to a resource domain. Identity resolution, client authority,
+workload identity to a governed Agent Principal in the identity
+provider's namespace, which may reuse the execution identity's
+identifier, and conveys that principal to a resource domain. Identity resolution, client authority,
 user delegation, and resource authorization remain separate decisions.
-No new credential format is defined. 
+No new workload credential format is defined. 
        Two peer realizations carry the Agent Principal: delegated access
 through the Identity Assertion JWT Authorization Grant (ID-JAG), with
 the user as subject and the agent as actor, and self-acting access
@@ -1096,18 +1096,18 @@ svg {
 <h1 id="title">OAuth 2.0 Profile for Governed Agent Federation</h1>
 <section id="section-abstract">
       <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
-<p id="section-abstract-1">Service providers need a stable identity for an enterprise-governed agent
+<p id="section-abstract-1">Resource domains need a stable identity for an enterprise-governed agent
 without understanding the runtime, workload credential, or OAuth client
 through which it executes. Enterprises govern such agents independently
 of those platforms, workloads, and clients.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
 <p id="section-abstract-2">This document is an OAuth deployment profile that standardizes the
 boundary between execution identity and governed identity. An
 enterprise identity provider resolves an authenticated OAuth client or
-workload identity to a governed Agent Principal, whose identifier can be
-the same as the execution identity's or different, and conveys that
-principal to a resource domain. Identity resolution, client authority,
+workload identity to a governed Agent Principal in the identity
+provider's namespace, which may reuse the execution identity's
+identifier, and conveys that principal to a resource domain. Identity resolution, client authority,
 user delegation, and resource authorization remain separate decisions.
-No new credential format is defined.<a href="#section-abstract-2" class="pilcrow">¶</a></p>
+No new workload credential format is defined.<a href="#section-abstract-2" class="pilcrow">¶</a></p>
 <p id="section-abstract-3">Two peer realizations carry the Agent Principal: delegated access
 through the Identity Assertion JWT Authorization Grant (ID-JAG), with
 the user as subject and the agent as actor, and self-acting access
@@ -1201,7 +1201,7 @@ subject.<a href="#section-abstract-3" class="pilcrow">¶</a></p>
             <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-federation-model" class="internal xref">Federation Model</a></p>
 <ul class="compact toc ulBare ulEmpty">
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.1">
-                <p id="section-toc.1-1.3.2.1.1"><a href="#section-3.1" class="auto internal xref">3.1</a>.  <a href="#name-service-provider-contract" class="internal xref">Service Provider Contract</a></p>
+                <p id="section-toc.1-1.3.2.1.1"><a href="#section-3.1" class="auto internal xref">3.1</a>.  <a href="#name-resource-domain-contract" class="internal xref">Resource Domain Contract</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.2">
                 <p id="section-toc.1-1.3.2.2.1"><a href="#section-3.2" class="auto internal xref">3.2</a>.  <a href="#name-authentication-resolution-a" class="internal xref">Authentication, Resolution, and Proof</a></p>
@@ -1580,7 +1580,7 @@ tell the agents behind that client apart. Individual actions cannot be
 attributed, and authorization cannot be withdrawn from one agent without
 withdrawing it from all of them.<a href="#section-1-1" class="pilcrow">¶</a></p>
 <p id="section-1-2">What an enterprise needs instead is a principal it can authorize once,
-audit across resources, and disable as a unit. That principal's
+audit across resources, and disable in one place. That principal's
 identity does not change when the agent moves between platforms or
 rotates credentials.<a href="#section-1-2" class="pilcrow">¶</a></p>
 <p id="section-1-3">Existing OAuth mechanisms authenticate clients and carry actors. They do
@@ -1604,9 +1604,25 @@ principal (an account it manages) and applies its own authorization
 policy at its resource authorization server (RAS) and API. Delegated
 access identifies both the user and the agent; self-acting access
 identifies the agent as the subject.<a href="#section-1.1-1" class="pilcrow">¶</a></p>
+<p id="section-1.1-2">The client makes three requests, which <a href="#walkthrough" class="auto internal xref">Appendix A.1</a> shows message by
+message:<a href="#section-1.1-2" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-1.1-3">
+<li id="section-1.1-3.1">
+            <p id="section-1.1-3.1.1">To the IdP token endpoint, an OAuth Token Exchange request
+<span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span> (<a href="#issuance-request" class="auto internal xref">Section 5.2</a>). The IdP returns the grant: a
+short-lived JWT, signed by the IdP, for one resource at one RAS.<a href="#section-1.1-3.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-1.1-3.2">
+            <p id="section-1.1-3.2.1">To the RAS token endpoint, presenting the grant with the JWT bearer
+grant type (<a href="#redemption-request" class="auto internal xref">Section 6.1</a>). The RAS returns an access token.<a href="#section-1.1-3.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-1.1-3.3">
+            <p id="section-1.1-3.3.1">To the API, with the access token (<a href="#api-processing" class="auto internal xref">Section 7</a>).<a href="#section-1.1-3.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
 <span id="name-one-governed-transaction"></span><div id="overview-figure">
 <figure id="figure-1">
-          <div class="alignLeft art-text artwork" id="section-1.1-2.1">
+          <div class="alignLeft art-text artwork" id="section-1.1-4.1">
 <pre>
  Client authentication or workload evidence
                       |
@@ -1637,32 +1653,33 @@ identifies the agent as the subject.<a href="#section-1.1-1" class="pilcrow">¶<
 <a href="#name-one-governed-transaction" class="selfRef">One governed transaction</a>
           </figcaption></figure>
 </div>
-<p id="section-1.1-3">Each relationship answers one question:<a href="#section-1.1-3" class="pilcrow">¶</a></p>
+<p id="section-1.1-5">Each relationship answers one question:<a href="#section-1.1-5" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-1.1-4.1">
-            <p id="section-1.1-4.1.1"><strong>Identity Binding (IdP):</strong> Which governed agent does this credential
-identify?<a href="#section-1.1-4.1.1" class="pilcrow">¶</a></p>
+<li class="normal" id="section-1.1-6.1">
+            <p id="section-1.1-6.1.1"><strong>Identity Binding (IdP):</strong> Which governed agent does this credential
+identify?<a href="#section-1.1-6.1.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-1.1-4.2">
-            <p id="section-1.1-4.2.1"><strong>Client Association (IdP):</strong> May this OAuth client use that agent's
-identity?<a href="#section-1.1-4.2.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-1.1-6.2">
+            <p id="section-1.1-6.2.1"><strong>Client Association (IdP):</strong> May this OAuth client use that agent's
+identity?<a href="#section-1.1-6.2.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-1.1-4.3">
-            <p id="section-1.1-4.3.1"><strong>Agent or Delegation Authorization (IdP):</strong> What authority may the
-agent request, on its own or for a user?<a href="#section-1.1-4.3.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-1.1-6.3">
+            <p id="section-1.1-6.3.1"><strong>Agent or Delegation Authorization (IdP):</strong> What authority (scope
+and any authorization details for one resource) may the agent
+request, on its own or for a user?<a href="#section-1.1-6.3.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-1.1-4.4">
-            <p id="section-1.1-4.4.1"><strong>Correlation and resource policy (RAS and API):</strong> What access will
+          <li class="normal" id="section-1.1-6.4">
+            <p id="section-1.1-6.4.1"><strong>Correlation and resource policy (RAS and API):</strong> What access will
 the resource domain permit? For delegated access, this includes the
-actor gate: may this agent act for this user?<a href="#section-1.1-4.4.1" class="pilcrow">¶</a></p>
+actor gate: may this agent act for this user?<a href="#section-1.1-6.4.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-1.1-5">For example, an Identity Binding maps the platform identity
+<p id="section-1.1-7">For example, an Identity Binding maps the platform identity
 <code>workload-7</code>, qualified by its issuer, to the Agent Principal
 (<code>https://idp.example/</code>, <code>agent-42</code>). Grants carry that IdP-qualified
-principal, not the platform identity:<a href="#section-1.1-5" class="pilcrow">¶</a></p>
+principal, not the platform identity:<a href="#section-1.1-7" class="pilcrow">¶</a></p>
 <span id="name-one-identity-transformation"></span><figure id="figure-2">
-          <div class="alignLeft art-text artwork" id="section-1.1-6.1">
+          <div class="alignLeft art-text artwork" id="section-1.1-8.1">
 <pre>
 Platform identity:  https://platform.example/  workload-7
                             |  Identity Binding at the IdP
@@ -1680,70 +1697,76 @@ Self-acting WAG (excerpt):
 <figcaption><a href="#figure-2" class="selfRef">Figure 2</a>:
 <a href="#name-one-identity-transformation" class="selfRef">One identity transformation</a>
           </figcaption></figure>
-<p id="section-1.1-7">The relationships do not imply one another. Mapping an identity grants
+<p id="section-1.1-9">The <code>act</code> claim is the actor claim of Token Exchange
+(<span><a href="https://rfc-editor.org/rfc/rfc8693#section-4.1" class="relref">Section 4.1</a> of [<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>): it names the party acting for the subject.<a href="#section-1.1-9" class="pilcrow">¶</a></p>
+<p id="section-1.1-10">The relationships do not imply one another. Mapping an identity grants
 no permission, owning an agent does not establish a user's delegation to
 it, and how far and how fast disablement propagates depends on the
-lifecycle mechanism a deployment selects, such as <span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span>.<a href="#section-1.1-7" class="pilcrow">¶</a></p>
-<p id="section-1.1-8">The mandatory baseline resolves the agent from a dedicated OAuth client,
-one per agent, authenticating with <code>private_key_jwt</code>, with an ID Token
-subject when delegated access is claimed. A shared client uses the
-existing platform JWT input, which a claim of generic shared-client
-interoperability requires, or another supported input (<a href="#scope" class="auto internal xref">Section 9.1</a>). <a href="#model" class="auto internal xref">Section 3</a> and <a href="#common-rules" class="auto internal xref">Section 4</a>
-apply to every role. The IdP's processing is in <a href="#issuance" class="auto internal xref">Section 5</a>, the RAS's
-in <a href="#redemption" class="auto internal xref">Section 6</a>, and the API's in <a href="#api-processing" class="auto internal xref">Section 7</a>; a client starts
-with <a href="#issuance-request" class="auto internal xref">Section 5.2</a>. <span>[<a href="#GUIDE" class="cite xref">GUIDE</a>]</span> adds a primer and deployment
-guidance.<a href="#section-1.1-8" class="pilcrow">¶</a></p>
-<p id="section-1.1-9">The profile sits within the agent identity management framework that
+lifecycle mechanism a deployment selects, such as <span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span>.<a href="#section-1.1-10" class="pilcrow">¶</a></p>
+<p id="section-1.1-11">Clients and IdPs support dedicated-client resolution: one OAuth client
+per agent, authenticating with <code>private_key_jwt</code>, so that client
+authentication identifies the agent (<a href="#client-assertion-input" class="auto internal xref">Section 5.3.2</a>). For
+delegated access, they also support ID Token subjects. Deployments may
+use other mutually supported inputs. The existing platform JWT input is
+required for generic shared-client interoperability; when used, it
+accompanies each grant-issuance request to the IdP
+(<a href="#imported-jwt-input" class="auto internal xref">Section 5.3.3</a>; <a href="#aws-example" class="auto internal xref">Appendix A.2.1</a> shows one). Conformance follows
+<a href="#scope" class="auto internal xref">Section 9.1</a>.<a href="#section-1.1-11" class="pilcrow">¶</a></p>
+<p id="section-1.1-12"><a href="#model" class="auto internal xref">Section 3</a> and <a href="#common-rules" class="auto internal xref">Section 4</a> apply to every role. The IdP's processing
+is in <a href="#issuance" class="auto internal xref">Section 5</a>, the RAS's in <a href="#redemption" class="auto internal xref">Section 6</a>, and the API's in
+<a href="#api-processing" class="auto internal xref">Section 7</a>. <span>[<a href="#GUIDE" class="cite xref">GUIDE</a>]</span> adds a primer and the configuration each
+party maintains.<a href="#section-1.1-12" class="pilcrow">¶</a></p>
+<p id="section-1.1-13">The profile sits within the agent identity management framework that
 AIMS <span>[<a href="#AIMS" class="cite xref">AIMS</a>]</span> describes and defines how the identities in one
-transaction relate across authorization domains.<a href="#section-1.1-9" class="pilcrow">¶</a></p>
-<p id="section-1.1-10">The federation model (<a href="#model" class="auto internal xref">Section 3</a>) is independent of the grant that
+transaction relate across authorization domains.<a href="#section-1.1-13" class="pilcrow">¶</a></p>
+<p id="section-1.1-14">The federation model (<a href="#model" class="auto internal xref">Section 3</a>) is independent of the grant that
 carries it. Two peer realizations carry it, each with its own mandatory
-path, and an implementation claims one or both (<a href="#scope" class="auto internal xref">Section 9.1</a>):<a href="#section-1.1-10" class="pilcrow">¶</a></p>
+path, and an implementation claims one or both (<a href="#scope" class="auto internal xref">Section 9.1</a>):<a href="#section-1.1-14" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-1.1-11.1">
-            <p id="section-1.1-11.1.1"><strong>Delegated access (<a href="#delegated-flow" class="auto internal xref">Section 4.1</a>):</strong> the Identity Assertion JWT
+<li class="normal" id="section-1.1-15.1">
+            <p id="section-1.1-15.1.1"><strong>Delegated access (<a href="#delegated-flow" class="auto internal xref">Section 4.1</a>):</strong> the Identity Assertion JWT
 Authorization Grant (ID-JAG) <span>[<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>, with the user as subject
-and the Agent Principal as actor.<a href="#section-1.1-11.1.1" class="pilcrow">¶</a></p>
+and the Agent Principal as actor.<a href="#section-1.1-15.1.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-1.1-11.2">
-            <p id="section-1.1-11.2.1"><strong>Self-acting access (<a href="#wag-flow" class="auto internal xref">Section 4.2</a>):</strong> the Workload Authorization
-Grant (WAG) <span>[<a href="#WAG" class="cite xref">WAG</a>]</span>, with the Agent Principal as subject.<a href="#section-1.1-11.2.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-1.1-15.2">
+            <p id="section-1.1-15.2.1"><strong>Self-acting access (<a href="#wag-flow" class="auto internal xref">Section 4.2</a>):</strong> the Workload Authorization
+Grant (WAG) <span>[<a href="#WAG" class="cite xref">WAG</a>]</span>, with the Agent Principal as subject.<a href="#section-1.1-15.2.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-1.1-12">Other grant realizations need their own composition rules.
+<p id="section-1.1-16">Other grant realizations need their own composition rules.
 Dedicated-client assertions and existing platform JWTs supply inputs to
 this identity model (<a href="#evidence" class="auto internal xref">Section 5.3.1</a>). <span>[<a href="#INPUTS" class="cite xref">INPUTS</a>]</span> defines further inputs,
-such as SPIFFE JWT Verifiable Identity Documents (JWT-SVIDs).<a href="#section-1.1-12" class="pilcrow">¶</a></p>
-<p id="section-1.1-13">This document federates an agent governed by the IdP that issues the
+such as SPIFFE JWT Verifiable Identity Documents (JWT-SVIDs).<a href="#section-1.1-16" class="pilcrow">¶</a></p>
+<p id="section-1.1-17">This document federates an agent governed by the IdP that issues the
 grant into a resource domain. It does not define identity continuity
 across a chain of IdPs or brokers. Forwarding an actor from another
-IdP's namespace is out of scope. Also out of scope (<a href="#upstream-gaps" class="auto internal xref">Appendix B</a>):<a href="#section-1.1-13" class="pilcrow">¶</a></p>
+IdP's namespace is out of scope. Also out of scope (<a href="#upstream-gaps" class="auto internal xref">Appendix B</a>):<a href="#section-1.1-17" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-1.1-14.1">
-            <p id="section-1.1-14.1.1">task or mission authorization;<a href="#section-1.1-14.1.1" class="pilcrow">¶</a></p>
+<li class="normal" id="section-1.1-18.1">
+            <p id="section-1.1-18.1.1">task or mission authorization;<a href="#section-1.1-18.1.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-1.1-14.2">
-            <p id="section-1.1-14.2.1">asynchronous approval;<a href="#section-1.1-14.2.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-1.1-18.2">
+            <p id="section-1.1-18.2.1">asynchronous approval;<a href="#section-1.1-18.2.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-1.1-14.3">
-            <p id="section-1.1-14.3.1">continuation of approved work across grants;<a href="#section-1.1-14.3.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-1.1-18.3">
+            <p id="section-1.1-18.3.1">continuation of approved work across grants;<a href="#section-1.1-18.3.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-1.1-14.4">
-            <p id="section-1.1-14.4.1">provisioning protocols and account administration (<span>[<a href="#GUIDE" class="cite xref">GUIDE</a>]</span>);<a href="#section-1.1-14.4.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-1.1-18.4">
+            <p id="section-1.1-18.4.1">provisioning protocols and account administration (<span>[<a href="#GUIDE" class="cite xref">GUIDE</a>]</span>);<a href="#section-1.1-18.4.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-1.1-14.5">
-            <p id="section-1.1-14.5.1">multi-agent delegation chains;<a href="#section-1.1-14.5.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-1.1-18.5">
+            <p id="section-1.1-18.5.1">multi-agent delegation chains;<a href="#section-1.1-18.5.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-1.1-14.6">
-            <p id="section-1.1-14.6.1">authorization of individual client instances, and propagation of
-instance context across domains; and<a href="#section-1.1-14.6.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-1.1-18.6">
+            <p id="section-1.1-18.6.1">authorization of individual client instances, and propagation of
+instance context across domains; and<a href="#section-1.1-18.6.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-1.1-14.7">
-            <p id="section-1.1-14.7.1">enrollment or key-replacement protocols.<a href="#section-1.1-14.7.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-1.1-18.7">
+            <p id="section-1.1-18.7.1">enrollment or key-replacement protocols.<a href="#section-1.1-18.7.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-1.1-15">Each processing chapter covers delegated and self-acting access, with
-client requirements beside the requests and responses.<a href="#section-1.1-15" class="pilcrow">¶</a></p>
+<p id="section-1.1-19">Each processing chapter covers delegated and self-acting access, with
+client requirements beside the requests and responses.<a href="#section-1.1-19" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -1802,14 +1825,11 @@ the acting relationship and proof binding it carries.<a href="#section-2.1-1.10.
         <dd class="break"></dd>
 </dl>
 <p id="section-2.1-2">One service can implement several roles.<a href="#section-2.1-2" class="pilcrow">¶</a></p>
-<p id="section-2.1-3">Two companion profiles complete the family and define their own
-administrative roles. <span>[<a href="#AGENT-MANAGEMENT" class="cite xref">AGENT-MANAGEMENT</a>]</span> establishes the relationships
-at the IdP, and <span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span> carries the principal's
-administrative state into the resource domain and revokes what depends
-on it. In those System for Cross-domain Identity Management (SCIM)
-profiles, "Service Provider" alone denotes the
-IdP-side SCIM service. The Service Provider Contract (<a href="#sp-contract" class="auto internal xref">Section 3.1</a>)
-concerns the resource domain.<a href="#section-2.1-3" class="pilcrow">¶</a></p>
+<p id="section-2.1-3">Two companion System for Cross-domain Identity Management (SCIM)
+profiles complete the family and define their own administrative roles.
+<span>[<a href="#AGENT-MANAGEMENT" class="cite xref">AGENT-MANAGEMENT</a>]</span> establishes the relationships at the IdP, and
+<span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span> carries the principal's administrative state into
+the resource domain and revokes what depends on it.<a href="#section-2.1-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="terms">
@@ -1954,8 +1974,8 @@ Client Associations (<a href="#identity-binding" class="auto internal xref">Sect
 another.<a href="#section-3-3" class="pilcrow">¶</a></p>
 <div id="sp-contract">
 <section id="section-3.1">
-        <h3 id="name-service-provider-contract">
-<a href="#section-3.1" class="section-number selfRef">3.1. </a><a href="#name-service-provider-contract" class="section-name selfRef">Service Provider Contract</a>
+        <h3 id="name-resource-domain-contract">
+<a href="#section-3.1" class="section-number selfRef">3.1. </a><a href="#name-resource-domain-contract" class="section-name selfRef">Resource Domain Contract</a>
         </h3>
 <p id="section-3.1-1">The mapping from execution identity to Agent Principal is local to the
 IdP. The security contract across the boundary between the IdP and the
@@ -1978,7 +1998,8 @@ self-acting;<a href="#section-3.1-2.2.1" class="pilcrow">¶</a></p>
             <p id="section-3.1-2.3.1">the client's registration at the RAS, in <code>client_id</code>; and<a href="#section-3.1-2.3.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-3.1-2.4">
-            <p id="section-3.1-2.4.1">the authority the IdP approved, as a ceiling for the RAS decision.<a href="#section-3.1-2.4.1" class="pilcrow">¶</a></p>
+            <p id="section-3.1-2.4.1">the authority the IdP approved (scope and any authorization details),
+as a ceiling for the RAS decision.<a href="#section-3.1-2.4.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 <p id="section-3.1-3">The RAS correlates the Agent Principal with a local principal, which can
@@ -2162,8 +2183,8 @@ imply authorization for the other.<a href="#section-3.5-1" class="pilcrow">¶</a
               </tr>
               <tr>
                 <td class="text-left" rowspan="1" colspan="1">Agent at the RAS</td>
-                <td class="text-left" rowspan="1" colspan="1">Kept in <code>act</code> beside the local user as subject</td>
-                <td class="text-left" rowspan="1" colspan="1">Correlated to a local agent principal (<a href="#agent-correlation" class="auto internal xref">Section 6.3</a>)</td>
+                <td class="text-left" rowspan="1" colspan="1">Correlated to a local agent principal (<a href="#agent-correlation" class="auto internal xref">Section 6.3</a>) and kept in <code>act</code> beside the local user as subject</td>
+                <td class="text-left" rowspan="1" colspan="1">Correlated to a local agent principal, which becomes the subject (<a href="#agent-correlation" class="auto internal xref">Section 6.3</a>)</td>
               </tr>
               <tr>
                 <td class="text-left" rowspan="1" colspan="1">Authorization</td>

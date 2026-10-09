@@ -2,8 +2,10 @@
 
 # Governed Agent Profiles
 
-This is the working area for four related Internet-Drafts on governing
-agents across platform, identity-provider, and resource-domain boundaries.
+This is the working area for five related Internet-Drafts on governing
+agents across platform, identity-provider, and resource-domain boundaries,
+and an [implementer's guide](docs/implementers-guide.md) to the federation
+profile.
 
 ## The problem
 
@@ -33,6 +35,7 @@ shared client is acting for.
 | Draft | What it covers |
 |---|---|
 | [OAuth 2.0 Profile for Governed Agent Federation](#oauth-20-profile-for-governed-agent-federation) | Resolves client and workload identities to a stable Agent Principal and carries it into a resource domain |
+| [Agent Resolution Input Profiles for Governed Agent Federation](#agent-resolution-input-profiles-for-governed-agent-federation) | Optional SPIFFE and Client Attestation inputs, including managed-installation resolution |
 | [SCIM Profile for Governed Agent Federation Management](#scim-profile-for-governed-agent-federation-management) | Platform-to-IdP management of Agent Principals, Identity Bindings, and Client Associations |
 | [Governed Agent Lifecycle Profile for SCIM and OAuth](#governed-agent-lifecycle-profile-for-scim-and-oauth) | IdP-to-resource-domain provisioning, administrative disablement, and session revocation |
 | [SCIM Profile for OAuth 2.0 Client Management](#scim-profile-for-oauth-20-client-management) | Generic SCIM management of OAuth client registrations, including CIMD clients |
@@ -103,9 +106,10 @@ both. Delegated access uses an ID Token issued for the dedicated client,
 `jwt-bearer` redemption. Self-acting access uses the same dedicated-client
 resolution and redemption with a WAG naming the Agent Principal as subject.
 The WAG token type and JWT type are provisional values until WAG registers
-them. SPIFFE JWT-SVID, WIT-SVID, X.509-SVID, and Client Attestation inputs
-are optional; shared platforms use the existing platform JWT input to
-distinguish the agents behind their SSO client. No new credential format or
+them. Optional SPIFFE JWT-SVID, WIT-SVID, X.509-SVID, and Client
+Attestation inputs are defined in the input profiles companion; shared
+platforms use the existing platform JWT input to distinguish the agents
+behind their SSO client. No new credential format or
 per-replica registration is required.
 
 Two governed profiles support incremental adoption. Bound governed agent
@@ -115,8 +119,10 @@ is a separate choice: DPoP, mutual TLS, or explicitly permitted bearer use.
 For delegated access, the API enforces user authority and the actor gate.
 For self-acting access, it enforces the agent's own authority.
 
-The appendices walk through the dedicated-client flow and a shared-client
-SPIFFE variant. Continuing access uses eligible subject credentials for new
+An appendix walks through the dedicated-client flow, with self-acting and
+platform JWT variants, and the [implementer's
+guide](docs/implementers-guide.md) explains both flows, the federation
+configuration, and deployment tradeoffs. Continuing access uses eligible subject credentials for new
 grants or policy-permitted RAS refresh within retained authorization and
 lifetime limits. Existing SSO refresh tokens do not automatically authorize
 downstream resources. Client instances and attester endorsements compose
@@ -126,9 +132,25 @@ binding. Key transition and Identity Continuation Assertion compositions
 remain deferred.
 
 * [Editor's Copy](https://mcguinness.github.io/governed-agent-profiles/#go.draft-mcguinness-oauth-governed-agent-federation.html)
+* [Implementer's Guide](docs/implementers-guide.md)
 * [Datatracker Page](https://datatracker.ietf.org/doc/draft-mcguinness-oauth-governed-agent-federation)
 * [Individual Draft](https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-governed-agent-federation)
 * [Compare Editor's Copy to Individual Draft](https://mcguinness.github.io/governed-agent-profiles/#go.draft-mcguinness-oauth-governed-agent-federation.diff)
+
+## Agent Resolution Input Profiles for Governed Agent Federation
+
+The federation draft defines the agent-resolution input contract and two
+inputs: dedicated-client identity, which every implementation supports, and
+the existing platform JWT for shared clients. This companion defines further
+inputs that satisfy the same contract: SPIFFE JWT-SVIDs, WIT-SVIDs, and
+X.509-SVIDs, and Client Attestation, including resolution of a managed
+installation behind a shared client by its client instance identifier. An
+implementation that claims none of these inputs needs only the federation
+draft. Because the federation draft requires an implementation that uses
+JWT-SVID client authentication to follow this companion, the two drafts
+reference each other normatively and are published together.
+
+* [Editor's Copy](https://mcguinness.github.io/governed-agent-profiles/#go.draft-mcguinness-oauth-governed-agent-inputs.html)
 
 ## SCIM Profile for Governed Agent Federation Management
 

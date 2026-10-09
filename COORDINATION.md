@@ -1,15 +1,18 @@
 # Coordination Notes for OAuth 2.0 Profile for Governed Agent Federation
 
 This file keeps the full coordination notes that the draft's
-"Dependencies and Deferred Work" appendix summarizes. They list what the
-profile needs from the specifications it depends on, and the compositions
-it defers, in more detail than the draft carries before working-group
-adoption. Backquoted names refer to anchors and references in
-`draft-mcguinness-oauth-governed-agent-federation.md`.
+"Dependencies and Excluded Compositions" appendix summarizes. They list
+what the profile needs from the specifications it depends on, and the
+compositions it defers, in more detail than the draft carries before
+working-group adoption. Backquoted names refer to anchors and references
+in `draft-mcguinness-oauth-governed-agent-federation.md`, except where a
+note names the input profiles companion
+(`draft-mcguinness-oauth-governed-agent-inputs.md`, `INPUTS`) or the
+implementer's guide (`docs/implementers-guide.md`).
 
 ## Dependencies and Deferred Work
 
-This informative appendix records dependencies and deferred work.
+These notes record dependencies and deferred work.
 Assessed revisions: WAG-01, ID-JAG-04, ICA-02, Actor
 Profile-00, SPIFFE OAuth-02, ATTEST-11, WIT-02, CIMD-02, Client Instance
 Identification-00, Client Attester Endorsement-00, and WISE draft 03.
@@ -19,7 +22,7 @@ Identification-00, Client Attester Endorsement-00, and WISE draft 03.
 | Specification | What this profile needs | Consequence until resolved |
 |---|---|---|
 | WAG | Registration of the WAG token type and JWT type, and alignment on protection, linking, and subject presentation (`wag-gaps`) | The WAG token type and JWT type remain provisional values |
-| ID-JAG | Bound-grant example aligned with the normative `jwt-bearer` grant type, and grant-confirmation errors separated from RFC 9449 proof errors (`bound-grant-coordination`) | Confirmation checks are applied to `jwt-bearer` here |
+| ID-JAG | Bound-grant example aligned with the normative `jwt-bearer` grant type, and grant-confirmation errors separated from RFC 9449 proof errors (below) | Confirmation checks are applied to `jwt-bearer` here |
 | Actor Profile | A reusable principal-resolution extension point separating credential validation, identity mapping, and actor construction; a grant-level condition for `jti` single use (below) | The mapping is defined locally in `actor-construction`; this profile states its own grant replay rule |
 
 #### WAG
@@ -132,8 +135,8 @@ facts and CAEP for sessions and IdP risk:
 This document explicitly defines delegated issuance from validated
 authentication context and an approved Identity Binding, without
 `actor_token`: dedicated-client identity under `client-assertion-input`
-or the SPIFFE and Client Attestation identities under
-`optional-input-profiles`.
+or the SPIFFE and Client Attestation identities defined in
+`INPUTS`.
 ID-JAG makes that parameter optional and leaves actor processing to
 extensions (Section 9.7 of ID-JAG); its omission alone does not establish
 this composition.
@@ -157,7 +160,7 @@ Profile support does not advertise support for this composition.
 A control plane obtaining a bound grant for redemption by a different
 worker needs an authorized proof-key transition. This document defines
 no such transition: the holder of the issuance key also redeems the
-grant (`distributed-key-use`). A future composition would need to bind
+grant (the implementer's guide, "Distributed platforms and key use"). A future composition would need to bind
 the new key without weakening the applicable grant protection.
 
 #### Portable Authorization Deadlines
@@ -189,30 +192,17 @@ exclusion does not prevent the independently supported uses listed here.
 |---|---|
 | Asynchronous approval with `AROP` | No approval transport or completion flow; external approval remains subject to `external-approval` and the lifetime limits in `authorization-lifetime` |
 | Continuation with `ICA` | No ICA issuance or continuation chain; supported renewal follows `continuing-access` |
-| General WIMSE WIT/WIC inputs | WIT-SVID and X.509-SVID resolution is defined in `spiffe-input`; non-SPIFFE credentials need an explicit OAuth presentation and proof composition |
-| Instance context carried in an ID-JAG or WAG, or preserved across domains, under `INSTANCE` | The RAS conveys only an instance it validated (`access-token-response`); instances resolve the agent only through a managed-installation binding (`agent-evidence`). Preservation would need this profile to define provenance and association under Section 7.4 of `INSTANCE` |
+| General WIMSE WIT/WIC inputs | WIT-SVID and X.509-SVID resolution is defined in `spiffe-input` of `INPUTS`; non-SPIFFE credentials need an explicit OAuth presentation and proof composition |
+| Instance context carried in an ID-JAG or WAG, or preserved across domains, under `INSTANCE` | The RAS conveys only an instance it validated (`access-token-response`); instances resolve the agent only through a managed-installation binding (`agent-evidence` of `INPUTS`). Preservation would need this profile to define provenance and association under Section 7.4 of `INSTANCE` |
 | Mutual-TLS-bound ID-JAG | Bound grants use DPoP. Mutual TLS remains available for access-token protection under `access-token-protection` |
 | Rich Authorization Requests without scope | This profile requires meaningful scope alongside any authorization details; it does not define the scope-free mode permitted by `RFC9396` |
 
 ### Operational Dependencies
 
 Provisioning, account linking, and lifecycle propagation are deployment
-choices. Useful controls include:
-
-* Authenticate the authority creating or changing a link, or verify
-  control of both accounts in a user-linking flow.
-* Authorize just-in-time creation of user accounts and agent
-  correlations by issuer and tenant, the latter under
-  `jit-correlation`; avoid silent merges and reactivation of disabled
-  accounts.
-* Retain ownership, groups, and entitlements with their principal;
-  audit link and binding changes.
-* Preserve issuer and tenant context when using the System for
-  Cross-domain Identity Management (SCIM) `externalId` attribute
-  `RFC7643`.
-
-SCIM `RFC7644` and Agent resources `SCIM-AGENT` provide building
-blocks, not a lifecycle propagation contract.
+choices. The implementer's guide ("Provisioning and linking") lists
+useful controls. SCIM `RFC7644` and Agent resources `SCIM-AGENT` provide
+building blocks, not a lifecycle propagation contract.
 
 #### Provisioning and Disablement
 
@@ -224,3 +214,39 @@ states the limits of missed-event recovery and token enforcement. Stronger
 guarantees across unobserved transitions require an additional composition.
 The companion is not required for conformance to this federation profile;
 `agent-correlation` and `status-changes` state this document's guarantees.
+
+## Family Structure
+
+### Publication Cluster with the Input Profiles Companion
+
+The core references the input profiles companion (`INPUTS`) normatively.
+Its client-authentication rule (`algorithms`) requires an implementation
+that uses JWT-SVID client authentication to claim the companion's
+JWT-SVID input and follow its rules. Those rules supply validation and
+algorithm requirements that the core does not contain, and Note 1 of the
+IESG statement on normative and informative references classifies such
+a dependency as normative even for an optional feature. The companion
+references the core normatively, so the two drafts form a publication
+cluster: neither can be published as an RFC without the other.
+
+The cluster can be broken with a small behavior change:
+
+* The core keeps only "JWT-SVID client authentication is not a
+  dedicated-client method." Agent resolution from a JWT-SVID remains the
+  companion's input, through the core's input-profile extension point.
+* JWT-SVID client authentication at the RAS follows `SPIFFE-OAUTH`
+  without this profile's narrowing: the rule that an optional `iss` does
+  not select another trust domain, and `ES256` as mandatory to
+  implement.
+* `INPUTS` becomes an informative reference.
+
+Breaking the cluster alone does not let the core advance ahead of early
+dependencies. The core also references Client Instance Identification
+(`INSTANCE`) normatively, for the client instance rule in
+`identity-binding` and the instance context of `access-token-response`
+and `api-validation`.
+
+Decide this at working-group adoption, if the core should be adopted or
+published separately from the SPIFFE and Client Attestation inputs.
+Do not revisit the family structure before the human comprehension
+check of the core's opening.

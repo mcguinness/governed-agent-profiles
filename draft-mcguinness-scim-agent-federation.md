@@ -45,6 +45,14 @@ normative:
   RFC7643:
   RFC7644:
   RFC6901:
+  INPUTS:
+    title: "Agent Resolution Input Profiles for Governed Agent Federation"
+    author:
+      - name: Karl McGuinness
+    date: 2026-10-09
+    seriesinfo:
+      Internet-Draft: draft-mcguinness-oauth-governed-agent-inputs
+    target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html
 informative:
   LIFECYCLE:
     title: "Governed Agent Lifecycle Profile for SCIM and OAuth"
@@ -139,20 +147,22 @@ identity.
 
 This profile defines explicit bindings and associations for delegated
 ID-JAG issuance, and registration of platform-hosted agents for
-governance without issuance ({{platform-hosted}}). It supports the federation draft's dedicated-client,
-SPIFFE, Client Attestation, and existing platform JWT resolution inputs.
-Implementations need only support the credential classes they accept
-under {{FEDERATION}}.
+governance without issuance ({{platform-hosted}}). It supports the
+federation draft's dedicated-client, SPIFFE, Client Attestation, and
+existing platform JWT resolution inputs of {{FEDERATION}} and
+{{INPUTS}}. Implementations need only support the credential classes
+they accept under {{FEDERATION}}.
 
 The following remain outside this profile:
 
 * Establishing trust in a new credential authority. Trust remains a
-  prerequisite, not an effect of a binding write. OAuth client registration
-  is defined separately by {{OAUTH-CLIENT}}.
+  prerequisite, not an effect of a binding write. OAuth client
+  registration is defined separately by {{OAUTH-CLIENT}}.
 * User delegation, resource permissions, and cross-domain user linking.
 * Runtime enrollment, credential issuance, key custody, and instance
   continuity.
-* Relationship-change events and revocation of outstanding authorization.
+* Relationship-change events and revocation of outstanding
+  authorization.
 * A portable policy language, automatic principal merging, and a WAG
   wire composition.
 
@@ -196,14 +206,15 @@ within its administrative authorization.
 
 Before provisioning, administrators establish:
 
-* The authenticated connector, Governance Tenant, and Provisioning Domain.
+* The authenticated connector, Governance Tenant, and Provisioning
+  Domain.
 * The credential authorities, validation profiles, and source-identity
   ranges the connector may use in Identity Bindings.
 * The IdP OAuthClient resources the connector may reference in bindings
   and associations, and any separate client-management permissions under
-  {{OAUTH-CLIENT}}. Referencing an existing client does not require permission
-  to create it or change its metadata. Client-management permission does
-  not imply binding or association permission.
+  {{OAUTH-CLIENT}}. Referencing an existing client does not require
+  permission to create it or change its metadata. Client-management
+  permission does not imply binding or association permission.
 
 Authentication and authorization of SCIM requests follow
 {{Section 2 of RFC7644}}. This profile defines no new management-token
@@ -220,7 +231,8 @@ attribute against this administrative context. In particular:
 * Association administration MUST be restricted to approved OAuth
   clients and bindings for delegated ID-JAG issuance.
 * Permission to disable a resource MUST NOT imply permission to enable
-  it. An active resource is an approved relationship, not a pending request.
+  it. An active resource is an approved relationship, not a pending
+  request.
 * Resource references MUST resolve within the authorized Governance
   Tenant. A request attribute, URI, or discovered key MUST NOT expand
   the caller's administrative scope.
@@ -245,11 +257,12 @@ profiles.
 | AgentClientAssociation | `/AgentClientAssociations` |
 
 The Service Provider MUST expose referenced OAuth clients under
-{{OAUTH-CLIENT}} in the same authorized SCIM service. Existing registrations
-can be represented without changing their OAuth client identifiers or keys.
-Connectors can discover an authorized resource by its issuer and `clientId`
-and then reference its SCIM `id`. They need not create a client for each
-Agent. Client creation and CIMD admission remain separately authorized.
+{{OAUTH-CLIENT}} in the same authorized SCIM service. Existing
+registrations can be represented without changing their OAuth client
+identifiers or keys. Connectors can discover an authorized resource by
+its issuer and `clientId` and then reference its SCIM `id`. They need
+not create a client for each Agent. Client creation and CIMD admission
+remain separately authorized.
 
 These are management representations, not requirements on an IdP's
 internal database. An existing principal MAY be exposed as the Agent
@@ -290,8 +303,8 @@ immutable, single-valued, returned by default, and have uniqueness
 accepted values from {{classes}} as `canonicalValues`. Values outside
 the advertised set are rejected with `invalidValue`. The common
 attributes retain SCIM's characteristics except for the `externalId`
-uniqueness rule in those conventions. Attribute-name processing remains that of SCIM,
-independently of case-exact identity values.
+uniqueness rule in those conventions. Attribute-name processing remains
+that of SCIM, independently of case-exact identity values.
 
 Reference sub-attributes have `value` mutability `immutable`; `$ref` and
 `display` have mutability `readOnly`. They use uniqueness `none` and
@@ -366,14 +379,15 @@ OAuthClient. `client`, `sourceAuthority`, and `sourceSubject`
 have schema characteristic `required: false` with these conditional
 requirements:
 
-* For `dedicated-client`, `client` MUST be present and `sourceAuthority`,
-  `sourceSubject`, and `selectors` MUST be absent. The IdP resolves the
-  authenticated client to the referenced OAuthClient using its configured
-  authorization-server issuer and exact `client_id`.
+* For `dedicated-client`, `client` MUST be present and
+  `sourceAuthority`, `sourceSubject`, and `selectors` MUST be absent.
+  The IdP resolves the authenticated client to the referenced
+  OAuthClient using its configured authorization-server issuer and exact
+  `client_id`.
 * For all other classes, `sourceAuthority` and `sourceSubject` MUST be
-  present and `client` MUST be absent. The external identity is validated
-  and matched under {{classes}}; an OAuthClient reference cannot substitute
-  for that evidence.
+  present and `client` MUST be absent. The external identity is
+  validated and matched under {{classes}}; an OAuthClient reference
+  cannot substitute for that evidence.
 
 Every referenced OAuthClient's `authorizationServer` MUST equal the
 governing IdP issuer from the Provisioning Domain, and be authorized in
@@ -409,7 +423,7 @@ initially populate an unassigned immutable attribute.
 `clientInstanceId` and `receiverScope` are optional, single-valued,
 immutable, case-exact strings, returned by default, with uniqueness
 `none`. They are permitted only for `client-attestation`, where they
-make a managed-installation binding ({{FEDERATION}}), and MUST be both
+make a managed-installation binding ({{INPUTS}}), and MUST be both
 present or both absent. `clientInstanceId` is the exact
 `client_instance_id` ({{INSTANCE}}); `receiverScope` identifies the IdP
 Receiver Scope configured for that attester and client. The Service
@@ -422,7 +436,8 @@ binding.
 
 These names identify management input classes, not OAuth token types or
 new credential formats. Each class uses its validation and presentation
-rules from {{FEDERATION}}. The following classes use external identity
+rules from {{FEDERATION}} or, for the SPIFFE and Client Attestation
+classes, {{INPUTS}}. The following classes use external identity
 fields:
 
 | Credential class | Source authority | Source subject |
@@ -485,10 +500,11 @@ silently authorize its use.
 An `AgentClientAssociation` permits one authenticated IdP OAuth client
 to use one external-identity binding for delegated ID-JAG issuance. A
 dedicated-client binding carries its own permission and MUST NOT be
-referenced here. Multiple resources can express an explicitly enumerated binding set.
-This is an explicit narrowing of Federation's policy-defined binding
-sets to one binding per resource. This profile defines no predicates
-that automatically cover future bindings. Its schema URI is:
+referenced here. Multiple resources can express an explicitly enumerated
+binding set. This is an explicit narrowing of Federation's
+policy-defined binding sets to one binding per resource. This profile
+defines no predicates that automatically cover future bindings. Its
+schema URI is:
 
 `urn:ietf:params:scim:schemas:core:2.0:AgentClientAssociation`
 
@@ -499,9 +515,10 @@ that automatically cover future bindings. Its schema URI is:
 | `active` | boolean | Whether the permission may be used |
 
 `active` has the same characteristics as in {{binding-schema}}. The
-reference target type of `binding` is AgentIdentityBinding; that of `client`
-is OAuthClient. Each uses the `value` and `$ref` characteristics in
-{{common}}. The client reference carries a SCIM `id`, not `client_id`.
+reference target type of `binding` is AgentIdentityBinding; that of
+`client` is OAuthClient. Each uses the `value` and `$ref`
+characteristics in {{common}}. The client reference carries a SCIM `id`,
+not `client_id`.
 
 The binding determines the Agent and permitted credential class. An
 association MUST NOT be interpreted as permission to use another binding
@@ -523,7 +540,8 @@ registration and authorize their use together. It MUST reject duplicate
 associations for the same binding and client in the Governance Tenant,
 regardless of active state. All client-use permissions in this profile
 apply only to delegated ID-JAG issuance. No per-resource flow attribute
-is needed; these permissions MUST NOT authorize WAG or another grant path.
+is needed; these permissions MUST NOT authorize WAG or another grant
+path.
 
 The association is necessary permission to use this binding.
 Target, scope, user delegation, and other policy constraints remain
@@ -609,11 +627,11 @@ Deletion has the following dependency effects:
 OAuthClient deletion follows {{OAUTH-CLIENT}}, including CIMD
 readmission controls and the treatment of outstanding authorization. The
 rules here do not weaken that behavior. The Service Provider MAY retain
-dependent resources as non-effective references or cascade their deletion
-under documented administrative policy. Cascading deletion MUST be
-authorized for the affected dependents; otherwise they remain unusable.
-A new target receives a new SCIM `id` and MUST NOT inherit or repair the
-deleted resource's bindings or associations.
+dependent resources as non-effective references or cascade their
+deletion under documented administrative policy. Cascading deletion MUST
+be authorized for the affected dependents; otherwise they remain
+unusable. A new target receives a new SCIM `id` and MUST NOT inherit or
+repair the deleted resource's bindings or associations.
 
 GET of a retained dependent returns its original immutable `value`,
 omits `$ref` and `display` for a missing target, and retains its
@@ -709,8 +727,9 @@ For new issuance, the IdP evaluates the conjunction of:
   authenticated client.
 * An eligible Agent Principal represented by an active Agent.
 * Exactly one matching, active Identity Binding whose Agent exists.
-  Dedicated-client matching uses the authenticated OAuthClient reference;
-  other classes use the independently validated external identity.
+  Dedicated-client matching uses the authenticated OAuthClient
+  reference; other classes use the independently validated external
+  identity.
 * Client-use permission for delegated ID-JAG issuance: either the active
   dedicated-client binding's `client`, or an active
   AgentClientAssociation referencing the matched external-identity
@@ -764,7 +783,8 @@ For a registered Agent:
   `active: true` on an Agent that the IdP disabled. The platform's own
   deactivation of an agent is local to the platform ({{LIFECYCLE}}).
 * **Retirement:** When the platform deletes the agent, the connector
-  deletes the Agent ({{deletion}}). Its qualified identity is not reused.
+  deletes the Agent ({{deletion}}). Its qualified identity is not
+  reused.
 * **Approval:** IdP policy MAY create registered Agents with
   `active: false` until it approves them. Until approval, the platform
   denies authorization for the agent, as for any inactive Agent. After
@@ -775,10 +795,10 @@ For a registered Agent:
 
 The platform applies the IdP's administrative state to its own
 authorization under {{LIFECYCLE}}. To give the agent access beyond the
-platform later, an authorized administrator adds an Identity Binding and,
-where the input requires one, a Client Association to the same Agent.
-{{FEDERATION}} then applies, and the Agent Principal identifier and its
-governance history do not change.
+platform later, an authorized administrator adds an Identity Binding
+and, where the input requires one, a Client Association to the same
+Agent. {{FEDERATION}} then applies, and the Agent Principal identifier
+and its governance history do not change.
 
 This profile defines registration by the platform. An IdP can also
 discover hosted agents by reading a platform's agent inventory; that
@@ -853,7 +873,8 @@ namespace registrations require Expert Review and RFC publication under
 * Intended or Associated Resource Type: Agent
 * Purpose: Expose the IdP-qualified Agent Principal represented by a
   SCIM Agent resource.
-* Single-value Attributes: `issuer`, `subject`, defined in {{agent-schema}}.
+* Single-value Attributes: `issuer`, `subject`, defined in
+  {{agent-schema}}.
 * Multi-valued Attributes: None.
 
 ## Agent Identity Binding
@@ -1132,8 +1153,8 @@ client use:
 The connector needs authorization for both binding and client use. No
 AgentClientAssociation is created. At issuance, the IdP authenticates
 `analysis-client`, matches `oc9`, resolves the binding to `a17`, and
-applies the delegated ID-JAG permission and remaining policy. The actor remains
-(`https://idp.example/`, `agent-42`). Deactivating this binding
+applies the delegated ID-JAG permission and remaining policy. The actor
+remains (`https://idp.example/`, `agent-42`). Deactivating this binding
 withdraws both its resolution path and its client-use permission; it
 does not change the Agent Principal.
 
@@ -1147,7 +1168,8 @@ These JSON definitions specify the new schema characteristics. Common
 attributes retain RFC 7643 definitions; profile-level conditional
 requirements and uniqueness constraints still apply. A Service Provider
 advertises only the supported subset of `credentialClass` canonical
-values. Service-specific `meta` values are omitted from these definitions.
+values. Service-specific `meta` values are omitted from these
+definitions.
 
 ## AgentFederation Schema
 

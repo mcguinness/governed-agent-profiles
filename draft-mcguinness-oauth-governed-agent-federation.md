@@ -130,7 +130,7 @@ informative:
   SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth
 --- abstract
 
-Service providers need a stable identity for an enterprise-governed agent
+Resource domains need a stable identity for an enterprise-governed agent
 without understanding the runtime, workload credential, or OAuth client
 through which it executes. Enterprises govern such agents independently
 of those platforms, workloads, and clients.
@@ -138,11 +138,11 @@ of those platforms, workloads, and clients.
 This document is an OAuth deployment profile that standardizes the
 boundary between execution identity and governed identity. An
 enterprise identity provider resolves an authenticated OAuth client or
-workload identity to a governed Agent Principal, whose identifier can be
-the same as the execution identity's or different, and conveys that
-principal to a resource domain. Identity resolution, client authority,
+workload identity to a governed Agent Principal in the identity
+provider's namespace, which may reuse the execution identity's
+identifier, and conveys that principal to a resource domain. Identity resolution, client authority,
 user delegation, and resource authorization remain separate decisions.
-No new credential format is defined.
+No new workload credential format is defined.
 
 Two peer realizations carry the Agent Principal: delegated access
 through the Identity Assertion JWT Authorization Grant (ID-JAG), with
@@ -163,7 +163,7 @@ attributed, and authorization cannot be withdrawn from one agent without
 withdrawing it from all of them.
 
 What an enterprise needs instead is a principal it can authorize once,
-audit across resources, and disable as a unit. That principal's
+audit across resources, and disable in one place. That principal's
 identity does not change when the agent moves between platforms or
 rotates credentials.
 
@@ -186,6 +186,16 @@ principal (an account it manages) and applies its own authorization
 policy at its resource authorization server (RAS) and API. Delegated
 access identifies both the user and the agent; self-acting access
 identifies the agent as the subject.
+
+The client makes three requests, which {{walkthrough}} shows message by
+message:
+
+1. To the IdP token endpoint, an OAuth Token Exchange request
+   {{RFC8693}} ({{issuance-request}}). The IdP returns the grant: a
+   short-lived JWT, signed by the IdP, for one resource at one RAS.
+2. To the RAS token endpoint, presenting the grant with the JWT bearer
+   grant type ({{redemption-request}}). The RAS returns an access token.
+3. To the API, with the access token ({{api-processing}}).
 
 ~~~
  Client authentication or workload evidence
@@ -220,8 +230,9 @@ Each relationship answers one question:
   identify?
 * **Client Association (IdP):** May this OAuth client use that agent's
   identity?
-* **Agent or Delegation Authorization (IdP):** What authority may the
-  agent request, on its own or for a user?
+* **Agent or Delegation Authorization (IdP):** What authority (scope
+  and any authorization details for one resource) may the agent
+  request, on its own or for a user?
 * **Correlation and resource policy (RAS and API):** What access will
   the resource domain permit? For delegated access, this includes the
   actor gate: may this agent act for this user?
@@ -246,20 +257,28 @@ Self-acting WAG (excerpt):
 ~~~
 {: title="One identity transformation"}
 
+The `act` claim is the actor claim of Token Exchange
+({{Section 4.1 of RFC8693}}): it names the party acting for the subject.
+
 The relationships do not imply one another. Mapping an identity grants
 no permission, owning an agent does not establish a user's delegation to
 it, and how far and how fast disablement propagates depends on the
 lifecycle mechanism a deployment selects, such as {{AGENT-LIFECYCLE}}.
 
-The mandatory baseline resolves the agent from a dedicated OAuth client,
-one per agent, authenticating with `private_key_jwt`, with an ID Token
-subject when delegated access is claimed. A shared client uses the
-existing platform JWT input, which a claim of generic shared-client
-interoperability requires, or another supported input ({{scope}}). {{model}} and {{common-rules}}
-apply to every role. The IdP's processing is in {{issuance}}, the RAS's
-in {{redemption}}, and the API's in {{api-processing}}; a client starts
-with {{issuance-request}}. {{GUIDE}} adds a primer and deployment
-guidance.
+Clients and IdPs support dedicated-client resolution: one OAuth client
+per agent, authenticating with `private_key_jwt`, so that client
+authentication identifies the agent ({{client-assertion-input}}). For
+delegated access, they also support ID Token subjects. Deployments may
+use other mutually supported inputs. The existing platform JWT input is
+required for generic shared-client interoperability; when used, it
+accompanies each grant-issuance request to the IdP
+({{imported-jwt-input}}; {{aws-example}} shows one). Conformance follows
+{{scope}}.
+
+{{model}} and {{common-rules}} apply to every role. The IdP's processing
+is in {{issuance}}, the RAS's in {{redemption}}, and the API's in
+{{api-processing}}. {{GUIDE}} adds a primer and the configuration each
+party maintains.
 
 The profile sits within the agent identity management framework that
 AIMS {{AIMS}} describes and defines how the identities in one
@@ -333,14 +352,11 @@ API (resource server):
 
 One service can implement several roles.
 
-Two companion profiles complete the family and define their own
-administrative roles. {{AGENT-MANAGEMENT}} establishes the relationships
-at the IdP, and {{AGENT-LIFECYCLE}} carries the principal's
-administrative state into the resource domain and revokes what depends
-on it. In those System for Cross-domain Identity Management (SCIM)
-profiles, "Service Provider" alone denotes the
-IdP-side SCIM service. The Service Provider Contract ({{sp-contract}})
-concerns the resource domain.
+Two companion System for Cross-domain Identity Management (SCIM)
+profiles complete the family and define their own administrative roles.
+{{AGENT-MANAGEMENT}} establishes the relationships at the IdP, and
+{{AGENT-LIFECYCLE}} carries the principal's administrative state into
+the resource domain and revokes what depends on it.
 
 ## Terms {#terms}
 
@@ -442,7 +458,7 @@ Client Associations ({{identity-binding}}).
 Establishing one relationship MUST NOT be treated as establishing
 another.
 
-## Service Provider Contract {#sp-contract}
+## Resource Domain Contract {#sp-contract}
 
 The mapping from execution identity to Agent Principal is local to the
 IdP. The security contract across the boundary between the IdP and the
@@ -458,7 +474,8 @@ agent authenticated with. From a validated grant it receives:
 * the acting relationship: delegated, with the user as subject, or
   self-acting;
 * the client's registration at the RAS, in `client_id`; and
-* the authority the IdP approved, as a ceiling for the RAS decision.
+* the authority the IdP approved (scope and any authorization details),
+  as a ceiling for the RAS decision.
 
 The RAS correlates the Agent Principal with a local principal, which can
 be an existing service principal. Correlation does not replace the
@@ -593,7 +610,7 @@ imply authorization for the other.
 |---|---|---|
 | Subject | User, from the subject credential | Agent Principal, from the agent-resolution input |
 | Agent in the grant | Agent Principal in `act` | Grant subject, with no `act` ({{wag-claims}}) |
-| Agent at the RAS | Kept in `act` beside the local user as subject | Correlated to a local agent principal ({{agent-correlation}}) |
+| Agent at the RAS | Correlated to a local agent principal ({{agent-correlation}}) and kept in `act` beside the local user as subject | Correlated to a local agent principal, which becomes the subject ({{agent-correlation}}) |
 | Authorization | Delegation Authorization | Agent Authorization ({{agent-authorization}}) |
 | Client Association | For delegated issuance | A separate one for self-acting issuance |
 | API enforcement | User authority and the actor gate | The agent's own authority; no actor gate |

@@ -4,8 +4,8 @@
 
 System for Cross-domain Identity Management                K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                          1 October 2026
-Expires: 4 April 2027
+Intended status: Standards Track                          9 October 2026
+Expires: 12 April 2027
 
 
          SCIM Profile for Governed Agent Federation Management
@@ -64,7 +64,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 4 April 2027.
+   This Internet-Draft will expire on 12 April 2027.
 
 Copyright Notice
 
@@ -209,8 +209,9 @@ Table of Contents
    ID-JAG issuance, and registration of platform-hosted agents for
    governance without issuance (Section 7).  It supports the federation
    draft's dedicated-client, SPIFFE, Client Attestation, and existing
-   platform JWT resolution inputs.  Implementations need only support
-   the credential classes they accept under [FEDERATION].
+   platform JWT resolution inputs of [FEDERATION] and [INPUTS].
+   Implementations need only support the credential classes they accept
+   under [FEDERATION].
 
    The following remain outside this profile:
 
@@ -540,7 +541,7 @@ Table of Contents
    clientInstanceId and receiverScope are optional, single-valued,
    immutable, case-exact strings, returned by default, with uniqueness
    none.  They are permitted only for client-attestation, where they
-   make a managed-installation binding ([FEDERATION]), and MUST be both
+   make a managed-installation binding ([INPUTS]), and MUST be both
    present or both absent. clientInstanceId is the exact
    client_instance_id ([INSTANCE]); receiverScope identifies the IdP
    Receiver Scope configured for that attester and client.  The Service
@@ -553,8 +554,9 @@ Table of Contents
 
    These names identify management input classes, not OAuth token types
    or new credential formats.  Each class uses its validation and
-   presentation rules from [FEDERATION].  The following classes use
-   external identity fields:
+   presentation rules from [FEDERATION] or, for the SPIFFE and Client
+   Attestation classes, [INPUTS].  The following classes use external
+   identity fields:
 
     +====================+=================+==========================+
     | Credential class   | Source          | Source subject           |
@@ -1180,6 +1182,13 @@ Table of Contents
               "JavaScript Object Notation (JSON) Pointer", RFC 6901,
               DOI 10.17487/RFC6901, April 2013,
               <https://www.rfc-editor.org/rfc/rfc6901>.
+
+   [INPUTS]   McGuinness, K., "Agent Resolution Input Profiles for
+              Governed Agent Federation", Work in Progress, Internet-
+              Draft, draft-mcguinness-oauth-governed-agent-inputs, 9
+              October 2026, <https://mcguinness.github.io/governed-
+              agent-profiles/draft-mcguinness-oauth-governed-agent-
+              inputs.html>.
 
    [BCP14]    Best Current Practice 14,
               <https://www.rfc-editor.org/info/bcp14>.

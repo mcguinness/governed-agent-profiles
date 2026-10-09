@@ -28,18 +28,18 @@ revoke previously issued downstream authorization.
 <meta content="draft-mcguinness-scim-agent-federation-latest" name="ietf.draft">
 <!-- Generator version information:
   xml2rfc 3.34.1
-    Python 3.14.7
-    ConfigArgParse 1.7.7
+    Python 3.14.8
+    ConfigArgParse 1.8.0
     google-i18n-address 3.1.1
     intervaltree 3.2.1
     Jinja2 3.1.6
     lxml 6.1.1
     natsort 8.4.0
-    platformdirs 4.11.10
+    platformdirs 4.12.2
     pycountry 24.6.1
     PyYAML 6.0.3
     requests 2.33.1
-    wcwidth 0.8.4
+    wcwidth 0.9.1
 -->
 <link href="draft-mcguinness-scim-agent-federation.xml" rel="alternate" type="application/rfc+xml">
 <link href="#copyright" rel="license">
@@ -1059,7 +1059,7 @@ svg {
 </tr></thead>
 <tfoot><tr>
 <td class="left">McGuinness</td>
-<td class="center">Expires 4 April 2027</td>
+<td class="center">Expires 12 April 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1072,12 +1072,12 @@ svg {
 <dd class="internet-draft">draft-mcguinness-scim-agent-federation-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-10-01" class="published">1 October 2026</time>
+<time datetime="2026-10-09" class="published">9 October 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2027-04-04">4 April 2027</time></dd>
+<dd class="expires"><time datetime="2027-04-12">12 April 2027</time></dd>
 <dt class="label-authors">Author:</dt>
 <dd class="authors">
 <div class="author">
@@ -1139,7 +1139,7 @@ revoke previously issued downstream authorization.<a href="#section-abstract-2" 
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 4 April 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 12 April 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1424,16 +1424,17 @@ identity.<a href="#section-1-8" class="pilcrow">¶</a></p>
         </h3>
 <p id="section-1.1-1">This profile defines explicit bindings and associations for delegated
 ID-JAG issuance, and registration of platform-hosted agents for
-governance without issuance (<a href="#platform-hosted" class="auto internal xref">Section 7</a>). It supports the federation draft's dedicated-client,
-SPIFFE, Client Attestation, and existing platform JWT resolution inputs.
-Implementations need only support the credential classes they accept
-under <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>.<a href="#section-1.1-1" class="pilcrow">¶</a></p>
+governance without issuance (<a href="#platform-hosted" class="auto internal xref">Section 7</a>). It supports the
+federation draft's dedicated-client, SPIFFE, Client Attestation, and
+existing platform JWT resolution inputs of <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> and
+<span>[<a href="#INPUTS" class="cite xref">INPUTS</a>]</span>. Implementations need only support the credential classes
+they accept under <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>.<a href="#section-1.1-1" class="pilcrow">¶</a></p>
 <p id="section-1.1-2">The following remain outside this profile:<a href="#section-1.1-2" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-1.1-3.1">
             <p id="section-1.1-3.1.1">Establishing trust in a new credential authority. Trust remains a
-prerequisite, not an effect of a binding write. OAuth client registration
-is defined separately by <span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span>.<a href="#section-1.1-3.1.1" class="pilcrow">¶</a></p>
+prerequisite, not an effect of a binding write. OAuth client
+registration is defined separately by <span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span>.<a href="#section-1.1-3.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-1.1-3.2">
             <p id="section-1.1-3.2.1">User delegation, resource permissions, and cross-domain user linking.<a href="#section-1.1-3.2.1" class="pilcrow">¶</a></p>
@@ -1443,7 +1444,8 @@ is defined separately by <span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-
 continuity.<a href="#section-1.1-3.3.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-1.1-3.4">
-            <p id="section-1.1-3.4.1">Relationship-change events and revocation of outstanding authorization.<a href="#section-1.1-3.4.1" class="pilcrow">¶</a></p>
+            <p id="section-1.1-3.4.1">Relationship-change events and revocation of outstanding
+authorization.<a href="#section-1.1-3.4.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-1.1-3.5">
             <p id="section-1.1-3.5.1">A portable policy language, automatic principal merging, and a WAG
@@ -1510,7 +1512,8 @@ within its administrative authorization.<a href="#section-3-1" class="pilcrow">�
 <p id="section-3-2">Before provisioning, administrators establish:<a href="#section-3-2" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-3-3.1">
-          <p id="section-3-3.1.1">The authenticated connector, Governance Tenant, and Provisioning Domain.<a href="#section-3-3.1.1" class="pilcrow">¶</a></p>
+          <p id="section-3-3.1.1">The authenticated connector, Governance Tenant, and Provisioning
+Domain.<a href="#section-3-3.1.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-3-3.2">
           <p id="section-3-3.2.1">The credential authorities, validation profiles, and source-identity
@@ -1519,9 +1522,9 @@ ranges the connector may use in Identity Bindings.<a href="#section-3-3.2.1" cla
         <li class="normal" id="section-3-3.3">
           <p id="section-3-3.3.1">The IdP OAuthClient resources the connector may reference in bindings
 and associations, and any separate client-management permissions under
-<span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span>. Referencing an existing client does not require permission
-to create it or change its metadata. Client-management permission does
-not imply binding or association permission.<a href="#section-3-3.3.1" class="pilcrow">¶</a></p>
+<span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span>. Referencing an existing client does not require
+permission to create it or change its metadata. Client-management
+permission does not imply binding or association permission.<a href="#section-3-3.3.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 <p id="section-3-4">Authentication and authorization of SCIM requests follow
@@ -1545,7 +1548,8 @@ clients and bindings for delegated ID-JAG issuance.<a href="#section-3-6.3.1" cl
 </li>
         <li class="normal" id="section-3-6.4">
           <p id="section-3-6.4.1">Permission to disable a resource <span class="bcp14">MUST NOT</span> imply permission to enable
-it. An active resource is an approved relationship, not a pending request.<a href="#section-3-6.4.1" class="pilcrow">¶</a></p>
+it. An active resource is an approved relationship, not a pending
+request.<a href="#section-3-6.4.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-3-6.5">
           <p id="section-3-6.5.1">Resource references <span class="bcp14">MUST</span> resolve within the authorized Governance
@@ -1604,11 +1608,12 @@ profiles.<a href="#section-4-1" class="pilcrow">¶</a></p>
         </tbody>
       </table>
 <p id="section-4-3">The Service Provider <span class="bcp14">MUST</span> expose referenced OAuth clients under
-<span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span> in the same authorized SCIM service. Existing registrations
-can be represented without changing their OAuth client identifiers or keys.
-Connectors can discover an authorized resource by its issuer and <code>clientId</code>
-and then reference its SCIM <code>id</code>. They need not create a client for each
-Agent. Client creation and CIMD admission remain separately authorized.<a href="#section-4-3" class="pilcrow">¶</a></p>
+<span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span> in the same authorized SCIM service. Existing
+registrations can be represented without changing their OAuth client
+identifiers or keys. Connectors can discover an authorized resource by
+its issuer and <code>clientId</code> and then reference its SCIM <code>id</code>. They need
+not create a client for each Agent. Client creation and CIMD admission
+remain separately authorized.<a href="#section-4-3" class="pilcrow">¶</a></p>
 <p id="section-4-4">These are management representations, not requirements on an IdP's
 internal database. An existing principal <span class="bcp14">MAY</span> be exposed as the Agent
 resource without creating a second authorization principal. Establishing
@@ -1656,8 +1661,8 @@ immutable, single-valued, returned by default, and have uniqueness
 accepted values from <a href="#classes" class="auto internal xref">Section 4.3.1</a> as <code>canonicalValues</code>. Values outside
 the advertised set are rejected with <code>invalidValue</code>. The common
 attributes retain SCIM's characteristics except for the <code>externalId</code>
-uniqueness rule in those conventions. Attribute-name processing remains that of SCIM,
-independently of case-exact identity values.<a href="#section-4.1-3" class="pilcrow">¶</a></p>
+uniqueness rule in those conventions. Attribute-name processing remains
+that of SCIM, independently of case-exact identity values.<a href="#section-4.1-3" class="pilcrow">¶</a></p>
 <p id="section-4.1-4">Reference sub-attributes have <code>value</code> mutability <code>immutable</code>; <code>$ref</code> and
 <code>display</code> have mutability <code>readOnly</code>. They use uniqueness <code>none</code> and
 returned <code>default</code>. <code>display</code> has <code>caseExact: false</code>. A reference's
@@ -1818,16 +1823,17 @@ have schema characteristic <code>required: false</code> with these conditional
 requirements:<a href="#section-4.3-4" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-4.3-5.1">
-            <p id="section-4.3-5.1.1">For <code>dedicated-client</code>, <code>client</code> <span class="bcp14">MUST</span> be present and <code>sourceAuthority</code>,
-<code>sourceSubject</code>, and <code>selectors</code> <span class="bcp14">MUST</span> be absent. The IdP resolves the
-authenticated client to the referenced OAuthClient using its configured
-authorization-server issuer and exact <code>client_id</code>.<a href="#section-4.3-5.1.1" class="pilcrow">¶</a></p>
+            <p id="section-4.3-5.1.1">For <code>dedicated-client</code>, <code>client</code> <span class="bcp14">MUST</span> be present and
+<code>sourceAuthority</code>, <code>sourceSubject</code>, and <code>selectors</code> <span class="bcp14">MUST</span> be absent.
+The IdP resolves the authenticated client to the referenced
+OAuthClient using its configured authorization-server issuer and exact
+<code>client_id</code>.<a href="#section-4.3-5.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-4.3-5.2">
             <p id="section-4.3-5.2.1">For all other classes, <code>sourceAuthority</code> and <code>sourceSubject</code> <span class="bcp14">MUST</span> be
-present and <code>client</code> <span class="bcp14">MUST</span> be absent. The external identity is validated
-and matched under <a href="#classes" class="auto internal xref">Section 4.3.1</a>; an OAuthClient reference cannot substitute
-for that evidence.<a href="#section-4.3-5.2.1" class="pilcrow">¶</a></p>
+present and <code>client</code> <span class="bcp14">MUST</span> be absent. The external identity is
+validated and matched under <a href="#classes" class="auto internal xref">Section 4.3.1</a>; an OAuthClient reference
+cannot substitute for that evidence.<a href="#section-4.3-5.2.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 <p id="section-4.3-6">Every referenced OAuthClient's <code>authorizationServer</code> <span class="bcp14">MUST</span> equal the
@@ -1861,7 +1867,7 @@ initially populate an unassigned immutable attribute.<a href="#section-4.3-8" cl
 <p id="section-4.3-9"><code>clientInstanceId</code> and <code>receiverScope</code> are optional, single-valued,
 immutable, case-exact strings, returned by default, with uniqueness
 <code>none</code>. They are permitted only for <code>client-attestation</code>, where they
-make a managed-installation binding (<span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>), and <span class="bcp14">MUST</span> be both
+make a managed-installation binding (<span>[<a href="#INPUTS" class="cite xref">INPUTS</a>]</span>), and <span class="bcp14">MUST</span> be both
 present or both absent. <code>clientInstanceId</code> is the exact
 <code>client_instance_id</code> (<span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>); <code>receiverScope</code> identifies the IdP
 Receiver Scope configured for that attester and client. The Service
@@ -1876,7 +1882,8 @@ binding.<a href="#section-4.3-9" class="pilcrow">¶</a></p>
           </h4>
 <p id="section-4.3.1-1">These names identify management input classes, not OAuth token types or
 new credential formats. Each class uses its validation and presentation
-rules from <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>. The following classes use external identity
+rules from <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> or, for the SPIFFE and Client Attestation
+classes, <span>[<a href="#INPUTS" class="cite xref">INPUTS</a>]</span>. The following classes use external identity
 fields:<a href="#section-4.3.1-1" class="pilcrow">¶</a></p>
 <table class="center" id="table-5">
             <caption><a href="#table-5" class="selfRef">Table 5</a></caption>
@@ -2003,10 +2010,11 @@ silently authorize its use.<a href="#section-4.3.2-5" class="pilcrow">¶</a></p>
 <p id="section-4.4-1">An <code>AgentClientAssociation</code> permits one authenticated IdP OAuth client
 to use one external-identity binding for delegated ID-JAG issuance. A
 dedicated-client binding carries its own permission and <span class="bcp14">MUST NOT</span> be
-referenced here. Multiple resources can express an explicitly enumerated binding set.
-This is an explicit narrowing of Federation's policy-defined binding
-sets to one binding per resource. This profile defines no predicates
-that automatically cover future bindings. Its schema URI is:<a href="#section-4.4-1" class="pilcrow">¶</a></p>
+referenced here. Multiple resources can express an explicitly enumerated
+binding set. This is an explicit narrowing of Federation's
+policy-defined binding sets to one binding per resource. This profile
+defines no predicates that automatically cover future bindings. Its
+schema URI is:<a href="#section-4.4-1" class="pilcrow">¶</a></p>
 <p id="section-4.4-2"><code>urn:ietf:params:scim:schemas:core:2.0:AgentClientAssociation</code><a href="#section-4.4-2" class="pilcrow">¶</a></p>
 <table class="center" id="table-7">
           <caption><a href="#table-7" class="selfRef">Table 7</a></caption>
@@ -2042,9 +2050,10 @@ that automatically cover future bindings. Its schema URI is:<a href="#section-4.
           </tbody>
         </table>
 <p id="section-4.4-4"><code>active</code> has the same characteristics as in <a href="#binding-schema" class="auto internal xref">Section 4.3</a>. The
-reference target type of <code>binding</code> is AgentIdentityBinding; that of <code>client</code>
-is OAuthClient. Each uses the <code>value</code> and <code>$ref</code> characteristics in
-<a href="#common" class="auto internal xref">Section 4.1</a>. The client reference carries a SCIM <code>id</code>, not <code>client_id</code>.<a href="#section-4.4-4" class="pilcrow">¶</a></p>
+reference target type of <code>binding</code> is AgentIdentityBinding; that of
+<code>client</code> is OAuthClient. Each uses the <code>value</code> and <code>$ref</code>
+characteristics in <a href="#common" class="auto internal xref">Section 4.1</a>. The client reference carries a SCIM <code>id</code>,
+not <code>client_id</code>.<a href="#section-4.4-4" class="pilcrow">¶</a></p>
 <p id="section-4.4-5">The binding determines the Agent and permitted credential class. An
 association <span class="bcp14">MUST NOT</span> be interpreted as permission to use another binding
 to the same Agent, even with the same credential class. For
@@ -2063,7 +2072,8 @@ registration and authorize their use together. It <span class="bcp14">MUST</span
 associations for the same binding and client in the Governance Tenant,
 regardless of active state. All client-use permissions in this profile
 apply only to delegated ID-JAG issuance. No per-resource flow attribute
-is needed; these permissions <span class="bcp14">MUST NOT</span> authorize WAG or another grant path.<a href="#section-4.4-7" class="pilcrow">¶</a></p>
+is needed; these permissions <span class="bcp14">MUST NOT</span> authorize WAG or another grant
+path.<a href="#section-4.4-7" class="pilcrow">¶</a></p>
 <p id="section-4.4-8">The association is necessary permission to use this binding.
 Target, scope, user delegation, and other policy constraints remain
 independently configured and evaluated by the IdP. This resource does
@@ -2176,11 +2186,11 @@ Principal's qualified identity.<a href="#section-5.3-1" class="pilcrow">¶</a></
 <p id="section-5.3-4">OAuthClient deletion follows <span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span>, including CIMD
 readmission controls and the treatment of outstanding authorization. The
 rules here do not weaken that behavior. The Service Provider <span class="bcp14">MAY</span> retain
-dependent resources as non-effective references or cascade their deletion
-under documented administrative policy. Cascading deletion <span class="bcp14">MUST</span> be
-authorized for the affected dependents; otherwise they remain unusable.
-A new target receives a new SCIM <code>id</code> and <span class="bcp14">MUST NOT</span> inherit or repair the
-deleted resource's bindings or associations.<a href="#section-5.3-4" class="pilcrow">¶</a></p>
+dependent resources as non-effective references or cascade their
+deletion under documented administrative policy. Cascading deletion <span class="bcp14">MUST</span>
+be authorized for the affected dependents; otherwise they remain
+unusable. A new target receives a new SCIM <code>id</code> and <span class="bcp14">MUST NOT</span> inherit or
+repair the deleted resource's bindings or associations.<a href="#section-5.3-4" class="pilcrow">¶</a></p>
 <p id="section-5.3-5">GET of a retained dependent returns its original immutable <code>value</code>,
 omits <code>$ref</code> and <code>display</code> for a missing target, and retains its
 administrative <code>active</code> value. That value does not assert effective
@@ -2357,8 +2367,9 @@ authenticated client.<a href="#section-6-2.1.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-6-2.3">
           <p id="section-6-2.3.1">Exactly one matching, active Identity Binding whose Agent exists.
-Dedicated-client matching uses the authenticated OAuthClient reference;
-other classes use the independently validated external identity.<a href="#section-6-2.3.1" class="pilcrow">¶</a></p>
+Dedicated-client matching uses the authenticated OAuthClient
+reference; other classes use the independently validated external
+identity.<a href="#section-6-2.3.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-6-2.4">
           <p id="section-6-2.4.1">Client-use permission for delegated ID-JAG issuance: either the active
@@ -2423,7 +2434,8 @@ deactivation of an agent is local to the platform (<span>[<a href="#LIFECYCLE" c
 </li>
         <li class="normal" id="section-7-3.3">
           <p id="section-7-3.3.1"><strong>Retirement:</strong> When the platform deletes the agent, the connector
-deletes the Agent (<a href="#deletion" class="auto internal xref">Section 5.3</a>). Its qualified identity is not reused.<a href="#section-7-3.3.1" class="pilcrow">¶</a></p>
+deletes the Agent (<a href="#deletion" class="auto internal xref">Section 5.3</a>). Its qualified identity is not
+reused.<a href="#section-7-3.3.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-7-3.4">
           <p id="section-7-3.4.1"><strong>Approval:</strong> IdP policy <span class="bcp14">MAY</span> create registered Agents with
@@ -2437,10 +2449,10 @@ approval state.<a href="#section-7-3.4.1" class="pilcrow">¶</a></p>
       </ul>
 <p id="section-7-4">The platform applies the IdP's administrative state to its own
 authorization under <span>[<a href="#LIFECYCLE" class="cite xref">LIFECYCLE</a>]</span>. To give the agent access beyond the
-platform later, an authorized administrator adds an Identity Binding and,
-where the input requires one, a Client Association to the same Agent.
-<span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> then applies, and the Agent Principal identifier and its
-governance history do not change.<a href="#section-7-4" class="pilcrow">¶</a></p>
+platform later, an authorized administrator adds an Identity Binding
+and, where the input requires one, a Client Association to the same
+Agent. <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> then applies, and the Agent Principal identifier
+and its governance history do not change.<a href="#section-7-4" class="pilcrow">¶</a></p>
 <p id="section-7-5">This profile defines registration by the platform. An IdP can also
 discover hosted agents by reading a platform's agent inventory; that
 interface is outside this profile. <span>[<a href="#LIFECYCLE" class="cite xref">LIFECYCLE</a>]</span> walks one
@@ -2543,7 +2555,8 @@ namespace registrations require Expert Review and RFC publication under
 SCIM Agent resource.<a href="#section-10.1-1.4.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-10.1-1.5">
-            <p id="section-10.1-1.5.1">Single-value Attributes: <code>issuer</code>, <code>subject</code>, defined in <a href="#agent-schema" class="auto internal xref">Section 4.2</a>.<a href="#section-10.1-1.5.1" class="pilcrow">¶</a></p>
+            <p id="section-10.1-1.5.1">Single-value Attributes: <code>issuer</code>, <code>subject</code>, defined in
+<a href="#agent-schema" class="auto internal xref">Section 4.2</a>.<a href="#section-10.1-1.5.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-10.1-1.6">
             <p id="section-10.1-1.6.1">Multi-valued Attributes: None.<a href="#section-10.1-1.6.1" class="pilcrow">¶</a></p>
@@ -2654,6 +2667,10 @@ registered. Credential-class names are local to this profile's schema.<a href="#
 <dt id="RFC6901">[RFC6901]</dt>
         <dd>
 <span class="refAuthor">Bryan, P., Ed.</span>, <span class="refAuthor">Zyp, K.</span>, and <span class="refAuthor">M. Nottingham, Ed.</span>, <span class="refTitle">"JavaScript Object Notation (JSON) Pointer"</span>, <span class="seriesInfo">RFC 6901</span>, <span class="seriesInfo">DOI 10.17487/RFC6901</span>, <time datetime="2013-04" class="refDate">April 2013</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc6901">https://www.rfc-editor.org/rfc/rfc6901</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="INPUTS">[INPUTS]</dt>
+        <dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Agent Resolution Input Profiles for Governed Agent Federation"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-governed-agent-inputs</span>, <time datetime="2026-10-09" class="refDate">9 October 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="BCP14">[BCP14]</dt>
       <dd>
@@ -3052,8 +3069,8 @@ client use:<a href="#appendix-B-1" class="pilcrow">¶</a></p>
 <p id="appendix-B-3">The connector needs authorization for both binding and client use. No
 AgentClientAssociation is created. At issuance, the IdP authenticates
 <code>analysis-client</code>, matches <code>oc9</code>, resolves the binding to <code>a17</code>, and
-applies the delegated ID-JAG permission and remaining policy. The actor remains
-(<code>https://idp.example/</code>, <code>agent-42</code>). Deactivating this binding
+applies the delegated ID-JAG permission and remaining policy. The actor
+remains (<code>https://idp.example/</code>, <code>agent-42</code>). Deactivating this binding
 withdraws both its resolution path and its client-use permission; it
 does not change the Agent Principal.<a href="#appendix-B-3" class="pilcrow">¶</a></p>
 <p id="appendix-B-4">For a CIMD client the runtime <code>client_id</code> is its URL; the relationship
@@ -3070,7 +3087,8 @@ Replacing <code>oc9</code> requires a separately authorized binding.<a href="#ap
 attributes retain RFC 7643 definitions; profile-level conditional
 requirements and uniqueness constraints still apply. A Service Provider
 advertises only the supported subset of <code>credentialClass</code> canonical
-values. Service-specific <code>meta</code> values are omitted from these definitions.<a href="#appendix-C-1" class="pilcrow">¶</a></p>
+values. Service-specific <code>meta</code> values are omitted from these
+definitions.<a href="#appendix-C-1" class="pilcrow">¶</a></p>
 <div id="agentfederation-schema">
 <section id="appendix-C.1">
         <h3 id="name-agentfederation-schema">

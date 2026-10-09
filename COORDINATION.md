@@ -214,3 +214,39 @@ states the limits of missed-event recovery and token enforcement. Stronger
 guarantees across unobserved transitions require an additional composition.
 The companion is not required for conformance to this federation profile;
 `agent-correlation` and `status-changes` state this document's guarantees.
+
+## Family Structure
+
+### Publication Cluster with the Input Profiles Companion
+
+The core references the input profiles companion (`INPUTS`) normatively.
+Its client-authentication rule (`algorithms`) requires an implementation
+that uses JWT-SVID client authentication to claim the companion's
+JWT-SVID input and follow its rules. Those rules supply validation and
+algorithm requirements that the core does not contain, and Note 1 of the
+IESG statement on normative and informative references classifies such
+a dependency as normative even for an optional feature. The companion
+references the core normatively, so the two drafts form a publication
+cluster: neither can be published as an RFC without the other.
+
+The cluster can be broken with a small behavior change:
+
+* The core keeps only "JWT-SVID client authentication is not a
+  dedicated-client method." Agent resolution from a JWT-SVID remains the
+  companion's input, through the core's input-profile extension point.
+* JWT-SVID client authentication at the RAS follows `SPIFFE-OAUTH`
+  without this profile's narrowing: the rule that an optional `iss` does
+  not select another trust domain, and `ES256` as mandatory to
+  implement.
+* `INPUTS` becomes an informative reference.
+
+Breaking the cluster alone does not let the core advance ahead of early
+dependencies. The core also references Client Instance Identification
+(`INSTANCE`) normatively, for the client instance rule in
+`identity-binding` and the instance context of `access-token-response`
+and `api-validation`.
+
+Decide this at working-group adoption, if the core should be adopted or
+published separately from the SPIFFE and Client Attestation inputs.
+Do not revisit the family structure before the human comprehension
+check of the core's opening.

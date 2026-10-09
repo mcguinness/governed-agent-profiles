@@ -74,8 +74,8 @@ document.
 {::boilerplate bcp14-tagged-bcp14}
 
 Agent Principal, Identity Binding, Client Association, credential class,
-Governance Tenant, Target Tenant, and grant proof key follow
-{{FEDERATION}}. Client Attestation terminology follows {{ATTEST}}.
+Governance Tenant, Target Tenant, issuer-bound presenter key, and grant
+proof key follow {{FEDERATION}}. Client Attestation terminology follows {{ATTEST}}.
 
 # Conformance {#conformance}
 
@@ -83,17 +83,39 @@ The following inputs are OPTIONAL: SPIFFE JWT-SVID ({{jwt-svid-input}}),
 Client Attestation ({{agent-evidence}}), and SPIFFE WIT-SVID and
 X.509-SVID ({{spiffe-input}}).
 
-For each input it claims, the IdP, RAS, and client MUST implement that
-input's requirements in this document together with {{FEDERATION}}.
+For each input it claims, the IdP, RAS, and client MUST implement their
+respective requirements for that input in this document together with
+{{FEDERATION}}.
 Conformance claims under {{FEDERATION}} name each supported input of
 this document.
 
+Each input of this document resolves from authentication context, with
+actor-token parameters omitted ("Agent Resolution Input Validation" in
+{{FEDERATION}}). The JWT-SVID, WIT-SVID, and Client Attestation inputs
+apply to delegated and self-acting access. A client authenticated by X.509-SVID presents no
+JWT to repeat as the self-acting subject token, so the X.509-SVID input
+applies to delegated access only ("Self-Acting Issuance: WAG" in
+{{FEDERATION}}).
+
 # Common Rules for These Inputs
+
+## Qualified Identities {#qualified-identities}
+
+| Input | Qualified identity | Reference |
+|---|---|---|
+| SPIFFE JWT-SVID | Approved trust domain and exact SPIFFE ID in `sub` | {{jwt-svid-input}} |
+| SPIFFE WIT-SVID | Approved trust domain and exact SPIFFE ID in the validated `sub` | {{spiffe-input}} |
+| SPIFFE X.509-SVID | Approved trust domain and exact SPIFFE ID in the certificate's URI Subject Alternative Name | {{spiffe-input}} |
+| Client Attestation | Trusted attester and validated `sub`; for a managed installation, also the IdP Receiver Scope and `client_instance_id` | {{agent-evidence}} |
+{: title="Agent-resolution inputs and qualified identities"}
+
+For Client Attestation, `sub` identifies the OAuth client, and the
+client-to-agent mapping is explicit.
 
 ## Grant Lifetime {#lifetime}
 
-Under the grant lifetime rule of {{FEDERATION}}, these inputs bound the
-grant as follows:
+Under the grant lifetime rule ("Common Grant Claims, Lifetime, and
+Response" in {{FEDERATION}}), these inputs bound the grant as follows:
 
 | Input | Lifetime bound on the grant |
 |---|---|
@@ -130,7 +152,8 @@ section.
   SPIFFE ID's trust domain. An
   optional `iss` MUST NOT select another trust domain or key authority.
 * **Resolution:** The IdP MUST resolve the exact SPIFFE ID in the
-  validated `sub` through an Identity Binding ({{FEDERATION}}). The
+  validated `sub` through an Identity Binding ("Identity Binding" in
+  {{FEDERATION}}). The
   SPIFFE ID's association with the authenticated client is an
   authentication check, not an Identity Binding or Client Association.
 * **Proof:** A JWT-SVID is bearer evidence: DPoP, when used, binds the
@@ -219,7 +242,7 @@ identity granularity. {{svid-context-example}} illustrates both inputs.
   or key authority.
 * **Resolution:** The IdP MUST resolve the approved trust domain and
   exact SPIFFE ID in the validated `sub` through an Identity Binding
-  ({{FEDERATION}}).
+  ("Identity Binding" in {{FEDERATION}}).
 * **Proof:** When DPoP is used at issuance, its key MUST match the
   WIT-SVID's `cnf.jwk`. The IdP MUST compare the JWK thumbprints of the
   DPoP key and `cnf.jwk` as used in {{RFC9449}} and MUST reject a
@@ -241,7 +264,7 @@ identity granularity. {{svid-context-example}} illustrates both inputs.
   authentication. TLS termination follows {{Section 6.5 of RFC8705}}.
 * **Resolution:** The IdP MUST resolve the approved trust domain and
   exact SPIFFE ID in the certificate's URI Subject Alternative Name
-  through an Identity Binding ({{FEDERATION}}).
+  through an Identity Binding ("Identity Binding" in {{FEDERATION}}).
 * **Proof:** A DPoP grant proof key, when required, is proven on the
   same token request. It MAY differ from the certificate key, because
   mutual TLS can terminate separately from the component generating DPoP
@@ -257,8 +280,8 @@ is the case for WIT-SVID or Client Attestation when DPoP is used.
 Continued use requires retaining the corresponding proof key.
 Otherwise, the client obtains a new grant with the replacement key and
 new RAS authorization. Any subject-credential binding still applies and
-may require a new subject credential. Key migration is deferred
-("Excluded Compositions" in {{FEDERATION}}).
+may require a new subject credential. Grant key transition is not
+defined ("Excluded Compositions" in {{FEDERATION}}).
 
 # Security Considerations
 
@@ -309,8 +332,8 @@ variants:
   authenticated client is the workload itself, the association can be
   administered together with the binding.
 * **Negative tests:** The dedicated-client negative tests of
-  {{FEDERATION}} apply to each binding, except that replay rules follow
-  the input specification.
+  {{FEDERATION}} apply to each binding and to each grant its input
+  supports, except that replay rules follow the input specification.
 
 ## Identity Mapping Example {#identity-example}
 

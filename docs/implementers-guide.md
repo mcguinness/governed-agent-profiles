@@ -34,8 +34,8 @@ request:
 * A **dedicated client**, one OAuth client per agent, authenticates with
   `private_key_jwt`. The authenticated client identity is the input
   (authentication-context resolution), so the request carries no
-  separate workload credential. Every implementation supports this
-  input.
+  separate workload credential. The client and IdP of every
+  implementation support this input.
 * A **shared client**, such as a platform's single sign-on client,
   authenticates as itself and presents an existing platform JWT that
   names the agent's workload (presented-evidence resolution). An
@@ -44,7 +44,8 @@ request:
 
 The IdP validates the input, maps it to an Agent Principal through an
 exact Identity Binding, and checks the Client Association that permits
-this client to use that agent. The input profiles companion adds SPIFFE
+this client to use that binding, with that credential class, for the
+requested acting relationship. The input profiles companion adds SPIFFE
 and Client Attestation inputs that resolve the same way.
 
 ### Delegated access with ID-JAG
@@ -71,8 +72,9 @@ The agent acts for a user.
    local agent record, resolves the user, and enforces the actor gate:
    may this agent act for this user here? It issues an access token with
    the user as subject and `act` unchanged.
-6. The API validates the access token and, on each operation, enforces
-   the user's authority and the actor gate.
+6. The API validates the access token and enforces the user's
+   authority and the actor gate, directly or by relying on a validated
+   RAS authorization that satisfies resource policy.
 
 ### Self-acting access with WAG
 
@@ -98,9 +100,12 @@ resolution mode, the grant names exactly one resource, an unbound grant
 is single-use, and the RAS correlates agents only by the exact
 (issuer, agent) pair. The two adoption profiles differ only in grant
 protection: bound governed agent access requires DPoP at both token
-endpoints, and governed agent access permits unbound grants where
-policy allows. Access-token protection (DPoP, mutual TLS, or permitted
-bearer use) is configured per resource.
+endpoints, and governed agent access permits unbound grants only where
+trusted policy explicitly permits them for the client, trust
+relationship, and resource. Access-token protection (DPoP, mutual TLS,
+or bearer use) follows trusted client and resource configuration; the
+RAS issues a sender-constrained access token unless the resource
+explicitly permits bearer tokens.
 
 ## What each role builds
 
@@ -111,9 +116,10 @@ bearer use) is configured per resource.
 | RAS | Grant validation and replay protection; Agent Principal correlation; user resolution and the actor gate for delegated grants; access-token issuance and protection | [Grant Redemption at the RAS][redemption] |
 | API | Access-token validation; tenant checks; user authority and the actor gate for delegated tokens; the agent's own authority for self-acting tokens | [Access at the Resource Server][api-processing] |
 
-[Profiles and Common Rules][common-rules] holds the rules every role
-shares, and [Conformance Claims][scope] states the mandatory path for
-each grant.
+The [Federation Model][model] and [Profiles and Common
+Rules][common-rules] hold the definitions and rules every role shares.
+[Conformance Claims][scope] lists the sections each role implements and
+the mandatory path for each grant.
 
 ## Federation configuration
 

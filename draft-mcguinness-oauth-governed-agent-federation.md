@@ -265,11 +265,13 @@ lifecycle mechanism a deployment selects, such as {{AGENT-LIFECYCLE}}.
 
 The mandatory baseline resolves the agent from a dedicated OAuth client,
 one per agent, authenticating with `private_key_jwt`, with an ID Token
-subject when delegated access is claimed ({{scope}}). A shared client
-uses the existing platform JWT input instead. The IdP's processing is in
-{{issuance}}, the RAS's in {{redemption}}, and the API's in
-{{api-processing}}; a client starts with {{issuance-request}}. The
-implementer's guide {{GUIDE}} adds a primer and deployment guidance.
+subject when delegated access is claimed. A shared client uses the
+existing platform JWT input, which a claim of generic shared-client
+interoperability requires, or another supported input ({{scope}}). {{model}} and {{common-rules}}
+apply to every role. The IdP's processing is in {{issuance}}, the RAS's
+in {{redemption}}, and the API's in {{api-processing}}; a client starts
+with {{issuance-request}}. {{GUIDE}} adds a primer and deployment
+guidance.
 
 The profile sits within the agent identity management framework that
 AIMS {{AIMS}} describes and defines how the identities in one
@@ -285,10 +287,9 @@ path, and an implementation claims one or both ({{scope}}):
   Grant (WAG) {{WAG}}, with the Agent Principal as subject.
 
 Other grant realizations need their own composition rules.
-Dedicated-client assertions, existing platform JWTs, and other
-credentials, such as SPIFFE JWT Verifiable Identity Documents
-(JWT-SVIDs), supply inputs to the same identity model ({{evidence}}).
-{{INPUTS}} defines inputs beyond those in this document.
+Dedicated-client assertions and existing platform JWTs supply inputs to
+this identity model ({{evidence}}). {{INPUTS}} defines further inputs,
+such as SPIFFE JWT Verifiable Identity Documents (JWT-SVIDs).
 
 This document federates an agent governed by the IdP that issues the
 grant into a resource domain. It does not define identity continuity
@@ -298,7 +299,7 @@ IdP's namespace is out of scope. Also out of scope ({{upstream-gaps}}):
 * task or mission authorization;
 * asynchronous approval;
 * continuation of approved work across grants;
-* provisioning protocols and account administration;
+* provisioning protocols and account administration ({{GUIDE}});
 * multi-agent delegation chains;
 * authorization of individual client instances, and propagation of
   instance context across domains; and
@@ -810,8 +811,11 @@ In both profiles:
 ## Client Authentication and Algorithms {#algorithms}
 
 **Client authentication:** RFC 7523 client authentication at either
-server follows {{client-assertion-input}}. Other configured methods MAY
-be used, and client identifiers and keys MAY differ between servers.
+server follows {{client-assertion-input}}. JWT-SVID client
+authentication at either server is not a dedicated-client method; an
+implementation that uses it claims the JWT-SVID input of {{INPUTS}} and
+follows its rules. Other configured methods MAY be used, and client
+identifiers and keys MAY differ between servers.
 
 **Algorithms:** Each implementing role MUST support the capabilities
 below for the artifacts it produces or validates:
@@ -936,7 +940,9 @@ identity, client, delegation, and target relationships ({{model}});
 an authoritative association between the authenticated IdP client and
 that client's registration at the target RAS
 ({{Section 5 of ID-JAG}}). This client registration association is not
-a Client Association. A client-supplied downstream client identifier MUST NOT
+a Client Association. If the client uses one identifier at both servers,
+such as a Client ID Metadata Document (CIMD) Client Identifier URL
+{{CIMD}}, the association is the identity mapping. A client-supplied downstream client identifier MUST NOT
 select or override that association.
 
 ## Token Exchange Request {#issuance-request}
@@ -1187,8 +1193,8 @@ MUST NOT select or change that mode.
 **Credential class:** The IdP MUST select exactly one configured
 platform credential class for presented evidence, or reject with
 `invalid_request`. An input that resolves from authentication context,
-such as the native SPIFFE and Client Attestation inputs of {{INPUTS}},
-MUST NOT be accepted through presented-evidence mode. Credential classes
+including SPIFFE SVIDs and Client Attestations ({{INPUTS}}), MUST NOT be
+accepted through presented-evidence mode. Credential classes
 MUST have mutually exclusive validation rules under
 {{Section 3.12 of RFC8725}}. Within one token request, rejection under
 the selected class's validation or authorization rules MUST NOT trigger
@@ -1219,9 +1225,11 @@ Principal ({{governance-boundary}}). A client instance identifier
 select or change the Agent Principal except through installation-level
 resolution that an input profile defines with an exact Identity Binding
 naming the identifier and its attester, client, and receiver scope; with
-the resolution level selected only by trusted configuration and no
-fallback between levels; and with no continuity inferred across
-identifiers or attesters. {{INPUTS}} defines such resolution for Client
+an attester configured to assign the identifier at Installation
+granularity ({{Section 1.1 of INSTANCE}}) under the continuity rules of
+{{Section 6 of INSTANCE}}; with the resolution level selected only by
+trusted configuration and no fallback between levels; and with no
+continuity inferred across identifiers or attesters. {{INPUTS}} defines such resolution for Client
 Attestation.
 
 **Disabling:** An Identity Binding can be disabled independently of the
@@ -1511,8 +1519,9 @@ of {{actor-inputs}} apply. In this mode:
   without a subject token. A client authenticated with a JWT therefore
   MUST repeat that JWT, byte for byte, as `subject_token` with type
   `urn:ietf:params:oauth:token-type:jwt`. That JWT is the credential
-  itself: the RFC 7523 assertion, the JWT-SVID, the WIT-SVID, or the
-  Client Attestation JWT, not an accompanying proof-of-possession JWT.
+  itself: the RFC 7523 assertion or, for the inputs of {{INPUTS}}, the
+  JWT-SVID, the WIT-SVID, or the Client Attestation JWT, not an
+  accompanying proof-of-possession JWT.
 * The IdP MUST reject a subject token that is not byte-identical to the
   credential presented for authentication. This prevents a client from
   substituting another party's assertion as the subject.
@@ -1679,7 +1688,8 @@ disablement, because a grant does not carry the IdP's administrative
 status. Without provisioning, the RAS learns of disablement only through
 local action or another signal ({{status-changes}}).
 {{AGENT-LIFECYCLE}}, not this document, defines provisioning and
-reconciliation of a created record for Receivers that conform to it.
+reconciliation of a created record for resource domains that conform
+to it.
 
 ## Delegated Redemption: ID-JAG {#idjag-redemption}
 
@@ -2784,7 +2794,7 @@ One Agent Principal can carry a binding for each platform it runs on
 ~~~
 
 B1 and B2 both resolve to agent-42, which the issued grant names
-({{aws-example}} shows B2). Disabling B3 stops new issuance through B3
+({{aws-example}} shows B2; B1 uses the JWT-SVID input of {{INPUTS}}). Disabling B3 stops new issuance through B3
 only; an association naming B1 and B2 still authorizes them, subject to
 the remaining checks.
 
@@ -2823,7 +2833,7 @@ Instance Identification-00.
 | Specification | What this profile needs | Consequence until resolved |
 |---|---|---|
 | WAG | Type registration; alignment on protection, linking, and subject presentation ({{wag-gaps}}) | Provisional type values |
-| ID-JAG | `jwt-bearer` in the bound-grant example, which uses `jwt-dpop`; confirmation errors distinct from RFC 9449 proof errors | Confirmation checks apply to `jwt-bearer` here ({{redemption-request}}) |
+| ID-JAG | `jwt-bearer` in the bound-grant example, which uses `jwt-dpop`; confirmation errors distinct from RFC 9449 proof errors | Confirmation checks apply to `jwt-bearer` here ({{redemption-request}}); no dependency on JWT DPoP Grant |
 | Actor Profile | A reusable principal-resolution extension point; {{Section 6.3.1 of ACTOR-PROFILE}} permits authentication-context reuse only with the same assertion as `actor_token` | Local mapping ({{actor-construction}}); generic Token Exchange or Actor Profile support does not advertise resolution from authentication context |
 {: title="Upstream dependencies"}
 

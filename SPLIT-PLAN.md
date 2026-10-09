@@ -19,11 +19,12 @@ Delegated access also carries and checks a user's identity and authority.
 The complete specification must cover more cases than this explanation.
 Its structure should make that distinction apparent.
 
-The work has two parts, in this order:
+The work has three parts, in this order:
 
-1. Explain the contract early and organize processing predictably.
+1. Explain the contract early.
 2. Move specialized credential inputs and deployment guidance into
    separate documents while preserving complete core transactions.
+3. Organize the remaining core's processing predictably.
 
 Retain the earlier 20–30% reduction objective as a secondary target.
 Comprehension and interoperability determine acceptance. A repository
@@ -93,29 +94,45 @@ rules. Keep the overview informative and check it against those rules.
 1. **Introduction and protocol overview:** the problem, transaction,
    identity transformation, and a short statement of the baseline.
 2. **Identity and authorization model:** essential terminology,
-   relationships, tenant boundaries, and the two grant realizations.
-3. **Grant issuance at the IdP:** common input interface, dedicated-client
+   relationships, tenant boundaries, and the two grant realizations. The
+   relationships include Agent and Delegation Authorization and the
+   definition of the actor gate, which both the RAS (at redemption) and
+   the API (for each operation) enforce. Keep the "Delegated and
+   self-acting access compared" table here.
+3. **Profiles and common rules:** everything the processing chapters rely
+   on:
+   * adoption profiles and grant protection;
+   * client authentication and algorithms;
+   * time, replay, and key validation;
+   * token-endpoint error conventions;
+   * profile applicability and downgrade prevention.
+
+   Keep the "Additions and narrowings" table here.
+4. **Grant issuance at the IdP:** common input interface, dedicated-client
    and platform JWT profiles, common validation and authorization, then
    ID-JAG and WAG issuance and errors.
-4. **Grant redemption at the RAS:** common checks and correlation,
-   grant-specific checks, access-token issuance and protection, and errors.
-5. **Access at the resource server:** applicability, common validation,
-   delegated actor enforcement, and self-acting authorization.
-6. **Continuing access and authorization changes:** reuse, optional
+5. **Grant redemption at the RAS:** common checks and correlation,
+   grant-specific checks (applying the actor gate defined in chapter 2 for
+   delegated grants), access-token issuance and protection, and errors.
+6. **Access at the resource server:** applicability, common validation,
+   delegated enforcement applying the chapter 2 actor gate, and
+   self-acting authorization.
+7. **Continuing access and authorization changes:** reuse, optional
    refresh, applied disablement, and revocation.
-7. **Profiles, conformance, and capability advertisement:** full claims,
-   algorithms, discovery, and metadata. Keep the "Additions and narrowings"
-   and "Delegated and self-acting access compared" tables with the
-   grant/model material they explain.
-8. **Security and privacy considerations.**
-9. **IANA considerations.**
-10. **Worked exchanges and acceptance cases**, followed by compact
-    dependencies and excluded compositions.
+8. **Conformance and capability advertisement:** detailed conformance
+   claims, metadata, and discovery.
+9. **Security and privacy considerations.**
+10. **IANA considerations.**
 
-Place common grant-protection definitions before the processing rules
-that need them. Moving detailed conformance later must not make those
-rules depend on an unexplained profile choice. Keep precise errors near
-their processing stage, with one authoritative home for shared rules.
+Appendices: A. worked exchanges and acceptance cases; B. compact
+dependencies and excluded compositions.
+
+Chapter 3 keeps the placement that #10 chose for these prerequisites,
+which answered the review that conformance came after the flows. Only
+the detailed conformance claims and capability advertisement move after
+processing. This changes a structure the author recorded after #10, so it
+is an author decision. Keep precise errors near their processing stage,
+with one authoritative home for shared rules.
 
 ## Measurements and their limits
 
@@ -139,6 +156,12 @@ WISE. The proposed split keeps them in the core.
 
 The 81-page result reduces length by 16.5%; the 73-page result by 24.7%.
 Keep useful examples provisionally and remeasure after restructuring.
+With these boundaries, the 20% target (77 pages or fewer) needs about 4
+pages beyond extraction, while the new overview adds text. The overview
+therefore has a word budget: it replaces at least its own length from the
+overlapping Introduction, Terms, and Federation Model text, and step 1
+records the words before and after. Compression in step 5 supplies the
+rest, or the target is reported as missed.
 The 64-page experiment is an extraction result, not a lower bound.
 Definitions and prose without BCP 14 keywords can be essential while
 still allowing clearer wording, placement, or consolidation.
@@ -195,7 +218,7 @@ requirements retain authoritative homes in the core or companion.
 | Input-specific security and privacy material | Inventory individually; specialized rules move with their inputs, while general security boundaries stay in core |
 | `shared-client-example`, `svid-context-example` | Companion |
 | `input-variants` table and shared explanatory text | Partition by input: platform JWT stays in core; native-input details accompany their companion examples |
-| Negative tests referencing optional native inputs | Move input-specific cases to companion; retain generic shared-client token-reuse coverage in core using the platform JWT case |
+| Negative tests referencing optional native inputs | Move input-specific cases to companion; retain generic shared-client token-reuse coverage in core using the platform JWT case. The token-reuse case now cites `shared-client-example` (SPIFFE); rewrite it against the platform JWT variant, which uses the same shared `platform-sso` client |
 
 ### Core material and examples
 
@@ -229,11 +252,38 @@ keywords as evidence that material is disposable.
 
 The companion normatively references the core. Classify each reference
 from the core by its actual dependency. Optional support alone does not
-make a reference informative: see
+make a reference informative. Note 1 of the
+[IESG Statement on Normative and Informative References](https://www.ietf.org/about/groups/iesg/statements/normative-informative-references/)
+says: "Even references that are relevant only for optional features must
+be classified as normative if they meet the above conditions for
+normative references." For the general definition, see
 [RFC 3967, Section 1.1](https://www.rfc-editor.org/rfc/rfc3967.html#section-1.1).
 An informative pointer is appropriate when the core remains complete
 without the target; a rule importing required behavior or an exception
 needs a normative dependency or an explicitly defined extension boundary.
+
+Design the boundary so the core does not depend on the companion. At
+`6a318b2`, 23 body paragraphs or table rows in the core name
+companion-bound inputs; 10 carry BCP 14 keywords. They are spread across
+17 sections, including `actor-inputs`, `identity-binding`,
+`credential-requirements`, `algorithms`, `grant-common`, `wag-request`,
+and `access-token-response`. Each one either moves to the companion or
+is restated against the input contract, naming a property rather than an
+input. For example:
+
+* "Native SPIFFE and Client Attestation inputs use authentication context
+  and MUST NOT be accepted through presented-evidence mode" becomes a
+  rule about inputs that resolve from authentication context.
+* The managed-installation exception in `identity-binding` becomes a
+  generic condition: an input profile MAY define installation-level
+  resolution only with an exact binding, a configured resolution level,
+  no fallback between levels, and no inferred continuity. The
+  companion's Client Attestation profile then defines it.
+
+Each companion input states which contract properties it has. The core's
+reference to the companion can then be informative, and the core can
+advance without it. If a rule cannot be restated this way, the two
+drafts become a publication cluster; record that outcome explicitly.
 
 * Audit the managed-installation exception in `identity-binding`,
   conditional conformance, lifetime rules, and all guide citations.
@@ -275,8 +325,10 @@ same words or keyword count do not prove the same meaning.
 
 ### Comprehension
 
-Give the revised opening to a reader unfamiliar with the draft. After
-five minutes, ask them to explain:
+Give the revised opening to at least one person unfamiliar with the
+draft, who is neither an author nor a previous reviewer. A cold-reader
+agent can supplement that reader but not replace them. After five
+minutes, ask them to explain:
 
 * the problem the profile solves;
 * the differences among client, workload identity, and Agent Principal;
@@ -284,8 +336,9 @@ five minutes, ask them to explain:
 * delegated versus self-acting access; and
 * where they would begin implementing their role.
 
-They should be able to answer from the draft without the guide. Record
-where they hesitate or follow the wrong section, and revise those areas.
+The opening passes when the reader answers all five correctly from the
+draft alone, without the guide. Record where they hesitate or follow the
+wrong section, revise those areas, and record the result in the PR.
 This reader exercise is a validation step, not a new table in the draft.
 
 ### Implementation and build checks
@@ -306,27 +359,34 @@ This reader exercise is a validation step, not a new table in the draft.
 ## Execution
 
 Use separate PRs so explanatory changes, relocation, and compression
-can each be reviewed against the preceding version.
+can each be reviewed against the preceding version. Extraction comes
+before reorganization, so the reorganization works on the smaller core
+and reconciles fewer anchors.
 
 1. **Opening and protocol overview.** Write the conceptual transaction,
-   identity example, and short baseline statement inside the core. Run
-   the comprehension exercise before extracting material. Replace
-   overlapping introductory prose so this is not only an addition.
-2. **Core organization.** Start the requirements/reference inventory for
-   affected material. Apply the target contents, predictable stage
-   structure, and optional-feature headings. Move detailed conformance
-   and metadata later while keeping prerequisites beside processing.
-   Check semantic preservation before merging this reorganization.
-3. **Specialized inputs.** Complete the requirements/reference inventory,
-   create the companion, move the assigned material, and update the core,
-   SCIM management, build, and README references. Preserve input-specific
-   security and privacy considerations and run the semantic checks.
+   identity example, and short baseline statement inside the core. Its
+   net word change against the current Introduction, Terms, and
+   Federation Model is zero or negative; record it in the PR. Run the
+   comprehension exercise before extracting material.
+2. **Specialized inputs.** Build the requirements and reference inventory
+   for the affected material, including the 23 core paragraphs that name
+   companion-bound inputs. Restate core rules against the input contract
+   where they stay, create the companion, move the assigned material, and
+   update the core, SCIM management, build, and README references.
+   Preserve input-specific security and privacy considerations and run
+   the semantic checks.
+3. **Core organization.** Apply the target contents, the predictable
+   stage structure, and the optional-feature headings to the remaining
+   core. Keep chapter 3's common rules before processing and the actor-gate
+   definition in the model. Check semantic preservation before merging.
 4. **Guide and coordination.** Create `docs/implementers-guide.md`, move
    the assigned guidance, and reconcile Appendix C with `COORDINATION.md`.
-   Add a supplemental primer explaining both flows and role responsibilities.
+   Add a supplemental primer explaining both flows and role
+   responsibilities.
 5. **Compression and final review.** Consolidate repetition and simplify
    wording where the requirements map demonstrates equivalence. Run the
-   implementation traces, comprehension exercise, builds, and measurements.
+   implementation traces, comprehension exercise, builds, and
+   measurements.
 
 ## Risks and remaining review points
 

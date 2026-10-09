@@ -230,8 +230,9 @@ Each relationship answers one question:
   identify?
 * **Client Association (IdP):** May this OAuth client use that agent's
   identity?
-* **Agent or Delegation Authorization (IdP):** What authority may the
-  agent request, on its own or for a user?
+* **Agent or Delegation Authorization (IdP):** What authority (scope
+  and any authorization details for one resource) may the agent
+  request, on its own or for a user?
 * **Correlation and resource policy (RAS and API):** What access will
   the resource domain permit? For delegated access, this includes the
   actor gate: may this agent act for this user?
@@ -255,6 +256,9 @@ Self-acting WAG (excerpt):
   "iss": "https://idp.example/", "sub": "agent-42"
 ~~~
 {: title="One identity transformation"}
+
+The `act` claim is the actor claim of Token Exchange
+({{Section 4.1 of RFC8693}}): it names the party acting for the subject.
 
 The relationships do not imply one another. Mapping an identity grants
 no permission, owning an agent does not establish a user's delegation to
@@ -470,7 +474,8 @@ agent authenticated with. From a validated grant it receives:
 * the acting relationship: delegated, with the user as subject, or
   self-acting;
 * the client's registration at the RAS, in `client_id`; and
-* the authority the IdP approved, as a ceiling for the RAS decision.
+* the authority the IdP approved (scope and any authorization details),
+  as a ceiling for the RAS decision.
 
 The RAS correlates the Agent Principal with a local principal, which can
 be an existing service principal. Correlation does not replace the

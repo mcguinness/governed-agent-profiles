@@ -610,7 +610,7 @@ imply authorization for the other.
 |---|---|---|
 | Subject | User, from the subject credential | Agent Principal, from the agent-resolution input |
 | Agent in the grant | Agent Principal in `act` | Grant subject, with no `act` ({{wag-claims}}) |
-| Agent at the RAS | Kept in `act` beside the local user as subject | Correlated to a local agent principal ({{agent-correlation}}) |
+| Agent at the RAS | Correlated to a local agent principal ({{agent-correlation}}) and kept in `act` beside the local user as subject | Correlated to a local agent principal, which becomes the subject ({{agent-correlation}}) |
 | Authorization | Delegation Authorization | Agent Authorization ({{agent-authorization}}) |
 | Client Association | For delegated issuance | A separate one for self-acting issuance |
 | API enforcement | User authority and the actor gate | The agent's own authority; no actor gate |

@@ -138,11 +138,11 @@ of those platforms, workloads, and clients.
 This document is an OAuth deployment profile that standardizes the
 boundary between execution identity and governed identity. An
 enterprise identity provider resolves an authenticated OAuth client or
-workload identity to a governed Agent Principal, whose identifier can be
-the same as the execution identity's or different, and conveys that
-principal to a resource domain. Identity resolution, client authority,
+workload identity to a governed Agent Principal in the identity
+provider's namespace, which may reuse the execution identity's
+identifier, and conveys that principal to a resource domain. Identity resolution, client authority,
 user delegation, and resource authorization remain separate decisions.
-No new credential format is defined.
+No new workload credential format is defined.
 
 Two peer realizations carry the Agent Principal: delegated access
 through the Identity Assertion JWT Authorization Grant (ID-JAG), with
@@ -163,7 +163,7 @@ attributed, and authorization cannot be withdrawn from one agent without
 withdrawing it from all of them.
 
 What an enterprise needs instead is a principal it can authorize once,
-audit across resources, and disable as a unit. That principal's
+audit across resources, and disable in one place. That principal's
 identity does not change when the agent moves between platforms or
 rotates credentials.
 

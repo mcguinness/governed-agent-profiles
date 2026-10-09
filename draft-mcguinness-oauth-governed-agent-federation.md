@@ -687,7 +687,7 @@ The client identifier MUST NOT stand in for the actor in authorization.
 Audit records that identify both the user and the issuer-qualified
 actor, rather than the client identifier alone, preserve attribution.
 
-# Profiles and Conformance {#conformance-metadata}
+# Profiles and Common Rules {#common-rules}
 
 ## Delegated Access with ID-JAG {#delegated-flow}
 
@@ -712,7 +712,7 @@ requirement.
 | Resource processing | Actor and tenant context preserved; user authority and actor gate enforced with the selected token protection | {{access-token-response}}, {{api-processing}} |
 | Refresh narrowing | Explicit policy, client binding, preserved proof binding and profile, finite absolute authorization expiration | {{ras-refresh}} |
 | Error processing | `invalid_grant`, not RFC 8693's default `invalid_request`, for subject or actor credential and resolution failures; `actor_unauthorized` for a denied resolved actor | {{issuance-errors}} |
-| Profile discovery | Governed profiles in existing ID-JAG metadata; trusted policy sets the minimum | {{metadata}} |
+| Profile discovery | Governed profiles in existing ID-JAG metadata; trusted policy sets the minimum | {{metadata}}, {{discovery}} |
 {: title="Additions and narrowings to the base specifications"}
 
 ## Self-Acting Access with WAG {#wag-flow}
@@ -803,66 +803,6 @@ In both profiles:
   proof required by the agent-resolution input or client authentication
   method.
 
-## Conformance {#scope}
-
-This profile does not establish trust in previously unknown agent
-issuers or automatically create Identity Bindings from presented
-credentials.
-
-Unless explicitly limited to bound grants or a named profile, the
-requirements of this document apply to both governed adoption profiles.
-Conformance claims MUST identify the supported profile by its URI
-({{metadata}}), the realization, the implemented role, supported inputs,
-and any claim of generic shared-client interoperability. An
-implementation supports delegated access, self-acting access, or both.
-
-The IdP, RAS, and client MUST implement their respective
-requirements in:
-
-* {{model}}, {{conformance-metadata}}, {{security}}, and
-  {{mandatory-input-profiles}}; and
-* the parts of {{issuance}}, {{redemption}}, {{api-processing}}, and
-  {{continuing-access}} that apply to each supported realization.
-
-An input defined in another input profile, such as {{INPUTS}}, adds that
-profile's requirements for implementations that claim it.
-
-Each realization has this mandatory interoperability path:
-
-* **Issuance:** The client and IdP MUST implement dedicated-client
-  resolution using RFC 7523 `private_key_jwt` authentication
-  ({{client-assertion-input}}). For delegated access, they MUST also
-  implement ID Token subjects.
-* **Redemption:** The client and RAS MUST implement `private_key_jwt`
-  for redemption. DPoP support and use are REQUIRED for bound governed
-  agent access; governed agent access follows {{grant-protection}}.
-* **API:** The API MUST implement {{api-processing}}, with {{wag-api}}
-  for self-acting access.
-
-Existing platform JWTs, SAML subjects, IdP refresh-token subjects, and
-the inputs of other input profiles, such as {{INPUTS}}, are OPTIONAL
-capabilities.
-Claiming an input requires that input's rules, not support for another
-input. An implementation that claims generic shared-client
-interoperability MUST support the existing platform JWT input
-({{imported-jwt-input}}): an IdP by accepting it, and a client by
-presenting it. Implementations that support only different native
-inputs do not interoperate on a shared client, and their conformance
-claims show this.
-
-ID-JAG requires support for Identity Assertions
-({{Section 4.3 of ID-JAG}}). Requiring ID Token subjects specifically
-gives independent implementations a common subject-token format. This is
-an implementation baseline, not a requirement to deploy one client per
-agent: deployments MAY use mutually supported optional inputs.
-
-An ID Token's audience identifies the authenticated IdP client
-({{subject-token-validation}}). A dedicated deployment therefore needs a
-user authorization flow for each agent's client registration, though an
-existing IdP session may avoid another login prompt. A platform that
-keeps its shared single sign-on (SSO) client instead uses the existing
-platform JWT ({{imported-jwt-input}}) or an optional input.
-
 ## Client Authentication and Algorithms {#algorithms}
 
 **Client authentication:** RFC 7523 client authentication at either
@@ -946,63 +886,7 @@ resolved but denied, but not which binding-resolution check failed.
 That disclosure reaches even a holder of stolen bearer evidence who
 passes the request's other authentication.
 
-## Authorization Server and Client Metadata {#metadata}
-
-The governed profiles have distinct identifiers:
-
-* **Governed agent access:**
-  `urn:ietf:params:oauth:grant-profile:id-jag-governed-agent`
-* **Bound governed agent access:**
-  `urn:ietf:params:oauth:grant-profile:id-jag-agent-federation`
-* **Self-acting governed agent access:**
-  `urn:ietf:params:oauth:grant-profile:wag-governed-agent`
-* **Self-acting bound governed agent access:**
-  `urn:ietf:params:oauth:grant-profile:wag-agent-federation`
-
-Enterprise access uses the base
-`urn:ietf:params:oauth:grant-profile:id-jag` identifier under ID-JAG;
-that identifier alone makes no governed-agent conformance claim.
-
-These URIs identify RAS and client processing. No URI claims a
-credential class, continuation support, a particular workload-evidence
-protection, or access-token protection; these are capabilities and
-configured minimums.
-
-### Authorization Server Metadata {#server-metadata}
-
-Servers MUST publish {{RFC8414}} metadata as follows:
-
-* **RAS:** Include each supported governed profile URI, and for
-  delegated access the base
-  `urn:ietf:params:oauth:grant-profile:id-jag`, in
-  `authorization_grant_profiles_supported`. The self-acting URIs use the
-  same parameter, pending coordination ({{wag-gaps}}).
-  * Include `urn:ietf:params:oauth:grant-type:jwt-bearer` in
-    `grant_types_supported` for this profile.
-* **IdP:** Advertise Token Exchange in `grant_types_supported`. For
-  delegated access, advertise ID-JAG in
-  `identity_chaining_requested_token_types_supported` under
-  {{Section 7.1 of ID-JAG}}. For self-acting access, advertise the WAG
-  token type in the same parameter, pending coordination ({{wag-gaps}}).
-  * Include `private_key_jwt` in
-    `token_endpoint_auth_methods_supported`.
-* **Both:** Advertise supported client authentication methods and, when
-  DPoP is supported, DPoP algorithms, including {{algorithms}}'s common
-  capabilities. Where supported, publish the existing Client ID Metadata
-  Document (CIMD) and mutual-TLS capability metadata defined by {{CIMD}}
-  and {{RFC8705}}.
-
-### Client Metadata {#client-metadata}
-
-A client SHOULD advertise each supported governed profile URI in
-`authorization_grant_profiles_supported` in its authoritative client
-metadata under {{Section 8 of ID-JAG}}, including when supplied through
-CIMD. Its `grant_types` MUST permit:
-
-* `urn:ietf:params:oauth:grant-type:token-exchange` at the IdP.
-* `urn:ietf:params:oauth:grant-type:jwt-bearer` at the RAS.
-
-### Discovery and Profile Applicability {#discovery}
+## Profile Applicability and Downgrade Prevention {#discovery}
 
 Profile applicability follows these rules:
 
@@ -1035,20 +919,6 @@ intermediate profile.
 Migration changes the configured profile after the participating roles
 implement its requirements. It does not relabel previously issued
 grants or refresh tokens.
-
-Before using either path:
-
-* **Issuance support:** The client and IdP MUST agree through trusted
-  configuration on issuance support and any options. Generic JWT or
-  authentication-method support is insufficient.
-* **RAS capabilities:** The client MUST verify the RAS's profile
-  advertisement, JWT bearer grant support, and compatible access-token
-  protection. If no supported profile satisfies the configured minimum,
-  the client MUST NOT initiate that path.
-* **Metadata consistency:** For delegated access, if the
-  `actor_profile_token_exchange` parameter of
-  {{Section 16.2 of ACTOR-PROFILE}} is published, it MUST describe only
-  the paths actually supported and agree with the ID-JAG advertisement.
 
 # Grant Issuance at the IdP {#issuance}
 
@@ -1106,8 +976,8 @@ local principals ({{agent-correlation}}, {{subject-resolution}}).
 ### Agent Resolution Inputs {#evidence}
 
 Every agent-resolution input satisfies this contract, which summarizes
-requirements stated in the cited sections and the input's own section
-({{input-profiles}}):
+requirements stated in the cited sections and in each input's
+definition:
 
 * **Independent validation:** The credential is validated under its
   configured credential profile before it is used for resolution
@@ -1130,8 +1000,137 @@ Credential acquisition is outside this profile. Audience validation
 follows each input's credential specification and section; there is no
 universal IdP audience.
 
-Input support follows {{scope}}; resolution mode
-selection and rejection follow {{actor-inputs}}.
+This document defines the two inputs below; {{INPUTS}} defines further
+inputs. Input support follows {{scope}}; resolution mode selection and
+rejection follow {{actor-inputs}}.
+
+| Input | Qualified identity | Reference |
+|---|---|---|
+| Dedicated client | Trusted assertion issuer and exact client `sub` | {{client-assertion-input}} |
+| Existing platform JWT | Approved issuer, exact `sub`, and configured additional selectors | {{imported-jwt-input}} |
+{: title="Agent-resolution inputs and qualified identities"}
+
+The IdP client-registration context qualifies a dedicated client's
+identity. The existing platform JWT uses presented-evidence mode; the
+dedicated client uses authentication-context mode.
+
+### Dedicated Client Identity {#client-assertion-input}
+
+In this explicitly configured mode, the IdP resolves the client identity
+validated during client authentication to its explicitly bound Agent
+Principal. No separate platform-issued credential is needed. The
+assertion authenticates the client and is not independent workload
+evidence ({{dedicated-client-coordination}}). This mode does not
+distinguish agents behind one shared client identity. Such a client MUST
+use a supported workload-identity input that distinguishes its agents
+({{imported-jwt-input}}). {{client-assertion-example}} illustrates this
+input.
+
+* **Presentation:** An asymmetrically signed `client_assertion` under
+  {{RFC7523}}. For `private_key_jwt`, the common method, the assertion
+  issuer and subject are the client's registered identifier
+  (Section 9 of {{OPENID}}); other configured asymmetric RFC 7523
+  methods MAY be supported.
+* **Validation:** The IdP authenticates the client under
+  {{Section 3 of RFC7523}} and its configured authentication method.
+  It MUST use verification keys authorized for that client and
+  assertion issuer. Assertion-supplied keys or issuer claims MUST NOT
+  establish trust.
+* **Resolution:** The IdP MUST resolve the exact validated (`iss`,
+  `sub`) in its client-registration context under {{identity-binding}}.
+  An additional agent claim in a self-signed client assertion MUST NOT
+  select another Agent Principal under this input.
+* **Audience:** RFC 7523 client authentication at the IdP and the RAS
+  MUST follow {{Section 4 of RFC7523bis}}: `aud` has the authorization
+  server's issuer identifier as its sole value, never its token endpoint
+  URL, and the server rejects any other audience. This profile adds no
+  alternative audience configuration and leaves other credential
+  classes' audience rules unchanged.
+* **Proof:** Assertion signing neither binds the grant to the signing
+  key nor establishes an attested runtime identity. Grant proof
+  processing follows {{grant-protection}} independently, and the DPoP
+  key MAY differ from the client-authentication key. An assertion
+  carrying `cnf` MUST NOT be accepted unless its configured
+  authentication method defines and validates the corresponding proof.
+* **Replay:** These rules narrow the base specifications and prohibit
+  negotiated assertion reuse. The assertion MUST contain a `jti`. The
+  IdP and the RAS MUST each reject reuse in another request while the
+  assertion remains acceptable; a reused assertion fails client
+  authentication. Replay identifiers MUST be qualified by the validated
+  issuer and client.
+* **Retry:** For any retry of a dedicated-client token request at either
+  server, including after a `use_dpop_nonce` challenge under
+  {{Section 8 of RFC9449}}, the client MUST generate a new
+  `client_assertion` with a fresh `jti`. For a nonce retry, the client
+  MUST also generate a fresh DPoP proof containing the supplied nonce
+  while retaining the grant proof key. A new DPoP proof alone is not
+  enough, because the server may already have consumed the previous
+  assertion during authentication.
+
+### Existing Platform JWT {#imported-jwt-input}
+
+This common shared-client input accepts existing signed platform JWTs as
+issued, with no new media type or reissuance. {{scope}} states when it
+is required, and {{aws-example}} gives an AWS STS example. The IdP MUST
+accept a platform JWT only when its issuer, credential class, and the
+authenticated client are explicitly configured together. Credential
+classification and rejection follow {{actor-inputs}}.
+
+* **Configuration:** Configuration MUST also specify:
+  * the credential class: the rule distinguishing workload credentials
+    from user, management-API, or other tokens of the same issuer,
+    namely an explicit `typ`, a dedicated issuer, or an accepted
+    audience combined with exact selectors;
+  * approved keys or an approved HTTPS JWK Set URI under {{RFC7517}},
+    retrieved with server authentication;
+  * the issuer's permitted asymmetric algorithms;
+  * the effective evidence deadline, the permitted clock skew for a
+    future issuance time, and any maximum age; and
+  * the audiences that authorize presentation to this IdP as workload
+    evidence.
+
+* **Presentation:** `actor_token` in delegated issuance and
+  `subject_token` in self-acting issuance ({{wag-request}}); the client
+  authenticates separately with a configured method. An accepted JWT
+  MUST NOT be treated as OAuth client authentication unless it
+  independently satisfies a configured client authentication method.
+* **Validation:** The IdP MUST validate the JWT under {{RFC7519}},
+  {{RFC8725}}, and the configured credential profile. Keys or URLs in
+  the JWT MUST NOT override the approved key source. The IdP MUST
+  determine the effective evidence deadline from `exp`, a configured
+  maximum age measured from an authenticated issuance time (such as
+  `iat`), or both. When both apply, the earlier deadline governs.
+  Receipt time MUST NOT substitute for issuance time. The deadline
+  bounds grant expiration ({{grant-common}}).
+* **Resolution:** The Identity Binding MUST specify an exact issuer and
+  `sub`. It MAY require additional string values from the JWT Claims
+  Set, including nested claims. Selectors constrain identity
+  resolution, not the administrative configuration format. Additional
+  selectors MUST use the JSON Pointer string representation in
+  {{Section 5 of RFC6901}}, evaluated from the Claims Set root under
+  {{Section 4 of RFC6901}}:
+  * Every selector MUST resolve unambiguously to a string equal to its
+    configured value, without type conversion, case folding, or Unicode
+    normalization. Missing paths, evaluation errors, non-string values,
+    or unequal values MUST prevent that binding from matching.
+  * Selectors MUST NOT use wildcard, prefix, or pattern matching, and
+    MUST NOT replace the exact issuer and `sub` checks.
+  * A caller-controlled claim MUST NOT distinguish agents unless trusted
+    issuance policy constrains its values to identities the caller is
+    authorized to assert. A signature alone does not establish that
+    authority for request tags or other caller-supplied attributes.
+* **Audience:** The configured audiences authorize presentation to this
+  IdP as workload evidence (**Configuration**). The IdP MUST reject a
+  platform JWT whose `aud` is absent or contains none of them.
+* **Proof:** This profile defines no new proof mechanism. If `cnf` is
+  present, the IdP MUST enforce its proof mechanism and MUST NOT give
+  the credential bearer treatment when the binding is unsupported. A
+  deployment accepting key-bound JWTs MUST configure their proof
+  validation and any required relationship to the grant proof key.
+  Bearer platform JWTs fall under {{credential-requirements}}.
+* **Failure:** The IdP MUST reject evidence with `invalid_grant` if a
+  required time limit cannot be evaluated or no effective evidence
+  deadline can be determined.
 
 ### Bearer Evidence Limits {#credential-requirements}
 
@@ -1653,7 +1652,7 @@ principals, keyed by the same pair. No provisioning protocol is required
 ({{operational-guidance}}). Once deactivation is applied, the RAS
 enforces {{applied-changes}}.
 
-### Just-in-Time Correlation {#jit-correlation}
+### Optional Just-in-Time Correlation {#jit-correlation}
 
 Where the RAS requires a local agent record and none exists for the
 qualified pair in the authorized Target Tenant, resource policy MAY
@@ -1852,7 +1851,7 @@ token whose binding will not be enforced. Clients and APIs MUST NOT
 treat a constrained token as an unconstrained bearer token or bypass an
 unrecognized confirmation method.
 
-## Opaque Access Tokens and Introspection {#introspection}
+## Optional Opaque Access Tokens and Introspection {#introspection}
 
 The RAS MAY issue an opaque access token instead of a JWT when the API
 obtains equivalent context through token introspection {{RFC7662}}.
@@ -1965,7 +1964,7 @@ For self-acting tokens, the API enforces the agent's own permissions
 together with the requirements of {{api-validation}}. No actor gate
 applies, and a governed self-acting token has no `act`.
 
-## Policy Services {#policy-services}
+## Optional Policy Services {#policy-services}
 
 If the API delegates authorization evaluation to
 a policy decision service, it MUST:
@@ -2029,7 +2028,7 @@ that association, it MUST obtain a token or grant for the current
 context. A credential change alone need not invalidate cached tokens
 when the governed principal and authorization context remain the same.
 
-## RAS Refresh Tokens {#ras-refresh}
+## Optional RAS Refresh Tokens {#ras-refresh}
 
 **Issuance:** The RAS SHOULD NOT issue refresh tokens, retaining
 {{Section 4.4.3 of ID-JAG}}, but MAY do so for authorized long-running
@@ -2098,6 +2097,140 @@ is applied at the RAS, the RAS MUST:
   association for this from the time it issues that authorization.
 * Not let refresh bypass a principal restriction or restore revoked
   authorization; reactivation permits new decisions only.
+
+# Conformance and Capability Advertisement {#conformance-metadata}
+
+## Conformance Claims {#scope}
+
+This profile does not establish trust in previously unknown agent
+issuers or automatically create Identity Bindings from presented
+credentials.
+
+Unless explicitly limited to bound grants or a named profile, the
+requirements of this document apply to both governed adoption profiles.
+Conformance claims MUST identify the supported profile by its URI
+({{metadata}}), the realization, the implemented role, supported inputs,
+and any claim of generic shared-client interoperability. An
+implementation supports delegated access, self-acting access, or both.
+
+The IdP, RAS, and client MUST implement their respective
+requirements in:
+
+* {{model}}, {{common-rules}}, {{identity}}, {{conformance-metadata}},
+  and {{security}}; and
+* the parts of {{issuance}}, {{redemption}}, {{api-processing}}, and
+  {{continuing-access}} that apply to each supported realization.
+
+An input defined in another input profile, such as {{INPUTS}}, adds that
+profile's requirements for implementations that claim it.
+
+Each realization has this mandatory interoperability path:
+
+* **Issuance:** The client and IdP MUST implement dedicated-client
+  resolution using RFC 7523 `private_key_jwt` authentication
+  ({{client-assertion-input}}). For delegated access, they MUST also
+  implement ID Token subjects.
+* **Redemption:** The client and RAS MUST implement `private_key_jwt`
+  for redemption. DPoP support and use are REQUIRED for bound governed
+  agent access; governed agent access follows {{grant-protection}}.
+* **API:** The API MUST implement {{api-processing}}, with {{wag-api}}
+  for self-acting access.
+
+Existing platform JWTs, SAML subjects, IdP refresh-token subjects, and
+the inputs of other input profiles, such as {{INPUTS}}, are OPTIONAL
+capabilities.
+Claiming an input requires that input's rules, not support for another
+input. An implementation that claims generic shared-client
+interoperability MUST support the existing platform JWT input
+({{imported-jwt-input}}): an IdP by accepting it, and a client by
+presenting it. Implementations that support only different native
+inputs do not interoperate on a shared client, and their conformance
+claims show this.
+
+ID-JAG requires support for Identity Assertions
+({{Section 4.3 of ID-JAG}}). Requiring ID Token subjects specifically
+gives independent implementations a common subject-token format. This is
+an implementation baseline, not a requirement to deploy one client per
+agent: deployments MAY use mutually supported optional inputs.
+
+An ID Token's audience identifies the authenticated IdP client
+({{subject-token-validation}}). A dedicated deployment therefore needs a
+user authorization flow for each agent's client registration, though an
+existing IdP session may avoid another login prompt. A platform that
+keeps its shared single sign-on (SSO) client instead uses the existing
+platform JWT ({{imported-jwt-input}}) or an optional input.
+
+## Authorization Server and Client Metadata {#metadata}
+
+The governed profiles have distinct identifiers:
+
+* **Governed agent access:**
+  `urn:ietf:params:oauth:grant-profile:id-jag-governed-agent`
+* **Bound governed agent access:**
+  `urn:ietf:params:oauth:grant-profile:id-jag-agent-federation`
+* **Self-acting governed agent access:**
+  `urn:ietf:params:oauth:grant-profile:wag-governed-agent`
+* **Self-acting bound governed agent access:**
+  `urn:ietf:params:oauth:grant-profile:wag-agent-federation`
+
+Enterprise access uses the base
+`urn:ietf:params:oauth:grant-profile:id-jag` identifier under ID-JAG;
+that identifier alone makes no governed-agent conformance claim.
+
+These URIs identify RAS and client processing. No URI claims a
+credential class, continuation support, a particular workload-evidence
+protection, or access-token protection; these are capabilities and
+configured minimums.
+
+### Authorization Server Metadata {#server-metadata}
+
+Servers MUST publish {{RFC8414}} metadata as follows:
+
+* **RAS:** Include each supported governed profile URI, and for
+  delegated access the base
+  `urn:ietf:params:oauth:grant-profile:id-jag`, in
+  `authorization_grant_profiles_supported`. The self-acting URIs use the
+  same parameter, pending coordination ({{wag-gaps}}).
+  * Include `urn:ietf:params:oauth:grant-type:jwt-bearer` in
+    `grant_types_supported` for this profile.
+* **IdP:** Advertise Token Exchange in `grant_types_supported`. For
+  delegated access, advertise ID-JAG in
+  `identity_chaining_requested_token_types_supported` under
+  {{Section 7.1 of ID-JAG}}. For self-acting access, advertise the WAG
+  token type in the same parameter, pending coordination ({{wag-gaps}}).
+  * Include `private_key_jwt` in
+    `token_endpoint_auth_methods_supported`.
+* **Both:** Advertise supported client authentication methods and, when
+  DPoP is supported, DPoP algorithms, including {{algorithms}}'s common
+  capabilities. Where supported, publish the existing Client ID Metadata
+  Document (CIMD) and mutual-TLS capability metadata defined by {{CIMD}}
+  and {{RFC8705}}.
+
+### Client Metadata {#client-metadata}
+
+A client SHOULD advertise each supported governed profile URI in
+`authorization_grant_profiles_supported` in its authoritative client
+metadata under {{Section 8 of ID-JAG}}, including when supplied through
+CIMD. Its `grant_types` MUST permit:
+
+* `urn:ietf:params:oauth:grant-type:token-exchange` at the IdP.
+* `urn:ietf:params:oauth:grant-type:jwt-bearer` at the RAS.
+
+### Capability Discovery {#capability-discovery}
+
+Before using either grant path:
+
+* **Issuance support:** The client and IdP MUST agree through trusted
+  configuration on issuance support and any options. Generic JWT or
+  authentication-method support is insufficient.
+* **RAS capabilities:** The client MUST verify the RAS's profile
+  advertisement, JWT bearer grant support, and compatible access-token
+  protection. If no supported profile satisfies the configured minimum,
+  the client MUST NOT initiate that path.
+* **Metadata consistency:** For delegated access, if the
+  `actor_profile_token_exchange` parameter of
+  {{Section 16.2 of ACTOR-PROFILE}} is published, it MUST describe only
+  the paths actually supported and agree with the ID-JAG advertisement.
 
 # Implementation Considerations {#implementation}
 
@@ -2175,7 +2308,7 @@ rules of the source that supplies them ({{evidence}},
 {{redemption-validation}}, {{metadata}}).
 
 Discovery exposes capabilities, not these authorization decisions
-({{discovery}}). Bindings, associations, delegation, and local links
+({{metadata}}). Bindings, associations, delegation, and local links
 have no discovery mechanism here.
 
 Creating and changing bindings and associations, including imports from
@@ -2409,145 +2542,6 @@ token type `urn:ietf:params:oauth:token-type:wag` or JWT type
 coordination ({{wag-gaps}}).
 
 --- back
-
-# Agent Resolution Input Profiles {#input-profiles}
-
-| Input | Qualified identity | Reference |
-|---|---|---|
-| Dedicated client | Trusted assertion issuer and exact client `sub` | {{client-assertion-input}} |
-| Existing platform JWT | Approved issuer, exact `sub`, and configured additional selectors | {{imported-jwt-input}} |
-{: title="Agent-resolution inputs and qualified identities"}
-
-The IdP client-registration context qualifies a dedicated client's
-identity. The existing platform JWT uses presented-evidence mode; the
-dedicated client uses authentication-context mode. {{INPUTS}} defines
-further inputs.
-
-## Required Input Profiles {#mandatory-input-profiles}
-
-This normative appendix defines the two inputs that {{scope}}
-requires: dedicated-client identity, mandatory to implement, and the
-existing platform JWT, required for a claim of generic shared-client
-interoperability. Each
-satisfies the interface contract of {{evidence}}.
-
-### Dedicated Client Identity {#client-assertion-input}
-
-In this explicitly configured mode, the IdP resolves the client identity
-validated during client authentication to its explicitly bound Agent
-Principal. No separate platform-issued credential is needed. The
-assertion authenticates the client and is not independent workload
-evidence ({{dedicated-client-coordination}}). This mode does not
-distinguish agents behind one shared client identity. Such a client MUST
-use a supported workload-identity input that distinguishes its agents
-({{imported-jwt-input}}). {{client-assertion-example}} illustrates this
-input.
-
-* **Presentation:** An asymmetrically signed `client_assertion` under
-  {{RFC7523}}. For `private_key_jwt`, the common method, the assertion
-  issuer and subject are the client's registered identifier
-  (Section 9 of {{OPENID}}); other configured asymmetric RFC 7523
-  methods MAY be supported.
-* **Validation:** The IdP authenticates the client under
-  {{Section 3 of RFC7523}} and its configured authentication method.
-  It MUST use verification keys authorized for that client and
-  assertion issuer. Assertion-supplied keys or issuer claims MUST NOT
-  establish trust.
-* **Resolution:** The IdP MUST resolve the exact validated (`iss`,
-  `sub`) in its client-registration context under {{identity-binding}}.
-  An additional agent claim in a self-signed client assertion MUST NOT
-  select another Agent Principal under this input.
-* **Audience:** RFC 7523 client authentication at the IdP and the RAS
-  MUST follow {{Section 4 of RFC7523bis}}: `aud` has the authorization
-  server's issuer identifier as its sole value, never its token endpoint
-  URL, and the server rejects any other audience. This profile adds no
-  alternative audience configuration and leaves other credential
-  classes' audience rules unchanged.
-* **Proof:** Assertion signing neither binds the grant to the signing
-  key nor establishes an attested runtime identity. Grant proof
-  processing follows {{grant-protection}} independently, and the DPoP
-  key MAY differ from the client-authentication key. An assertion
-  carrying `cnf` MUST NOT be accepted unless its configured
-  authentication method defines and validates the corresponding proof.
-* **Replay:** These rules narrow the base specifications and prohibit
-  negotiated assertion reuse. The assertion MUST contain a `jti`. The
-  IdP and the RAS MUST each reject reuse in another request while the
-  assertion remains acceptable; a reused assertion fails client
-  authentication. Replay identifiers MUST be qualified by the validated
-  issuer and client.
-* **Retry:** For any retry of a dedicated-client token request at either
-  server, including after a `use_dpop_nonce` challenge under
-  {{Section 8 of RFC9449}}, the client MUST generate a new
-  `client_assertion` with a fresh `jti`. For a nonce retry, the client
-  MUST also generate a fresh DPoP proof containing the supplied nonce
-  while retaining the grant proof key. A new DPoP proof alone is not
-  enough, because the server may already have consumed the previous
-  assertion during authentication.
-
-### Existing Platform JWT {#imported-jwt-input}
-
-This common shared-client input accepts existing signed platform JWTs as
-issued, with no new media type or reissuance. {{scope}} states when it
-is required, and {{aws-example}} gives an AWS STS example. The IdP MUST
-accept a platform JWT only when its issuer, credential class, and the
-authenticated client are explicitly configured together. Credential
-classification and rejection follow {{actor-inputs}}.
-
-* **Configuration:** Configuration MUST also specify:
-  * the credential class: the rule distinguishing workload credentials
-    from user, management-API, or other tokens of the same issuer,
-    namely an explicit `typ`, a dedicated issuer, or an accepted
-    audience combined with exact selectors;
-  * approved keys or an approved HTTPS JWK Set URI under {{RFC7517}},
-    retrieved with server authentication;
-  * the issuer's permitted asymmetric algorithms;
-  * the effective evidence deadline, the permitted clock skew for a
-    future issuance time, and any maximum age; and
-  * the audiences that authorize presentation to this IdP as workload
-    evidence.
-
-* **Presentation:** `actor_token` in delegated issuance and
-  `subject_token` in self-acting issuance ({{wag-request}}); the client
-  authenticates separately with a configured method. An accepted JWT
-  MUST NOT be treated as OAuth client authentication unless it
-  independently satisfies a configured client authentication method.
-* **Validation:** The IdP MUST validate the JWT under {{RFC7519}},
-  {{RFC8725}}, and the configured credential profile. Keys or URLs in
-  the JWT MUST NOT override the approved key source. The IdP MUST
-  determine the effective evidence deadline from `exp`, a configured
-  maximum age measured from an authenticated issuance time (such as
-  `iat`), or both. When both apply, the earlier deadline governs.
-  Receipt time MUST NOT substitute for issuance time. The deadline
-  bounds grant expiration ({{grant-common}}).
-* **Resolution:** The Identity Binding MUST specify an exact issuer and
-  `sub`. It MAY require additional string values from the JWT Claims
-  Set, including nested claims. Selectors constrain identity
-  resolution, not the administrative configuration format. Additional
-  selectors MUST use the JSON Pointer string representation in
-  {{Section 5 of RFC6901}}, evaluated from the Claims Set root under
-  {{Section 4 of RFC6901}}:
-  * Every selector MUST resolve unambiguously to a string equal to its
-    configured value, without type conversion, case folding, or Unicode
-    normalization. Missing paths, evaluation errors, non-string values,
-    or unequal values MUST prevent that binding from matching.
-  * Selectors MUST NOT use wildcard, prefix, or pattern matching, and
-    MUST NOT replace the exact issuer and `sub` checks.
-  * A caller-controlled claim MUST NOT distinguish agents unless trusted
-    issuance policy constrains its values to identities the caller is
-    authorized to assert. A signature alone does not establish that
-    authority for request tags or other caller-supplied attributes.
-* **Audience:** The configured audiences authorize presentation to this
-  IdP as workload evidence (**Configuration**). The IdP MUST reject a
-  platform JWT whose `aud` is absent or contains none of them.
-* **Proof:** This profile defines no new proof mechanism. If `cnf` is
-  present, the IdP MUST enforce its proof mechanism and MUST NOT give
-  the credential bearer treatment when the binding is unsupported. A
-  deployment accepting key-bound JWTs MUST configure their proof
-  validation and any required relationship to the grant proof key.
-  Bearer platform JWTs fall under {{credential-requirements}}.
-* **Failure:** The IdP MUST reject evidence with `invalid_grant` if a
-  required time limit cannot be evaluated or no effective evidence
-  deadline can be determined.
 
 # Worked Exchanges and Input Variants {#examples}
 

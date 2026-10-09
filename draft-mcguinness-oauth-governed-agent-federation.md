@@ -130,7 +130,7 @@ informative:
   SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth
 --- abstract
 
-Service providers need a stable identity for an enterprise-governed agent
+Resource domains need a stable identity for an enterprise-governed agent
 without understanding the runtime, workload credential, or OAuth client
 through which it executes. Enterprises govern such agents independently
 of those platforms, workloads, and clients.
@@ -333,14 +333,11 @@ API (resource server):
 
 One service can implement several roles.
 
-Two companion profiles complete the family and define their own
-administrative roles. {{AGENT-MANAGEMENT}} establishes the relationships
-at the IdP, and {{AGENT-LIFECYCLE}} carries the principal's
-administrative state into the resource domain and revokes what depends
-on it. In those System for Cross-domain Identity Management (SCIM)
-profiles, "Service Provider" alone denotes the
-IdP-side SCIM service. The Service Provider Contract ({{sp-contract}})
-concerns the resource domain.
+Two companion System for Cross-domain Identity Management (SCIM)
+profiles complete the family and define their own administrative roles.
+{{AGENT-MANAGEMENT}} establishes the relationships at the IdP, and
+{{AGENT-LIFECYCLE}} carries the principal's administrative state into
+the resource domain and revokes what depends on it.
 
 ## Terms {#terms}
 
@@ -442,7 +439,7 @@ Client Associations ({{identity-binding}}).
 Establishing one relationship MUST NOT be treated as establishing
 another.
 
-## Service Provider Contract {#sp-contract}
+## Resource Domain Contract {#sp-contract}
 
 The mapping from execution identity to Agent Principal is local to the
 IdP. The security contract across the boundary between the IdP and the

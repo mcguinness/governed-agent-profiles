@@ -1703,15 +1703,15 @@ Self-acting WAG (excerpt):
 no permission, owning an agent does not establish a user's delegation to
 it, and how far and how fast disablement propagates depends on the
 lifecycle mechanism a deployment selects, such as <span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span>.<a href="#section-1.1-10" class="pilcrow">¶</a></p>
-<p id="section-1.1-11">Every implementation supports a dedicated client: one OAuth client per
-agent, authenticating with <code>private_key_jwt</code>, so that client
+<p id="section-1.1-11">Clients and IdPs support dedicated-client resolution: one OAuth client
+per agent, authenticating with <code>private_key_jwt</code>, so that client
 authentication identifies the agent (<a href="#client-assertion-input" class="auto internal xref">Section 5.3.2</a>). For
-delegated access, the mandatory subject credential is the user's ID
-Token. A platform that keeps one shared client instead presents an
-existing platform JWT naming the agent's workload with each request
-(<a href="#imported-jwt-input" class="auto internal xref">Section 5.3.3</a>; <a href="#aws-example" class="auto internal xref">Appendix A.2.1</a> shows one). An implementation
-that claims interoperability with shared clients supports that input
-(<a href="#scope" class="auto internal xref">Section 9.1</a>).<a href="#section-1.1-11" class="pilcrow">¶</a></p>
+delegated access, they also support ID Token subjects. Deployments may
+use other mutually supported inputs. The existing platform JWT input is
+required for generic shared-client interoperability; when used, it
+accompanies each grant-issuance request to the IdP
+(<a href="#imported-jwt-input" class="auto internal xref">Section 5.3.3</a>; <a href="#aws-example" class="auto internal xref">Appendix A.2.1</a> shows one). Conformance follows
+<a href="#scope" class="auto internal xref">Section 9.1</a>.<a href="#section-1.1-11" class="pilcrow">¶</a></p>
 <p id="section-1.1-12"><a href="#model" class="auto internal xref">Section 3</a> and <a href="#common-rules" class="auto internal xref">Section 4</a> apply to every role. The IdP's processing
 is in <a href="#issuance" class="auto internal xref">Section 5</a>, the RAS's in <a href="#redemption" class="auto internal xref">Section 6</a>, and the API's in
 <a href="#api-processing" class="auto internal xref">Section 7</a>. <span>[<a href="#GUIDE" class="cite xref">GUIDE</a>]</span> adds a primer and the configuration each

@@ -315,15 +315,14 @@ Table of Contents
    depends on the lifecycle mechanism a deployment selects, such as
    [AGENT-LIFECYCLE].
 
-   Every implementation supports a dedicated client: one OAuth client
-   per agent, authenticating with private_key_jwt, so that client
+   Clients and IdPs support dedicated-client resolution: one OAuth
+   client per agent, authenticating with private_key_jwt, so that client
    authentication identifies the agent (Section 5.3.2).  For delegated
-   access, the mandatory subject credential is the user's ID Token.  A
-   platform that keeps one shared client instead presents an existing
-   platform JWT naming the agent's workload with each request
-   (Section 5.3.3; Appendix A.2.1 shows one).  An implementation that
-   claims interoperability with shared clients supports that input
-   (Section 9.1).
+   access, they also support ID Token subjects.  Deployments may use
+   other mutually supported inputs.  The existing platform JWT input is
+   required for generic shared-client interoperability; when used, it
+   accompanies each grant-issuance request to the IdP (Section 5.3.3;
+   Appendix A.2.1 shows one).  Conformance follows Section 9.1.
 
    Section 3 and Section 4 apply to every role.  The IdP's processing is
    in Section 5, the RAS's in Section 6, and the API's in Section 7.

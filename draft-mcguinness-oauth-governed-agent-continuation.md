@@ -876,11 +876,13 @@ A continuation-aware RAS lists, in `authorization_grant_profiles_supported`
 The requirement of {{Section 7.2 of ICA}} to advertise the `jwt-dpop`
 grant type does not apply.
 
-The IdP advertises `identity_continuation_supported`
-({{Section 7.1 of ICA}}). Support for self-acting continuation is
-established through trusted configuration ("Capability Discovery" in
-{{FEDERATION}}); no IdP metadata advertises it. Advertisement indicates
-capability and does not authorize continuation.
+An IdP that supports delegated continuation advertises
+`identity_continuation_supported` ({{Section 7.1 of ICA}}), which
+indicates continuation-capable ID-JAG issuance; an IdP that supports
+only self-acting continuation does not. Support for self-acting
+continuation is established through trusted configuration ("Capability
+Discovery" in {{FEDERATION}}); no IdP metadata advertises it.
+Advertisement indicates capability and does not authorize continuation.
 
 # Security Considerations {#security}
 

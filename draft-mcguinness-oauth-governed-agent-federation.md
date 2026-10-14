@@ -2832,7 +2832,8 @@ documented in {{AWS-TOKEN-CLAIMS}}. The Identity Binding names:
 
 * the configured STS issuer as credential authority;
 * the exact `sub` `arn:aws:iam::123456789012:role/AgentRuntime`;
-* the accepted audience `https://idp.example/token`; and
+* the accepted audience `https://idp.example/`, the IdP's issuer
+  identifier; and
 * the selector `/https:~1~1sts.amazonaws.com~1/aws_account` equal to
   `123456789012`.
 

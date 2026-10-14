@@ -769,9 +769,13 @@ the request it is continuing.
 "Client Token Reuse" in {{FEDERATION}} applies to every onward grant and
 downstream access token the gateway holds: it reuses one only for a
 request in the same agent, user, tenant, target, authority, and proof
-context. A gateway SHOULD also keep downstream tokens separate for each
-source hop, so that continuation and revocation follow the chain on
-which each request arrived ({{Section 8 of ICA}}).
+context. The gateway MUST also reuse one only for a request that
+arrived on the same source hop. Two chains can share all of that
+context yet differ in root binding, credential, anchor, and
+revocation, so serving one chain's request with a token obtained on
+another would let it continue after its own chain had ended
+({{Section 8 of ICA}}). Each source hop therefore needs its own
+continuation, once for each target.
 
 The no-fallback rule of "Profile Applicability and Downgrade
 Prevention" in {{FEDERATION}} applies to a continuing client. After the
@@ -1298,6 +1302,7 @@ checks succeed.
 | Governed agent access: the root ID-JAG has no `cnf`, the agent's client redeems it without a DPoP proof, GatewayRAS issues a bearer access token, and no policy permits continuation from it | CAI | HTTP 400, `invalid_request`; the authorization is not eligible for continuation |
 | The gateway redeems the onward ID-JAG without a proof of G | Target RAS | HTTP 400, `invalid_grant` |
 | The gateway holds the target token for `agent-42` and receives a request for another agent with the same scope | Gateway | Continues that agent's own chain; a matching scope does not permit reuse |
+| The gateway holds the target token obtained under H0 and receives a request from `agent-42` for Alice with the same scope on another chain | Gateway | Continues that chain from its own access token; the token obtained under H0 is not reused, so the other chain's ending applies to its requests |
 {: title="Negative test cases"}
 
 # Design Rationale {#rationale}

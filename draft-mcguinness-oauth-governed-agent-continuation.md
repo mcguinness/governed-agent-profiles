@@ -504,13 +504,16 @@ A continuation-aware RAS selects access-token protection under
 "Access-Token Protection" in {{FEDERATION}}, including for a
 continuation-capable grant that carries `cnf`. For such a grant, this
 replaces step 3 of {{Section 5.2 of ICA}}, which permits only a
-DPoP-bound access token. Instead, the RAS MUST NOT record an
-authorization as eligible for continuation when it issued a bearer
-access token for that authorization, unless resource policy explicitly
-permits continuation from bearer access tokens for that client and
-resource. A hop therefore remains sender-constrained from the RAS to
-the continuing client unless policy accepts the exposure that
-{{Section 9.1 of ICA}} describes.
+DPoP-bound access token.
+
+Whatever the grant's binding, the RAS MUST NOT record an authorization
+as eligible for continuation when it issued a bearer access token for
+that authorization, unless resource policy explicitly permits
+continuation from bearer access tokens for that client and resource.
+The usual case is an unbound root grant redeemed without a DPoP proof,
+as governed agent access permits. A hop therefore remains
+sender-constrained from the RAS to the continuing client unless policy
+accepts the exposure that {{Section 9.1 of ICA}} describes.
 
 The gateway is the API for its incoming access token. It applies
 "Access at the Resource Server" in {{FEDERATION}}, including the actor
@@ -1287,7 +1290,7 @@ checks succeed.
 | Alice's Delegation Authorization does not cover the requested resource | IdP | HTTP 400, `invalid_target`; the chain stays continuable to other targets |
 | `agent-42`'s client stops obtaining WAGs, and its agent session passes the idle timeout while the gateway keeps continuing | IdP | HTTP 400, `invalid_continuation`; continuations do not keep the session active |
 | Two `resource` parameters in the continuation request | IdP | HTTP 400, `invalid_target` |
-| The gateway resource is configured for bearer access tokens, GatewayRAS issues one for the root, and no policy permits continuation from it | CAI | HTTP 400, `invalid_request`; the authorization is not eligible for continuation |
+| Governed agent access: the root ID-JAG has no `cnf`, the agent's client redeems it without a DPoP proof, GatewayRAS issues a bearer access token, and no policy permits continuation from it | CAI | HTTP 400, `invalid_request`; the authorization is not eligible for continuation |
 | The gateway redeems the onward ID-JAG without a proof of G | Target RAS | HTTP 400, `invalid_grant` |
 | The gateway holds the target token for `agent-42` and receives a request for another agent with the same scope | Gateway | Continues that agent's own chain; a matching scope does not permit reuse |
 {: title="Negative test cases"}

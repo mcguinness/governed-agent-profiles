@@ -517,9 +517,9 @@ The common parameters and rules of "Token Exchange Request" in
 
 The continuing client selects `requested_token_type` by the acting
 relationship it determined for the received access token when it
-processed that token as the API ("Profile Applicability" in
-{{FEDERATION}}). `authorization_details` is processed as in
-{{FEDERATION}}.
+processed that token as the API ("Profile Applicability" under
+"Access at the Resource Server" in {{FEDERATION}}).
+`authorization_details` is processed as in {{FEDERATION}}.
 
 ## Validation {#continuation-validation}
 
@@ -696,8 +696,8 @@ A gateway deployment adds this configuration to that of {{FEDERATION}}:
 {: title="Configuration added by a gateway deployment"}
 
 Where a target RAS distinguishes delegated and self-acting tokens by
-client registration ("Profile Applicability" in {{FEDERATION}}), the
-IdP's association from the gateway's IdP client to its registration at
+client registration ("Profile Applicability" under "Access at the
+Resource Server" in {{FEDERATION}}), the IdP's association from the gateway's IdP client to its registration at
 that RAS selects by the chain's acting relationship.
 
 ## Topologies {#gateway-topologies}

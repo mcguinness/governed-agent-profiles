@@ -630,9 +630,12 @@ The onward ID-JAG uses the format and claims of
 | `auth_time`, `acr`, `amr` | Copied unchanged from the root, as {{Section 5.5.5 of ICA}} requires |
 {: title="Onward ID-JAG subject, actor, and client claims"}
 
-Of {{Section 5.5.5 of ICA}}, only the copying of authentication context
-applies. {{identity-preservation}} replaces its actor construction, and
-{{target-processing}} its redemption.
+{{Section 5.5.5 of ICA}} applies to the onward ID-JAG and to the IdP's
+hop records, including immutable parent references, ancestry that
+excludes sibling branches, and the merging of consecutive identical
+actors that the actor-lineage depth bound counts. Two of its rules are
+replaced: {{identity-preservation}} replaces the `act` it emits, and
+{{target-processing}} its redemption grant type.
 
 ### Self-Acting: WAG {#onward-wag}
 

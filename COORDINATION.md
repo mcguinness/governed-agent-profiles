@@ -191,7 +191,7 @@ exclusion does not prevent the independently supported uses listed here.
 | Composition | Boundary in this document |
 |---|---|
 | Asynchronous approval with `AROP` | No approval transport or completion flow; external approval remains subject to `external-approval` and the lifetime limits in `authorization-lifetime` |
-| Continuation with `ICA` | No ICA issuance or continuation chain; supported renewal follows `continuing-access` |
+| Continuation with `ICA` | Defined for governed grants in the continuation companion (`CONTINUATION`, below); renewal without continuation follows `continuing-access` |
 | General WIMSE WIT/WIC inputs | WIT-SVID and X.509-SVID resolution is defined in `spiffe-input` of `INPUTS`; non-SPIFFE credentials need an explicit OAuth presentation and proof composition |
 | Instance context carried in an ID-JAG or WAG, or preserved across domains, under `INSTANCE` | The RAS conveys only an instance it validated (`access-token-response`); instances resolve the agent only through a managed-installation binding (`agent-evidence` of `INPUTS`). Preservation would need this profile to define provenance and association under Section 7.4 of `INSTANCE` |
 | Mutual-TLS-bound ID-JAG | Bound grants use DPoP. Mutual TLS remains available for access-token protection under `access-token-protection` |
@@ -214,6 +214,77 @@ states the limits of missed-event recovery and token enforcement. Stronger
 guarantees across unobserved transitions require an additional composition.
 The companion is not required for conformance to this federation profile;
 `agent-correlation` and `status-changes` state this document's guarantees.
+
+## Identity Continuation Companion
+
+`draft-mcguinness-oauth-governed-agent-continuation.md` (`CONTINUATION`)
+profiles ICA-02 for governed chains, with gateways as the primary
+deployment. Its "Dependencies and Open Items" appendix summarizes these
+notes. Backquoted anchors in this section refer to that draft.
+
+### ICA
+
+The companion replaces or extends these ICA-02 rules for governed chains
+(`relationship-to-ica`). Each is either a candidate change to ICA or a
+rule that stays local to the profile:
+
+* **Onward actor:** Section 5.5.5 of ICA places the current actor atop
+  IdP-derived lineage in the onward `act`. Governed chains keep the
+  Agent Principal as the only actor (ID-JAG) or as the subject (WAG),
+  and the continuing client is `client_id` (`identity-preservation`).
+  The core requires one `act` with no nesting at the RAS and API, and a
+  WAG carries no `act`, so the ICA form cannot reach a governed target.
+  Decision for ICA: let a profile replace lineage disclosure, or define
+  a disclosure claim that does not make continuing clients actors
+  (open item 1 of the companion).
+* **Non-user anchors:** Section 6.1 of ICA puts non-user-rooted
+  authority out of scope. Self-acting chains anchor to the Agent
+  Authorization with an absolute expiration (`self-acting-root`). ICA
+  could generalize anchors or leave non-user roots to profiles.
+* **WAG chains:** ICA issues only ID-JAGs. The companion issues onward
+  WAGs and registers the `wag-continuation` grant-profile value.
+* **Redemption grant type:** Section 5.5.5 of ICA redeems onward
+  ID-JAGs with `jwt-dpop`, citing Section 9.8.1.2.1 of ID-JAG. Section
+  4.4 of ID-JAG-04 requires `jwt-bearer`, and `jwt-dpop` appears only in
+  the key-bound example; JWT DPoP Grant -01 expired in August 2026. The
+  companion redeems with `jwt-bearer` and the core's confirmation
+  checks, and drops the requirement of Section 7.2 of ICA to advertise
+  `jwt-dpop`.
+* **Access-token protection:** Step 3 of Section 5.2 of ICA requires a
+  DPoP-bound access token for a grant carrying `cnf`. The companion
+  also permits a certificate-bound token where configuration selects
+  mutual TLS, keeping the core's protection modes, and never a bearer
+  token (`root-redemption`).
+* **Bearer ingress:** ICA tracks this as issue #110. The companion
+  records no continuation eligibility for a bearer access token without
+  explicit policy (`root-redemption`).
+* **Root `actor_token`:** Section 5.1.1 of ICA leaves `actor_token`
+  processing on the root exchange out of scope. The governed root uses
+  the core's presented-evidence mode (`delegated-root`).
+* **Request narrowing:** Exactly one `resource` and a required `scope`,
+  from the core. Local to the profile; no ICA change needed.
+
+### WAG
+
+* A WAG that carries `identity_continuation_handle`, and a WAG issued by
+  an IdP on a continuation exchange rather than from the Platform's own
+  assertion (Section 2 of WAG).
+* Advertising `wag-continuation` in ID-JAG's
+  `authorization_grant_profiles_supported`, as for the core's
+  self-acting profile URIs (`wag-gaps` in the core).
+
+### Management
+
+`AGENT-MANAGEMENT` administers Client Associations only. Continuation
+Associations (`continuation-association`) need a resource or an
+association dimension there before SCIM can administer them.
+
+### References
+
+The companion references the core and ICA normatively. The core
+references the companion informatively, from its "Continuation with
+ICA" row of Excluded Compositions, because the core does not depend on
+it. No publication cluster forms.
 
 ## Family Structure
 

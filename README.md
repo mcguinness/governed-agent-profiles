@@ -2,7 +2,7 @@
 
 # Governed Agent Profiles
 
-This is the working area for five related Internet-Drafts on governing
+This is the working area for six related Internet-Drafts on governing
 agents across platform, identity-provider, and resource-domain boundaries,
 and an [implementer's guide](docs/implementers-guide.md) to the federation
 profile.
@@ -36,6 +36,7 @@ shared client is acting for.
 |---|---|
 | [OAuth 2.0 Profile for Governed Agent Federation](#oauth-20-profile-for-governed-agent-federation) | Resolves client and workload identities to a stable Agent Principal and carries it into a resource domain |
 | [Agent Resolution Input Profiles for Governed Agent Federation](#agent-resolution-input-profiles-for-governed-agent-federation) | Optional SPIFFE and Client Attestation inputs, including managed-installation resolution |
+| [Identity Continuation Profile for Governed Agent Federation](#identity-continuation-profile-for-governed-agent-federation) | Carries the same Agent Principal through gateways to further resource domains, for delegated and self-acting access |
 | [SCIM Profile for Governed Agent Federation Management](#scim-profile-for-governed-agent-federation-management) | Platform-to-IdP management of Agent Principals, Identity Bindings, and Client Associations |
 | [Governed Agent Lifecycle Profile for SCIM and OAuth](#governed-agent-lifecycle-profile-for-scim-and-oauth) | IdP-to-resource-domain provisioning, administrative disablement, and session revocation |
 | [SCIM Profile for OAuth 2.0 Client Management](#scim-profile-for-oauth-20-client-management) | Generic SCIM management of OAuth client registrations, including CIMD clients |
@@ -128,8 +129,9 @@ lifetime limits. Existing SSO refresh tokens do not automatically authorize
 downstream resources. Client instances and attester endorsements compose
 with the governed agent: an instance resolves an agent only through an
 exact, approved installation binding, and an endorsement never creates a
-binding. Key transition and Identity Continuation Assertion compositions
-remain deferred.
+binding. Key transition remains deferred; continuation through gateways is
+defined in the [identity continuation
+companion](#identity-continuation-profile-for-governed-agent-federation).
 
 * [Editor's Copy](https://mcguinness.github.io/governed-agent-profiles/#go.draft-mcguinness-oauth-governed-agent-federation.html)
 * [Implementer's Guide](docs/implementers-guide.md)
@@ -151,6 +153,41 @@ JWT-SVID client authentication to follow this companion, the two drafts
 reference each other normatively and are published together.
 
 * [Editor's Copy](https://mcguinness.github.io/governed-agent-profiles/#go.draft-mcguinness-oauth-governed-agent-inputs.html)
+
+## Identity Continuation Profile for Governed Agent Federation
+
+An agent often reaches tools through a gateway, such as a Model Context
+Protocol (MCP) gateway, that selects a tool at request time and calls it in
+another resource domain. The gateway holds neither the user's credential nor
+the agent's. Calling the tool with the gateway's own identity would make every
+agent behind it look the same: the shared-client problem again.
+
+This companion profiles the Identity Continuation Assertion (ICA) for governed
+agents. The gateway's authorization server attests that it accepted the
+agent's grant, and the gateway exchanges that attestation at the IdP for an
+onward grant to the tool's RAS. The onward grant names the same Agent
+Principal, and for delegated access the same user, as the grant the gateway
+received. The gateway is the grant's client, never an added actor, so a RAS
+and API that implement the federation draft accept the grant unchanged.
+
+| Chain | Root grant | Onward grant |
+|---|---|---|
+| Delegated | Governed ID-JAG | ID-JAG with the user as subject and the same agent as the only actor |
+| Self-acting | Governed WAG | WAG with the same agent as subject |
+
+The companion extends ICA to self-acting chains, which have no user: such a
+chain is anchored to the agent's own authorization and has an absolute
+expiration. A gateway needs a Continuation Association, separate from any
+Client Association, to continue an agent's chains. A chain ends when the
+agent, the root Identity Binding or Client Association, or the authorization
+the chain was rooted under is withdrawn, and continuation never turns a
+delegated chain into self-acting access or the reverse.
+
+The companion references the federation draft normatively. The federation
+draft references it informatively, so it adds no publication cluster.
+
+* [Identity continuation profile source](draft-mcguinness-oauth-governed-agent-continuation.md)
+* [Identity continuation editor's copy](https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html)
 
 ## SCIM Profile for Governed Agent Federation Management
 

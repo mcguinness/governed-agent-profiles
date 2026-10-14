@@ -250,14 +250,21 @@ rule that stays local to the profile:
   companion redeems with `jwt-bearer` and the core's confirmation
   checks, and drops the requirement of Section 7.2 of ICA to advertise
   `jwt-dpop`.
-* **Access-token protection:** Step 3 of Section 5.2 of ICA requires a
-  DPoP-bound access token for a grant carrying `cnf`. The companion
-  also permits a certificate-bound token where configuration selects
-  mutual TLS, keeping the core's protection modes, and never a bearer
-  token (`root-redemption`).
-* **Bearer ingress:** ICA tracks this as issue #110. The companion
-  records no continuation eligibility for a bearer access token without
-  explicit policy (`root-redemption`).
+* **Access-token protection and bearer ingress:** Step 3 of Section 5.2
+  of ICA requires a DPoP-bound access token for a continuation-capable
+  grant carrying `cnf`; ICA tracks bearer ingress as issue #110. The
+  companion keeps the core's protection selection (DPoP, mutual TLS, or
+  configured bearer) and instead records no continuation eligibility
+  for a bearer access token without explicit policy
+  (`root-redemption`). Bearer-only MCP clients therefore need that
+  policy to start a chain.
+* **Retry fingerprint:** Section 5.5.7.1 of ICA fingerprints a retry
+  without the requested token type, because ICA issues only ID-JAGs.
+  With two grant types the companion adds `requested_token_type`.
+* **Errors:** The companion uses the codes of Section 5.5.6 of ICA for
+  both chain types, placing each governed check in one of ICA's
+  validation rules (`continuation-errors`). It does not use the core's
+  `actor_unauthorized` or `invalid_grant` for continuation failures.
 * **Root `actor_token`:** Section 5.1.1 of ICA leaves `actor_token`
   processing on the root exchange out of scope. The governed root uses
   the core's presented-evidence mode (`delegated-root`).
@@ -277,7 +284,9 @@ rule that stays local to the profile:
 
 `AGENT-MANAGEMENT` administers Client Associations only. Continuation
 Associations (`continuation-association`) need a resource or an
-association dimension there before SCIM can administer them.
+association dimension there before SCIM can administer them, and a
+Delegation or Agent Authorization needs a way to record its permission
+to continue (`chain-establishment`).
 
 ### References
 

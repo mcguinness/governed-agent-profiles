@@ -99,7 +99,8 @@ resolve to it; they do not replace it downstream. Three consequences follow:
 
 The scope is deliberately narrow: an agent governed by the IdP that issues
 the grant, federated into a resource domain. Identity continuity across a
-chain of IdPs or brokers is out of scope.
+chain of IdPs or brokers is out of scope; the identity continuation
+companion carries the agent through gateways that trust the same IdP.
 
 Each grant has its own mandatory path, and an implementation claims one or
 both. Delegated access uses an ID Token issued for the dedicated client,
@@ -177,8 +178,10 @@ and API that implement the federation draft accept the grant unchanged.
 
 The companion extends ICA to self-acting chains, which have no user: such a
 chain is anchored to the agent's own authorization and has an absolute
-expiration. A gateway needs a Continuation Association, separate from any
-Client Association, to continue an agent's chains. A chain ends when the
+expiration. A chain exists only when the user's delegation, or the agent's
+own authorization, permits continuation through other clients. A gateway
+also needs a Continuation Association, separate from any Client
+Association, to continue an agent's chains. A chain ends when the
 agent, the root Identity Binding or Client Association, or the authorization
 the chain was rooted under is withdrawn, and continuation never turns a
 delegated chain into self-acting access or the reverse.

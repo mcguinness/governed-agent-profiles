@@ -1449,7 +1449,7 @@ with:
 These values MUST come from the approved mapping, even when source and
 governed identifiers coincide. For presented-evidence inputs this
 replaces credential-to-actor copying in
-{{Section 6.3 of ACTOR-PROFILE}}.
+{{Section 6.4 of ACTOR-PROFILE}}.
 
 The object MUST follow {{Section 3.4 of ACTOR-PROFILE}}, including its
 `sub_profile` recommendation and unclassified-actor rules. Any
@@ -1775,7 +1775,7 @@ User-account links have these constraints:
 The RAS MUST preserve the complete validated
 `act` object, including `iss`, `sub`, and any `sub_profile`, in the
 access token or its introspection context under
-{{Section 3.6.3.2 of ACTOR-PROFILE}}. Preservation applies to JSON
+{{Section 3.6.2.2 of ACTOR-PROFILE}}. Preservation applies to JSON
 members and values, not to serialization, whitespace, or member order.
 The RAS:
 
@@ -2270,7 +2270,7 @@ Before using either grant path:
   the client MUST NOT initiate that path.
 * **Metadata consistency:** For delegated access, if the
   `actor_profile_token_exchange` parameter of
-  {{Section 16.2 of ACTOR-PROFILE}} is published, it MUST describe only
+  {{Section 10.1 of ACTOR-PROFILE}} is published, it MUST describe only
   the paths actually supported and agree with the ID-JAG advertisement.
 
 # Security Considerations {#security}
@@ -2852,7 +2852,7 @@ of this document ({{excluded-compositions}}).
 
 This informative appendix records dependencies and the compositions this
 document does not define. They were assessed against WAG-01, ID-JAG-04,
-ICA-02, Actor Profile-00, SPIFFE OAuth-02, ATTEST-11, CIMD-02, and Client
+ICA-02, Actor Profile-01, SPIFFE OAuth-02, ATTEST-11, CIMD-02, and Client
 Instance Identification-00.
 
 ## Upstream Dependencies
@@ -2861,7 +2861,7 @@ Instance Identification-00.
 |---|---|---|
 | WAG | Type registration; alignment on protection, linking, and subject presentation ({{wag-gaps}}) | Provisional type values |
 | ID-JAG | `jwt-bearer` in the bound-grant example, which uses `jwt-dpop`; confirmation errors distinct from RFC 9449 proof errors | Confirmation checks apply to `jwt-bearer` here ({{redemption-request}}); no dependency on JWT DPoP Grant |
-| Actor Profile | A reusable principal-resolution extension point; {{Section 6.3.1 of ACTOR-PROFILE}} permits authentication-context reuse only with the same assertion as `actor_token` | Local mapping ({{actor-construction}}); generic Token Exchange or Actor Profile support does not advertise resolution from authentication context |
+| Actor Profile | A reusable principal-resolution extension point; {{Section 6.4.1.2 of ACTOR-PROFILE}} permits authentication-context reuse only with the same assertion as `actor_token` | Local mapping ({{actor-construction}}); generic Token Exchange or Actor Profile support does not advertise resolution from authentication context |
 {: title="Upstream dependencies"}
 
 ### WAG {#wag-gaps}

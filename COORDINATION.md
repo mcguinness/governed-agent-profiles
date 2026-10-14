@@ -14,7 +14,7 @@ implementer's guide (`docs/implementers-guide.md`).
 
 These notes record dependencies and deferred work.
 Assessed revisions: WAG-01, ID-JAG-04, ICA-02, Actor
-Profile-00, SPIFFE OAuth-02, ATTEST-11, WIT-02, CIMD-02, Client Instance
+Profile-01, SPIFFE OAuth-02, ATTEST-11, WIT-02, CIMD-02, Client Instance
 Identification-00, Client Attester Endorsement-00, and WISE draft 03.
 
 ### Upstream Dependencies
@@ -23,7 +23,7 @@ Identification-00, Client Attester Endorsement-00, and WISE draft 03.
 |---|---|---|
 | WAG | Registration of the WAG token type and JWT type, and alignment on protection, linking, and subject presentation (`wag-gaps`) | The WAG token type and JWT type remain provisional values |
 | ID-JAG | Bound-grant example aligned with the normative `jwt-bearer` grant type, and grant-confirmation errors separated from RFC 9449 proof errors (below) | Confirmation checks are applied to `jwt-bearer` here |
-| Actor Profile | A reusable principal-resolution extension point separating credential validation, identity mapping, and actor construction; a grant-level condition for `jti` single use (below) | The mapping is defined locally in `actor-construction`; this profile states its own grant replay rule |
+| Actor Profile | A reusable principal-resolution extension point separating credential validation, identity mapping, and actor construction | The mapping is defined locally in `actor-construction` |
 
 #### WAG
 
@@ -84,11 +84,12 @@ profile decides by the grant's own binding (`redemption-common`): an
 unbound grant is single-use, and the RAS may accept a bound grant again
 under explicit policy with a fresh proof matching its `cnf.jkt`.
 
-Section 4.2 of ACTOR-PROFILE instead makes single use depend on whether
-the token endpoint requires DPoP or mutual TLS. That exempts an unbound
-grant redeemed with a DPoP proof that only binds the access token.
-Tracked in
-https://github.com/mcguinness/draft-mcguinness-oauth-actor-profile/issues/5.
+Resolved in Actor Profile-01
+(https://github.com/mcguinness/draft-mcguinness-oauth-actor-profile/issues/5):
+Section 4.2 of ACTOR-PROFILE now makes a grant without an enforced
+grant-level sender constraint single-use, and a proof used only for
+client authentication or to bind the issued token is not such a
+constraint. The two rules agree.
 
 #### Client Instance Identification
 
@@ -142,7 +143,7 @@ extensions (Section 9.7 of ID-JAG); its omission alone does not establish
 this composition.
 
 Appendix A.1 of `RFC8693` describes a subject-only request as
-impersonation. Section 6.3.1 of ACTOR-PROFILE permits authentication-context
+impersonation. Section 6.4.1.2 of ACTOR-PROFILE permits authentication-context
 reuse only when the same client assertion is also present as
 `actor_token`, and requires the client subject as `act.sub`.
 Neither defines these mapped authentication-context inputs.

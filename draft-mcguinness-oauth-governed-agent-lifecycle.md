@@ -502,12 +502,12 @@ interchangeable grant-issuance cutoffs under this profile.
 The RAS requirements that apply administrative state to authorization
 are specified in {{FEDERATION}}: checking current locally applied
 eligibility at redemption and refresh, retaining the association needed
-to invalidate authorization by qualified agent and Target Tenant, not
-letting refresh bypass a restriction or restore revoked authorization,
-and reporting revoked or disabled authorization as inactive under
-{{RFC7662}}. This document supplies the provisioning and signals that
-feed those decisions and adds no grant issuance-time claim or timestamp
-comparison. The optional capability in {{grant-revocation}} additionally
+to invalidate authorization by qualified agent and Target Tenant, and
+not letting refresh bypass a restriction or restore revoked
+authorization. Authorization invalidated under those rules is not active
+for token introspection {{RFC7662}}. This document supplies the
+provisioning and signals that feed those decisions and adds no grant
+issuance-time claim or timestamp comparison. The optional capability in {{grant-revocation}} additionally
 retains the ID-JAG issuer and `jti`. Once reactivated, the principal may
 establish new authorization under ordinary Federation processing,
 subject to {{missed-transitions}}. Existing tokens whose agent

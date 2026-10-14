@@ -177,8 +177,10 @@ and API that implement the federation draft accept the grant unchanged.
 | Self-acting | Governed WAG | WAG with the same agent as subject |
 
 The companion extends ICA to self-acting chains, which have no user: such a
-chain is anchored to the agent's own authorization and has an absolute
-expiration. A chain exists only when the user's delegation, or the agent's
+chain is anchored to an agent session at the IdP, which only the agent's own
+authentication keeps active and which ends at an idle timeout or an absolute
+expiration. A gateway's continuations cannot keep it alive, so the chains of
+an agent that stops end on their own. A chain exists only when the user's delegation, or the agent's
 own authorization, permits continuation through other clients. A gateway
 also needs a Continuation Association, separate from any Client
 Association, to continue an agent's chains. A chain ends when the

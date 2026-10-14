@@ -127,8 +127,8 @@ keep that invariant, this document:
   ({{relationship-to-ica}});
 * adds the Continuation Association, the IdP's permission for a client
   to continue an agent's chains ({{continuation-association}});
-* extends ICA to self-acting chains rooted in a WAG, with an anchor that
-  needs no user ({{self-acting-root}}); and
+* extends ICA to self-acting chains rooted in a WAG, anchored to an
+  agent session in place of a user session ({{self-acting-root}}); and
 * ends a chain when a governance relationship behind it ends
   ({{chain-ending}}).
 
@@ -268,6 +268,11 @@ Continuation Association:
   an Agent Principal's governed chains in one acting relationship
   ({{continuation-association}}).
 
+Agent session:
+: IdP state recording that an Agent Principal has recently
+  authenticated through one Identity Binding; the lifecycle anchor of
+  a self-acting chain ({{self-acting-root}}).
+
 Onward grant:
 : A governed ID-JAG or WAG issued on a continuation exchange.
 
@@ -347,7 +352,8 @@ For a governed chain, the IdP records in the chain authorization
 * the Governance Tenant;
 * the Delegation Authorization or Agent Authorization under which the
   root grant was issued; and
-* for a self-acting chain, its absolute expiration ({{self-acting-root}}).
+* for a self-acting chain, the agent session it is anchored to
+  ({{self-acting-root}}).
 
 Each fact is either fixed at the root or evaluated at every
 continuation:
@@ -355,7 +361,7 @@ continuation:
 | Fact | Treatment at continuation |
 |---|---|
 | Agent Principal, acting relationship, user, root client, and Governance Tenant | Fixed at the root; never resolved again |
-| Status of the Agent Principal, the user, the root Identity Binding, the root Client Association, the root credential, and the root authorization | Current state; a change listed in {{chain-ending}} ends the chain |
+| Status of the Agent Principal, the user or agent session, the root Identity Binding, the root Client Association, the root credential, and the root authorization | Current state; a change listed in {{chain-ending}} ends the chain |
 | Delegation or Agent Authorization for the requested target and authority | Current policy, within the chain authorization |
 | Continuation Association of the continuing client | Current policy |
 | Target Tenant, the user's subject at the target, and the continuing client's registration there | Resolved for each onward grant |
@@ -375,7 +381,7 @@ requirement.
 | Root exchange | Base ID-JAG exchange; `actor_token` processing out of scope ({{Section 5.1.1 of ICA}}) | Governed issuance under {{FEDERATION}} in either resolution mode ({{delegated-root}}) |
 | Root grant | ID-JAG | Governed ID-JAG or WAG |
 | Establishment | Chain authorization permits continuation ({{Section 5.1.2 of ICA}}) | Also requires the root's Delegation or Agent Authorization to permit continuation ({{chain-establishment}}) |
-| Anchors | User session or refresh-token grant; non-user roots out of scope ({{Section 6.1 of ICA}}) | Unchanged for delegated chains; the Agent Authorization anchor, with an absolute expiration, for self-acting chains ({{self-acting-root}}) |
+| Anchors | User session or refresh-token grant; non-user roots out of scope ({{Section 6.1 of ICA}}) | Unchanged for delegated chains; for self-acting chains, an agent session that only the agent's own authentication refreshes, ended by an idle timeout or absolute expiration ({{self-acting-root}}) |
 | Chain authorization | User, root actor, authentication context, anchor, restrictions | Adds the facts of {{governed-chain-authorization}} |
 | Who may continue | Chain authorization and current policy | Also a Continuation Association ({{continuation-association}}) |
 | Continuation request | Zero or more `resource`; optional `scope`; ID-JAG requested ({{Section 5.5.1 of ICA}}) | Exactly one `resource`; required `scope`; the chain's grant type ({{continuation-request}}) |
@@ -438,20 +444,50 @@ follows "Self-Acting Issuance: WAG" in {{FEDERATION}} and carries the
 root handle, which the IdP generates under rules 1 and 2 of
 {{Section 4 of ICA}}.
 
-The lifecycle anchor of a self-acting chain, the Agent Authorization
-anchor, is the Agent Authorization under which the root WAG was issued.
-For these chains, it replaces the user-rooted anchors of
-{{Section 6.1 of ICA}}; the prohibition there on rooting a chain from an
-access token still applies.
+The lifecycle anchor of a self-acting chain is an agent session: IdP
+state recording that the Agent Principal has recently authenticated
+through one Identity Binding. For these chains, it replaces the
+user-rooted anchors of {{Section 6.1 of ICA}}; the prohibition there on
+rooting a chain from an access token still applies. The agent session
+shows whether the agent is still present. The Agent Authorization in
+the chain authorization ({{governed-chain-authorization}}) governs what
+the chain may do; it is not the anchor.
 
-No session ends a self-acting chain. The IdP MUST therefore set an
-absolute expiration for each self-acting chain at establishment, no
-later than a finite configured maximum chain lifetime, and MUST NOT
-extend it. A chain past that expiration has ended ({{chain-ending}}),
-and the gateway's continuation fails. The agent's client then obtains a
-new root WAG, which requires a fresh agent resolution and Agent
-Authorization decision, and requests made with the access token it
-redeems continue under the new chain.
+The IdP manages agent sessions as follows:
+
+* **Creation:** On self-acting issuance, the IdP uses the active agent
+  session for the resolved Agent Principal and the Identity Binding it
+  resolved through, or creates one. A chain established by that
+  issuance is anchored to that session.
+* **Refresh:** Completing steps 1 to 3 of "Self-Acting Issuance: WAG" in
+  {{FEDERATION}} through that binding refreshes the session: client
+  authentication, agent resolution through the binding, and the
+  self-acting Client Association check. The IdP MUST NOT refresh it on
+  any other request, including a continuation exchange or delegated
+  issuance.
+* **Idle timeout:** The IdP MUST end an agent session that has not been
+  refreshed within its configured idle timeout.
+* **Absolute expiration:** The IdP MUST set a finite absolute
+  expiration when it creates an agent session, no later than a
+  configured maximum, and MUST NOT extend it. A self-acting issuance
+  after that expiration creates a new agent session.
+* **Governance events:** An event of {{chain-ending}} that applies to the
+  session's Agent Principal or Identity Binding, or to a credential
+  that created or refreshed the session, also ends the session.
+
+A self-acting chain ends when its agent session ends, since a chain
+does not outlive its anchor ({{Section 6.2 of ICA}}), and the gateway's
+continuation then fails with `invalid_continuation`. Neither the
+gateway nor the CAI can keep the session active. The agent session is
+internal to the IdP; no message carries it.
+
+WAG redemption yields no refresh token ("Self-Acting Redemption: WAG" in
+{{FEDERATION}}), so an agent that keeps working obtains a new WAG at
+least as often as its access token at the gateway expires. An idle
+timeout longer than that interval keeps the session active while the
+agent works and ends it soon after the agent stops. When a chain ends,
+the agent's next root WAG starts a new chain, and requests made with
+the access token it redeems continue under that chain.
 
 A self-acting chain has no authentication context, so its onward WAGs
 carry no `auth_time`, `acr`, or `amr`.
@@ -575,8 +611,8 @@ Lifetime, and Response" in {{FEDERATION}}, a fresh child handle under
 of that section. The bounds that {{FEDERATION}} places on a grant from
 its subject credential and agent-resolution input do not apply: the
 assertion authenticates one continuation exchange and does not bound
-the onward grant. An onward WAG MUST NOT outlive its chain's absolute
-expiration.
+the onward grant. An onward WAG MUST NOT outlive the absolute
+expiration of its chain's agent session.
 
 ### Delegated: ID-JAG {#onward-id-jag}
 
@@ -756,7 +792,8 @@ chain ends when the IdP has applied any of the following:
 * withdrawal or expiration, as a whole, of the Delegation Authorization
   or Agent Authorization under which the root grant was issued, or
   withdrawal of its permission to continue; or
-* for a self-acting chain, its absolute expiration.
+* for a self-acting chain, the end of its agent session
+  ({{self-acting-root}}).
 
 A change that removes some targets or authority from an authorization
 does not end the chain; continuation to them fails with the errors of
@@ -789,6 +826,7 @@ grant-derived revocation of {{AGENT-LIFECYCLE}}.
 | Remove a Continuation Association | That client can no longer continue the agent's chains; other permitted clients can |
 | Remove a target or authority from current policy or an authorization | Continuation to it fails; the chain remains continuable to other targets |
 | End the user's IdP session | Delegated chains anchored to it end ({{Section 6.2 of ICA}}) |
+| The agent stops authenticating to the IdP through a binding | Self-acting chains anchored to that agent session end at its idle timeout |
 | Disable the local agent or user at a target RAS | No new access at that RAS ({{FEDERATION}}); the chain is unaffected elsewhere |
 {: title="Effects of administrative changes on governed chains"}
 
@@ -889,11 +927,16 @@ exposure.
 
 ## Self-Acting Chains {#security-self-acting}
 
-No user session bounds a self-acting chain. Its absolute expiration,
-the governance events of {{chain-ending}}, and the limits of
-{{Section 6.3 of ICA}} are its bounds. A configured maximum chain
-lifetime close to the expected duration of the agent's work limits how
-long a compromised gateway can continue it.
+The agent session bounds a self-acting chain by the agent's own
+authentication. When the agent stops, through a crash,
+decommissioning, or loss of its credential, its chains end within the
+idle timeout without administrative action, so a compromised gateway
+cannot keep continuing them. While the agent keeps authenticating, the
+absolute expiration, the governance events of {{chain-ending}}, and the
+limits of {{Section 6.3 of ICA}} bound the chain. A party holding the
+agent's credential can keep the session active, as a stolen user
+credential can keep a user session active; revoking the credential
+ends the session.
 
 ## Disablement Windows {#security-disablement}
 
@@ -1172,8 +1215,10 @@ the token for Alice, `agent-42`, `https://ras.example/`, the resource,
 
 The agent's client instead obtains a WAG for GatewayRAS under
 "Self-Acting Issuance: WAG" in {{FEDERATION}}, as `analysis-gw-svc`.
-The IdP establishes a self-acting chain whose absolute expiration is
-eight hours after issuance:
+The IdP creates an agent session for `agent-42` through the binding of
+`analysis-client`, with a 30-minute idle timeout and an absolute
+expiration eight hours later, and establishes a self-acting chain
+anchored to it:
 
 ~~~ json
 {
@@ -1199,8 +1244,8 @@ registration. It obtains an assertion for this chain's handle as in
 {{walkthrough-assertion}}, issued at 1789646585, and requests
 `urn:ietf:params:oauth:token-type:wag`. The IdP checks the self-acting
 Continuation Association, the Agent Authorization of `agent-42` for
-`files.read` at the resource, and the chain's expiration, and issues
-this onward WAG with `typ` `wag+jwt`:
+`files.read` at the resource, and that the agent session is active,
+and issues this onward WAG with `typ` `wag+jwt`:
 
 ~~~ json
 {
@@ -1224,6 +1269,10 @@ with that principal as `sub`, no `act`, `client_id`
 `gateway-files-svc`, and no refresh token. The API enforces the agent's
 own permissions.
 
+The agent's client obtains a new WAG each time its ten-minute gateway
+access token expires, which refreshes the agent session. The
+gateway's continuations do not.
+
 ## Negative Tests {#negative-tests}
 
 Each case changes the stated conditions of this walkthrough; all other
@@ -1236,7 +1285,7 @@ checks succeed.
 | `agent-42` disabled at the IdP after the root grant, then reactivated before the next continuation | IdP | HTTP 400, `invalid_continuation`; the chain stays ended, and a new root grant is needed |
 | Root binding of `analysis-client` disabled while another binding of `agent-42` remains enabled | IdP | HTTP 400, `invalid_continuation` |
 | Alice's Delegation Authorization does not cover the requested resource | IdP | HTTP 400, `invalid_target`; the chain stays continuable to other targets |
-| Self-acting chain past its absolute expiration | IdP | HTTP 400, `invalid_continuation` |
+| `agent-42`'s client stops obtaining WAGs, and its agent session passes the idle timeout while the gateway keeps continuing | IdP | HTTP 400, `invalid_continuation`; continuations do not keep the session active |
 | Two `resource` parameters in the continuation request | IdP | HTTP 400, `invalid_target` |
 | The gateway resource is configured for bearer access tokens, GatewayRAS issues one for the root, and no policy permits continuation from it | CAI | HTTP 400, `invalid_request`; the authorization is not eligible for continuation |
 | The gateway redeems the onward ID-JAG without a proof of G | Target RAS | HTTP 400, `invalid_grant` |
@@ -1303,14 +1352,31 @@ same agent for new issuance. Ending rather than suspending the chain
 follows {{Section 6.2 of ICA}}, where an ended chain stays ended, and
 {{FEDERATION}}, where reactivation permits new decisions only.
 
-## Self-Acting Chains Have an Absolute Expiration {#rationale-expiration}
+## Self-Acting Chains Anchor to an Agent Session {#rationale-anchor}
 
-A user session bounds a delegated chain. An Agent Authorization can be
-indefinite, and a WAG yields no refresh token, so an unbounded
-self-acting chain would become a substitute for the refresh token that
-{{WAG}} prohibits. The absolute expiration plays the role of the finite
-absolute authorization expiration that "Optional RAS Refresh Tokens" in
-{{FEDERATION}} requires of refresh.
+{{ICA}} anchors a chain to state showing that its principal is still
+present, a user session or a refresh-token grant, and records what the
+chain may do separately, in the chain authorization. A self-acting
+chain needs the same separation. An Agent Authorization says what the
+agent may do and is often indefinite, so as an anchor it cannot tell a
+working agent from one that has stopped. Credentials serve no better: a
+dedicated-client assertion lasts for one request, and routine rotation
+of workload credentials would end chains in normal operation.
+
+The agent session tracks presence directly. Only the agent's own
+authentication refreshes it, so a gateway cannot extend a chain it
+continues. It is kept per Identity Binding, so that an agent's activity
+on one platform does not keep alive chains rooted through its binding
+on another. The absolute expiration bounds a session that the agent
+keeps active, as the finite absolute authorization expiration of
+"Optional RAS Refresh Tokens" in {{FEDERATION}} bounds refresh. Without
+it, a chain would substitute for the refresh token that {{WAG}}
+prohibits.
+
+Unattended work that must outlive the agent's presence, such as a
+scheduled task, needs a durable anchor, as ICA's refresh-token grant is
+for a user. A work authorization with its own lifecycle could serve
+that role; this document does not define one ({{open-items}}).
 
 ## Uniform Continuation Errors {#rationale-errors}
 
@@ -1345,13 +1411,17 @@ and the 2026-10-09 revision of {{FEDERATION}}.
    not make them actors ({{rationale-client}})?
 2. **Self-acting discovery:** Should the IdP advertise support for
    self-acting continuation in metadata?
-3. **Chain lifetime:** Should this document recommend a default maximum
-   lifetime for self-acting chains, and convey a chain's expiration to
-   the gateway so that long-running work can obtain a new root before
-   it?
+3. **Agent session limits:** Should this document recommend default
+   idle and absolute limits for agent sessions, and convey a session's
+   expiration to the gateway so that long-running work can obtain a new
+   root before it?
 4. **Continuation Association management:** Should
    {{AGENT-MANAGEMENT}} model Continuation Associations beside Client
    Associations?
+5. **Durable self-acting anchors:** Should a self-acting chain be able
+   to anchor to a work authorization with its own lifecycle, as a
+   delegated chain can anchor to a refresh-token grant
+   ({{rationale-anchor}})?
 
 # Document History
 {:numbered="false"}

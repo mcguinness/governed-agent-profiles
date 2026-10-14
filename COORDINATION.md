@@ -238,9 +238,14 @@ rule that stays local to the profile:
   a disclosure claim that does not make continuing clients actors
   (open item 1 of the companion).
 * **Non-user anchors:** Section 6.1 of ICA puts non-user-rooted
-  authority out of scope. Self-acting chains anchor to the Agent
-  Authorization with an absolute expiration (`self-acting-root`). ICA
-  could generalize anchors or leave non-user roots to profiles.
+  authority out of scope. Self-acting chains anchor to an agent
+  session: IdP state refreshed only by the agent's own authentication
+  through one Identity Binding, ended by an idle timeout or an
+  absolute expiration (`self-acting-root`). ICA could generalize
+  anchors to any principal's session, or leave non-user roots to
+  profiles. A durable anchor for scheduled self-acting work, like the
+  refresh-token grant for users, is open (open item 5 of the
+  companion).
 * **WAG chains:** ICA issues only ID-JAGs. The companion issues onward
   WAGs and registers the `wag-continuation` grant-profile value.
 * **Redemption grant type:** Section 5.5.5 of ICA redeems onward

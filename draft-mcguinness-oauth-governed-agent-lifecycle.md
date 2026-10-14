@@ -319,7 +319,7 @@ that local representation, but attaching it requires explicit local
 authorization. The SCIM Agent is then a management view of that same
 principal, not a second authorization identity.
 
-This profile raises Federation's provisioning recommendation to a
+Federation requires no provisioning protocol. This profile adds a
 requirement: the RAS MUST have the authorized local correlation before
 accepting a grant involving the agent. A missing or ambiguous
 correlation fails under Federation's identity-resolution error rules.

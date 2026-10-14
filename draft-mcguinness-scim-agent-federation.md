@@ -182,9 +182,8 @@ Provisioning Client:
 
 Service Provider:
 : The IdP's SCIM service, including the administration of configuration
-  used by its grant issuer. {{FEDERATION}} calls this role the IdP
-  Service Provider; the resource-domain SCIM service that accepts IdP
-  provisioning is the Receiver of {{LIFECYCLE}}, not a Service Provider
+  used by its grant issuer. The resource-domain SCIM service that
+  accepts IdP provisioning is the Receiver of {{LIFECYCLE}}, not a Service Provider
   in this document's sense.
 
 Provisioning Domain:

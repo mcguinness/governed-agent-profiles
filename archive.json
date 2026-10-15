@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-10-13T04:17:50.289486+00:00",
+  "timestamp": "2026-10-15T02:10:02.667820+00:00",
   "repo": "mcguinness/governed-agent-profiles",
   "labels": [
     {
@@ -618,6 +618,60 @@
       "mergedBy": "mcguinness",
       "mergeCommit": {
         "oid": "8c36a34294c1d5ce19a3e28076af95083244a819"
+      },
+      "comments": [],
+      "reviews": []
+    },
+    {
+      "number": 21,
+      "id": "PR_kwDOUa5iRM8AAAABIcAoDA",
+      "title": "Fix stale cross-document claims and Actor Profile citations",
+      "url": "https://github.com/mcguinness/governed-agent-profiles/pull/21",
+      "state": "OPEN",
+      "author": "mcguinness",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "Two fresh-eyes critiques of the family, one as a SaaS developer and one as an agent-platform developer, found statements in one draft about another that are no longer true. This PR fixes those, plus Actor Profile citations that drifted when the reference moved to -01. Every change is editorial: the BCP 14 keyword counts are unchanged (core 274, lifecycle 80, SCIM agent management 74).\n\n| Commit | Draft | Fix |\n|---|---|---|\n| 10dd1cc | SCIM agent management, Section 2 | Drops \"[FEDERATION] calls this role the IdP Service Provider\". The core never used that phrase, and since #20 it does not use Service Provider at all. |\n| 7d1774a | Lifecycle, Section 4 | It said it \"raises Federation's provisioning recommendation to a requirement\", but the core makes no such recommendation (\"No provisioning protocol is required\"). The requirement this draft adds is unchanged. |\n| 420e0fb | Lifecycle, Section 7 | It listed \"reporting revoked or disabled authorization as inactive under RFC 7662\" among the rules the core specifies. The core stated that until the trim in f0f8585 removed it. The lifecycle draft now presents inactive introspection as a consequence of the core's invalidation rule. |\n| 52d208c | Core and COORDINATION.md | Repoints the Actor Profile citations from -00 to -01, which renumbered sections. Each claim was checked against the -01 text (below). |\n| 57b8616 | Core, A.2.1 | The AWS example's accepted audience is now the IdP issuer, not the token endpoint, matching the dedicated-client audience rule and the companion's JWT-SVID example. It was configuration, not a conflict, but read as one. |\n\n**Actor Profile -01 mapping.** Each citation was checked against the -01 text:\n- 6.3 \u2192 6.4 (rule 2, credential-to-actor copying);\n- 3.6.3.2 \u2192 3.6.2.2 (Preserve Inbound Chain);\n- 16.2 \u2192 10.1 (`actor_profile_token_exchange`, Authorization Server Metadata); 16.2 is now Informative References;\n- 6.3.1 \u2192 6.4.1.2 (authentication-context reuse when the actor token is the same JWT as the client assertion).\n\nSections 3.4 (`sub_profile` recommendation and unclassified actors), 8, and 8.2 (HTTP 403 `actor_unauthorized`, never `insufficient_scope`) still hold. Appendix B and COORDINATION.md now name -01 as the assessed revision.\n\n**Resolved upstream.** -01 Section 4.2 makes a grant without a grant-level sender constraint single-use, which is the rule this profile asked for in actor-profile issue 5. COORDINATION.md records it as resolved, and its upstream table no longer lists it.\n\n**Open question for the author (Group B).** The core's explicit rule that revoked or disabled authorization is reported inactive under RFC 7662 was removed in f0f8585. RFC 7662 says only that `active` \"will generally indicate\" non-revocation. Restoring the rule would bring back a requirement, so it is not part of this PR.",
+      "createdAt": "2026-10-14T16:42:33Z",
+      "updatedAt": "2026-10-14T16:42:33Z",
+      "baseRepository": "mcguinness/governed-agent-profiles",
+      "baseRefName": "main",
+      "baseRefOid": "8c36a34294c1d5ce19a3e28076af95083244a819",
+      "headRepository": "mcguinness/governed-agent-profiles",
+      "headRefName": "crossdoc-consistency",
+      "headRefOid": "57b8616d229b1e6a6e6f78b6841a1c7fcb43af92",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
+    },
+    {
+      "number": 22,
+      "id": "PR_kwDOUa5iRM8AAAABIhHNeA",
+      "title": "Add the identity continuation companion for gateways",
+      "url": "https://github.com/mcguinness/governed-agent-profiles/pull/22",
+      "state": "MERGED",
+      "author": "mcguinness",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "## Summary\n\nAdds a sixth draft to the family: **Identity Continuation Profile for Governed Agent Federation** (`draft-mcguinness-oauth-governed-agent-continuation`). It profiles the Identity Continuation Assertion (ICA-02) for governed agents, with gateways (for example MCP tool gateways) as the primary deployment. It also extends ICA to self-acting chains rooted in a WAG.\n\nA gateway that receives a governed agent's request exchanges evidence of the accepted request for an onward grant to the next resource. The IdP preserves the agent and user, checks that the gateway may continue for that agent, and authorizes access to the next resource. A downstream RAS and API that implement the core, with DPoP at the RAS token endpoint, accept the onward grant unchanged.\n\n## Design decisions\n\n- **The gateway is the onward grant's client, never an added actor.** An onward ID-JAG names the root's Agent Principal as its single `act`; an onward WAG names it as `sub`. This replaces ICA \u00a75.5.5's actor lineage for governed chains, while ICA's hop-record rules still apply. The core accepts only a single, un-nested `act`, and a WAG carries no `act`. A gateway in `act` would also recreate the shared-client problem at the actor level.\n- **Continuation Association:** the IdP's permission for a client to continue an agent's chains in one acting relationship, scoped to the chain's Governance Tenant. A chain also requires the root Delegation or Agent Authorization itself to permit continuation.\n- **Agent-session anchor for self-acting chains:** evidence that the agent recently authenticated through one Identity Binding. Only the agent's own authentication refreshes it, and it ends at an idle timeout or a finite absolute expiration. A gateway cannot keep a chain alive.\n- **Chain ending on governance events:** the agent, user, root binding, association or credential, or root authorization being disabled, withdrawn, or narrowed so it no longer permits the root grant. A chain stays ended if the relationship is restored.\n- **No conversion** between delegated and self-acting chains, and **no fallback** to the gateway's own authority.\n- Onward grants are redeemed with **`jwt-bearer`** and grant confirmation. ID-JAG-04 \u00a74.4 requires `jwt-bearer`; ICA's `jwt-dpop` appears only in an ID-JAG example, and the JWT DPoP Grant draft expired in August 2026.\n- **One grant-profile value**, `governed-agent-continuation`, for both grants, because access-token protection and redemption differ from what `id-jag-continuation` advertises.\n- **Per-hop continuation window** (SHOULD): it bounds how long a CAI, including one a compromised gateway operator runs, can obtain continuations from a hop it accepted.\n\n## Structure\n\nThe document reads in protocol order: establishing a chain, root redemption, assertion issuance, the continuation exchange (an ordered validation sequence, onward grants, errors), onward redemption, Gateway Requirements, chain ending, then conformance. A gateway walkthrough with a self-acting variant and negative tests reuses the core's identities. Appendix B lists every change to ICA and to the core, the dependencies, and the open items.\n\n## Family changes\n\n- **Core:** the \"Continuation with ICA\" row of Excluded Compositions now points to the companion, which the core cites as an informative reference, so no publication cluster forms.\n- **README:** a section for the companion; the family is now six drafts.\n- **COORDINATION.md:** ICA, WAG, and management coordination items for the companion.\n- **`.gitignore`:** the companion's generated XML.\n\n## Review\n\n- Two cold reviews (working-group reviewer and per-role implementer), then two further rounds of external review findings.\n- A fresh-eyes round with four independent personas: working-group, implementer, adversarial, and newcomer.\n- Each finding is one commit, so any can be dropped alone.\n- The fresh-eyes round found that the first draft was written from a local ICA checkout that predated the published -02. The companion now follows -02's error precedence, establishment condition, and `invalid_scope` mapping.\n\n## Upstream changes the companion depends on\n\n- **ICA:**\n  - let a profile replace onward `act` lineage;\n  - `jwt-bearer` redemption without the `jwt-dpop` advertisement;\n  - certificate-bound access tokens and bearer-ingress eligibility in place of DPoP-only;\n  - profile-defined anchors and onward grant types;\n  - `requested_token_type` in the retry fingerprint;\n  - a per-hop continuation window.\n- **ID-JAG:** the key-bound redemption example; WAG profile values in `authorization_grant_profiles_supported`.\n- **WAG:** type registration; IdP-issued and continuation-issued WAGs carrying the handle and `cnf`; a meaning for `client_id`.\n- **SCIM management profile:** Continuation Associations, and an authorization's permission to continue.\n\n## Checks\n\n- Built with kramdown-rfc and xml2rfc after every commit: 40 pages, no unresolved or uncited references, no duplicate anchors, no over-long artwork lines.\n- idnits shows only the unpublished-sibling-draft notices the family already has.\n- Normative diffs reviewed for each round; no requirement newly leads a paragraph without its condition.\n- The core still builds after its row edit.\n",
+      "createdAt": "2026-10-15T00:50:45Z",
+      "updatedAt": "2026-10-15T00:51:48Z",
+      "baseRepository": "mcguinness/governed-agent-profiles",
+      "baseRefName": "main",
+      "baseRefOid": "8c36a34294c1d5ce19a3e28076af95083244a819",
+      "headRepository": "mcguinness/governed-agent-profiles",
+      "headRefName": "governed-agent-continuation",
+      "headRefOid": "d2cb091f3818fb8a907236335c2e719228596321",
+      "closedAt": "2026-10-15T00:51:48Z",
+      "mergedAt": "2026-10-15T00:51:48Z",
+      "mergedBy": "mcguinness",
+      "mergeCommit": {
+        "oid": "4b9b781ddda486c06ba6024bd18d6ddb8567baa5"
       },
       "comments": [],
       "reviews": []

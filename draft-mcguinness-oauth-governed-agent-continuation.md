@@ -116,7 +116,8 @@ unchanged ({{target-processing}}). This document also adds the
 Continuation Association, the IdP's permission for a client to continue
 an agent's chains; extends {{ICA}} to self-acting chains, anchored to an
 agent session; and ends chains on governance events.
-{{relationship-to-ica}} lists each change to {{ICA}}.
+{{relationship-to-ica}} lists each change to {{ICA}} and
+{{FEDERATION}}.
 
 ## Protocol Overview {#overview}
 
@@ -1134,7 +1135,8 @@ Each case changes the stated conditions; all other checks succeed.
 # Relationship to Other Specifications {#relationship-to-ica}
 
 This informative appendix lists what this document changes in {{ICA}}
-and needs from the specifications it profiles, assessed against
+and {{FEDERATION}} and needs from the specifications it profiles,
+assessed against
 ICA-02, ID-JAG-04, WAG-01, and the 2026-10-09 revision of
 {{FEDERATION}}.
 
@@ -1152,6 +1154,7 @@ Where this document is silent, {{ICA}} applies unchanged.
 | Who may continue | Chain authorization and current policy | Also a Continuation Association ({{continuation-association}}) |
 | Continuation request | Zero or more `resource`; optional `scope`; ID-JAG ({{Section 5.5.1 of ICA}}) | One `resource`; required `scope`; the chain's grant type ({{continuation-request}}) |
 | Retry fingerprint | No requested token type ({{Section 5.5.7.1 of ICA}}) | Includes `requested_token_type` ({{continuation-validation}}) |
+| Assertion issuance at the token endpoint | MAY; SHOULD for a RAS acting as CAI ({{Section 5.4.1 of ICA}}) | MUST for every CAI that serves a continuing client ({{conformance-claims}}) |
 | Onward `act` | Continuing actor atop IdP-derived lineage ({{Section 5.5.5 of ICA}}) | The Agent Principal alone in an ID-JAG, none in a WAG; hop records unchanged ({{identity-preservation}}) |
 | Onward redemption | `jwt-dpop` ({{Section 5.5.5 of ICA}}) | `jwt-bearer` with grant confirmation ({{target-processing}}) |
 | Access token for a grant with `cnf` | DPoP-bound, never bearer ({{Section 5.2 of ICA}}) | Protection under {{FEDERATION}}; bearer access tokens, whatever the grant's binding, make a hop ineligible without explicit policy ({{root-redemption}}) |
@@ -1159,6 +1162,20 @@ Where this document is silent, {{ICA}} applies unchanged.
 | Chain ending | Anchor end, revocation, withdrawn permission ({{Section 6.2 of ICA}}) | Also governance events ({{chain-ending}}) |
 | Continuation window | None | A per-hop window, SHOULD ({{governed-chain-authorization}}) |
 {: title="Changes to ICA for governed chains"}
+
+## Changes to FEDERATION {#federation-changes}
+
+Where this document is silent, {{FEDERATION}} applies unchanged.
+
+| Area | FEDERATION | This document |
+|---|---|---|
+| Issuance authorization | For the authenticated client ("Issuance Authorization") | For an onward grant, in the root client's context; the continuing client is authorized by its Continuation Association ({{continuation-validation}}) |
+| Agent resolution and Client Association | Required for each grant | None on a continuation exchange; the agent comes from the chain record ({{continuation-association}}) |
+| Grant lifetime | Bounded also by the subject credential and the agent-resolution input | The configured limit and, for a WAG, the agent session ({{onward-grants}}) |
+| Downstream client registration | One association per authenticated client ("Issuance Prerequisites") | Also selected by acting relationship where a target distinguishes the two ({{gateway-roles}}) |
+| Errors | `actor_unauthorized` for a denied delegation and `invalid_grant` for an unresolvable user ("Issuance Errors") | The codes of {{ICA}} ({{continuation-errors}}) |
+| Bearer access tokens | Permitted under explicit configuration ("Access-Token Protection") | Also make a hop ineligible for continuation without explicit policy ({{root-redemption}}) |
+{: title="Changes to FEDERATION for continuation"}
 
 ## Dependencies {#dependencies}
 

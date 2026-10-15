@@ -247,7 +247,10 @@ rule that stays local to the profile:
   refresh-token grant for users, is open (open item 5 of the
   companion).
 * **WAG chains:** ICA issues only ID-JAGs. The companion issues onward
-  WAGs and registers the `wag-continuation` grant-profile value.
+  WAGs and registers `governed-agent-continuation`, one grant-profile
+  value for handle binding of governed ID-JAGs and WAGs, because its
+  access-token protection and redemption differ from what
+  `id-jag-continuation` advertises.
 * **Redemption grant type:** Section 5.5.5 of ICA redeems onward
   ID-JAGs with `jwt-dpop`, citing Section 9.8.1.2.1 of ID-JAG. Section
   4.4 of ID-JAG-04 requires `jwt-bearer`, and `jwt-dpop` appears only in
@@ -287,7 +290,7 @@ rule that stays local to the profile:
 * A WAG that carries `identity_continuation_handle`, and a WAG issued by
   an IdP on a continuation exchange rather than from the Platform's own
   assertion (Section 2 of WAG).
-* Advertising `wag-continuation` in ID-JAG's
+* Advertising `governed-agent-continuation` for WAGs in ID-JAG's
   `authorization_grant_profiles_supported`, as for the core's
   self-acting profile URIs (`wag-gaps` in the core).
 

@@ -748,19 +748,20 @@ Each claim has this mandatory interoperability path:
 
 ## Metadata {#metadata}
 
-A continuation-aware RAS lists, in `authorization_grant_profiles_supported`
-({{Section 7.2 of ID-JAG}}), together with its governed profile URIs:
-
-* `urn:ietf:params:oauth:grant-profile:id-jag-continuation`
-  ({{Section 7.2 of ICA}}) when it binds handles of governed ID-JAGs;
-  and
-* `urn:ietf:params:oauth:grant-profile:wag-continuation` when it binds
-  handles of governed WAGs. As for the self-acting profile URIs of
-  {{FEDERATION}}, use of this parameter for WAG awaits coordination
-  ({{dependencies}}).
-
-The requirement of {{Section 7.2 of ICA}} to advertise the `jwt-dpop`
-grant type does not apply.
+A continuation-aware RAS that binds handles of governed grants lists
+`urn:ietf:params:oauth:grant-profile:governed-agent-continuation` in
+`authorization_grant_profiles_supported` ({{Section 7.2 of ID-JAG}}),
+together with the governed profile URIs that identify the grants it
+accepts. The value indicates handle binding under
+{{Section 5.2 of ICA}} with the access-token protection and eligibility
+of {{root-redemption}}, and redemption of onward grants with
+`jwt-bearer` ({{target-processing}}); it does not indicate `jwt-dpop`
+support. A RAS lists ICA's
+`urn:ietf:params:oauth:grant-profile:id-jag-continuation`, with the
+requirements of {{Section 7.2 of ICA}}, only if it also binds handles of
+chains established without this document. As for the self-acting
+profile URIs of {{FEDERATION}}, use of this parameter for WAGs awaits
+coordination ({{dependencies}}).
 
 An IdP that supports delegated continuation advertises
 `identity_continuation_supported` ({{Section 7.1 of ICA}}), which
@@ -839,10 +840,11 @@ and are sensitive audit data.
 This document requests registration of the following value in the
 "OAuth URI" registry established by {{RFC6755}}:
 
-* URN: `urn:ietf:params:oauth:grant-profile:wag-continuation`
-* Common Name: Grant profile identifier for a governed WAG whose
-  accepting Resource Authorization Server binds the
-  `identity_continuation_handle` claim to authorization state
+* URN: `urn:ietf:params:oauth:grant-profile:governed-agent-continuation`
+* Common Name: Grant profile identifier for a Resource Authorization
+  Server that binds the `identity_continuation_handle` claim of
+  governed ID-JAGs and WAGs to authorization state under the Identity
+  Continuation Profile for Governed Agent Federation
 * Change Controller: IETF
 * Specification Document: {{metadata}} of this document.
 
@@ -1158,7 +1160,7 @@ Where this document is silent, {{ICA}} applies unchanged.
 | Onward `act` | Continuing actor atop IdP-derived lineage ({{Section 5.5.5 of ICA}}) | The Agent Principal alone in an ID-JAG, none in a WAG; hop records unchanged ({{identity-preservation}}) |
 | Onward redemption | `jwt-dpop` ({{Section 5.5.5 of ICA}}) | `jwt-bearer` with grant confirmation ({{target-processing}}) |
 | Access token for a grant with `cnf` | DPoP-bound, never bearer ({{Section 5.2 of ICA}}) | Protection under {{FEDERATION}}; bearer access tokens, whatever the grant's binding, make a hop ineligible without explicit policy ({{root-redemption}}) |
-| Advertisement | RAS `id-jag-continuation` with `jwt-dpop`; IdP `identity_continuation_supported` ({{Section 7 of ICA}}) | Adds `wag-continuation`; no `jwt-dpop`; the IdP flag only for delegated continuation ({{metadata}}) |
+| Advertisement | RAS `id-jag-continuation` with `jwt-dpop`; IdP `identity_continuation_supported` ({{Section 7 of ICA}}) | `governed-agent-continuation` for governed grants, without `jwt-dpop`; the IdP flag only for delegated continuation ({{metadata}}) |
 | Chain ending | Anchor end, revocation, withdrawn permission ({{Section 6.2 of ICA}}) | Also governance events ({{chain-ending}}) |
 | Continuation window | None | A per-hop window, SHOULD ({{governed-chain-authorization}}) |
 {: title="Changes to ICA for governed chains"}
@@ -1183,7 +1185,7 @@ Where this document is silent, {{FEDERATION}} applies unchanged.
 |---|---|---|
 | ICA | The changes of {{ica-changes}} | This document applies them to governed chains |
 | ID-JAG | {{Section 4.4 of ID-JAG}} requires `jwt-bearer`, while its key-bound example uses `jwt-dpop`, which {{Section 5.5.5 of ICA}} follows | Onward grants are redeemed with `jwt-bearer` under {{FEDERATION}} |
-| WAG | Registration of the provisional token type and JWT type; a WAG carrying a continuation handle; a WAG issued by an IdP on a continuation exchange | Provisional values; `wag-continuation` is advertised in the ID-JAG metadata parameter pending coordination |
+| WAG | Registration of the provisional token type and JWT type; a WAG carrying a continuation handle; a WAG issued by an IdP on a continuation exchange | Provisional values; `governed-agent-continuation` is advertised for WAGs in the ID-JAG metadata parameter pending coordination |
 | {{AGENT-MANAGEMENT}} | Administration of Continuation Associations and of an authorization's permission to continue | Configured by each deployment |
 {: title="Dependencies"}
 

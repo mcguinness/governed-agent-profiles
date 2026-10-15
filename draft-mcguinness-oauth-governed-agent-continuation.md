@@ -205,6 +205,14 @@ continuation handle, chain, hop, chain authorization, lifecycle anchor,
 canonical actor identity, and continuation-aware RAS follow {{ICA}}.
 ID-JAG and WAG refer to the grants as {{FEDERATION}} profiles them.
 
+In brief, for readers new to {{ICA}}: a chain is the IdP's record of
+grants continued from one root grant; each grant in it is a hop, named
+by an opaque continuation handle that the grant carries; the RAS that
+accepts a grant binds its handle to the authorization it creates, and a
+carrier conveys the handle within that RAS's domain
+({{Section 5.3 of ICA}}). The actor gate is the check, under
+{{FEDERATION}}, that an agent may act for a user at a resource.
+
 {{ICA}} and {{FEDERATION}} use some of the same words differently:
 
 | ICA term | Meaning in ICA | Term in this document |
@@ -232,6 +240,11 @@ Continuing client:
   there, that obtains an Identity Continuation Assertion, presents it to
   the IdP, and redeems the onward grant. It is a client in the sense of
   {{FEDERATION}}; the chain, not its identity, identifies the agent.
+
+Source hop:
+: The hop whose authorization a continuing client's incoming request
+  carries. A continuing client that cannot see the handle identifies
+  the source hop by the incoming access token or carrier.
 
 Governed chain:
 : A chain rooted in a governed ID-JAG (a delegated chain) or WAG (a
@@ -308,9 +321,10 @@ subject, the anchor is the user's IdP session that the ID Token's `sid`
 identifies; `sid` is optional, so an IdP that establishes
 session-anchored chains includes it in the ID Tokens it issues to
 agents' clients. The root exchange can use either resolution mode of
-{{FEDERATION}}, including presented-evidence mode, whose `actor_token`
-{{FEDERATION}} processes ("Agent Resolution Input Validation") and
-{{Section 5.1.1 of ICA}} leaves out of scope.
+{{FEDERATION}}, including presented-evidence mode, in which the request
+carries the agent's workload credential as `actor_token`; {{FEDERATION}}
+processes it ("Agent Resolution Input Validation"), and
+{{Section 5.1.1 of ICA}} leaves that processing out of scope.
 
 ## Self-Acting Root and Agent Session {#self-acting-root}
 
@@ -728,7 +742,7 @@ is later restored.
 | Disable the Agent Principal | Every chain for the agent ends |
 | Disable the user | The user's delegated chains end |
 | Disable the root Identity Binding or remove the root Client Association, or change either so that it no longer permits the root grant's issuance, such as its acting relationship or credential class | Chains rooted through it end, even when the agent has other enabled bindings |
-| Revoke the credential or trust material through which the root resolved the agent, including through the WISE events of "Time, Replay, and Key Validation" in {{FEDERATION}} | Chains rooted through it end |
+| Revoke the credential or trust material through which the root resolved the agent, including through the workload-credential revocation events (WISE) of "Time, Replay, and Key Validation" in {{FEDERATION}}; routine rotation is not revocation | Chains rooted through it end |
 | Withdraw or let expire, as a whole, the Delegation Authorization or Agent Authorization under which the root grant was issued, or withdraw its permission to continue | Chains rooted under it end |
 | End the user's IdP session or the agent session | Chains anchored to it end |
 | Remove a Continuation Association | Only that client stops continuing the agent's chains |

@@ -234,9 +234,10 @@ rule that stays local to the profile:
   and the continuing client is `client_id` (`identity-preservation`).
   The core requires one `act` with no nesting at the RAS and API, and a
   WAG carries no `act`, so the ICA form cannot reach a governed target.
-  Decision for ICA: let a profile replace lineage disclosure, or define
-  a disclosure claim that does not make continuing clients actors
-  (open item 1 of the companion).
+  The companion now defines `continuation_via`, which discloses
+  continuing clients as intermediaries rather than actors, and proposes
+  it for ICA with an acting or forwarding mode per hop (ICA issue #138).
+  If ICA adopts it, the companion uses ICA's claim instead.
 * **Non-user anchors:** Section 6.1 of ICA puts non-user-rooted
   authority out of scope. Self-acting chains anchor to an agent
   session: IdP state refreshed only by the agent's own authentication

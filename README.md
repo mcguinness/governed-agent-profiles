@@ -168,8 +168,10 @@ agents. The gateway's authorization server attests that it accepted the
 agent's grant, and the gateway exchanges that attestation at the IdP for an
 onward grant to the tool's RAS. The onward grant names the same Agent
 Principal, and for delegated access the same user, as the grant the gateway
-received. The gateway is the grant's client, never an added actor, so a RAS
-and API that implement the federation draft accept the grant unchanged.
+received. The gateway is the grant's client, never an added actor, and the
+grant lists the gateways on its path in a separate `continuation_via` claim.
+A RAS and API that implement the federation draft accept the grant
+unchanged.
 
 | Chain | Root grant | Onward grant |
 |---|---|---|

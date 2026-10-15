@@ -27,7 +27,8 @@ Abstract
    the agent's grant and exchanges it at the identity provider for an
    onward grant.  The onward grant names the same Agent Principal, and
    for delegated access the same user, as the agent's grant to the
-   gateway; the gateway is its client, not an additional actor.  The
+   gateway; the gateway is its client, not an additional actor, and the
+   grant lists the gateways on its path in a separate claim.  The
    document extends the Identity Continuation Assertion to self-acting
    chains rooted in a WAG, and defines the permission a gateway needs to
    continue an agent's chain and the governance events that end it.
@@ -100,8 +101,9 @@ Table of Contents
      6.3.  Validation
      6.4.  Onward Grants
        6.4.1.  Identity Preservation
-       6.4.2.  Delegated: ID-JAG
-       6.4.3.  Self-Acting: WAG
+       6.4.2.  Path Disclosure
+       6.4.3.  Delegated: ID-JAG
+       6.4.4.  Self-Acting: WAG
      6.5.  Errors
    7.  Onward Redemption and Access
    8.  Gateway Requirements
@@ -128,7 +130,8 @@ Table of Contents
      A.3.  Continuation
      A.4.  Redemption at the Target
      A.5.  Self-Acting Variant
-     A.6.  Negative Tests
+     A.6.  Two-Gateway Variant
+     A.7.  Negative Tests
    Appendix B.  Relationship to Other Specifications
      B.1.  Changes to ICA
      B.2.  Changes to FEDERATION
@@ -163,13 +166,14 @@ Table of Contents
    The onward grant names the Agent Principal and acting relationship of
    the chain's root grant, and for delegated access the same user.  The
    continuing client, typically a gateway, is its client, not an added
-   actor (Section 6.4.1), so a downstream RAS and API that implement
-   [FEDERATION], with DPoP at the RAS token endpoint, accept it
-   unchanged (Section 7).  This document also adds the Continuation
-   Association, the IdP's permission for a client to continue an agent's
-   chains; extends [ICA] to self-acting chains, anchored to an agent
-   session; and ends chains on governance events.  Appendix B lists each
-   change to [ICA] and [FEDERATION].
+   actor, and a separate claim, continuation_via, discloses the gateways
+   on the path (Section 6.4.1, Section 6.4.2).  A downstream RAS and API
+   that implement [FEDERATION], with DPoP at the RAS token endpoint,
+   therefore accept it unchanged (Section 7).  This document also adds
+   the Continuation Association, the IdP's permission for a client to
+   continue an agent's chains; extends [ICA] to self-acting chains,
+   anchored to an agent session; and ends chains on governance events.
+   Appendix B lists each change to [ICA] and [FEDERATION].
 
 1.1.  Protocol Overview
 
@@ -248,8 +252,9 @@ Table of Contents
       gateway's access tokens, there is no hop to continue.
 
    Whether a call still serves approved work is outside this document,
-   as in [FEDERATION].  This document defines no new token format,
-   claim, error code, or request parameter.
+   as in [FEDERATION].  This document defines one claim,
+   continuation_via (Section 6.4.2), and no new token format, error
+   code, or request parameter.
 
 2.  Conventions and Terminology
 
@@ -278,28 +283,28 @@ Table of Contents
 
    [ICA] and [FEDERATION] use some of the same words differently:
 
-      +==========+=====================+============================+
-      | ICA term | Meaning in ICA      | Term in this document      |
-      +==========+=====================+============================+
-      | Workload | A service that      | Continuing client          |
-      |          | received a request  |                            |
-      |          | and may continue it |                            |
-      +----------+---------------------+----------------------------+
-      | Current  | The workload        | Continuing client, named   |
-      | actor    | presenting the      | by the assertion's act but |
-      |          | assertion           | not the onward grant's     |
-      +----------+---------------------+----------------------------+
-      | Root     | The client of the   | Root client; the governed  |
-      | actor    | root exchange       | actor is the Agent         |
-      |          |                     | Principal                  |
-      +----------+---------------------+----------------------------+
-      | Actor    | The actors          | Kept only in the IdP's hop |
-      | lineage  | disclosed in the    | records                    |
-      |          | onward act          |                            |
-      +----------+---------------------+----------------------------+
-      | Tenant   | The boundary for a  | Governance Tenant          |
-      |          | chain and CAI trust |                            |
-      +----------+---------------------+----------------------------+
+     +==========+=====================+==============================+
+     | ICA term | Meaning in ICA      | Term in this document        |
+     +==========+=====================+==============================+
+     | Workload | A service that      | Continuing client            |
+     |          | received a request  |                              |
+     |          | and may continue it |                              |
+     +----------+---------------------+------------------------------+
+     | Current  | The workload        | Continuing client, named by  |
+     | actor    | presenting the      | the assertion's act but not  |
+     |          | assertion           | the onward grant's           |
+     +----------+---------------------+------------------------------+
+     | Root     | The client of the   | Root client; the governed    |
+     | actor    | root exchange       | actor is the Agent Principal |
+     +----------+---------------------+------------------------------+
+     | Actor    | The actors          | Continuing clients disclosed |
+     | lineage  | disclosed in the    | in continuation_via; the     |
+     |          | onward act          | full lineage is in the IdP's |
+     |          |                     | hop records                  |
+     +----------+---------------------+------------------------------+
+     | Tenant   | The boundary for a  | Governance Tenant            |
+     |          | chain and CAI trust |                              |
+     +----------+---------------------+------------------------------+
 
                     Table 1: ICA terms in this document
 
@@ -470,7 +475,12 @@ Table of Contents
    token's lifetime.  If the token outlives the session, continuation
    fails and the gateway's response leads the agent's client to a new
    root grant (Section 8.3).  IdP instances evaluate the idle timeout
-   and the absolute expiration against shared session state.
+   and the absolute expiration against shared session state.  An
+   instance that cannot confirm the session's state MUST reject the
+   request rather than issue, as Section 5.5.7 of [ICA] requires for
+   replay reservations, with the temporary refusal of Section 6.5, and
+   MUST NOT treat the session as ended on that basis; the chain stays
+   continuable.
 
 4.  Root Redemption at the Gateway's RAS
 
@@ -612,7 +622,9 @@ Table of Contents
        in [FEDERATION]), and, for a delegated chain, the user's subject
        at the target ("Subject Resolution" in [FEDERATION]) each resolve
        unambiguously.  A self-acting chain's subject is its Agent
-       Principal, which is not resolved per target.
+       Principal, which is not resolved per target.  Where policy
+       requires path disclosure, the target RAS supports it
+       (Section 6.4.2).
 
    8.  *Freshness and replay (ICA rule 6).*
 
@@ -674,15 +686,20 @@ Table of Contents
       identifier as sub, and in a WAG as iss and sub, with no act;
 
    *  for a delegated chain, it names the chain's user, resolved for the
-      target RAS; and
+      target RAS;
 
    *  its client_id identifies the continuing client's registration at
-      the target RAS ("Issuance Prerequisites" in [FEDERATION]).
+      the target RAS ("Issuance Prerequisites" in [FEDERATION]); and
 
-   The continuing client MUST NOT appear in the onward grant's act.  The
-   IdP takes the Agent Principal, the user, and the acting relationship
-   from its chain record, never from the assertion or the request, so
-   the assertion's act never becomes the governed actor.
+   *  it lists the chain's continuing clients in continuation_via
+      (Section 6.4.2).
+
+   The continuing client MUST NOT appear in the onward grant's act; it
+   appears as the grant's client and in continuation_via, which disclose
+   it without making it an actor.  The IdP takes the Agent Principal,
+   the user, and the acting relationship from its chain record, never
+   from the assertion or the request, so the assertion's act never
+   becomes the governed actor.
 
    Continuation never converts the acting relationship.  The IdP MUST
    NOT issue a WAG from a delegated chain or an ID-JAG from a self-
@@ -691,58 +708,123 @@ Table of Contents
    NOT issue an onward ID-JAG whose act is constructed under
    Section 5.5.5 of [ICA].  Appendix C.1 explains the choice.
 
-6.4.2.  Delegated: ID-JAG
+6.4.2.  Path Disclosure
+
+   Every onward grant of a governed chain discloses the continuing
+   clients it passed through, as intermediaries rather than actors, in
+   this claim:
+
+   continuation_via:  A JSON array of the canonical actor identities
+      (Section 5.5.2 of [ICA]) of the continuing clients that created
+      the hops after the root, on the branch from the root to the hop
+      being issued, oldest first, so that the last entry is the current
+      continuing client.  Each entry is a JSON object with iss and sub
+      string members; a recipient ignores other members.  The root hop
+      contributes no entry, so the root client appears only if it later
+      continues the chain.
+
+   The IdP MUST include continuation_via in every onward grant of a
+   governed chain and MUST derive it from its hop records, never from
+   the assertion or the request, following the lineage rules of
+   Section 5.5.5 of [ICA]: parent references are immutable, and sibling
+   branches are excluded.  It takes one entry from each hop after the
+   root, then merges consecutive identical entries.  For example, with
+   root client A, continuing clients B and then A give [B, A]; A
+   continuing twice gives [A]; and A and then B give [A, B].  The list
+   is complete.  Policy that narrows the disclosed depth of act under
+   [ICA] does not narrow it, because a forwarding intermediary is
+   disclosed, never hidden.  The last entry and client_id identify the
+   same continuing client, the entry by its canonical actor identity and
+   client_id by its registration at the target.
+
+   A recipient MUST NOT treat an entry as an actor: entries are not
+   subject to the actor gate and authorize nothing.  A target RAS MAY
+   use the list in its own policy, for example to admit agents only
+   through approved gateways.
+
+   A target RAS supports path disclosure when trusted configuration
+   between it and the IdP establishes that it does; this document
+   defines no metadata for it.  A target RAS that supports path
+   disclosure MUST convey continuation_via unchanged in every access
+   token or introspection response it issues from the onward grant,
+   including access tokens it issues on refresh ("Optional RAS Refresh
+   Tokens" in [FEDERATION]), so that the API receives it.  A target RAS
+   that does not support it still accepts onward grants under
+   [FEDERATION] and ignores the claim.
+
+   Where the chain authorization, the continuing client's Continuation
+   Association, or policy for the target requires path disclosure, the
+   IdP MUST NOT issue an onward grant for a target RAS not established
+   to support it (Section 6.5); issuing it would present a path that the
+   target discards as if it were complete.  A RAS or API MUST NOT read
+   the absence of continuation_via as evidence that no continuing client
+   was involved, unless trusted configuration establishes that the RAS
+   that issued its token supports path disclosure.
+
+   This document defines continuation_via for governed chains.  It is
+   proposed for [ICA] as the disclosure of forwarding intermediaries in
+   general (Appendix B.3).
+
+6.4.3.  Delegated: ID-JAG
 
    The onward ID-JAG uses the format and claims of Section 3.1 of
    [ID-JAG] and the following:
 
-    +============+===================================================+
-    | Claim      | Value                                             |
-    +============+===================================================+
-    | sub        | The chain's user, in the IdP's subject namespace  |
-    |            | for the target RAS                                |
-    +------------+---------------------------------------------------+
-    | act        | The object of "Actor Resolution and Construction" |
-    |            | in [FEDERATION], with the chain's Agent Principal |
-    |            | as sub and the IdP issuer as iss; any sub_profile |
-    |            | reflects the IdP's current classification         |
-    +------------+---------------------------------------------------+
-    | client_id  | The continuing client's registration at the       |
-    |            | target RAS                                        |
-    +------------+---------------------------------------------------+
-    | auth_time, | Copied unchanged from the root, as Section 5.5.5  |
-    | acr, amr   | of [ICA] requires                                 |
-    +------------+---------------------------------------------------+
+     +==================+===========================================+
+     | Claim            | Value                                     |
+     +==================+===========================================+
+     | sub              | The chain's user, in the IdP's subject    |
+     |                  | namespace for the target RAS              |
+     +------------------+-------------------------------------------+
+     | act              | The object of "Actor Resolution and       |
+     |                  | Construction" in [FEDERATION], with the   |
+     |                  | chain's Agent Principal as sub and the    |
+     |                  | IdP issuer as iss; any sub_profile        |
+     |                  | reflects the IdP's current classification |
+     +------------------+-------------------------------------------+
+     | client_id        | The continuing client's registration at   |
+     |                  | the target RAS                            |
+     +------------------+-------------------------------------------+
+     | auth_time, acr,  | Copied unchanged from the root, as        |
+     | amr              | Section 5.5.5 of [ICA] requires           |
+     +------------------+-------------------------------------------+
+     | continuation_via | The chain's continuing clients            |
+     |                  | (Section 6.4.2)                           |
+     +------------------+-------------------------------------------+
 
-         Table 4: Onward ID-JAG subject, actor, and client claims
+      Table 4: Onward ID-JAG subject, actor, client, and path claims
 
    Section 5.5.5 of [ICA] applies to the onward ID-JAG and to the IdP's
    hop records, including immutable parent references, ancestry that
    excludes sibling branches, and the merging of consecutive identical
    actors that the actor-lineage depth bound counts.  Two of its rules
    are replaced: Section 6.4.1 replaces the act it emits, and Section 7
-   its redemption grant type.
+   its redemption grant type.  The continuing clients that its lineage
+   would place in act appear in continuation_via instead.
 
-6.4.3.  Self-Acting: WAG
+6.4.4.  Self-Acting: WAG
 
    The onward WAG uses the JWT type and claims of "Grant Claims" in
    [FEDERATION], including its prohibition of act, with these values:
 
-          +===========+========================================+
-          | Claim     | Value                                  |
-          +===========+========================================+
-          | iss       | The IdP issuer identifier              |
-          +-----------+----------------------------------------+
-          | sub       | The chain's Agent Principal identifier |
-          +-----------+----------------------------------------+
-          | aud       | The target RAS issuer identifier       |
-          +-----------+----------------------------------------+
-          | client_id | The continuing client's registration   |
-          |           | at the target RAS                      |
-          +-----------+----------------------------------------+
+       +==================+========================================+
+       | Claim            | Value                                  |
+       +==================+========================================+
+       | iss              | The IdP issuer identifier              |
+       +------------------+----------------------------------------+
+       | sub              | The chain's Agent Principal identifier |
+       +------------------+----------------------------------------+
+       | aud              | The target RAS issuer identifier       |
+       +------------------+----------------------------------------+
+       | client_id        | The continuing client's registration   |
+       |                  | at the target RAS                      |
+       +------------------+----------------------------------------+
+       | continuation_via | The chain's continuing clients         |
+       |                  | (Section 6.4.2)                        |
+       +------------------+----------------------------------------+
 
-            Table 5: Onward WAG issuer, subject, audience, and
-                              client claims
+           Table 5: Onward WAG issuer, subject, audience, client,
+                              and path claims
 
    Section 6.3 replaces the issuance steps of "Self-Acting Issuance:
    WAG" in [FEDERATION]: no agent resolution or Client Association check
@@ -792,6 +874,12 @@ Table of Contents
     | registration cannot be   |      |                               |
     | resolved at the target   |      |                               |
     +--------------------------+------+-------------------------------+
+    | Policy requires path     | 7    | invalid_target                |
+    | disclosure, and the      |      |                               |
+    | target RAS is not        |      |                               |
+    | established to support   |      |                               |
+    | it                       |      |                               |
+    +--------------------------+------+-------------------------------+
     | The chain authorization, | 9    | invalid_target                |
     | the Continuation         |      |                               |
     | Association, or the      |      |                               |
@@ -816,6 +904,21 @@ Table of Contents
    request.  After either of the first two, only a new root grant, which
    the agent's client obtains, starts a new chain (Section 8.3).
 
+   When the IdP cannot confirm shared state that a continuation depends
+   on, such as an agent session (Section 3.3) or a replay reservation
+   (Section 5.5.7 of [ICA]), it MUST respond with HTTP status code 503
+   (Service Unavailable) (Section 15.6.4 of [RFC9110]) and SHOULD
+   include a Retry-After header field (Section 10.2.3 of [RFC9110]).
+   This temporary refusal is not an OAuth error response: the chain has
+   not ended, and the request was not judged invalid.  Because the IdP
+   reserves an assertion only after every step succeeds, the continuing
+   client MAY retry the same request with the same assertion while it is
+   unexpired, after any Retry-After interval, with a fresh client
+   assertion and DPoP proof as the retry rule of "Dedicated Client
+   Identity" in [FEDERATION] requires; otherwise it obtains a fresh
+   assertion.  It MUST NOT treat a temporary refusal as the end of the
+   chain.
+
 7.  Onward Redemption and Access
 
    The continuing client redeems the onward grant under "Redemption
@@ -833,12 +936,13 @@ Table of Contents
    access token as for any governed grant ("Grant Redemption at the RAS"
    and "Access at the Resource Server" in [FEDERATION]).  They see the
    same Agent Principal, and for delegated access the same user and
-   actor gate, as for the agent's own client; only client_id names the
-   continuing client, and resource policy can permit or deny an agent's
-   access through a particular client.  A RAS that does not implement
-   [ICA] ignores the handle.  One that does binds it and applies
-   Section 4, so that a gateway in its domain can continue the chain as
-   a further hop that again names the same agent.
+   actor gate, as for the agent's own client; only client_id and
+   continuation_via name continuing clients, and resource policy can
+   permit or deny an agent's access through a particular client or path.
+   A RAS that does not implement [ICA] ignores the handle.  One that
+   does binds it and applies Section 4, so that a gateway in its domain
+   can continue the chain as a further hop that again names the same
+   agent.
 
 8.  Gateway Requirements
 
@@ -887,28 +991,29 @@ Table of Contents
 
 8.2.  Topologies
 
-    +===============+====================+===========================+
-    | Topology      | CAI                | Use                       |
-    +===============+====================+===========================+
-    | Gateway       | The gateway's own  | The gateway operator runs |
-    | authorization | RAS (Section 8.1   | an authorization server   |
-    | server        | of [ICA])          | for the gateway resource; |
-    |               |                    | the baseline              |
-    +---------------+--------------------+---------------------------+
-    | Shared        | A separate CAI     | The gateway is a resource |
-    | authorization | trusted for that   | server behind an API-     |
-    | server        | RAS (Section 5.4.6 | management or enterprise  |
-    |               | of [ICA])          | authorization server      |
-    +---------------+--------------------+---------------------------+
-    | Gateway       | Each gateway's RAS | Each hop is a governed    |
-    | behind a      |                    | continuation, and every   |
-    | gateway       |                    | onward grant names the    |
-    |               |                    | same agent                |
-    +---------------+--------------------+---------------------------+
-    | IdP-issued    | None               | Not applicable            |
-    | gateway       |                    | (Section 1.2)             |
-    | tokens        |                    |                           |
-    +---------------+--------------------+---------------------------+
+   +===============+====================+=============================+
+   | Topology      | CAI                | Use                         |
+   +===============+====================+=============================+
+   | Gateway       | The gateway's own  | The gateway operator runs   |
+   | authorization | RAS (Section 8.1   | an authorization server for |
+   | server        | of [ICA])          | the gateway resource; the   |
+   |               |                    | baseline                    |
+   +---------------+--------------------+-----------------------------+
+   | Shared        | A separate CAI     | The gateway is a resource   |
+   | authorization | trusted for that   | server behind an API-       |
+   | server        | RAS (Section 5.4.6 | management or enterprise    |
+   |               | of [ICA])          | authorization server        |
+   +---------------+--------------------+-----------------------------+
+   | Gateway       | Each gateway's RAS | Each hop is a governed      |
+   | behind a      |                    | continuation; every onward  |
+   | gateway       |                    | grant names the same agent, |
+   |               |                    | and continuation_via lists  |
+   |               |                    | each gateway on the path    |
+   +---------------+--------------------+-----------------------------+
+   | IdP-issued    | None               | Not applicable              |
+   | gateway       |                    | (Section 1.2)               |
+   | tokens        |                    |                             |
+   +---------------+--------------------+-----------------------------+
 
                        Table 8: Gateway topologies
 
@@ -955,7 +1060,8 @@ Table of Contents
    limit, the gateway SHOULD reject the agent's request with HTTP 401
    and the invalid_token error code of the access token's scheme
    ([RFC6750], [RFC9449]), so that the agent's client obtains a new
-   access token and, with it, a new root grant.
+   access token and, with it, a new root grant.  A temporary refusal is
+   not such a failure: the gateway retries as Section 6.5 describes.
 
    After the IdP rejects a governed continuation for a request, the
    continuing client MUST NOT serve that request with its own authority
@@ -1052,7 +1158,8 @@ Table of Contents
    [FEDERATION] and the applicable requirements of [ICA] as this
    document changes them.  A target RAS that does not continue the chain
    implements [FEDERATION] with DPoP support at its token endpoint, and
-   nothing from this document.
+   nothing from this document unless it supports path disclosure
+   (Section 6.4.2).
 
    Each claim has this mandatory interoperability path:
 
@@ -1124,11 +1231,14 @@ Table of Contents
 
    Downstream records attribute an action to the Agent Principal and,
    for delegated access, the user, with the continuing client as
-   client_id.  The onward grant does not disclose earlier continuing
-   clients, so audit across hops correlates each target's records with
-   the IdP's hop records.  A handle does not distinguish a root grant
-   from an onward grant; a resource that must tell a gateway from the
-   agent's own client uses the authenticated client_id.
+   client_id and every continuing client on the path in
+   continuation_via.  A target RAS can therefore audit and authorize the
+   path without consulting the IdP, and so can an API whose RAS supports
+   path disclosure; the IdP's hop records remain authoritative.  A
+   handle does not distinguish a root grant from an onward grant; a
+   resource that must tell a gateway from the agent's own client uses
+   the authenticated client_id or the presence of continuation_via,
+   which only onward grants carry.
 
 11.3.  Self-Acting Chains
 
@@ -1155,10 +1265,11 @@ Table of Contents
    Continuation discloses the Agent Principal identifier to each target
    the gateway reaches, extending the cross-resource correlation that a
    stable agent identifier allows, and the gateway learns which agents
-   and users call which tools.  An onward grant discloses only the
-   current continuing client, so a target learns less of the path than
-   under Section 5.5.5 of [ICA].  The IdP's hop records hold the
-   complete path and are sensitive audit data.
+   and users call which tools.  An onward grant discloses every
+   continuing client on the path, as Section 5.5.5 of [ICA] would, but
+   as intermediaries rather than actors, and it does not disclose the
+   root client.  The IdP's hop records hold the complete path and are
+   sensitive audit data.
 
 13.  IANA Considerations
 
@@ -1177,11 +1288,35 @@ Table of Contents
 
    *  Specification Document: Section 10.2 of this document.
 
+   This document also requests registration of the following claim in
+   the "JSON Web Token Claims" registry established by [RFC7519]:
+
+   *  Claim Name: continuation_via
+
+   *  Claim Description: Continuing clients that a continued grant
+      passed through, as intermediaries rather than actors
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 6.4.2 of this document.
+
+   and of the following member in the "OAuth Token Introspection
+   Response" registry established by [RFC7662]:
+
+   *  Name: continuation_via
+
+   *  Description: Continuing clients that the grant from which the
+      introspected token was issued passed through
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 6.4.2 of this document.
+
+   If [ICA] adopts continuation_via, these registrations move to it.
    The identity_continuation_handle JWT claim and the
    urn:ietf:params:oauth:grant-profile:id-jag-continuation value are
-   registered by [ICA].  This document uses the claim in WAGs and
-   registers nothing further.  Errors are those of [RFC6749], [ICA], and
-   [FEDERATION].
+   registered by [ICA], and this document uses the handle claim in WAGs.
+   Errors are those of [RFC6749], [ICA], and [FEDERATION].
 
 14.  References
 
@@ -1237,6 +1372,11 @@ Table of Contents
               Possession (DPoP)", RFC 9449, DOI 10.17487/RFC9449,
               September 2023, <https://www.rfc-editor.org/rfc/rfc9449>.
 
+   [RFC9110]  Fielding, R., Ed., Nottingham, M., Ed., and J. Reschke,
+              Ed., "HTTP Semantics", STD 97, RFC 9110,
+              DOI 10.17487/RFC9110, June 2022,
+              <https://www.rfc-editor.org/rfc/rfc9110>.
+
    [BCP14]    Best Current Practice 14,
               <https://www.rfc-editor.org/info/bcp14>.
               At the time of writing, this BCP comprises the following:
@@ -1272,9 +1412,27 @@ Table of Contents
               auth/blob/main/specification/stable/enterprise-managed-
               authorization.mdx>.
 
+   [AWS-CALLEDVIA]
+              Amazon Web Services, "AWS global condition context keys",
+              <https://docs.aws.amazon.com/IAM/latest/UserGuide/
+              reference_policies_condition-keys.html>.
+
+   [KERBEROS-PAC]
+              Microsoft, "Privilege Attribute Certificate Data
+              Structure", <https://learn.microsoft.com/en-
+              us/openspecs/windows_protocols/ms-pac/>.
+
    [RFC6755]  Campbell, B. and H. Tschofenig, "An IETF URN Sub-Namespace
               for OAuth", RFC 6755, DOI 10.17487/RFC6755, October 2012,
               <https://www.rfc-editor.org/rfc/rfc6755>.
+
+   [RFC7519]  Jones, M., Bradley, J., and N. Sakimura, "JSON Web Token
+              (JWT)", RFC 7519, DOI 10.17487/RFC7519, May 2015,
+              <https://www.rfc-editor.org/rfc/rfc7519>.
+
+   [RFC7662]  Richer, J., Ed., "OAuth 2.0 Token Introspection",
+              RFC 7662, DOI 10.17487/RFC7662, October 2015,
+              <https://www.rfc-editor.org/rfc/rfc7662>.
 
    [WAG]      Carleton, P., Steele, N., Parecki, A., Schwenkschuster,
               A., and B. Campbell, "Workload Authorization Grant", Work
@@ -1282,6 +1440,9 @@ Table of Contents
               authz-grant-01, 22 September 2026,
               <https://datatracker.ietf.org/doc/html/draft-carleton-
               workload-authz-grant-01>.
+
+   [WS-TRUST] OASIS, "WS-Trust 1.4", <http://docs.oasis-open.org/ws-sx/
+              ws-trust/v1.4/os/ws-trust-1.4-spec-os.html>.
 
 Appendix A.  Gateway Walkthrough
 
@@ -1444,13 +1605,17 @@ A.3.  Continuation
      "scope": "files.read",
      "auth_time": 1789646400,
      "act": {"iss": "https://idp.example/", "sub": "agent-42"},
+     "continuation_via": [
+       {"iss": "https://gateway.example/", "sub": "tool-gateway"}
+     ],
      "cnf": {"jkt": "JKT_G"},
      "identity_continuation_handle": "Zp3kRt8VbN2wLq6YsD4mXe"
    }
 
    Its sub and act are those of the grant in the walkthrough of
-   [FEDERATION]; its client, key, handle, identifiers, and times differ,
-   and it carries the root's auth_time.
+   [FEDERATION]; its client, key, handle, identifiers, and times differ.
+   It carries the root's auth_time, and its continuation_via lists tool-
+   gateway, whose registration at the target client_id names.
 
 A.4.  Redemption at the Target
 
@@ -1458,8 +1623,8 @@ A.4.  Redemption at the Target
    the jwt-bearer grant type, a private_key_jwt assertion for gateway-
    files, and a fresh proof of G.  The RAS validates the grant and its
    confirmation, resolves Alice to user-108, correlates agent-42,
-   applies the actor gate, and ignores the handle, since it does not
-   implement [ICA].  The access token:
+   applies the actor gate, and ignores the handle and continuation_via,
+   since it implements only [FEDERATION].  The access token:
 
    {
      "iss": "https://ras.example/",
@@ -1520,6 +1685,9 @@ A.5.  Self-Acting Variant
      "client_id": "gateway-files-svc",
      "resource": "https://api.example/tenants/acme-data/",
      "scope": "files.read",
+     "continuation_via": [
+       {"iss": "https://gateway.example/", "sub": "tool-gateway"}
+     ],
      "cnf": {"jkt": "JKT_G"},
      "identity_continuation_handle": "Tf8hMv3QwJ6nZr1KxB4cGe"
    }
@@ -1530,7 +1698,52 @@ A.5.  Self-Acting Variant
    ten-minute gateway access token expires, which refreshes the agent
    session; the gateway's continuations do not.
 
-A.6.  Negative Tests
+A.6.  Two-Gateway Variant
+
+   Here tool-gateway reaches the file service through a second gateway,
+   data-gateway at https://data-gateway.example/, whose RAS is
+   continuation-aware and performs the CAI role.  The IdP configures
+   data-gateway as it does tool-gateway, with canonical actor identity
+   (https://data-gateway.example/, data-gateway), a Continuation
+   Association for agent-42's delegated chains, and the registration
+   data-files at https://ras.example/; D is its DPoP key.
+
+   tool-gateway continues H0 to the data gateway's RAS, which binds the
+   child hop H1. data-gateway then obtains an assertion for H1 and
+   continues to https://ras.example/. The onward ID-JAG (excerpt):
+
+   {
+     "sub": "alice-ras",
+     "aud": "https://ras.example/",
+     "client_id": "data-files",
+     "act": {"iss": "https://idp.example/", "sub": "agent-42"},
+     "continuation_via": [
+       {"iss": "https://gateway.example/", "sub": "tool-gateway"},
+       {"iss": "https://data-gateway.example/", "sub": "data-gateway"}
+     ],
+     "cnf": {"jkt": "JKT_D"}
+   }
+
+   In this variant, https://ras.example/ supports path disclosure
+   (Section 6.4.2), so the access token it issues carries the same list
+   to the API (excerpt):
+
+   {
+     "sub": "user-108",
+     "client_id": "data-files",
+     "act": {"iss": "https://idp.example/", "sub": "agent-42"},
+     "continuation_via": [
+       {"iss": "https://gateway.example/", "sub": "tool-gateway"},
+       {"iss": "https://data-gateway.example/", "sub": "data-gateway"}
+     ],
+     "cnf": {"jkt": "JKT_D"}
+   }
+
+   The API applies the actor gate to agent-42 alone.  A policy that
+   admits agent-42 only through tool-gateway matches the first entry,
+   and the last entry identifies the client that presented the grant.
+
+A.7.  Negative Tests
 
    Each case changes the stated conditions; all other checks succeed.
 
@@ -1576,6 +1789,12 @@ A.6.  Negative Tests
    +------------------------------+---------+-------------------------+
    | Two resource parameters in   | IdP     | HTTP 400,               |
    | the continuation request     |         | invalid_target          |
+   +------------------------------+---------+-------------------------+
+   | The Continuation Association | IdP     | HTTP 400,               |
+   | for tool-gateway requires    |         | invalid_target; the IdP |
+   | path disclosure, and         |         | does not issue a grant  |
+   | https://ras.example/ is not  |         | whose path the target   |
+   | established to support it    |         | would discard           |
    +------------------------------+---------+-------------------------+
    | The continuation used the    | IdP     | Where the IdP offers    |
    | chain's last permitted hop,  |         | idempotent retry, HTTP  |
@@ -1674,6 +1893,15 @@ B.1.  Changes to ICA
    |             |                               |records unchanged   |
    |             |                               |(Section 6.4.1)     |
    +-------------+-------------------------------+--------------------+
+   |Path         |Continuing clients as nested   |Continuing clients  |
+   |disclosure   |actors in act (Section 5.5.5 of|as intermediaries in|
+   |             |[ICA])                         |continuation_via,   |
+   |             |                               |preserved to the API|
+   |             |                               |by targets that     |
+   |             |                               |support path        |
+   |             |                               |disclosure          |
+   |             |                               |(Section 6.4.2)     |
+   +-------------+-------------------------------+--------------------+
    |Onward       |jwt-dpop (Section 5.5.5 of     |jwt-bearer with     |
    |redemption   |[ICA])                         |grant confirmation  |
    |             |                               |(Section 7)         |
@@ -1761,44 +1989,47 @@ B.2.  Changes to FEDERATION
 
 B.3.  Dependencies
 
-   +====================+===============+=============================+
-   | Specification      |What this      | Consequence until resolved  |
-   |                    |document needs |                             |
-   +====================+===============+=============================+
-   | ICA                |The changes of | This document applies them  |
-   |                    |Appendix B.1   | to governed chains          |
-   +--------------------+---------------+-----------------------------+
-   | ID-JAG             |Section 4.4 of | Onward grants are redeemed  |
-   |                    |[ID-JAG]       | with jwt-bearer under       |
-   |                    |requires jwt-  | [FEDERATION]                |
-   |                    |bearer, while  |                             |
-   |                    |its key-bound  |                             |
-   |                    |example uses   |                             |
-   |                    |jwt-dpop, which|                             |
-   |                    |Section 5.5.5  |                             |
-   |                    |of [ICA]       |                             |
-   |                    |follows        |                             |
-   +--------------------+---------------+-----------------------------+
-   | WAG                |Registration of| Provisional values;         |
-   |                    |the provisional| governed-agent-continuation |
-   |                    |token type and | is advertised for WAGs in   |
-   |                    |JWT type; a WAG| the ID-JAG metadata         |
-   |                    |carrying a     | parameter pending           |
-   |                    |continuation   | coordination                |
-   |                    |handle; a WAG  |                             |
-   |                    |issued by an   |                             |
-   |                    |IdP on a       |                             |
-   |                    |continuation   |                             |
-   |                    |exchange       |                             |
-   +--------------------+---------------+-----------------------------+
-   | [AGENT-MANAGEMENT] |Administration | Configured by each          |
-   |                    |of Continuation| deployment                  |
-   |                    |Associations   |                             |
-   |                    |and of an      |                             |
-   |                    |authorization's|                             |
-   |                    |permission to  |                             |
-   |                    |continue       |                             |
-   +--------------------+---------------+-----------------------------+
+   +==================+=================+=============================+
+   |Specification     |What this        | Consequence until resolved  |
+   |                  |document needs   |                             |
+   +==================+=================+=============================+
+   |ICA               |The changes of   | This document applies them  |
+   |                  |Appendix B.1, and| to governed chains and      |
+   |                  |a forwarding     | defines continuation_via    |
+   |                  |disclosure mode  | itself                      |
+   |                  |with             |                             |
+   |                  |continuation_via |                             |
+   |                  |for chains in    |                             |
+   |                  |general          |                             |
+   +------------------+-----------------+-----------------------------+
+   |ID-JAG            |Section 4.4 of   | Onward grants are redeemed  |
+   |                  |[ID-JAG] requires| with jwt-bearer under       |
+   |                  |jwt-bearer, while| [FEDERATION]                |
+   |                  |its key-bound    |                             |
+   |                  |example uses jwt-|                             |
+   |                  |dpop, which      |                             |
+   |                  |Section 5.5.5 of |                             |
+   |                  |[ICA] follows    |                             |
+   +------------------+-----------------+-----------------------------+
+   |WAG               |Registration of  | Provisional values;         |
+   |                  |the provisional  | governed-agent-continuation |
+   |                  |token type and   | is advertised for WAGs in   |
+   |                  |JWT type; a WAG  | the ID-JAG metadata         |
+   |                  |carrying a       | parameter pending           |
+   |                  |continuation     | coordination                |
+   |                  |handle; a WAG    |                             |
+   |                  |issued by an IdP |                             |
+   |                  |on a continuation|                             |
+   |                  |exchange         |                             |
+   +------------------+-----------------+-----------------------------+
+   |[AGENT-MANAGEMENT]|Administration of| Configured by each          |
+   |                  |Continuation     | deployment                  |
+   |                  |Associations and |                             |
+   |                  |of an            |                             |
+   |                  |authorization's  |                             |
+   |                  |permission to    |                             |
+   |                  |continue         |                             |
+   +------------------+-----------------+-----------------------------+
 
                           Table 13: Dependencies
 
@@ -1806,9 +2037,10 @@ B.4.  Open Items
 
    [[ To be removed before publication as an RFC ]]
 
-   1.  *Disclosure of continuing clients:* Should an onward grant
-       disclose earlier continuing clients for audit, in a claim that
-       does not make them actors (Appendix C.1)?
+   1.  *Home of continuation_via:* Should [ICA] define it, with an
+       acting or forwarding mode for each hop, so that this document
+       uses ICA's claim instead of its own?  Should policy ever be able
+       to narrow it, as it can narrow the depth of act (Section 6.4.2)?
 
    2.  *Self-acting discovery:* Should the IdP advertise support for
        self-acting continuation in metadata?
@@ -1830,6 +2062,11 @@ B.4.  Open Items
        several Governance Tenants select its registration and credential
        at the IdP, when neither its incoming token nor the assertion
        response names the Governance Tenant?
+
+   7.  *Temporary refusals:* Should [ICA] adopt the same HTTP 503
+       response for state it cannot confirm, and define an OAuth error
+       code for policy that blocks a chain only temporarily
+       (Section 6.5)?
 
 Appendix C.  Design Rationale
 
@@ -1854,11 +2091,23 @@ C.1.  The Gateway Is a Client, Not an Actor
    outermost actor, recreating at the actor level the shared-client
    problem.  A governed RAS and API would have to process nested act,
    which [FEDERATION] rejects, and a WAG, which carries no act, could
-   not represent the gateway at all.  The user's approval reaches the
-   gateway through the Delegation Authorization, which must permit
-   continuation for a delegated chain to exist.  Continuation never
-   turns a delegated chain into a WAG, which would let an agent act on
-   its own authority because a user's request reached it.
+   not represent the gateway at all.
+
+   In the terms of [WS-TRUST], the gateway requests access on behalf of
+   the agent rather than acting as it: the agent acts for the user, and
+   the gateway forwards.  A forwarding intermediary is still disclosed,
+   in continuation_via.  Related precedents record forwarding services
+   apart from the principal: the Kerberos privilege attribute
+   certificate lists the services that a delegated ticket passed through
+   ([KERBEROS-PAC]), and AWS lists the services that made a request on a
+   principal's behalf ([AWS-CALLEDVIA]).  Attribution and path-based
+   policy therefore need no lineage in act.
+
+   The user's approval reaches the gateway through the Delegation
+   Authorization, which must permit continuation for a delegated chain
+   to exist.  Continuation never turns a delegated chain into a WAG,
+   which would let an agent act on its own authority because a user's
+   request reached it.
 
 C.2.  Governance Events End the Chain
 

@@ -280,7 +280,7 @@ requires, and treats them as follows at each continuation:
 |---|---|
 | Acting relationship, Agent Principal, Governance Tenant, and root client | Fixed; never resolved again |
 | For a delegated chain, the user and authentication context; for a self-acting chain, the agent session | Fixed; the user or session remains active ({{chain-ending}}) |
-| Identity Binding, Client Association, and credential through which the root resolved the agent | Each remains enabled and unrevoked ({{chain-ending}}) |
+| Identity Binding, Client Association, and credential through which the root resolved the agent | Each remains enabled, unrevoked, and able to permit the root grant's issuance ({{chain-ending}}) |
 | Delegation Authorization or Agent Authorization under which the root grant was issued | Not withdrawn as a whole; current authorization governs each target and authority ({{continuation-validation}}) |
 {: title="Recorded facts of a governed chain"}
 
@@ -699,7 +699,7 @@ is later restored.
 |---|---|
 | Disable the Agent Principal | Every chain for the agent ends |
 | Disable the user | The user's delegated chains end |
-| Disable the root Identity Binding or remove the root Client Association | Chains rooted through it end, even when the agent has other enabled bindings |
+| Disable the root Identity Binding or remove the root Client Association, or change either so that it no longer permits the root grant's issuance, such as its acting relationship or credential class | Chains rooted through it end, even when the agent has other enabled bindings |
 | Revoke the credential or trust material through which the root resolved the agent, including through the WISE events of "Time, Replay, and Key Validation" in {{FEDERATION}} | Chains rooted through it end |
 | Withdraw or let expire, as a whole, the Delegation Authorization or Agent Authorization under which the root grant was issued, or withdraw its permission to continue | Chains rooted under it end |
 | End the user's IdP session or the agent session | Chains anchored to it end |

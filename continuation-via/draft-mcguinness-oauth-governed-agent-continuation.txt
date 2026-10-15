@@ -130,7 +130,8 @@ Table of Contents
      A.3.  Continuation
      A.4.  Redemption at the Target
      A.5.  Self-Acting Variant
-     A.6.  Negative Tests
+     A.6.  Two-Gateway Variant
+     A.7.  Negative Tests
    Appendix B.  Relationship to Other Specifications
      B.1.  Changes to ICA
      B.2.  Changes to FEDERATION
@@ -477,8 +478,9 @@ Table of Contents
    and the absolute expiration against shared session state.  An
    instance that cannot confirm the session's state MUST reject the
    request rather than issue, as Section 5.5.7 of [ICA] requires for
-   replay reservations, and MUST NOT treat the session as ended on that
-   basis; the chain stays continuable.
+   replay reservations, with the temporary refusal of Section 6.5, and
+   MUST NOT treat the session as ended on that basis; the chain stays
+   continuable.
 
 4.  Root Redemption at the Gateway's RAS
 
@@ -620,7 +622,9 @@ Table of Contents
        in [FEDERATION]), and, for a delegated chain, the user's subject
        at the target ("Subject Resolution" in [FEDERATION]) each resolve
        unambiguously.  A self-acting chain's subject is its Agent
-       Principal, which is not resolved per target.
+       Principal, which is not resolved per target.  Where policy
+       requires path disclosure, the target RAS supports it
+       (Section 6.4.2).
 
    8.  *Freshness and replay (ICA rule 6).*
 
@@ -711,35 +715,55 @@ Table of Contents
    this claim:
 
    continuation_via:  A JSON array of the canonical actor identities
-      (Section 5.5.2 of [ICA]) of the continuing clients of the hops
-      from the root to the hop being issued, oldest first, so that the
-      last entry is the current continuing client.  Each entry is a JSON
-      object with iss and sub string members; a recipient ignores other
-      members.  The root client does not appear.
+      (Section 5.5.2 of [ICA]) of the continuing clients that created
+      the hops after the root, on the branch from the root to the hop
+      being issued, oldest first, so that the last entry is the current
+      continuing client.  Each entry is a JSON object with iss and sub
+      string members; a recipient ignores other members.  The root hop
+      contributes no entry, so the root client appears only if it later
+      continues the chain.
 
    The IdP MUST include continuation_via in every onward grant of a
    governed chain and MUST derive it from its hop records, never from
    the assertion or the request, following the lineage rules of
-   Section 5.5.5 of [ICA]: parent references are immutable, sibling
-   branches are excluded, and consecutive identical entries merge.  The
-   list is complete.  Policy that narrows the disclosed depth of act
-   under [ICA] does not narrow it, because a forwarding intermediary is
+   Section 5.5.5 of [ICA]: parent references are immutable, and sibling
+   branches are excluded.  It takes one entry from each hop after the
+   root, then merges consecutive identical entries.  For example, with
+   root client A, continuing clients B and then A give [B, A]; A
+   continuing twice gives [A]; and A and then B give [A, B].  The list
+   is complete.  Policy that narrows the disclosed depth of act under
+   [ICA] does not narrow it, because a forwarding intermediary is
    disclosed, never hidden.  The last entry and client_id identify the
    same continuing client, the entry by its canonical actor identity and
    client_id by its registration at the target.
 
    A recipient MUST NOT treat an entry as an actor: entries are not
    subject to the actor gate and authorize nothing.  A target RAS MAY
-   use the list in its policy, for example to admit agents only through
-   approved gateways, and MAY convey it unchanged in the access token or
-   introspection response it issues.  A target that ignores it still
-   conforms to [FEDERATION].
+   use the list in its own policy, for example to admit agents only
+   through approved gateways.
+
+   A target RAS supports path disclosure when trusted configuration
+   between it and the IdP establishes that it does; this document
+   defines no metadata for it.  A target RAS that supports path
+   disclosure MUST convey continuation_via unchanged in every access
+   token or introspection response it issues from the onward grant,
+   including access tokens it issues on refresh ("Optional RAS Refresh
+   Tokens" in [FEDERATION]), so that the API receives it.  A target RAS
+   that does not support it still accepts onward grants under
+   [FEDERATION] and ignores the claim.
+
+   Where the chain authorization, the continuing client's Continuation
+   Association, or policy for the target requires path disclosure, the
+   IdP MUST NOT issue an onward grant for a target RAS not established
+   to support it (Section 6.5); issuing it would present a path that the
+   target discards as if it were complete.  A RAS or API MUST NOT read
+   the absence of continuation_via as evidence that no continuing client
+   was involved, unless trusted configuration establishes that the RAS
+   that issued its token supports path disclosure.
 
    This document defines continuation_via for governed chains.  It is
    proposed for [ICA] as the disclosure of forwarding intermediaries in
-   general (Appendix B.3).  Kerberos and AWS disclose forwarding
-   services in the same way ([KERBEROS-PAC], [AWS-CALLEDVIA];
-   Appendix C.1).
+   general (Appendix B.3).
 
 6.4.3.  Delegated: ID-JAG
 
@@ -850,6 +874,12 @@ Table of Contents
     | registration cannot be   |      |                               |
     | resolved at the target   |      |                               |
     +--------------------------+------+-------------------------------+
+    | Policy requires path     | 7    | invalid_target                |
+    | disclosure, and the      |      |                               |
+    | target RAS is not        |      |                               |
+    | established to support   |      |                               |
+    | it                       |      |                               |
+    +--------------------------+------+-------------------------------+
     | The chain authorization, | 9    | invalid_target                |
     | the Continuation         |      |                               |
     | Association, or the      |      |                               |
@@ -873,6 +903,21 @@ Table of Contents
    (Section 5.5.6 of [ICA]); and any other code affects only the
    request.  After either of the first two, only a new root grant, which
    the agent's client obtains, starts a new chain (Section 8.3).
+
+   When the IdP cannot confirm shared state that a continuation depends
+   on, such as an agent session (Section 3.3) or a replay reservation
+   (Section 5.5.7 of [ICA]), it MUST respond with HTTP status code 503
+   (Service Unavailable) (Section 15.6.4 of [RFC9110]) and SHOULD
+   include a Retry-After header field (Section 10.2.3 of [RFC9110]).
+   This temporary refusal is not an OAuth error response: the chain has
+   not ended, and the request was not judged invalid.  Because the IdP
+   reserves an assertion only after every step succeeds, the continuing
+   client MAY retry the same request with the same assertion while it is
+   unexpired, after any Retry-After interval, with a fresh client
+   assertion and DPoP proof as the retry rule of "Dedicated Client
+   Identity" in [FEDERATION] requires; otherwise it obtains a fresh
+   assertion.  It MUST NOT treat a temporary refusal as the end of the
+   chain.
 
 7.  Onward Redemption and Access
 
@@ -1015,7 +1060,8 @@ Table of Contents
    limit, the gateway SHOULD reject the agent's request with HTTP 401
    and the invalid_token error code of the access token's scheme
    ([RFC6750], [RFC9449]), so that the agent's client obtains a new
-   access token and, with it, a new root grant.
+   access token and, with it, a new root grant.  A temporary refusal is
+   not such a failure: the gateway retries as Section 6.5 describes.
 
    After the IdP rejects a governed continuation for a request, the
    continuing client MUST NOT serve that request with its own authority
@@ -1112,7 +1158,8 @@ Table of Contents
    [FEDERATION] and the applicable requirements of [ICA] as this
    document changes them.  A target RAS that does not continue the chain
    implements [FEDERATION] with DPoP support at its token endpoint, and
-   nothing from this document.
+   nothing from this document unless it supports path disclosure
+   (Section 6.4.2).
 
    Each claim has this mandatory interoperability path:
 
@@ -1185,12 +1232,13 @@ Table of Contents
    Downstream records attribute an action to the Agent Principal and,
    for delegated access, the user, with the continuing client as
    client_id and every continuing client on the path in
-   continuation_via.  A target can therefore audit and authorize the
-   path without consulting the IdP, whose hop records remain
-   authoritative.  A handle does not distinguish a root grant from an
-   onward grant; a resource that must tell a gateway from the agent's
-   own client uses the authenticated client_id or the presence of
-   continuation_via, which only onward grants carry.
+   continuation_via.  A target RAS can therefore audit and authorize the
+   path without consulting the IdP, and so can an API whose RAS supports
+   path disclosure; the IdP's hop records remain authoritative.  A
+   handle does not distinguish a root grant from an onward grant; a
+   resource that must tell a gateway from the agent's own client uses
+   the authenticated client_id or the presence of continuation_via,
+   which only onward grants carry.
 
 11.3.  Self-Acting Chains
 
@@ -1323,6 +1371,11 @@ Table of Contents
               Jones, M., and D. Waite, "OAuth 2.0 Demonstrating Proof of
               Possession (DPoP)", RFC 9449, DOI 10.17487/RFC9449,
               September 2023, <https://www.rfc-editor.org/rfc/rfc9449>.
+
+   [RFC9110]  Fielding, R., Ed., Nottingham, M., Ed., and J. Reschke,
+              Ed., "HTTP Semantics", STD 97, RFC 9110,
+              DOI 10.17487/RFC9110, June 2022,
+              <https://www.rfc-editor.org/rfc/rfc9110>.
 
    [BCP14]    Best Current Practice 14,
               <https://www.rfc-editor.org/info/bcp14>.
@@ -1645,7 +1698,52 @@ A.5.  Self-Acting Variant
    ten-minute gateway access token expires, which refreshes the agent
    session; the gateway's continuations do not.
 
-A.6.  Negative Tests
+A.6.  Two-Gateway Variant
+
+   Here tool-gateway reaches the file service through a second gateway,
+   data-gateway at https://data-gateway.example/, whose RAS is
+   continuation-aware and performs the CAI role.  The IdP configures
+   data-gateway as it does tool-gateway, with canonical actor identity
+   (https://data-gateway.example/, data-gateway), a Continuation
+   Association for agent-42's delegated chains, and the registration
+   data-files at https://ras.example/; D is its DPoP key.
+
+   tool-gateway continues H0 to the data gateway's RAS, which binds the
+   child hop H1. data-gateway then obtains an assertion for H1 and
+   continues to https://ras.example/. The onward ID-JAG (excerpt):
+
+   {
+     "sub": "alice-ras",
+     "aud": "https://ras.example/",
+     "client_id": "data-files",
+     "act": {"iss": "https://idp.example/", "sub": "agent-42"},
+     "continuation_via": [
+       {"iss": "https://gateway.example/", "sub": "tool-gateway"},
+       {"iss": "https://data-gateway.example/", "sub": "data-gateway"}
+     ],
+     "cnf": {"jkt": "JKT_D"}
+   }
+
+   In this variant, https://ras.example/ supports path disclosure
+   (Section 6.4.2), so the access token it issues carries the same list
+   to the API (excerpt):
+
+   {
+     "sub": "user-108",
+     "client_id": "data-files",
+     "act": {"iss": "https://idp.example/", "sub": "agent-42"},
+     "continuation_via": [
+       {"iss": "https://gateway.example/", "sub": "tool-gateway"},
+       {"iss": "https://data-gateway.example/", "sub": "data-gateway"}
+     ],
+     "cnf": {"jkt": "JKT_D"}
+   }
+
+   The API applies the actor gate to agent-42 alone.  A policy that
+   admits agent-42 only through tool-gateway matches the first entry,
+   and the last entry identifies the client that presented the grant.
+
+A.7.  Negative Tests
 
    Each case changes the stated conditions; all other checks succeed.
 
@@ -1691,6 +1789,12 @@ A.6.  Negative Tests
    +------------------------------+---------+-------------------------+
    | Two resource parameters in   | IdP     | HTTP 400,               |
    | the continuation request     |         | invalid_target          |
+   +------------------------------+---------+-------------------------+
+   | The Continuation Association | IdP     | HTTP 400,               |
+   | for tool-gateway requires    |         | invalid_target; the IdP |
+   | path disclosure, and         |         | does not issue a grant  |
+   | https://ras.example/ is not  |         | whose path the target   |
+   | established to support it    |         | would discard           |
    +------------------------------+---------+-------------------------+
    | The continuation used the    | IdP     | Where the IdP offers    |
    | chain's last permitted hop,  |         | idempotent retry, HTTP  |
@@ -1791,7 +1895,11 @@ B.1.  Changes to ICA
    +-------------+-------------------------------+--------------------+
    |Path         |Continuing clients as nested   |Continuing clients  |
    |disclosure   |actors in act (Section 5.5.5 of|as intermediaries in|
-   |             |[ICA])                         |continuation_via    |
+   |             |[ICA])                         |continuation_via,   |
+   |             |                               |preserved to the API|
+   |             |                               |by targets that     |
+   |             |                               |support path        |
+   |             |                               |disclosure          |
    |             |                               |(Section 6.4.2)     |
    +-------------+-------------------------------+--------------------+
    |Onward       |jwt-dpop (Section 5.5.5 of     |jwt-bearer with     |
@@ -1955,11 +2063,10 @@ B.4.  Open Items
        at the IdP, when neither its incoming token nor the assertion
        response names the Governance Tenant?
 
-   7.  *Temporary refusals:* Which error code does an IdP return when it
-       refuses a continuation only temporarily, for example because it
-       cannot confirm an agent session's state, so that the gateway
-       retries instead of starting a new chain (Section 3.3)?  [ICA] has
-       the same question for policy that blocks a chain temporarily.
+   7.  *Temporary refusals:* Should [ICA] adopt the same HTTP 503
+       response for state it cannot confirm, and define an OAuth error
+       code for policy that blocks a chain only temporarily
+       (Section 6.5)?
 
 Appendix C.  Design Rationale
 
@@ -1989,10 +2096,12 @@ C.1.  The Gateway Is a Client, Not an Actor
    In the terms of [WS-TRUST], the gateway requests access on behalf of
    the agent rather than acting as it: the agent acts for the user, and
    the gateway forwards.  A forwarding intermediary is still disclosed,
-   in continuation_via, as Kerberos records the services a delegated
-   ticket passed through ([KERBEROS-PAC]) and AWS records the services
-   that made a request on a principal's behalf ([AWS-CALLEDVIA]).
-   Attribution and path-based policy therefore need no lineage in act.
+   in continuation_via.  Related precedents record forwarding services
+   apart from the principal: the Kerberos privilege attribute
+   certificate lists the services that a delegated ticket passed through
+   ([KERBEROS-PAC]), and AWS lists the services that made a request on a
+   principal's behalf ([AWS-CALLEDVIA]).  Attribution and path-based
+   policy therefore need no lineage in act.
 
    The user's approval reaches the gateway through the Delegation
    Authorization, which must permit continuation for a delegated chain

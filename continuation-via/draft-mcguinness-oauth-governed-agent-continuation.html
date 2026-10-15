@@ -1330,7 +1330,10 @@ the governance events that end it.<a href="#section-abstract-2" class="pilcrow">
                 <p id="section-toc.1-1.15.2.5.1"><a href="#appendix-A.5" class="auto internal xref">A.5</a>.  <a href="#name-self-acting-variant" class="internal xref">Self-Acting Variant</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.6">
-                <p id="section-toc.1-1.15.2.6.1"><a href="#appendix-A.6" class="auto internal xref">A.6</a>.  <a href="#name-negative-tests" class="internal xref">Negative Tests</a></p>
+                <p id="section-toc.1-1.15.2.6.1"><a href="#appendix-A.6" class="auto internal xref">A.6</a>.  <a href="#name-two-gateway-variant" class="internal xref">Two-Gateway Variant</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.7">
+                <p id="section-toc.1-1.15.2.7.1"><a href="#appendix-A.7" class="auto internal xref">A.7</a>.  <a href="#name-negative-tests" class="internal xref">Negative Tests</a></p>
 </li>
             </ul>
 </li>
@@ -1795,8 +1798,8 @@ and the gateway's response leads the agent's client to a new root grant
 absolute expiration against shared session state. An instance that
 cannot confirm the session's state <span class="bcp14">MUST</span> reject the request rather than
 issue, as <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.5.7" class="relref">Section 5.5.7</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span> requires for replay reservations,
-and <span class="bcp14">MUST NOT</span> treat the session as ended on that basis; the chain stays
-continuable.<a href="#section-3.3-4" class="pilcrow">¶</a></p>
+with the temporary refusal of <a href="#continuation-errors" class="auto internal xref">Section 6.5</a>, and <span class="bcp14">MUST NOT</span>
+treat the session as ended on that basis; the chain stays continuable.<a href="#section-3.3-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -1989,7 +1992,8 @@ client's registration at the target RAS ("Issuance Prerequisites" in
 <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>), and, for a delegated chain, the user's subject at
 the target ("Subject Resolution" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>) each resolve
 unambiguously. A self-acting chain's subject is its Agent
-Principal, which is not resolved per target.<a href="#section-6.3-2.7.1" class="pilcrow">¶</a></p>
+Principal, which is not resolved per target. Where policy requires
+path disclosure, the target RAS supports it (<a href="#continuation-via" class="auto internal xref">Section 6.4.2</a>).<a href="#section-6.3-2.7.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-6.3-2.8">
             <p id="section-6.3-2.8.1"><strong>Freshness and replay (ICA rule 6).</strong><a href="#section-6.3-2.8.1" class="pilcrow">¶</a></p>
@@ -2097,19 +2101,24 @@ it passed through, as intermediaries rather than actors, in this claim:<a href="
 <code>continuation_via</code>:</dt>
             <dd style="margin-left: 1.5em" id="section-6.4.2-2.2">
               <p id="section-6.4.2-2.2.1">A JSON array of the canonical actor identities
-(<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.5.2" class="relref">Section 5.5.2</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>) of the continuing clients of the hops from
-the root to the hop being issued, oldest first, so that the last
-entry is the current continuing client. Each entry is a JSON object
-with <code>iss</code> and <code>sub</code> string members; a recipient ignores other
-members. The root client does not appear.<a href="#section-6.4.2-2.2.1" class="pilcrow">¶</a></p>
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.5.2" class="relref">Section 5.5.2</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>) of the continuing clients that created the
+hops after the root, on the branch from the root to the hop being
+issued, oldest first, so that the last entry is the current
+continuing client. Each entry is a JSON object with <code>iss</code> and <code>sub</code>
+string members; a recipient ignores other members. The root hop
+contributes no entry, so the root client appears only if it later
+continues the chain.<a href="#section-6.4.2-2.2.1" class="pilcrow">¶</a></p>
 </dd>
           <dd class="break"></dd>
 </dl>
 <p id="section-6.4.2-3">The IdP <span class="bcp14">MUST</span> include <code>continuation_via</code> in every onward grant of a
 governed chain and <span class="bcp14">MUST</span> derive it from its hop records, never from the
 assertion or the request, following the lineage rules of
-<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.5.5" class="relref">Section 5.5.5</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>: parent references are immutable, sibling
-branches are excluded, and consecutive identical entries merge. The
+<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.5.5" class="relref">Section 5.5.5</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>: parent references are immutable, and sibling
+branches are excluded. It takes one entry from each hop after the root,
+then merges consecutive identical entries. For example, with root
+client A, continuing clients B and then A give <code>[B, A]</code>; A continuing
+twice gives <code>[A]</code>; and A and then B give <code>[A, B]</code>. The
 list is complete. Policy that narrows the disclosed depth of <code>act</code>
 under <span>[<a href="#ICA" class="cite xref">ICA</a>]</span> does not narrow it, because a forwarding intermediary is
 disclosed, never hidden. The last entry and <code>client_id</code> identify the
@@ -2117,15 +2126,28 @@ same continuing client, the entry by its canonical actor identity and
 <code>client_id</code> by its registration at the target.<a href="#section-6.4.2-3" class="pilcrow">¶</a></p>
 <p id="section-6.4.2-4">A recipient <span class="bcp14">MUST NOT</span> treat an entry as an actor: entries are not
 subject to the actor gate and authorize nothing. A target RAS <span class="bcp14">MAY</span> use
-the list in its policy, for example to admit agents only through
-approved gateways, and <span class="bcp14">MAY</span> convey it unchanged in the access token or
-introspection response it issues. A target that ignores it still
-conforms to <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>.<a href="#section-6.4.2-4" class="pilcrow">¶</a></p>
-<p id="section-6.4.2-5">This document defines <code>continuation_via</code> for governed chains. It is
+the list in its own policy, for example to admit agents only through
+approved gateways.<a href="#section-6.4.2-4" class="pilcrow">¶</a></p>
+<p id="section-6.4.2-5">A target RAS supports path disclosure when trusted configuration
+between it and the IdP establishes that it does; this document defines
+no metadata for it. A target RAS that supports path disclosure <span class="bcp14">MUST</span>
+convey <code>continuation_via</code> unchanged in every access token or
+introspection response it issues from the onward grant, including
+access tokens it issues on refresh ("Optional RAS Refresh Tokens" in
+<span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>), so that the API receives it. A target RAS that does
+not support it still accepts onward grants under <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> and
+ignores the claim.<a href="#section-6.4.2-5" class="pilcrow">¶</a></p>
+<p id="section-6.4.2-6">Where the chain authorization, the continuing client's Continuation
+Association, or policy for the target requires path disclosure, the IdP
+<span class="bcp14">MUST NOT</span> issue an onward grant for a target RAS not established to
+support it (<a href="#continuation-errors" class="auto internal xref">Section 6.5</a>); issuing it would present a path
+that the target discards as if it were complete. A RAS or API <span class="bcp14">MUST NOT</span>
+read the absence of <code>continuation_via</code> as evidence that no continuing
+client was involved, unless trusted configuration establishes that the
+RAS that issued its token supports path disclosure.<a href="#section-6.4.2-6" class="pilcrow">¶</a></p>
+<p id="section-6.4.2-7">This document defines <code>continuation_via</code> for governed chains. It is
 proposed for <span>[<a href="#ICA" class="cite xref">ICA</a>]</span> as the disclosure of forwarding intermediaries in
-general (<a href="#dependencies" class="auto internal xref">Appendix B.3</a>). Kerberos and AWS disclose forwarding
-services in the same way (<span>[<a href="#KERBEROS-PAC" class="cite xref">KERBEROS-PAC</a>]</span>, <span>[<a href="#AWS-CALLEDVIA" class="cite xref">AWS-CALLEDVIA</a>]</span>;
-<a href="#rationale-client" class="auto internal xref">Appendix C.1</a>).<a href="#section-6.4.2-5" class="pilcrow">¶</a></p>
+general (<a href="#dependencies" class="auto internal xref">Appendix B.3</a>).<a href="#section-6.4.2-7" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="onward-id-jag">
@@ -2328,6 +2350,13 @@ both chain types:<a href="#section-6.5-1" class="pilcrow">¶</a></p>
 </td>
             </tr>
             <tr>
+              <td class="text-left" rowspan="1" colspan="1">Policy requires path disclosure, and the target RAS is not established to support it</td>
+              <td class="text-left" rowspan="1" colspan="1">7</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>invalid_target</code>
+</td>
+            </tr>
+            <tr>
               <td class="text-left" rowspan="1" colspan="1">The chain authorization, the Continuation Association, or the agent's current authorization does not permit the target</td>
               <td class="text-left" rowspan="1" colspan="1">9</td>
               <td class="text-left" rowspan="1" colspan="1">
@@ -2353,6 +2382,20 @@ no longer be continued (<span><a href="https://datatracker.ietf.org/doc/html/dra
 affects only the request. After either of the first two, only a new
 root grant, which the agent's client obtains, starts a new chain
 (<a href="#gateway-reuse" class="auto internal xref">Section 8.3</a>).<a href="#section-6.5-3" class="pilcrow">¶</a></p>
+<p id="section-6.5-4">When the IdP cannot confirm shared state that a continuation depends
+on, such as an agent session (<a href="#self-acting-root" class="auto internal xref">Section 3.3</a>) or a replay
+reservation (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.5.7" class="relref">Section 5.5.7</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>), it <span class="bcp14">MUST</span> respond with HTTP status
+code 503 (Service Unavailable) (<span><a href="https://rfc-editor.org/rfc/rfc9110#section-15.6.4" class="relref">Section 15.6.4</a> of [<a href="#RFC9110" class="cite xref">RFC9110</a>]</span>) and
+<span class="bcp14">SHOULD</span> include a <code>Retry-After</code> header field
+(<span><a href="https://rfc-editor.org/rfc/rfc9110#section-10.2.3" class="relref">Section 10.2.3</a> of [<a href="#RFC9110" class="cite xref">RFC9110</a>]</span>). This temporary refusal is not an OAuth
+error response: the chain has not ended, and the request was not judged
+invalid. Because the IdP reserves an assertion only after every step
+succeeds, the continuing client <span class="bcp14">MAY</span> retry the same request with the
+same assertion while it is unexpired, after any <code>Retry-After</code> interval,
+with a fresh client assertion and DPoP proof as the retry rule of
+"Dedicated Client Identity" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> requires; otherwise it
+obtains a fresh assertion. It <span class="bcp14">MUST NOT</span> treat a temporary refusal as the
+end of the chain.<a href="#section-6.5-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -2533,7 +2576,8 @@ continuation, once for each target.<a href="#section-8.3-4" class="pilcrow">¶</
 the gateway <span class="bcp14">SHOULD</span> reject the agent's request with HTTP 401 and the
 <code>invalid_token</code> error code of the access token's scheme (<span>[<a href="#RFC6750" class="cite xref">RFC6750</a>]</span>,
 <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span>), so that the agent's client obtains a new access token and,
-with it, a new root grant.<a href="#section-8.3-5" class="pilcrow">¶</a></p>
+with it, a new root grant. A temporary refusal is not such a failure:
+the gateway retries as <a href="#continuation-errors" class="auto internal xref">Section 6.5</a> describes.<a href="#section-8.3-5" class="pilcrow">¶</a></p>
 <p id="section-8.3-6">After the IdP rejects a governed continuation for a request, the
 continuing client <span class="bcp14">MUST NOT</span> serve that request with its own authority or
 through a chain established without this document. This extends the
@@ -2635,7 +2679,8 @@ role it implements. Each claim requires the same realization under
 <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> and the applicable requirements of <span>[<a href="#ICA" class="cite xref">ICA</a>]</span> as this
 document changes them. A target RAS that does not continue the chain
 implements <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> with DPoP support at its token endpoint, and
-nothing from this document.<a href="#section-10.1-1" class="pilcrow">¶</a></p>
+nothing from this document unless it supports path disclosure
+(<a href="#continuation-via" class="auto internal xref">Section 6.4.2</a>).<a href="#section-10.1-1" class="pilcrow">¶</a></p>
 <p id="section-10.1-2">Each claim has this mandatory interoperability path:<a href="#section-10.1-2" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-10.1-3.1">
@@ -2727,8 +2772,9 @@ from inducing an honest continuation (<span><a href="https://datatracker.ietf.or
 <p id="section-11.2-1">Downstream records attribute an action to the Agent Principal and, for
 delegated access, the user, with the continuing client as <code>client_id</code>
 and every continuing client on the path in <code>continuation_via</code>. A target
-can therefore audit and authorize the path without consulting the IdP,
-whose hop records remain authoritative. A handle does not distinguish a
+RAS can therefore audit and authorize the path without consulting the
+IdP, and so can an API whose RAS supports path disclosure; the IdP's
+hop records remain authoritative. A handle does not distinguish a
 root grant from an onward grant; a resource that must tell a gateway
 from the agent's own client uses the authenticated <code>client_id</code> or the
 presence of <code>continuation_via</code>, which only onward grants carry.<a href="#section-11.2-1" class="pilcrow">¶</a></p>
@@ -2890,6 +2936,10 @@ WAGs. Errors are those of <span>[<a href="#RFC6749" class="cite xref">RFC6749</a
 <dt id="RFC9449">[RFC9449]</dt>
         <dd>
 <span class="refAuthor">Fett, D.</span>, <span class="refAuthor">Campbell, B.</span>, <span class="refAuthor">Bradley, J.</span>, <span class="refAuthor">Lodderstedt, T.</span>, <span class="refAuthor">Jones, M.</span>, and <span class="refAuthor">D. Waite</span>, <span class="refTitle">"OAuth 2.0 Demonstrating Proof of Possession (DPoP)"</span>, <span class="seriesInfo">RFC 9449</span>, <span class="seriesInfo">DOI 10.17487/RFC9449</span>, <time datetime="2023-09" class="refDate">September 2023</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9449">https://www.rfc-editor.org/rfc/rfc9449</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9110">[RFC9110]</dt>
+        <dd>
+<span class="refAuthor">Fielding, R., Ed.</span>, <span class="refAuthor">Nottingham, M., Ed.</span>, and <span class="refAuthor">J. Reschke, Ed.</span>, <span class="refTitle">"HTTP Semantics"</span>, <span class="seriesInfo">STD 97</span>, <span class="seriesInfo">RFC 9110</span>, <span class="seriesInfo">DOI 10.17487/RFC9110</span>, <time datetime="2022-06" class="refDate">June 2022</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9110">https://www.rfc-editor.org/rfc/rfc9110</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="BCP14">[BCP14]</dt>
       <dd>
@@ -3255,12 +3305,64 @@ ten-minute gateway access token expires, which refreshes the agent
 session; the gateway's continuations do not.<a href="#appendix-A.5-5" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="negative-tests">
+<div id="walkthrough-two-gateways">
 <section id="appendix-A.6">
-        <h3 id="name-negative-tests">
-<a href="#appendix-A.6" class="section-number selfRef">A.6. </a><a href="#name-negative-tests" class="section-name selfRef">Negative Tests</a>
+        <h3 id="name-two-gateway-variant">
+<a href="#appendix-A.6" class="section-number selfRef">A.6. </a><a href="#name-two-gateway-variant" class="section-name selfRef">Two-Gateway Variant</a>
         </h3>
-<p id="appendix-A.6-1">Each case changes the stated conditions; all other checks succeed.<a href="#appendix-A.6-1" class="pilcrow">¶</a></p>
+<p id="appendix-A.6-1">Here <code>tool-gateway</code> reaches the file service through a second gateway,
+<code>data-gateway</code> at <code>https://data-gateway.example/</code>, whose RAS is
+continuation-aware and performs the CAI role. The IdP configures
+<code>data-gateway</code> as it does <code>tool-gateway</code>, with canonical actor identity
+(<code>https://data-gateway.example/</code>, <code>data-gateway</code>), a Continuation
+Association for <code>agent-42</code>'s delegated chains, and the registration
+<code>data-files</code> at <code>https://ras.example/</code>; D is its DPoP key.<a href="#appendix-A.6-1" class="pilcrow">¶</a></p>
+<p id="appendix-A.6-2"><code>tool-gateway</code> continues H0 to the data gateway's RAS, which binds the
+child hop H1. <code>data-gateway</code> then obtains an assertion for H1 and
+continues to <code>https://ras.example/</code>. The onward ID-JAG (excerpt):<a href="#appendix-A.6-2" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="appendix-A.6-3">
+<pre>
+{
+  "sub": "alice-ras",
+  "aud": "https://ras.example/",
+  "client_id": "data-files",
+  "act": {"iss": "https://idp.example/", "sub": "agent-42"},
+  "continuation_via": [
+    {"iss": "https://gateway.example/", "sub": "tool-gateway"},
+    {"iss": "https://data-gateway.example/", "sub": "data-gateway"}
+  ],
+  "cnf": {"jkt": "JKT_D"}
+}
+</pre><a href="#appendix-A.6-3" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A.6-4">In this variant, <code>https://ras.example/</code> supports path disclosure
+(<a href="#continuation-via" class="auto internal xref">Section 6.4.2</a>), so the access token it issues carries the same
+list to the API (excerpt):<a href="#appendix-A.6-4" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="appendix-A.6-5">
+<pre>
+{
+  "sub": "user-108",
+  "client_id": "data-files",
+  "act": {"iss": "https://idp.example/", "sub": "agent-42"},
+  "continuation_via": [
+    {"iss": "https://gateway.example/", "sub": "tool-gateway"},
+    {"iss": "https://data-gateway.example/", "sub": "data-gateway"}
+  ],
+  "cnf": {"jkt": "JKT_D"}
+}
+</pre><a href="#appendix-A.6-5" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A.6-6">The API applies the actor gate to <code>agent-42</code> alone. A policy that admits
+<code>agent-42</code> only through <code>tool-gateway</code> matches the first entry, and the
+last entry identifies the client that presented the grant.<a href="#appendix-A.6-6" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="negative-tests">
+<section id="appendix-A.7">
+        <h3 id="name-negative-tests">
+<a href="#appendix-A.7" class="section-number selfRef">A.7. </a><a href="#name-negative-tests" class="section-name selfRef">Negative Tests</a>
+        </h3>
+<p id="appendix-A.7-1">Each case changes the stated conditions; all other checks succeed.<a href="#appendix-A.7-1" class="pilcrow">¶</a></p>
 <span id="name-negative-test-cases"></span><table class="center" id="table-10">
           <caption>
 <a href="#table-10" class="selfRef">Table 10</a>:
@@ -3311,6 +3413,11 @@ session; the gateway's continuations do not.<a href="#appendix-A.5-5" class="pil
               <td class="text-left" rowspan="1" colspan="1">IdP</td>
               <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>invalid_target</code>
 </td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">The Continuation Association for <code>tool-gateway</code> requires path disclosure, and <code>https://ras.example/</code> is not established to support it</td>
+              <td class="text-left" rowspan="1" colspan="1">IdP</td>
+              <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>invalid_target</code>; the IdP does not issue a grant whose path the target would discard</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">The continuation used the chain's last permitted hop, its response was lost, and the gateway repeats the request with the same assertion</td>
@@ -3428,7 +3535,7 @@ ICA-02, ID-JAG-04, WAG-01, and the 2026-10-09 revision of
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Path disclosure</td>
               <td class="text-left" rowspan="1" colspan="1">Continuing clients as nested actors in <code>act</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.5.5" class="relref">Section 5.5.5</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>)</td>
-              <td class="text-left" rowspan="1" colspan="1">Continuing clients as intermediaries in <code>continuation_via</code> (<a href="#continuation-via" class="auto internal xref">Section 6.4.2</a>)</td>
+              <td class="text-left" rowspan="1" colspan="1">Continuing clients as intermediaries in <code>continuation_via</code>, preserved to the API by targets that support path disclosure (<a href="#continuation-via" class="auto internal xref">Section 6.4.2</a>)</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Onward redemption</td>
@@ -3609,11 +3716,10 @@ the IdP, when neither its incoming token nor the assertion response
 names the Governance Tenant?<a href="#appendix-B.4-2.6.1" class="pilcrow">¶</a></p>
 </li>
           <li id="appendix-B.4-2.7">
-            <p id="appendix-B.4-2.7.1"><strong>Temporary refusals:</strong> Which error code does an IdP return when it
-refuses a continuation only temporarily, for example because it
-cannot confirm an agent session's state, so that the gateway retries
-instead of starting a new chain (<a href="#self-acting-root" class="auto internal xref">Section 3.3</a>)? <span>[<a href="#ICA" class="cite xref">ICA</a>]</span> has
-the same question for policy that blocks a chain temporarily.<a href="#appendix-B.4-2.7.1" class="pilcrow">¶</a></p>
+            <p id="appendix-B.4-2.7.1"><strong>Temporary refusals:</strong> Should <span>[<a href="#ICA" class="cite xref">ICA</a>]</span> adopt the same HTTP 503
+response for state it cannot confirm, and define an OAuth error code
+for policy that blocks a chain only temporarily
+(<a href="#continuation-errors" class="auto internal xref">Section 6.5</a>)?<a href="#appendix-B.4-2.7.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
 </section>
@@ -3651,10 +3757,12 @@ not represent the gateway at all.<a href="#appendix-C.1-2" class="pilcrow">¶</a
 <p id="appendix-C.1-3">In the terms of <span>[<a href="#WS-TRUST" class="cite xref">WS-TRUST</a>]</span>, the gateway requests access on behalf of
 the agent rather than acting as it: the agent acts for the user, and the
 gateway forwards. A forwarding intermediary is still disclosed, in
-<code>continuation_via</code>, as Kerberos records the services a delegated ticket
-passed through (<span>[<a href="#KERBEROS-PAC" class="cite xref">KERBEROS-PAC</a>]</span>) and AWS records the services that made a
-request on a principal's behalf (<span>[<a href="#AWS-CALLEDVIA" class="cite xref">AWS-CALLEDVIA</a>]</span>). Attribution and
-path-based policy therefore need no lineage in <code>act</code>.<a href="#appendix-C.1-3" class="pilcrow">¶</a></p>
+<code>continuation_via</code>. Related precedents record forwarding services apart
+from the principal: the Kerberos privilege attribute certificate lists
+the services that a delegated ticket passed through (<span>[<a href="#KERBEROS-PAC" class="cite xref">KERBEROS-PAC</a>]</span>),
+and AWS lists the services that made a request on a principal's behalf
+(<span>[<a href="#AWS-CALLEDVIA" class="cite xref">AWS-CALLEDVIA</a>]</span>). Attribution and path-based policy therefore need no
+lineage in <code>act</code>.<a href="#appendix-C.1-3" class="pilcrow">¶</a></p>
 <p id="appendix-C.1-4">The user's approval reaches the
 gateway through the Delegation Authorization, which must permit
 continuation for a delegated chain to exist. Continuation never turns a

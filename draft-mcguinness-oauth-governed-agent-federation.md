@@ -113,6 +113,14 @@ informative:
     author:
       - org: Amazon Web Services
   ICA: I-D.mcguinness-oauth-id-continuation-assertion
+  CONTINUATION:
+    title: "Identity Continuation Profile for Governed Agent Federation"
+    author:
+      - name: Karl McGuinness
+    date: 2026-10-14
+    seriesinfo:
+      Internet-Draft: draft-mcguinness-oauth-governed-agent-continuation
+    target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
   RFC6755:
   WAG: I-D.carleton-workload-authz-grant
   SPIFFE-CONCEPTS:
@@ -2888,7 +2896,7 @@ This document does not define the following compositions:
 | Composition | Boundary in this document |
 |---|---|
 | Asynchronous approval with {{AROP}} | External approval follows {{external-approval}}, {{authorization-lifetime}}, and {{issuance-authorization}} |
-| Continuation with {{ICA}} | Renewal follows {{continuing-access}} |
+| Continuation with {{ICA}} | Defined for governed grants, including through gateways, in {{CONTINUATION}}; renewal without continuation follows {{continuing-access}} |
 | General WIMSE WIT/WIC inputs | Only the SPIFFE forms in {{INPUTS}} are defined |
 | Instance context in an ID-JAG or WAG, or preserved across domains, under {{INSTANCE}} | The RAS conveys only an instance it validated ({{access-token-response}}); workload evidence resolves the agent, and a shared workload identity does not distinguish replicas {{SPIFFE-CONCEPTS}} |
 | Mutual-TLS-bound ID-JAG | Bound grants use DPoP; mutual TLS can protect access tokens ({{access-token-protection}}) |

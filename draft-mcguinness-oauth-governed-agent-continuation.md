@@ -253,10 +253,10 @@ Onward grant:
 # Establishing a Governed Chain {#chain-establishment}
 
 The root exchange is grant issuance under {{FEDERATION}}. For a
-governed root, the chain authorization permits continuation only when
-both:
+governed root, tenant policy permits continuation
+({{Section 5.1.2 of ICA}}) only when both:
 
-* tenant policy permits continuation for the Agent Principal and acting
+* it permits continuation for the Agent Principal and acting
   relationship; and
 * the Delegation Authorization or Agent Authorization under which the
   root grant is issued permits the agent's access to continue through
@@ -466,9 +466,10 @@ within the steps that cite them, changed only as stated.
    continuation window ({{governed-chain-authorization}}). An ended
    chain takes precedence over a wrong type, which takes precedence over
    a limit.
-6. **Continuation Association:** A current Continuation Association
-   permits the client for the chain's Agent Principal and acting
-   relationship.
+6. **Continuer:** A current Continuation Association permits the
+   client for the chain's Agent Principal and acting relationship, and
+   so do the chain authorization's restrictions on who may continue
+   ({{Section 5.1.4 of ICA}}).
 7. **Target context (ICA rule 5, replacing its subject resolution):**
    The Target Tenant for the requested resource, the continuing
    client's registration at the target RAS ("Issuance Prerequisites" in
@@ -484,12 +485,16 @@ within the steps that cite them, changed only as stated.
    Delegation Authorization or Agent Authorization that permits
    continuation covers them; it need not name the continuing client.
    The Continuation Association's restrictions and the chain
-   authorization also bound the target and authority.
+   authorization also bound the target and authority. Withdrawal of the
+   root authorization as a whole is chain state (step 5), not a failure
+   of this step.
 
 Because step 6 precedes step 7, a client without a Continuation
 Association learns nothing about where the chain's user resolves. The
 rules of {{FEDERATION}} for agent resolution and subject tokens do not
-apply to the assertion.
+apply to the assertion. The IdP reserves the assertion's (`iss`, `jti`)
+only after every step succeeds, as {{Section 5.5.7 of ICA}} requires,
+so a rejected request consumes nothing.
 
 An IdP that offers idempotent retry ({{Section 5.5.7.1 of ICA}}) MUST
 include `requested_token_type` in the request fingerprint.
@@ -590,12 +595,13 @@ both chain types:
 
 | Failure | Step | Error |
 |---|---|---|
-| Missing `resource` or `scope` | 2 | `invalid_request` |
+| Missing `resource` | 2 | `invalid_request` |
+| Missing `scope` | 2 | `invalid_scope`, as {{Section 3.3 of RFC6749}} and {{Section 5.5.6 of ICA}} provide |
 | Multiple `resource` parameters | 2 | `invalid_target`, as in "Token Exchange Request" in {{FEDERATION}} |
 | The chain has ended ({{chain-ending}}) | 5 | `invalid_continuation` |
 | `requested_token_type` is not the chain's grant type | 5 | `invalid_request` |
 | The hop's continuation window has passed | 5 | `invalid_grant` |
-| No Continuation Association permits the continuing client | 6 | `unauthorized_client` |
+| No Continuation Association, or the chain authorization's restriction on who may continue, permits the continuing client | 6 | `unauthorized_client` |
 | The Target Tenant, the user's subject, or the continuing client's registration cannot be resolved at the target | 7 | `invalid_target` |
 | The chain authorization, the Continuation Association, or the agent's current authorization does not permit the target | 9 | `invalid_target` |
 | The same sources permit the target but not the requested authority | 9 | `invalid_scope` or `invalid_authorization_details` |
@@ -1169,7 +1175,7 @@ Where this document is silent, {{ICA}} applies unchanged.
 |---|---|---|
 | Root exchange | Base ID-JAG exchange; `actor_token` out of scope ({{Section 5.1.1 of ICA}}) | Governed issuance in either resolution mode ({{delegated-root}}) |
 | Root grant | ID-JAG | Governed ID-JAG or WAG |
-| Establishment | Chain authorization permits continuation ({{Section 5.1.2 of ICA}}) | The root's Delegation or Agent Authorization must also permit it ({{chain-establishment}}) |
+| Establishment | Tenant policy permits continuation ({{Section 5.1.2 of ICA}}) | The root's Delegation or Agent Authorization must also permit it ({{chain-establishment}}) |
 | Anchors | User session or refresh-token grant; no non-user roots ({{Section 6.1 of ICA}}) | Unchanged for delegated chains; an agent session for self-acting chains ({{self-acting-root}}) |
 | Chain authorization | User, root actor, authentication context, anchor, restrictions | Adds the facts of {{governed-chain-authorization}} |
 | Who may continue | Chain authorization and current policy | Also a Continuation Association ({{continuation-association}}) |

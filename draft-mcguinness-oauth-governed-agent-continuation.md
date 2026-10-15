@@ -42,6 +42,7 @@ normative:
   RFC8693:
   RFC8707:
   RFC9449:
+  RFC9110:
 informative:
   AGENT-LIFECYCLE:
     title: "Governed Agent Lifecycle Profile for SCIM and OAuth"
@@ -400,8 +401,8 @@ and the gateway's response leads the agent's client to a new root grant
 absolute expiration against shared session state. An instance that
 cannot confirm the session's state MUST reject the request rather than
 issue, as {{Section 5.5.7 of ICA}} requires for replay reservations,
-and MUST NOT treat the session as ended on that basis; the chain stays
-continuable.
+with the temporary refusal of {{continuation-errors}}, and MUST NOT
+treat the session as ended on that basis; the chain stays continuable.
 
 # Root Redemption at the Gateway's RAS {#root-redemption}
 
@@ -733,6 +734,21 @@ affects only the request. After either of the first two, only a new
 root grant, which the agent's client obtains, starts a new chain
 ({{gateway-reuse}}).
 
+When the IdP cannot confirm shared state that a continuation depends
+on, such as an agent session ({{self-acting-root}}) or a replay
+reservation ({{Section 5.5.7 of ICA}}), it MUST respond with HTTP status
+code 503 (Service Unavailable) ({{Section 15.6.4 of RFC9110}}) and
+SHOULD include a `Retry-After` header field
+({{Section 10.2.3 of RFC9110}}). This temporary refusal is not an OAuth
+error response: the chain has not ended, and the request was not judged
+invalid. Because the IdP reserves an assertion only after every step
+succeeds, the continuing client MAY retry the same request with the
+same assertion while it is unexpired, after any `Retry-After` interval,
+with a fresh client assertion and DPoP proof as the retry rule of
+"Dedicated Client Identity" in {{FEDERATION}} requires; otherwise it
+obtains a fresh assertion. It MUST NOT treat a temporary refusal as the
+end of the chain.
+
 # Onward Redemption and Access {#target-processing}
 
 The continuing client redeems the onward grant under "Redemption
@@ -834,7 +850,8 @@ When continuation from a request's source hop fails with
 the gateway SHOULD reject the agent's request with HTTP 401 and the
 `invalid_token` error code of the access token's scheme ({{RFC6750}},
 {{RFC9449}}), so that the agent's client obtains a new access token and,
-with it, a new root grant.
+with it, a new root grant. A temporary refusal is not such a failure:
+the gateway retries as {{continuation-errors}} describes.
 
 After the IdP rejects a governed continuation for a request, the
 continuing client MUST NOT serve that request with its own authority or
@@ -1411,11 +1428,10 @@ Where this document is silent, {{FEDERATION}} applies unchanged.
    several Governance Tenants select its registration and credential at
    the IdP, when neither its incoming token nor the assertion response
    names the Governance Tenant?
-7. **Temporary refusals:** Which error code does an IdP return when it
-   refuses a continuation only temporarily, for example because it
-   cannot confirm an agent session's state, so that the gateway retries
-   instead of starting a new chain ({{self-acting-root}})? {{ICA}} has
-   the same question for policy that blocks a chain temporarily.
+7. **Temporary refusals:** Should {{ICA}} adopt the same HTTP 503
+   response for state it cannot confirm, and define an OAuth error code
+   for policy that blocks a chain only temporarily
+   ({{continuation-errors}})?
 
 # Design Rationale {#rationale}
 

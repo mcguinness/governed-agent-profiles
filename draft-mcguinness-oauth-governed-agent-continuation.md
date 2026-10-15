@@ -698,12 +698,14 @@ is later restored.
 | Disable the local agent or user at a target RAS | No new access at that RAS ({{FEDERATION}}); the chain continues elsewhere |
 {: title="Effects of administrative changes on governed chains"}
 
-The IdP administers these relationships, so it ends affected chains
-when it applies the change, within the freshness limit of "Issuance
-Authorization" in {{FEDERATION}}, not only at the next continuation. A
-revision of each relationship, recorded at establishment and changed by
-every disablement or withdrawal, lets it detect a disable-and-restore
-that no continuation observed. Grants and access tokens already issued
+The IdP MUST treat a chain as ended once it has applied, since the
+chain's establishment, any change that the table lists as ending it,
+even if the relationship has since been restored. It applies such
+changes within the freshness limit of "Issuance Authorization" in
+{{FEDERATION}}, and it can determine the outcome when it applies the
+change or at the next continuation, for example by comparing a revision
+of each relationship, recorded at establishment and changed by every
+disablement or withdrawal. Grants and access tokens already issued
 follow "Authorization Changes and Revocation" in {{FEDERATION}}, which
 the grant-derived revocation of {{AGENT-LIFECYCLE}} can propagate.
 

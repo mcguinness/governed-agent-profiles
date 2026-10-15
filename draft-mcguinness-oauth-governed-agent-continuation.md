@@ -323,35 +323,41 @@ context, so its onward WAGs carry no `auth_time`, `acr`, or `amr`.
 The lifecycle anchor of a self-acting chain is an agent session, which
 replaces the user-rooted anchors of {{Section 6.1 of ICA}}; the
 prohibition there on rooting a chain from an access token still
-applies. The session shows whether the agent is still present, and the
-Agent Authorization governs what the chain may do.
+applies. An agent session is evidence that the Agent Principal recently
+authenticated through one Identity Binding. It does not show that any
+particular work continues, and the Agent Authorization, not the
+session, governs what the chain may do.
 
-* **Creation:** On self-acting issuance, the IdP uses the active agent
-  session for the resolved Agent Principal and the Identity Binding it
-  resolved through, or creates one. A chain established by that
-  issuance is anchored to that session.
+* **Creation:** When a self-acting issuance establishes a chain, the IdP
+  anchors it to the active agent session for the resolved Agent
+  Principal and the Identity Binding it resolved through, creating one
+  if none is active. An ended session is never revived.
 * **Refresh:** Completing steps 1 to 3 of "Self-Acting Issuance: WAG" in
   {{FEDERATION}} through that binding refreshes the session: client
   authentication, agent resolution through the binding, and the
-  self-acting Client Association check. The IdP MUST NOT refresh it on
-  any other request, including a continuation exchange or delegated
-  issuance.
+  self-acting Client Association check, whether or not issuance is then
+  authorized. The IdP MUST NOT refresh it on any other request,
+  including a continuation exchange or delegated issuance.
 * **Idle timeout:** The IdP MUST end an agent session that has not been
   refreshed within its configured idle timeout.
 * **Absolute expiration:** The IdP MUST set a finite absolute
   expiration when it creates an agent session, no later than a
-  configured maximum, and MUST NOT extend it. A self-acting issuance
-  after that expiration creates a new agent session.
+  configured maximum, and MUST NOT extend it.
 * **Governance events:** An event of {{chain-ending}} that applies to the
-  session's Agent Principal or Identity Binding, or to a credential
-  that created or refreshed the session, also ends the session.
+  session's Agent Principal or Identity Binding also ends the session.
 
 A self-acting chain ends with its agent session ({{Section 6.2 of ICA}}),
-which neither the gateway nor the CAI can keep active. A working agent
-obtains a new WAG at least as often as its gateway access token
-expires, since WAG redemption yields no refresh token, so an idle
-timeout longer than that interval ends the session soon after the
-agent stops.
+which neither the gateway nor the CAI can keep active. Work that a
+gateway performs after the agent stops authenticating, such as queued
+work, therefore loses continuation at the idle timeout; work that must
+outlive the agent's authentication needs a durable anchor
+({{open-items}}). A working agent obtains a new WAG at least as often
+as its gateway access token expires, since WAG redemption yields no
+refresh token, so a deployment sets the idle timeout longer than that
+token's lifetime. If the token outlives the session, continuation fails
+and the gateway's response leads the agent's client to a new root grant
+({{gateway-reuse}}). IdP instances evaluate the idle timeout and the
+absolute expiration against shared session state.
 
 # Root Redemption at the Gateway's RAS {#root-redemption}
 
@@ -820,11 +826,12 @@ uses the authenticated `client_id`.
 
 ## Self-Acting Chains {#security-self-acting}
 
-A stopped agent's self-acting chains end within the idle timeout
-without administrative action. A party holding the agent's credential
-can keep its session active, as a stolen user credential can keep a
-user session active, until the absolute expiration or the credential's
-revocation ({{chain-ending}}).
+When an agent stops authenticating through a binding, its self-acting
+chains through that binding end within the idle timeout without
+administrative action. A party holding the agent's credential can keep
+its session active, as a stolen user credential can keep a user session
+active, until the absolute expiration or the credential's revocation
+({{chain-ending}}).
 
 ## Disablement Windows {#security-disablement}
 

@@ -423,8 +423,10 @@ relationship it determined for the received access token as the API
 ## Continuation Association {#continuation-association}
 
 A Continuation Association permits an authenticated client to continue
-an Agent Principal's governed chains in one acting relationship. It can
-restrict targets and authority, and it narrows, without replacing, the
+an Agent Principal's governed chains in one acting relationship. It
+belongs to the Governance Tenant of those chains and does not apply to
+chains in another. It can restrict targets and authority, and it
+narrows, without replacing, the
 restrictions on who may continue that the chain authorization records
 ({{Section 5.1.4 of ICA}}). It has these limits:
 
@@ -466,10 +468,10 @@ within the steps that cite them, changed only as stated.
    continuation window ({{governed-chain-authorization}}). An ended
    chain takes precedence over a wrong type, which takes precedence over
    a limit.
-6. **Continuer:** A current Continuation Association permits the
-   client for the chain's Agent Principal and acting relationship, and
-   so do the chain authorization's restrictions on who may continue
-   ({{Section 5.1.4 of ICA}}).
+6. **Continuer:** A current Continuation Association in the chain's
+   Governance Tenant permits the client for the chain's Agent Principal
+   and acting relationship, and so do the chain authorization's
+   restrictions on who may continue ({{Section 5.1.4 of ICA}}).
 7. **Target context (ICA rule 5, replacing its subject resolution):**
    The Target Tenant for the requested resource, the continuing
    client's registration at the target RAS ("Issuance Prerequisites" in
@@ -665,7 +667,8 @@ client registration ("Profile Applicability" under "Access at the
 Resource Server" in {{FEDERATION}}), the IdP selects the gateway's
 registration there by the chain's acting relationship. A gateway that
 serves several Governance Tenants is configured in each, because
-{{ICA}} scopes actor identities and CAI trust to one tenant.
+{{ICA}} scopes actor identities and CAI trust to one tenant; how it
+selects among those registrations is an open item ({{open-items}}).
 
 ## Topologies {#gateway-topologies}
 
@@ -1236,6 +1239,10 @@ Where this document is silent, {{FEDERATION}} applies unchanged.
    to anchor to a work authorization with its own lifecycle, as a
    delegated chain can anchor to a refresh-token grant
    ({{rationale-anchor}})?
+6. **Tenant selection at a gateway:** How does a gateway that serves
+   several Governance Tenants select its registration and credential at
+   the IdP, when neither its incoming token nor the assertion response
+   names the Governance Tenant?
 
 # Design Rationale {#rationale}
 

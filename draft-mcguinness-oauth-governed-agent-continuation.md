@@ -424,11 +424,11 @@ Policy representation and administration are outside this document.
 
 ## Validation {#continuation-validation}
 
-For a hop of a governed chain, the IdP MUST perform the following steps
-in order and MUST reject the request at the first step that fails, with
-the error of {{continuation-errors}}. The checks of
-{{Section 5.5.3 of ICA}} apply within the steps that cite them,
-changed only as stated.
+For a first presentation of an assertion for a hop of a governed chain,
+the IdP MUST perform the following steps in order and MUST reject the
+request at the first step that fails, with the error of
+{{continuation-errors}}. The checks of {{Section 5.5.3 of ICA}} apply
+within the steps that cite them, changed only as stated.
 
 1. **Client and proof:** Authenticate the client, map it to its
    canonical actor identity ({{Section 5.5.2 of ICA}}), and validate
@@ -475,6 +475,15 @@ apply to the assertion.
 
 An IdP that offers idempotent retry ({{Section 5.5.7.1 of ICA}}) MUST
 include `requested_token_type` in the request fingerprint.
+
+A presentation that matches an issued reservation is recovery, not a
+first presentation. Recovery follows {{Section 5.5.7.1 of ICA}}: after
+client authentication, the key proof, and the fingerprint, the IdP
+returns the grant it issued if that grant is unexpired, neither the hop
+nor an ancestor is revoked, and the chain has not ended, including
+under {{chain-ending}}. No other step of this section applies, so
+recovery consumes no limit, and a client whose response was lost
+recovers even the last continuation that a hop-count limit permits.
 
 ## Onward Grants {#onward-grants}
 
@@ -1095,6 +1104,7 @@ Each case changes the stated conditions; all other checks succeed.
 | Alice's Delegation Authorization does not cover the requested resource | IdP | HTTP 400, `invalid_target`; the chain stays continuable to other targets |
 | `agent-42`'s client stops obtaining WAGs, and its agent session passes the idle timeout while the gateway keeps continuing | IdP | HTTP 400, `invalid_continuation`; continuations do not keep the session active |
 | Two `resource` parameters in the continuation request | IdP | HTTP 400, `invalid_target` |
+| The continuation used the chain's last permitted hop, its response was lost, and the gateway repeats the request with the same assertion | IdP | Where the IdP offers idempotent retry, HTTP 200 with the same onward grant; limits do not apply to recovery |
 | Governed agent access: the root ID-JAG has no `cnf`, the agent's client redeems it without a DPoP proof, GatewayRAS issues a bearer access token, and no policy permits continuation from it | CAI | HTTP 400, `invalid_request`; the authorization is not eligible for continuation |
 | The gateway redeems the onward ID-JAG without a proof of G | Target RAS | HTTP 400, `invalid_grant` |
 | The gateway holds the target token for `agent-42` and receives a request for another agent with the same scope | Gateway | Continues that agent's own chain; a matching scope does not permit reuse |

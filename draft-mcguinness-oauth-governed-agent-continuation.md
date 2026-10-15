@@ -37,6 +37,7 @@ normative:
   ICA: I-D.mcguinness-oauth-id-continuation-assertion
   ID-JAG: I-D.ietf-oauth-identity-assertion-authz-grant
   RFC6749:
+  RFC6750:
   RFC7523:
   RFC8693:
   RFC8707:
@@ -597,9 +598,13 @@ both chain types:
 The client is not the actor, and the subject token is the assertion,
 so failures that {{FEDERATION}} reports at issuance as
 `actor_unauthorized` or `invalid_grant` concern only the requested
-target here. A gateway therefore has one recovery rule:
-`invalid_continuation` means the chain has ended, and any other code
-leaves the chain continuable.
+target here. A continuing client recovers as follows:
+`invalid_continuation` means the chain has ended; a limit failure
+(`invalid_grant`) other than a rate limit means that the source hop can
+no longer be continued ({{Section 5.5.6 of ICA}}); and any other code
+affects only the request. After either of the first two, only a new
+root grant, which the agent's client obtains, starts a new chain
+({{gateway-reuse}}).
 
 # Onward Redemption and Access {#target-processing}
 
@@ -678,6 +683,13 @@ revocation, so serving one chain's request with a token obtained on
 another would let it continue after its own chain had ended
 ({{Section 8 of ICA}}). Each source hop therefore needs its own
 continuation, once for each target.
+
+When continuation from a request's source hop fails with
+`invalid_continuation`, or with a limit failure other than a rate limit,
+the gateway SHOULD reject the agent's request with HTTP 401 and the
+`invalid_token` error code of the access token's scheme ({{RFC6750}},
+{{RFC9449}}), so that the agent's client obtains a new access token and,
+with it, a new root grant.
 
 The no-fallback rule of "Profile Applicability and Downgrade
 Prevention" in {{FEDERATION}} applies to a continuing client: after the

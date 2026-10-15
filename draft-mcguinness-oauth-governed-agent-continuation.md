@@ -703,12 +703,13 @@ the gateway SHOULD reject the agent's request with HTTP 401 and the
 {{RFC9449}}), so that the agent's client obtains a new access token and,
 with it, a new root grant.
 
-The no-fallback rule of "Profile Applicability and Downgrade
-Prevention" in {{FEDERATION}} applies to a continuing client: after the
-IdP rejects a governed continuation, the gateway does not serve the
-agent's request with its own authority or through a chain established
-without this document. Gateway-side tool filtering narrows what the
-gateway attempts but does not authorize.
+After the IdP rejects a governed continuation for a request, the
+continuing client MUST NOT serve that request with its own authority or
+through a chain established without this document. This extends the
+no-fallback rule of "Profile Applicability and Downgrade Prevention" in
+{{FEDERATION}}, which covers retrying as ordinary access or without
+proof. Gateway-side tool filtering narrows what the gateway attempts
+but does not authorize.
 
 # Chain Ending and Governance Events {#chain-ending}
 
@@ -1202,6 +1203,7 @@ Where this document is silent, {{FEDERATION}} applies unchanged.
 | Downstream client registration | One association per authenticated client ("Issuance Prerequisites") | Also selected by acting relationship where a target distinguishes the two ({{gateway-roles}}) |
 | Errors | `actor_unauthorized` for a denied delegation and `invalid_grant` for an unresolvable user ("Issuance Errors") | The codes of {{ICA}} ({{continuation-errors}}) |
 | Bearer access tokens | Permitted under explicit configuration ("Access-Token Protection") | Also make a hop ineligible for continuation without explicit policy ({{root-redemption}}) |
+| Fallback | No retry as ordinary access or without proof ("Profile Applicability and Downgrade Prevention") | Also no service of the request with the continuing client's own authority ({{gateway-reuse}}) |
 {: title="Changes to FEDERATION for continuation"}
 
 ## Dependencies {#dependencies}

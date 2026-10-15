@@ -606,17 +606,22 @@ it passed through, as intermediaries rather than actors, in this claim:
 
 `continuation_via`:
 : A JSON array of the canonical actor identities
-  ({{Section 5.5.2 of ICA}}) of the continuing clients of the hops from
-  the root to the hop being issued, oldest first, so that the last
-  entry is the current continuing client. Each entry is a JSON object
-  with `iss` and `sub` string members; a recipient ignores other
-  members. The root client does not appear.
+  ({{Section 5.5.2 of ICA}}) of the continuing clients that created the
+  hops after the root, on the branch from the root to the hop being
+  issued, oldest first, so that the last entry is the current
+  continuing client. Each entry is a JSON object with `iss` and `sub`
+  string members; a recipient ignores other members. The root hop
+  contributes no entry, so the root client appears only if it later
+  continues the chain.
 
 The IdP MUST include `continuation_via` in every onward grant of a
 governed chain and MUST derive it from its hop records, never from the
 assertion or the request, following the lineage rules of
-{{Section 5.5.5 of ICA}}: parent references are immutable, sibling
-branches are excluded, and consecutive identical entries merge. The
+{{Section 5.5.5 of ICA}}: parent references are immutable, and sibling
+branches are excluded. It takes one entry from each hop after the root,
+then merges consecutive identical entries. For example, with root
+client A, continuing clients B and then A give `[B, A]`; A continuing
+twice gives `[A]`; and A and then B give `[A, B]`. The
 list is complete. Policy that narrows the disclosed depth of `act`
 under {{ICA}} does not narrow it, because a forwarding intermediary is
 disclosed, never hidden. The last entry and `client_id` identify the

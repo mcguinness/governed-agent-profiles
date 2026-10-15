@@ -275,6 +275,12 @@ rule that stays local to the profile:
   the core's presented-evidence mode (`delegated-root`).
 * **Request narrowing:** Exactly one `resource` and a required `scope`,
   from the core. Local to the profile; no ICA change needed.
+* **Continuation window:** ICA bounds no hop by how long after issuance
+  a CAI can obtain continuations from it, and a compromised RAS acting
+  as CAI can attest any hop it accepted (Section 9.5 of ICA). The
+  companion adds a per-hop window as a SHOULD
+  (`governed-chain-authorization`), which ICA could adopt for all
+  chains.
 
 ### WAG
 

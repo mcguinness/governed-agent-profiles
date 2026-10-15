@@ -291,6 +291,13 @@ limits of {{Section 6.3 of ICA}}, including the actor-lineage depth
 bound, apply to the IdP's hop records, whose lineage entries are the
 root client and the continuing clients.
 
+The IdP SHOULD also enforce a configured continuation window: it refuses
+continuation from a hop more than that window after it issued the hop,
+with `invalid_grant` as for those limits. The window bounds how long a
+CAI, including one that a compromised gateway operator controls, can
+obtain continuations from a hop it accepted. A deployment whose gateway
+continues from durable task state sets the window to the task's needs.
+
 ## Delegated Root {#delegated-root}
 
 The root ID-JAG follows "Delegated Issuance: ID-JAG" in {{FEDERATION}},
@@ -447,9 +454,10 @@ within the steps that cite them, changed only as stated.
 5. **Chain state (ICA rule 4):** The hop is an accepted hop of an active
    chain, and neither it nor an ancestor is revoked. The chain has not
    ended under {{chain-ending}}, `requested_token_type` is the chain's
-   grant type, and the chain is within ICA's limits. An ended chain
-   takes precedence over a wrong type, which takes precedence over a
-   limit.
+   grant type, and the chain and hop are within ICA's limits and the
+   continuation window ({{governed-chain-authorization}}). An ended
+   chain takes precedence over a wrong type, which takes precedence over
+   a limit.
 6. **Continuation Association:** A current Continuation Association
    permits the client for the chain's Agent Principal and acting
    relationship.
@@ -578,6 +586,7 @@ both chain types:
 | Multiple `resource` parameters | 2 | `invalid_target`, as in "Token Exchange Request" in {{FEDERATION}} |
 | The chain has ended ({{chain-ending}}) | 5 | `invalid_continuation` |
 | `requested_token_type` is not the chain's grant type | 5 | `invalid_request` |
+| The hop's continuation window has passed | 5 | `invalid_grant` |
 | No Continuation Association permits the continuing client | 6 | `unauthorized_client` |
 | The Target Tenant, the user's subject, or the continuing client's registration cannot be resolved at the target | 7 | `invalid_target` |
 | The chain authorization, the Continuation Association, or the agent's current authorization does not permit the target | 9 | `invalid_target` |
@@ -770,15 +779,20 @@ A compromised gateway that can still authenticate and prove its key can
 continue each chain whose access token it has received, to any target
 that the chain authorization, the agent's current authorization, and
 its Continuation Associations permit, and can use the downstream tokens
-it holds until they expire. It cannot continue a chain whose token it
-has not received, because the CAI attests only hops bound to tokens
-presented to it ({{Section 5.4.3 of ICA}}); change the agent or user,
-or convert the acting relationship; or exceed the agent's own
-authorization. Narrow Continuation Associations, chain authorizations
-that restrict targets, short downstream token lifetimes, and
-sender-constrained ingress reduce the exposure; the last also keeps a
-stolen bearer token at the gateway from inducing an honest continuation
-({{Section 9.1 of ICA}}, {{root-redemption}}).
+it holds until they expire. Where its operator does not control the
+CAI, it cannot continue a chain whose token it has not received,
+because the CAI attests only hops bound to tokens presented to it
+({{Section 5.4.3 of ICA}}). In the baseline topology the operator runs
+the CAI, which can attest any hop its RAS accepted, as
+{{Section 9.5 of ICA}} notes for a compromised RAS, until the chain
+ends or the hop's continuation window passes. In either case it cannot
+change the agent or user, convert the acting relationship, or exceed
+the agent's own authorization. Narrow Continuation Associations, chain
+authorizations that restrict targets, a short continuation window,
+short downstream token lifetimes, and sender-constrained ingress reduce
+the exposure; the last also keeps a stolen bearer token at the gateway
+from inducing an honest continuation ({{Section 9.1 of ICA}},
+{{root-redemption}}).
 
 ## Attribution Through an Intermediary {#security-attribution}
 
@@ -1143,6 +1157,7 @@ Where this document is silent, {{ICA}} applies unchanged.
 | Access token for a grant with `cnf` | DPoP-bound, never bearer ({{Section 5.2 of ICA}}) | Protection under {{FEDERATION}}; bearer access tokens, whatever the grant's binding, make a hop ineligible without explicit policy ({{root-redemption}}) |
 | Advertisement | RAS `id-jag-continuation` with `jwt-dpop`; IdP `identity_continuation_supported` ({{Section 7 of ICA}}) | Adds `wag-continuation`; no `jwt-dpop`; the IdP flag only for delegated continuation ({{metadata}}) |
 | Chain ending | Anchor end, revocation, withdrawn permission ({{Section 6.2 of ICA}}) | Also governance events ({{chain-ending}}) |
+| Continuation window | None | A per-hop window, SHOULD ({{governed-chain-authorization}}) |
 {: title="Changes to ICA for governed chains"}
 
 ## Dependencies {#dependencies}

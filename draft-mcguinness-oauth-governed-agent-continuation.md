@@ -522,7 +522,8 @@ within the steps that cite them, changed only as stated.
    {{FEDERATION}}), and, for a delegated chain, the user's subject at
    the target ("Subject Resolution" in {{FEDERATION}}) each resolve
    unambiguously. A self-acting chain's subject is its Agent
-   Principal, which is not resolved per target.
+   Principal, which is not resolved per target. Where policy requires
+   path disclosure, the target RAS supports it ({{continuation-via}}).
 8. **Freshness and replay (ICA rule 6).**
 9. **Authorization (ICA rule 7):** The IdP authorizes the onward grant
    under "Issuance Authorization" in {{FEDERATION}} for the chain's
@@ -630,10 +631,27 @@ same continuing client, the entry by its canonical actor identity and
 
 A recipient MUST NOT treat an entry as an actor: entries are not
 subject to the actor gate and authorize nothing. A target RAS MAY use
-the list in its policy, for example to admit agents only through
-approved gateways, and MAY convey it unchanged in the access token or
-introspection response it issues. A target that ignores it still
-conforms to {{FEDERATION}}.
+the list in its own policy, for example to admit agents only through
+approved gateways.
+
+A target RAS supports path disclosure when trusted configuration
+between it and the IdP establishes that it does; this document defines
+no metadata for it. A target RAS that supports path disclosure MUST
+convey `continuation_via` unchanged in every access token or
+introspection response it issues from the onward grant, including
+access tokens it issues on refresh ("Optional RAS Refresh Tokens" in
+{{FEDERATION}}), so that the API receives it. A target RAS that does
+not support it still accepts onward grants under {{FEDERATION}} and
+ignores the claim.
+
+Where the chain authorization, the continuing client's Continuation
+Association, or policy for the target requires path disclosure, the IdP
+MUST NOT issue an onward grant for a target RAS not established to
+support it ({{continuation-errors}}); issuing it would present a path
+that the target discards as if it were complete. A RAS or API MUST NOT
+read the absence of `continuation_via` as evidence that no continuing
+client was involved, unless trusted configuration establishes that the
+RAS that issued its token supports path disclosure.
 
 This document defines `continuation_via` for governed chains. It is
 proposed for {{ICA}} as the disclosure of forwarding intermediaries in
@@ -699,6 +717,7 @@ both chain types:
 | The hop's continuation window has passed | 5 | `invalid_grant` |
 | No Continuation Association, or the chain authorization's restriction on who may continue, permits the continuing client | 6 | `unauthorized_client` |
 | The Target Tenant, the user's subject, or the continuing client's registration cannot be resolved at the target | 7 | `invalid_target` |
+| Policy requires path disclosure, and the target RAS is not established to support it | 7 | `invalid_target` |
 | The chain authorization, the Continuation Association, or the agent's current authorization does not permit the target | 9 | `invalid_target` |
 | The same sources permit the target but not the requested authority | 9 | `invalid_scope` or `invalid_authorization_details` |
 {: title="Errors for governed continuation"}
@@ -869,7 +888,8 @@ role it implements. Each claim requires the same realization under
 {{FEDERATION}} and the applicable requirements of {{ICA}} as this
 document changes them. A target RAS that does not continue the chain
 implements {{FEDERATION}} with DPoP support at its token endpoint, and
-nothing from this document.
+nothing from this document unless it supports path disclosure
+({{continuation-via}}).
 
 Each claim has this mandatory interoperability path:
 
@@ -940,8 +960,9 @@ from inducing an honest continuation ({{Section 9.1 of ICA}},
 Downstream records attribute an action to the Agent Principal and, for
 delegated access, the user, with the continuing client as `client_id`
 and every continuing client on the path in `continuation_via`. A target
-can therefore audit and authorize the path without consulting the IdP,
-whose hop records remain authoritative. A handle does not distinguish a
+RAS can therefore audit and authorize the path without consulting the
+IdP, and so can an API whose RAS supports path disclosure; the IdP's
+hop records remain authoritative. A handle does not distinguish a
 root grant from an onward grant; a resource that must tell a gateway
 from the agent's own client uses the authenticated `client_id` or the
 presence of `continuation_via`, which only onward grants carry.
@@ -1300,6 +1321,7 @@ Each case changes the stated conditions; all other checks succeed.
 | Alice's Delegation Authorization does not cover the requested resource | IdP | HTTP 400, `invalid_target`; the chain stays continuable to other targets |
 | GatewayRAS keeps the self-acting hop's authorization active as durable task state, `agent-42`'s client stops obtaining WAGs, and the agent session passes its idle timeout | IdP | HTTP 400, `invalid_continuation`; the gateway's continuations do not keep the session active |
 | Two `resource` parameters in the continuation request | IdP | HTTP 400, `invalid_target` |
+| The Continuation Association for `tool-gateway` requires path disclosure, and `https://ras.example/` is not established to support it | IdP | HTTP 400, `invalid_target`; the IdP does not issue a grant whose path the target would discard |
 | The continuation used the chain's last permitted hop, its response was lost, and the gateway repeats the request with the same assertion | IdP | Where the IdP offers idempotent retry, HTTP 200 with the same onward grant; limits do not apply to recovery |
 | Governed agent access: the root ID-JAG has no `cnf`, the agent's client redeems it without a DPoP proof, GatewayRAS issues a bearer access token, and no policy permits continuation from it | CAI | HTTP 400, `invalid_request`; the authorization is not eligible for continuation |
 | The gateway redeems the onward ID-JAG without a proof of G | Target RAS | HTTP 400, `invalid_grant` |
@@ -1331,7 +1353,7 @@ Where this document is silent, {{ICA}} applies unchanged.
 | Retry fingerprint | No requested token type ({{Section 5.5.7.1 of ICA}}) | Includes `requested_token_type` ({{continuation-validation}}) |
 | Assertion issuance at the token endpoint | Optional; recommended for a RAS acting as CAI ({{Section 5.4.1 of ICA}}) | Required of every CAI that serves a continuing client ({{conformance-claims}}) |
 | Onward `act` | Continuing actor atop IdP-derived lineage ({{Section 5.5.5 of ICA}}) | The Agent Principal alone in an ID-JAG, none in a WAG; hop records unchanged ({{identity-preservation}}) |
-| Path disclosure | Continuing clients as nested actors in `act` ({{Section 5.5.5 of ICA}}) | Continuing clients as intermediaries in `continuation_via` ({{continuation-via}}) |
+| Path disclosure | Continuing clients as nested actors in `act` ({{Section 5.5.5 of ICA}}) | Continuing clients as intermediaries in `continuation_via`, preserved to the API by targets that support path disclosure ({{continuation-via}}) |
 | Onward redemption | `jwt-dpop` ({{Section 5.5.5 of ICA}}) | `jwt-bearer` with grant confirmation ({{target-processing}}) |
 | Access token for a grant with `cnf` | DPoP-bound, never bearer ({{Section 5.2 of ICA}}) | Protection under {{FEDERATION}}; bearer access tokens, whatever the grant's binding, make a hop ineligible without explicit policy ({{root-redemption}}) |
 | Advertisement | RAS `id-jag-continuation` with `jwt-dpop`; IdP `identity_continuation_supported` ({{Section 7 of ICA}}) | `governed-agent-continuation` for governed grants, without `jwt-dpop`; the IdP flag only for delegated continuation ({{metadata}}) |

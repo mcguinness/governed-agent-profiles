@@ -1222,13 +1222,13 @@ Where this document is silent, {{ICA}} applies unchanged.
 | Who may continue | Chain authorization and current policy | Also a Continuation Association ({{continuation-association}}) |
 | Continuation request | Zero or more `resource`; optional `scope`; ID-JAG ({{Section 5.5.1 of ICA}}) | One `resource`; required `scope`; the chain's grant type ({{continuation-request}}) |
 | Retry fingerprint | No requested token type ({{Section 5.5.7.1 of ICA}}) | Includes `requested_token_type` ({{continuation-validation}}) |
-| Assertion issuance at the token endpoint | MAY; SHOULD for a RAS acting as CAI ({{Section 5.4.1 of ICA}}) | MUST for every CAI that serves a continuing client ({{conformance-claims}}) |
+| Assertion issuance at the token endpoint | Optional; recommended for a RAS acting as CAI ({{Section 5.4.1 of ICA}}) | Required of every CAI that serves a continuing client ({{conformance-claims}}) |
 | Onward `act` | Continuing actor atop IdP-derived lineage ({{Section 5.5.5 of ICA}}) | The Agent Principal alone in an ID-JAG, none in a WAG; hop records unchanged ({{identity-preservation}}) |
 | Onward redemption | `jwt-dpop` ({{Section 5.5.5 of ICA}}) | `jwt-bearer` with grant confirmation ({{target-processing}}) |
 | Access token for a grant with `cnf` | DPoP-bound, never bearer ({{Section 5.2 of ICA}}) | Protection under {{FEDERATION}}; bearer access tokens, whatever the grant's binding, make a hop ineligible without explicit policy ({{root-redemption}}) |
 | Advertisement | RAS `id-jag-continuation` with `jwt-dpop`; IdP `identity_continuation_supported` ({{Section 7 of ICA}}) | `governed-agent-continuation` for governed grants, without `jwt-dpop`; the IdP flag only for delegated continuation ({{metadata}}) |
 | Chain ending | Anchor end, revocation, withdrawn permission ({{Section 6.2 of ICA}}) | Also governance events ({{chain-ending}}) |
-| Continuation window | None | A per-hop window, SHOULD ({{governed-chain-authorization}}) |
+| Continuation window | None | A recommended per-hop window ({{governed-chain-authorization}}) |
 {: title="Changes to ICA for governed chains"}
 
 ## Changes to FEDERATION {#federation-changes}

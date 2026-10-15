@@ -397,7 +397,11 @@ refresh token, so a deployment sets the idle timeout longer than that
 token's lifetime. If the token outlives the session, continuation fails
 and the gateway's response leads the agent's client to a new root grant
 ({{gateway-reuse}}). IdP instances evaluate the idle timeout and the
-absolute expiration against shared session state.
+absolute expiration against shared session state. An instance that
+cannot confirm the session's state MUST reject the request rather than
+issue, as {{Section 5.5.7 of ICA}} requires for replay reservations,
+and MUST NOT treat the session as ended on that basis; the chain stays
+continuable.
 
 # Root Redemption at the Gateway's RAS {#root-redemption}
 
@@ -1380,6 +1384,11 @@ Where this document is silent, {{FEDERATION}} applies unchanged.
    several Governance Tenants select its registration and credential at
    the IdP, when neither its incoming token nor the assertion response
    names the Governance Tenant?
+7. **Temporary refusals:** Which error code does an IdP return when it
+   refuses a continuation only temporarily, for example because it
+   cannot confirm an agent session's state, so that the gateway retries
+   instead of starting a new chain ({{self-acting-root}})? {{ICA}} has
+   the same question for policy that blocks a chain temporarily.
 
 # Design Rationale {#rationale}
 

@@ -176,11 +176,13 @@ This document applies under these conditions:
 * **One IdP:** Every RAS in a chain trusts the IdP that issued the
   root grant. Continuity across a chain of IdPs is out of scope.
 * **One agent:** Continuation never changes the Agent Principal. A
-  continuing client that needs its own authorization, attribution, or
-  disablement is an Agent Principal of its own ("Governance Boundary
-  and Execution Independence" in {{FEDERATION}}), and its acting for
-  another agent is multi-agent delegation, which {{FEDERATION}}
-  excludes.
+  continuing client is governed as a client, through its Continuation
+  Associations, its attribution as `client_id`, and its registrations.
+  One that exercises its own authority and needs authorization,
+  attribution, or disablement as a principal is an Agent Principal of
+  its own ("Governance Boundary and Execution Independence" in
+  {{FEDERATION}}), and its acting for another agent is multi-agent
+  delegation, which {{FEDERATION}} excludes.
 * **An accepted grant:** The gateway's access token comes from a RAS
   that redeemed a governed grant. Where the IdP itself issues the
   gateway's access tokens, there is no hop to continue.
@@ -1183,9 +1185,12 @@ and client and workload identities do not replace it downstream. A
 gateway that continues an agent's request selects the target but
 exercises the agent's authority, within the agent's authorization and
 under the Continuation Association, a permission of the same kind as a
-Client Association. A gateway that needs its own authority,
-attribution, or disablement is an Agent Principal, and its acting for
-another agent is delegation between agents, outside {{FEDERATION}}.
+Client Association. A gateway governed as a client has its own
+permission, attribution as `client_id`, and registrations that can be
+disabled, without becoming a principal. A gateway that exercises its
+own authority and needs authorization, attribution, or disablement as a
+principal is an Agent Principal, and its acting for another agent is
+delegation between agents, outside {{FEDERATION}}.
 
 Placing the gateway in `act`, as {{Section 5.5.5 of ICA}} does for the
 current actor, would give every agent behind a gateway the same

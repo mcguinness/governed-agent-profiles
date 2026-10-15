@@ -4,8 +4,8 @@
 
 Web Authorization Protocol                                 K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                          9 October 2026
-Expires: 12 April 2027
+Intended status: Standards Track                         15 October 2026
+Expires: 18 April 2027
 
 
             OAuth 2.0 Profile for Governed Agent Federation
@@ -67,7 +67,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 12 April 2027.
+   This Internet-Draft will expire on 18 April 2027.
 
 Copyright Notice
 
@@ -3054,9 +3054,9 @@ Table of Contents
    [ATTEST]   Looker, T., Bastian, P., and C. Bormann, "OAuth 2.0
               Attestation-Based Client Authentication", Work in
               Progress, Internet-Draft, draft-ietf-oauth-attestation-
-              based-client-auth-11, 3 September 2026,
+              based-client-auth-12, 12 October 2026,
               <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
-              attestation-based-client-auth-11>.
+              attestation-based-client-auth-12>.
 
    [INSTANCE] McGuinness, K., "Client Instance Identification for
               Attestation-Based Client Authentication", Work in
@@ -3248,6 +3248,14 @@ Table of Contents
               assertion-02, 8 September 2026,
               <https://datatracker.ietf.org/doc/html/draft-mcguinness-
               oauth-id-continuation-assertion-02>.
+
+   [CONTINUATION]
+              McGuinness, K., "Identity Continuation Profile for
+              Governed Agent Federation", Work in Progress, Internet-
+              Draft, draft-mcguinness-oauth-governed-agent-continuation,
+              14 October 2026, <https://mcguinness.github.io/governed-
+              agent-profiles/draft-mcguinness-oauth-governed-agent-
+              continuation.html>.
 
    [RFC6755]  Campbell, B. and H. Tschofenig, "An IETF URN Sub-Namespace
               for OAuth", RFC 6755, DOI 10.17487/RFC6755, October 2012,
@@ -3784,8 +3792,10 @@ B.2.  Excluded Compositions
     | with [AROP]           | Section 10.6, Section 3.6.3, and       |
     |                       | Section 5.4                            |
     +-----------------------+----------------------------------------+
-    | Continuation with     | Renewal follows Section 8              |
-    | [ICA]                 |                                        |
+    | Continuation with     | Defined for governed grants, including |
+    | [ICA]                 | through gateways, in [CONTINUATION];   |
+    |                       | renewal without continuation follows   |
+    |                       | Section 8                              |
     +-----------------------+----------------------------------------+
     | General WIMSE WIT/WIC | Only the SPIFFE forms in [INPUTS] are  |
     | inputs                | defined                                |

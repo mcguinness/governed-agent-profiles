@@ -901,16 +901,20 @@ operator runs `https://ras.gateway.example/` as its RAS and CAI.
 * **IdP:** Alice's Delegation Authorization, `agent-42`'s Agent
   Authorization, and tenant policy permit continuation. The gateway is
   the client `tool-gateway` (`private_key_jwt`), with canonical actor
-  identity (`https://gateway.example/`, `tool-gateway`). A
-  Continuation Association permits it to continue `agent-42`'s
-  delegated and self-acting chains to resources in `acme-data`. The IdP
-  trusts GatewayRAS as CAI for its own hops and maps `tool-gateway` to
+  identity (`https://gateway.example/`, `tool-gateway`). Two
+  Continuation Associations permit it to continue `agent-42`'s
+  delegated chains and its self-acting chains, each to resources in
+  `acme-data`. The IdP trusts GatewayRAS as CAI for its own hops, paired
+  with `https://gateway.example/` as the gateway's identity authority
+  ({{Section 7.3 of ICA}}), and maps `tool-gateway` to
   `gateway-files` (delegated) and `gateway-files-svc` (self-acting) at
   `https://ras.example/`.
 * **GatewayRAS:** The agent's client is `analysis-gw` for delegated
   access and `analysis-gw-svc` for self-acting access, which is how the
-  gateway tells them apart. Alice is `alice-gw` to the IdP and
-  `gw-user-7` locally.
+  gateway tells them apart. The gateway is `tool-gateway`, the client
+  that operates `https://gateway.example/mcp`, with the same canonical
+  actor identity. Alice is `alice-gw` to the IdP and `gw-user-7`
+  locally.
 * **Keys:** K is the agent client's grant proof key; G is the gateway's
   DPoP key.
 
@@ -1086,8 +1090,9 @@ does not implement {{ICA}}. The access token:
 
 The API enforces Alice's permissions, the actor gate for `agent-42`, and
 the tenant, as it would for the agent's own client. The gateway caches
-the token for Alice, `agent-42`, `https://ras.example/`, the resource,
-`files.read`, key G, and H0 ({{gateway-reuse}}).
+the token for Alice, `agent-42`, Target Tenant `acme-data`,
+`https://ras.example/`, the resource, `files.read`, key G, and H0
+({{gateway-reuse}}).
 
 ## Self-Acting Variant {#walkthrough-self-acting}
 
@@ -1154,7 +1159,7 @@ Each case changes the stated conditions; all other checks succeed.
 | `agent-42` disabled at the IdP after the root grant, then reactivated before the next continuation | IdP | HTTP 400, `invalid_continuation`; the chain stays ended, and a new root grant is needed |
 | Root binding of `analysis-client` disabled while another binding of `agent-42` remains enabled | IdP | HTTP 400, `invalid_continuation` |
 | Alice's Delegation Authorization does not cover the requested resource | IdP | HTTP 400, `invalid_target`; the chain stays continuable to other targets |
-| `agent-42`'s client stops obtaining WAGs, and its agent session passes the idle timeout while the gateway keeps continuing | IdP | HTTP 400, `invalid_continuation`; continuations do not keep the session active |
+| GatewayRAS keeps the self-acting hop's authorization active as durable task state, `agent-42`'s client stops obtaining WAGs, and the agent session passes its idle timeout | IdP | HTTP 400, `invalid_continuation`; the gateway's continuations do not keep the session active |
 | Two `resource` parameters in the continuation request | IdP | HTTP 400, `invalid_target` |
 | The continuation used the chain's last permitted hop, its response was lost, and the gateway repeats the request with the same assertion | IdP | Where the IdP offers idempotent retry, HTTP 200 with the same onward grant; limits do not apply to recovery |
 | Governed agent access: the root ID-JAG has no `cnf`, the agent's client redeems it without a DPoP proof, GatewayRAS issues a bearer access token, and no policy permits continuation from it | CAI | HTTP 400, `invalid_request`; the authorization is not eligible for continuation |

@@ -438,25 +438,28 @@ changed only as stated.
    `resource`, and `scope` requirements.
 3. **Assertion (ICA rules 2 and 3):** The assertion is well formed and
    validly signed by an issuer trusted as CAI for the hop's RAS.
-4. **Chain state (ICA rule 4):** The hop is an accepted hop of an active
+4. **Current actor (ICA rule 5):** The assertion's `act` names the
+   authenticated client's canonical actor identity, and the DPoP proof
+   matches its `cnf`. As {{Section 5.5.6 of ICA}} requires, these
+   checks precede every chain-state error.
+5. **Chain state (ICA rule 4):** The hop is an accepted hop of an active
    chain, and neither it nor an ancestor is revoked. The chain has not
    ended under {{chain-ending}}, `requested_token_type` is the chain's
    grant type, and the chain is within ICA's limits. An ended chain
    takes precedence over a wrong type, which takes precedence over a
    limit.
-5. **Continuing client (ICA rule 5):** The assertion's `act` names the
-   authenticated client's canonical actor identity, and the DPoP proof
-   matches its `cnf`. A current Continuation Association permits the
-   client for the chain's Agent Principal and acting relationship.
-6. **Target context (ICA rule 5, replacing its subject resolution):**
+6. **Continuation Association:** A current Continuation Association
+   permits the client for the chain's Agent Principal and acting
+   relationship.
+7. **Target context (ICA rule 5, replacing its subject resolution):**
    The Target Tenant for the requested resource, the continuing
    client's registration at the target RAS ("Issuance Prerequisites" in
    {{FEDERATION}}), and, for a delegated chain, the user's subject at
    the target ("Subject Resolution" in {{FEDERATION}}) each resolve
    unambiguously. A self-acting chain's subject is its Agent
    Principal, which is not resolved per target.
-7. **Freshness and replay (ICA rule 6).**
-8. **Authorization (ICA rule 7):** The IdP authorizes the onward grant
+8. **Freshness and replay (ICA rule 6).**
+9. **Authorization (ICA rule 7):** The IdP authorizes the onward grant
    under "Issuance Authorization" in {{FEDERATION}} for the chain's
    Agent Principal and, for a delegated chain, its user, in the root
    client's context, for the requested target and authority. A current
@@ -465,7 +468,7 @@ changed only as stated.
    The Continuation Association's restrictions and the chain
    authorization also bound the target and authority.
 
-Because step 5 precedes step 6, a client without a Continuation
+Because step 6 precedes step 7, a client without a Continuation
 Association learns nothing about where the chain's user resolves. The
 rules of {{FEDERATION}} for agent resolution and subject tokens do not
 apply to the assertion.
@@ -560,12 +563,12 @@ both chain types:
 |---|---|---|
 | Missing `resource` or `scope` | 2 | `invalid_request` |
 | Multiple `resource` parameters | 2 | `invalid_target`, as in "Token Exchange Request" in {{FEDERATION}} |
-| The chain has ended ({{chain-ending}}) | 4 | `invalid_continuation` |
-| `requested_token_type` is not the chain's grant type | 4 | `invalid_request` |
-| No Continuation Association permits the continuing client | 5 | `unauthorized_client` |
-| The Target Tenant, the user's subject, or the continuing client's registration cannot be resolved at the target | 6 | `invalid_target` |
-| The chain authorization, the Continuation Association, or the agent's current authorization does not permit the target | 8 | `invalid_target` |
-| The same sources permit the target but not the requested authority | 8 | `invalid_scope` or `invalid_authorization_details` |
+| The chain has ended ({{chain-ending}}) | 5 | `invalid_continuation` |
+| `requested_token_type` is not the chain's grant type | 5 | `invalid_request` |
+| No Continuation Association permits the continuing client | 6 | `unauthorized_client` |
+| The Target Tenant, the user's subject, or the continuing client's registration cannot be resolved at the target | 7 | `invalid_target` |
+| The chain authorization, the Continuation Association, or the agent's current authorization does not permit the target | 9 | `invalid_target` |
+| The same sources permit the target but not the requested authority | 9 | `invalid_scope` or `invalid_authorization_details` |
 {: title="Errors for governed continuation"}
 
 The client is not the actor, and the subject token is the assertion,

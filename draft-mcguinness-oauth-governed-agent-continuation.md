@@ -656,9 +656,7 @@ RAS that issued its token supports path disclosure.
 
 This document defines `continuation_via` for governed chains. It is
 proposed for {{ICA}} as the disclosure of forwarding intermediaries in
-general ({{dependencies}}). Kerberos and AWS disclose forwarding
-services in the same way ({{KERBEROS-PAC}}, {{AWS-CALLEDVIA}};
-{{rationale-client}}).
+general ({{dependencies}}).
 
 ### Delegated: ID-JAG {#onward-id-jag}
 
@@ -1325,6 +1323,55 @@ refresh token. The agent's client obtains a new WAG each time its
 ten-minute gateway access token expires, which refreshes the agent
 session; the gateway's continuations do not.
 
+## Two-Gateway Variant {#walkthrough-two-gateways}
+
+Here `tool-gateway` reaches the file service through a second gateway,
+`data-gateway` at `https://data-gateway.example/`, whose RAS is
+continuation-aware and performs the CAI role. The IdP configures
+`data-gateway` as it does `tool-gateway`, with canonical actor identity
+(`https://data-gateway.example/`, `data-gateway`), a Continuation
+Association for `agent-42`'s delegated chains, and the registration
+`data-files` at `https://ras.example/`; D is its DPoP key.
+
+`tool-gateway` continues H0 to the data gateway's RAS, which binds the
+child hop H1. `data-gateway` then obtains an assertion for H1 and
+continues to `https://ras.example/`. The onward ID-JAG (excerpt):
+
+~~~ json
+{
+  "sub": "alice-ras",
+  "aud": "https://ras.example/",
+  "client_id": "data-files",
+  "act": {"iss": "https://idp.example/", "sub": "agent-42"},
+  "continuation_via": [
+    {"iss": "https://gateway.example/", "sub": "tool-gateway"},
+    {"iss": "https://data-gateway.example/", "sub": "data-gateway"}
+  ],
+  "cnf": {"jkt": "JKT_D"}
+}
+~~~
+
+In this variant, `https://ras.example/` supports path disclosure
+({{continuation-via}}), so the access token it issues carries the same
+list to the API (excerpt):
+
+~~~ json
+{
+  "sub": "user-108",
+  "client_id": "data-files",
+  "act": {"iss": "https://idp.example/", "sub": "agent-42"},
+  "continuation_via": [
+    {"iss": "https://gateway.example/", "sub": "tool-gateway"},
+    {"iss": "https://data-gateway.example/", "sub": "data-gateway"}
+  ],
+  "cnf": {"jkt": "JKT_D"}
+}
+~~~
+
+The API applies the actor gate to `agent-42` alone. A policy that admits
+`agent-42` only through `tool-gateway` matches the first entry, and the
+last entry identifies the client that presented the grant.
+
 ## Negative Tests {#negative-tests}
 
 Each case changes the stated conditions; all other checks succeed.
@@ -1461,10 +1508,12 @@ not represent the gateway at all.
 In the terms of {{WS-TRUST}}, the gateway requests access on behalf of
 the agent rather than acting as it: the agent acts for the user, and the
 gateway forwards. A forwarding intermediary is still disclosed, in
-`continuation_via`, as Kerberos records the services a delegated ticket
-passed through ({{KERBEROS-PAC}}) and AWS records the services that made a
-request on a principal's behalf ({{AWS-CALLEDVIA}}). Attribution and
-path-based policy therefore need no lineage in `act`.
+`continuation_via`. Related precedents record forwarding services apart
+from the principal: the Kerberos privilege attribute certificate lists
+the services that a delegated ticket passed through ({{KERBEROS-PAC}}),
+and AWS lists the services that made a request on a principal's behalf
+({{AWS-CALLEDVIA}}). Attribution and path-based policy therefore need no
+lineage in `act`.
 
 The user's approval reaches the
 gateway through the Delegation Authorization, which must permit

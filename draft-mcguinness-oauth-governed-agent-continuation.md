@@ -492,10 +492,12 @@ equal to the requested grant type and no refresh token. Every onward
 grant carries the common claims of "Common Grant Claims, Lifetime, and
 Response" in {{FEDERATION}}, a fresh child handle under
 {{Section 4 of ICA}}, and `cnf.jkt` for the key proven in the request
-({{Section 5.5.2 of ICA}}). Its lifetime follows the configured limit
-of that section; the assertion, like a subject credential or
-agent-resolution input under {{FEDERATION}}, does not bound it. An
-onward WAG MUST NOT outlive the absolute expiration of its chain's agent
+({{Section 5.5.2 of ICA}}). The configured grant lifetime limit of
+"Common Grant Claims, Lifetime, and Response" in {{FEDERATION}}
+applies. The lifetime bounds that {{FEDERATION}} derives from a subject
+credential and an agent-resolution input do not apply to continuation,
+and the assertion's expiration does not cap the onward grant. An onward
+WAG MUST NOT outlive the absolute expiration of its chain's agent
 session.
 
 ### Identity Preservation {#identity-preservation}

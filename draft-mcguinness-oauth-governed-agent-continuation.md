@@ -123,8 +123,10 @@ agent session; and ends chains on governance events.
 ## Protocol Overview {#overview}
 
 An agent calls a tool gateway, and the gateway calls a tool in another
-resource domain for the same agent. The gateway's RAS also performs the
-role of Continuation Assertion Issuer (CAI).
+resource domain for the same agent. Inbound, the gateway is the API for
+the agent's access token; outbound, it is the continuing client at the
+Continuation Assertion Issuer (CAI), the IdP, and the tool's RAS. Here
+the gateway's RAS also performs the CAI role.
 
 ~~~
 Agent        IdP       GatewayRAS/CAI     Gateway        ToolRAS
@@ -658,15 +660,16 @@ access through a particular client. A RAS that does not implement
 {{root-redemption}}, so that a gateway in its domain can continue the
 chain as a further hop that again names the same agent.
 
-# Gateway Deployment {#gateway-deployment}
+# Gateway Requirements {#gateway-deployment}
+
+This section collects what a gateway does as a continuing client; the
+rules of the IdP and the RASes it relies on are in the sections cited.
 
 ## Roles and Configuration {#gateway-roles}
 
-A gateway combines roles, as {{FEDERATION}} permits. Inbound, it is the
-API for the agent's access token, and its operator's RAS is the
-continuation-aware RAS and CAI. Outbound, it is the continuing client at
-the CAI, the IdP, and each target RAS. A deployment adds this
-configuration to that of {{FEDERATION}}:
+A gateway combines roles, as {{FEDERATION}} permits ({{overview}}); its
+operator's RAS is typically the continuation-aware RAS and CAI. A
+deployment adds this configuration to that of {{FEDERATION}}:
 
 | Party | Configuration |
 |---|---|
@@ -694,7 +697,22 @@ selects among those registrations is an open item ({{open-items}}).
 | IdP-issued gateway tokens | None | Not applicable ({{scope-boundaries}}) |
 {: title="Gateway topologies"}
 
-## Context Isolation {#gateway-reuse}
+## Continuing a Request {#gateway-reuse}
+
+To continue a request, a gateway:
+
+1. processes the incoming access token as the API ("Access at the
+   Resource Server" in {{FEDERATION}}), including the actor gate;
+2. obtains an assertion from the CAI with that request's own token, as
+   below ({{walkthrough-assertion}} shows the request);
+3. verifies the target's capabilities and requests the chain's grant
+   type from the IdP ({{continuation-request}},
+   {{walkthrough-continuation}});
+4. redeems the onward grant with `jwt-bearer` and a proof of its key
+   ({{target-processing}});
+5. reuses downstream tokens only within the same context and source
+   hop; and
+6. handles errors without falling back, as below.
 
 The CAI binds the assertion to the handle of the token the gateway
 presents ({{Section 5.4.3 of ICA}}), but a gateway that holds several

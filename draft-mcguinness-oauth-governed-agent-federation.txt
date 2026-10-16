@@ -4,8 +4,8 @@
 
 Web Authorization Protocol                                 K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                         15 October 2026
-Expires: 18 April 2027
+Intended status: Standards Track                         16 October 2026
+Expires: 19 April 2027
 
 
             OAuth 2.0 Profile for Governed Agent Federation
@@ -67,7 +67,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 18 April 2027.
+   This Internet-Draft will expire on 19 April 2027.
 
 Copyright Notice
 
@@ -1777,7 +1777,7 @@ Table of Contents
 
    These values MUST come from the approved mapping, even when source
    and governed identifiers coincide.  For presented-evidence inputs
-   this replaces credential-to-actor copying in Section 6.3 of
+   this replaces credential-to-actor copying in Section 6.4 of
    [ACTOR-PROFILE].
 
    The object MUST follow Section 3.4 of [ACTOR-PROFILE], including its
@@ -2208,7 +2208,7 @@ Table of Contents
 
    The RAS MUST preserve the complete validated act object, including
    iss, sub, and any sub_profile, in the access token or its
-   introspection context under Section 3.6.3.2 of [ACTOR-PROFILE].
+   introspection context under Section 3.6.2.2 of [ACTOR-PROFILE].
    Preservation applies to JSON members and values, not to
    serialization, whitespace, or member order.  The RAS:
 
@@ -2802,7 +2802,7 @@ Table of Contents
       configured minimum, the client MUST NOT initiate that path.
 
    *  *Metadata consistency:* For delegated access, if the
-      actor_profile_token_exchange parameter of Section 16.2 of
+      actor_profile_token_exchange parameter of Section 10.1 of
       [ACTOR-PROFILE] is published, it MUST describe only the paths
       actually supported and agree with the ID-JAG advertisement.
 
@@ -3276,9 +3276,9 @@ Table of Contents
    [ENTITY-PROFILES]
               Mora, S. C., Dingle, P., and K. McGuinness, "OAuth 2.0
               Entity Profiles", Work in Progress, Internet-Draft, draft-
-              mora-oauth-entity-profiles-01, 15 April 2026,
+              mora-oauth-entity-profiles-02, 16 October 2026,
               <https://datatracker.ietf.org/doc/html/draft-mora-oauth-
-              entity-profiles-01>.
+              entity-profiles-02>.
 
    [GUIDE]    McGuinness, K., "Implementer's Guide for Governed Agent
               Federation", <https://github.com/mcguinness/governed-
@@ -3705,7 +3705,8 @@ A.2.1.  AWS Workload Identity Binding
 
    *  the exact sub arn:aws:iam::123456789012:role/AgentRuntime;
 
-   *  the accepted audience https://idp.example/token; and
+   *  the accepted audience https://idp.example/, the IdP's issuer
+      identifier; and
 
    *  the selector /https:~1~1sts.amazonaws.com~1/aws_account equal to
       123456789012.
@@ -3726,40 +3727,40 @@ Appendix B.  Dependencies and Excluded Compositions
 
    This informative appendix records dependencies and the compositions
    this document does not define.  They were assessed against WAG-01,
-   ID-JAG-04, ICA-02, Actor Profile-00, SPIFFE OAuth-02, ATTEST-11,
+   ID-JAG-04, ICA-02, Actor Profile-01, SPIFFE OAuth-02, ATTEST-11,
    CIMD-02, and Client Instance Identification-00.
 
 B.1.  Upstream Dependencies
 
-   +===============+==========================+========================+
-   | Specification | What this profile needs  | Consequence until      |
-   |               |                          | resolved               |
-   +===============+==========================+========================+
-   | WAG           | Type registration;       | Provisional type       |
-   |               | alignment on             | values                 |
-   |               | protection, linking,     |                        |
-   |               | and subject              |                        |
-   |               | presentation             |                        |
-   |               | (Appendix B.1.1)         |                        |
-   +---------------+--------------------------+------------------------+
-   | ID-JAG        | jwt-bearer in the        | Confirmation checks    |
-   |               | bound-grant example,     | apply to jwt-bearer    |
-   |               | which uses jwt-dpop;     | here (Section 6.1); no |
-   |               | confirmation errors      | dependency on JWT DPoP |
-   |               | distinct from RFC 9449   | Grant                  |
-   |               | proof errors             |                        |
-   +---------------+--------------------------+------------------------+
-   | Actor Profile | A reusable principal-    | Local mapping          |
-   |               | resolution extension     | (Section 5.6.4);       |
-   |               | point; Section 6.3.1 of  | generic Token Exchange |
-   |               | [ACTOR-PROFILE] permits  | or Actor Profile       |
-   |               | authentication-context   | support does not       |
-   |               | reuse only with the      | advertise resolution   |
-   |               | same assertion as        | from authentication    |
-   |               | actor_token              | context                |
-   +---------------+--------------------------+------------------------+
+   +===============+=========================+========================+
+   | Specification | What this profile needs | Consequence until      |
+   |               |                         | resolved               |
+   +===============+=========================+========================+
+   | WAG           | Type registration;      | Provisional type       |
+   |               | alignment on            | values                 |
+   |               | protection, linking,    |                        |
+   |               | and subject             |                        |
+   |               | presentation            |                        |
+   |               | (Appendix B.1.1)        |                        |
+   +---------------+-------------------------+------------------------+
+   | ID-JAG        | jwt-bearer in the       | Confirmation checks    |
+   |               | bound-grant example,    | apply to jwt-bearer    |
+   |               | which uses jwt-dpop;    | here (Section 6.1); no |
+   |               | confirmation errors     | dependency on JWT DPoP |
+   |               | distinct from RFC 9449  | Grant                  |
+   |               | proof errors            |                        |
+   +---------------+-------------------------+------------------------+
+   | Actor Profile | A reusable principal-   | Local mapping          |
+   |               | resolution extension    | (Section 5.6.4);       |
+   |               | point; Section 6.4.1.2  | generic Token Exchange |
+   |               | of [ACTOR-PROFILE]      | or Actor Profile       |
+   |               | permits authentication- | support does not       |
+   |               | context reuse only with | advertise resolution   |
+   |               | the same assertion as   | from authentication    |
+   |               | actor_token             | context                |
+   +---------------+-------------------------+------------------------+
 
-                      Table 27: Upstream dependencies
+                     Table 27: Upstream dependencies
 
 B.1.1.  WAG
 

@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-10-15T02:10:02.667820+00:00",
+  "timestamp": "2026-10-18T01:53:58.400649+00:00",
   "repo": "mcguinness/governed-agent-profiles",
   "labels": [
     {
@@ -545,25 +545,33 @@
       "id": "PR_kwDOUa5iRM8AAAABHldoJQ",
       "title": "Plan: make the federation core approachable, then split inputs and guidance",
       "url": "https://github.com/mcguinness/governed-agent-profiles/pull/18",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "mcguinness",
       "authorAssociation": "OWNER",
       "assignees": [],
       "labels": [],
       "body": "A plan for review. **No draft changes.** It proposes how to make the 97-page federation draft approachable and how to separate core, optional inputs, examples, and guidance. Comments on the plan are the point of this PR; execution follows in separate PRs once it is agreed.\n\nRead [`SPLIT-PLAN.md`](SPLIT-PLAN.md). The commits show its history:\n- `f45ad4f`: the first version, a three-document split based on scratch-build measurements.\n- `c7799f7`: the author's revision, which puts comprehension first.\n- `5005245`: fixes from a review of that revision.\n\n## In short\n\n- **Problem:** readers stall before the mandatory path, which is not complex.\n- **Measurements:**\n\n  | Version | Pages |\n  |---|---:|\n  | Today | 97 |\n  | Optional inputs, guidance, and peripheral examples moved out | ~81 (73 without examples) |\n  | The mandatory path alone | ~64 |\n\n  For comparison, ID-JAG-04 is 65 pages. A split fixes classification; the core stays about ID-JAG-sized.\n- **Plan:**\n  1. Write a short protocol overview at the start of the core, under a net-zero word budget.\n  2. Move the specialized inputs to a new optional companion, *Agent Resolution Input Profiles*. It takes SPIFFE, Client Attestation with the managed-installation binding, and endorsement.\n  3. Reorganize the remaining core. A \"Profiles and common rules\" chapter comes before processing, and only detailed conformance and metadata move after it.\n  4. Move deployment guidance to a repository guide with a primer.\n  5. Compress where equivalence is shown.\n- **What stays in the core:**\n  - the dedicated-client and platform JWT inputs;\n  - downstream instance context;\n  - the options inside the stage chapters (RAS refresh, SAML and refresh-token subjects, mutual TLS, WISE) and both adoption profiles;\n  - the walkthrough and negative tests.\n- **Boundary rule:** the core must not depend on the companion. The 23 core paragraphs that name companion-bound inputs move, or are restated against the input contract. The core's reference to the companion can then be informative, and the core can advance alone.\n- **Acceptance:**\n  - per-rule semantic preservation;\n  - a comprehension test with a reader who is neither an author nor a previous reviewer;\n  - transaction traces for the core alone and for the core plus the companion;\n  - builds and remeasurement.\n\n## Decisions for the author\n\n1. Moving detailed conformance after processing changes the structure recorded after #10. The plan keeps the prerequisites before processing.\n2. The 20\u201330% reduction stays a secondary target. Reaching 20% needs about 4 pages beyond extraction.\n3. Should the guide start as repository Markdown or as an Informational draft?\n",
       "createdAt": "2026-10-09T17:55:08Z",
-      "updatedAt": "2026-10-09T17:55:09Z",
+      "updatedAt": "2026-10-16T23:23:28Z",
       "baseRepository": "mcguinness/governed-agent-profiles",
       "baseRefName": "main",
       "baseRefOid": "6a318b2eba7d065534ea659bf04def62a251850f",
       "headRepository": "mcguinness/governed-agent-profiles",
       "headRefName": "split-plan",
       "headRefOid": "5005245c41c2b18e160d06d2b83f8fdbcfe7368d",
-      "closedAt": null,
+      "closedAt": "2026-10-16T23:23:28Z",
       "mergedAt": null,
       "mergedBy": null,
       "mergeCommit": null,
-      "comments": [],
+      "comments": [
+        {
+          "author": "mcguinness",
+          "authorAssociation": "OWNER",
+          "body": "Closing: this plan was executed as #19 (merged 2026-10-09). Plans stay out of the repository.",
+          "createdAt": "2026-10-16T23:23:28Z",
+          "updatedAt": "2026-10-16T23:23:28Z"
+        }
+      ],
       "reviews": []
     },
     {
@@ -627,24 +635,26 @@
       "id": "PR_kwDOUa5iRM8AAAABIcAoDA",
       "title": "Fix stale cross-document claims and Actor Profile citations",
       "url": "https://github.com/mcguinness/governed-agent-profiles/pull/21",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "mcguinness",
       "authorAssociation": "OWNER",
       "assignees": [],
       "labels": [],
       "body": "Two fresh-eyes critiques of the family, one as a SaaS developer and one as an agent-platform developer, found statements in one draft about another that are no longer true. This PR fixes those, plus Actor Profile citations that drifted when the reference moved to -01. Every change is editorial: the BCP 14 keyword counts are unchanged (core 274, lifecycle 80, SCIM agent management 74).\n\n| Commit | Draft | Fix |\n|---|---|---|\n| 10dd1cc | SCIM agent management, Section 2 | Drops \"[FEDERATION] calls this role the IdP Service Provider\". The core never used that phrase, and since #20 it does not use Service Provider at all. |\n| 7d1774a | Lifecycle, Section 4 | It said it \"raises Federation's provisioning recommendation to a requirement\", but the core makes no such recommendation (\"No provisioning protocol is required\"). The requirement this draft adds is unchanged. |\n| 420e0fb | Lifecycle, Section 7 | It listed \"reporting revoked or disabled authorization as inactive under RFC 7662\" among the rules the core specifies. The core stated that until the trim in f0f8585 removed it. The lifecycle draft now presents inactive introspection as a consequence of the core's invalidation rule. |\n| 52d208c | Core and COORDINATION.md | Repoints the Actor Profile citations from -00 to -01, which renumbered sections. Each claim was checked against the -01 text (below). |\n| 57b8616 | Core, A.2.1 | The AWS example's accepted audience is now the IdP issuer, not the token endpoint, matching the dedicated-client audience rule and the companion's JWT-SVID example. It was configuration, not a conflict, but read as one. |\n\n**Actor Profile -01 mapping.** Each citation was checked against the -01 text:\n- 6.3 \u2192 6.4 (rule 2, credential-to-actor copying);\n- 3.6.3.2 \u2192 3.6.2.2 (Preserve Inbound Chain);\n- 16.2 \u2192 10.1 (`actor_profile_token_exchange`, Authorization Server Metadata); 16.2 is now Informative References;\n- 6.3.1 \u2192 6.4.1.2 (authentication-context reuse when the actor token is the same JWT as the client assertion).\n\nSections 3.4 (`sub_profile` recommendation and unclassified actors), 8, and 8.2 (HTTP 403 `actor_unauthorized`, never `insufficient_scope`) still hold. Appendix B and COORDINATION.md now name -01 as the assessed revision.\n\n**Resolved upstream.** -01 Section 4.2 makes a grant without a grant-level sender constraint single-use, which is the rule this profile asked for in actor-profile issue 5. COORDINATION.md records it as resolved, and its upstream table no longer lists it.\n\n**Open question for the author (Group B).** The core's explicit rule that revoked or disabled authorization is reported inactive under RFC 7662 was removed in f0f8585. RFC 7662 says only that `active` \"will generally indicate\" non-revocation. Restoring the rule would bring back a requirement, so it is not part of this PR.",
       "createdAt": "2026-10-14T16:42:33Z",
-      "updatedAt": "2026-10-14T16:42:33Z",
+      "updatedAt": "2026-10-17T00:09:04Z",
       "baseRepository": "mcguinness/governed-agent-profiles",
       "baseRefName": "main",
       "baseRefOid": "8c36a34294c1d5ce19a3e28076af95083244a819",
       "headRepository": "mcguinness/governed-agent-profiles",
       "headRefName": "crossdoc-consistency",
       "headRefOid": "57b8616d229b1e6a6e6f78b6841a1c7fcb43af92",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "closedAt": "2026-10-16T23:49:48Z",
+      "mergedAt": "2026-10-16T23:49:48Z",
+      "mergedBy": "mcguinness",
+      "mergeCommit": {
+        "oid": "da907f3fbf418a073767e1a795e493aa75146373"
+      },
       "comments": [],
       "reviews": []
     },
@@ -660,7 +670,7 @@
       "labels": [],
       "body": "## Summary\n\nAdds a sixth draft to the family: **Identity Continuation Profile for Governed Agent Federation** (`draft-mcguinness-oauth-governed-agent-continuation`). It profiles the Identity Continuation Assertion (ICA-02) for governed agents, with gateways (for example MCP tool gateways) as the primary deployment. It also extends ICA to self-acting chains rooted in a WAG.\n\nA gateway that receives a governed agent's request exchanges evidence of the accepted request for an onward grant to the next resource. The IdP preserves the agent and user, checks that the gateway may continue for that agent, and authorizes access to the next resource. A downstream RAS and API that implement the core, with DPoP at the RAS token endpoint, accept the onward grant unchanged.\n\n## Design decisions\n\n- **The gateway is the onward grant's client, never an added actor.** An onward ID-JAG names the root's Agent Principal as its single `act`; an onward WAG names it as `sub`. This replaces ICA \u00a75.5.5's actor lineage for governed chains, while ICA's hop-record rules still apply. The core accepts only a single, un-nested `act`, and a WAG carries no `act`. A gateway in `act` would also recreate the shared-client problem at the actor level.\n- **Continuation Association:** the IdP's permission for a client to continue an agent's chains in one acting relationship, scoped to the chain's Governance Tenant. A chain also requires the root Delegation or Agent Authorization itself to permit continuation.\n- **Agent-session anchor for self-acting chains:** evidence that the agent recently authenticated through one Identity Binding. Only the agent's own authentication refreshes it, and it ends at an idle timeout or a finite absolute expiration. A gateway cannot keep a chain alive.\n- **Chain ending on governance events:** the agent, user, root binding, association or credential, or root authorization being disabled, withdrawn, or narrowed so it no longer permits the root grant. A chain stays ended if the relationship is restored.\n- **No conversion** between delegated and self-acting chains, and **no fallback** to the gateway's own authority.\n- Onward grants are redeemed with **`jwt-bearer`** and grant confirmation. ID-JAG-04 \u00a74.4 requires `jwt-bearer`; ICA's `jwt-dpop` appears only in an ID-JAG example, and the JWT DPoP Grant draft expired in August 2026.\n- **One grant-profile value**, `governed-agent-continuation`, for both grants, because access-token protection and redemption differ from what `id-jag-continuation` advertises.\n- **Per-hop continuation window** (SHOULD): it bounds how long a CAI, including one a compromised gateway operator runs, can obtain continuations from a hop it accepted.\n\n## Structure\n\nThe document reads in protocol order: establishing a chain, root redemption, assertion issuance, the continuation exchange (an ordered validation sequence, onward grants, errors), onward redemption, Gateway Requirements, chain ending, then conformance. A gateway walkthrough with a self-acting variant and negative tests reuses the core's identities. Appendix B lists every change to ICA and to the core, the dependencies, and the open items.\n\n## Family changes\n\n- **Core:** the \"Continuation with ICA\" row of Excluded Compositions now points to the companion, which the core cites as an informative reference, so no publication cluster forms.\n- **README:** a section for the companion; the family is now six drafts.\n- **COORDINATION.md:** ICA, WAG, and management coordination items for the companion.\n- **`.gitignore`:** the companion's generated XML.\n\n## Review\n\n- Two cold reviews (working-group reviewer and per-role implementer), then two further rounds of external review findings.\n- A fresh-eyes round with four independent personas: working-group, implementer, adversarial, and newcomer.\n- Each finding is one commit, so any can be dropped alone.\n- The fresh-eyes round found that the first draft was written from a local ICA checkout that predated the published -02. The companion now follows -02's error precedence, establishment condition, and `invalid_scope` mapping.\n\n## Upstream changes the companion depends on\n\n- **ICA:**\n  - let a profile replace onward `act` lineage;\n  - `jwt-bearer` redemption without the `jwt-dpop` advertisement;\n  - certificate-bound access tokens and bearer-ingress eligibility in place of DPoP-only;\n  - profile-defined anchors and onward grant types;\n  - `requested_token_type` in the retry fingerprint;\n  - a per-hop continuation window.\n- **ID-JAG:** the key-bound redemption example; WAG profile values in `authorization_grant_profiles_supported`.\n- **WAG:** type registration; IdP-issued and continuation-issued WAGs carrying the handle and `cnf`; a meaning for `client_id`.\n- **SCIM management profile:** Continuation Associations, and an authorization's permission to continue.\n\n## Checks\n\n- Built with kramdown-rfc and xml2rfc after every commit: 40 pages, no unresolved or uncited references, no duplicate anchors, no over-long artwork lines.\n- idnits shows only the unpublished-sibling-draft notices the family already has.\n- Normative diffs reviewed for each round; no requirement newly leads a paragraph without its condition.\n- The core still builds after its row edit.\n",
       "createdAt": "2026-10-15T00:50:45Z",
-      "updatedAt": "2026-10-15T00:51:48Z",
+      "updatedAt": "2026-10-15T02:15:48Z",
       "baseRepository": "mcguinness/governed-agent-profiles",
       "baseRefName": "main",
       "baseRefOid": "8c36a34294c1d5ce19a3e28076af95083244a819",
@@ -674,6 +684,42 @@
         "oid": "4b9b781ddda486c06ba6024bd18d6ddb8567baa5"
       },
       "comments": [],
+      "reviews": []
+    },
+    {
+      "number": 23,
+      "id": "PR_kwDOUa5iRM8AAAABIq1eFA",
+      "title": "Disclose gateways in continuation_via and fail closed on unknown session state",
+      "url": "https://github.com/mcguinness/governed-agent-profiles/pull/23",
+      "state": "MERGED",
+      "author": "mcguinness",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "## Summary\n\nTwo follow-ups to the identity continuation companion (#22).\n\n### 1. Disclose continuing clients in `continuation_via`\n\nThis applies the solution proposed in [ICA issue #138](https://github.com/mcguinness/draft-mcguinness-oauth-id-continuation-assertion/issues/138). An onward grant keeps the Agent Principal as its only actor and the gateway as `client_id`, and now also lists every continuing client on the path in a new `continuation_via` claim, as intermediaries rather than actors. Gateways are disclosed, never hidden, which answers the strongest working-group objection: that a gateway disappears behind `client_id`.\n\n- **New Path Disclosure section** defining the claim:\n  - entries are canonical actor identities (`iss`, `sub`), oldest first, so the last entry is the current continuing client;\n  - the IdP derives the list from its hop records using ICA's lineage rules and never from the request;\n  - the list is complete, never narrowed, and excludes the root client;\n  - a recipient must not treat an entry as an actor;\n  - a target may use the list in policy and may pass it on unchanged, and a target that ignores it still conforms to the core.\n- **Identity preservation, the claim tables, both walkthrough grants, and the gateway-behind-a-gateway topology** now include the claim.\n- **Security and privacy text** now says a target can audit and authorize the path itself, and that the full path is disclosed as intermediaries.\n- **Rationale:** frames the gateway as WS-Trust's \"on behalf of\" and the agent as acting for the user, with the Kerberos PAC transited-services list and AWS `aws:CalledVia` as precedents.\n- **IANA:** registers `continuation_via` as a JWT claim and an introspection response member. The registrations move to ICA if ICA adopts the claim.\n- **Appendix B:** a new \"Path disclosure\" row in the ICA changes. Open item 1 becomes \"where should `continuation_via` live, and may policy ever narrow it?\"\n- **README and COORDINATION.md** updated to match.\n\n### 2. Fail closed without ending the chain when agent-session state is unknown\n\nThe draft said IdP instances evaluate an agent session against shared state, but not what an instance does when it cannot confirm that state. Treating unreadable state as an expired session would end the chain, and a governed chain stays ended, so a replication lag could permanently end every chain on that session.\n\nThis mirrors ICA \u00a75.5.7 for replay reservations: the instance rejects the request rather than issuing, and does not treat the session as ended. A new open item asks which error code signals such a temporary refusal, the same question ICA #135 asks.\n\n## Checks\n\n- Built with kramdown-rfc and xml2rfc after each commit: 44 pages, all citations resolved, no uncited references.\n- Normative diffs reviewed:\n  - commit 1 adds the IdP's MUST to include and derive `continuation_via`, the recipient's MUST NOT treat an entry as an actor, and the target's two MAYs;\n  - commit 2 adds the shared-state MUST and MUST NOT;\n  - no requirement was removed.\n- idnits still reports `KERBEROS-PAC` as unused and a possible downref, although the text cites it in \u00a76.4.2 and Appendix C.1. Renaming the anchor and reordering the references didn't clear it, so it is treated as an idnits quirk.\n",
+      "createdAt": "2026-10-15T16:47:30Z",
+      "updatedAt": "2026-10-16T23:23:32Z",
+      "baseRepository": "mcguinness/governed-agent-profiles",
+      "baseRefName": "main",
+      "baseRefOid": "4b9b781ddda486c06ba6024bd18d6ddb8567baa5",
+      "headRepository": "mcguinness/governed-agent-profiles",
+      "headRefName": "continuation-via",
+      "headRefOid": "0bc514c318db55f83783bd229dcfab2f75dd2a9c",
+      "closedAt": "2026-10-15T18:15:22Z",
+      "mergedAt": "2026-10-15T18:15:22Z",
+      "mergedBy": "mcguinness",
+      "mergeCommit": {
+        "oid": "7af135087b3f536da273805bba333ea838b10acb"
+      },
+      "comments": [
+        {
+          "author": "mcguinness",
+          "authorAssociation": "OWNER",
+          "body": "Review fixes, one commit each:\n\n1. **Root hop, not root client** (`59d4a5c`): `continuation_via` takes one entry from each hop after the root, then merges consecutive duplicates, so a root client that later continues the chain still appears last. The definition now gives the examples `[B, A]`, `[A]`, and `[A, B]`.\n2. **Preservation contract** (`d4c834e`), following the revised ICA #138:\n   - a target RAS that trusted configuration establishes as supporting path disclosure MUST pass `continuation_via` unchanged into every access token or introspection response, including on refresh;\n   - where policy requires the path, the IdP refuses issuance to a target that would discard it, with `invalid_target`, at step 7, with a new negative test;\n   - a missing list is not evidence of direct access unless the RAS is known to preserve it;\n   - targets that implement only the core stay compatible.\n3. **Temporary refusal** (`5334929`):\n   - when the IdP cannot confirm agent-session or replay-reservation state, it responds with HTTP 503 and `Retry-After` (RFC 9110), not an OAuth error;\n   - the gateway may retry with the same assertion while it is unexpired, because nothing was reserved, and must not treat the refusal as the end of the chain or answer the agent with 401;\n   - open item 7 now asks whether ICA should adopt the same response.\n4. **Clarity** (`0bc514c`): the Kerberos and AWS precedents moved out of the claim definition into the rationale, described as related precedents. A new two-gateway walkthrough variant shows `[tool-gateway, data-gateway]` reaching the API through a target that supports path disclosure.\n\nChecks: builds clean (all citations resolved), all 9 JSON examples parse, and the normative diff shows only the intended changes.\n",
+          "createdAt": "2026-10-15T18:09:47Z",
+          "updatedAt": "2026-10-15T18:09:47Z"
+        }
+      ],
       "reviews": []
     }
   ]

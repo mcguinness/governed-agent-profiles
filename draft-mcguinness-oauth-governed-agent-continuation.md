@@ -1419,9 +1419,9 @@ anchors the chain to the refresh token's grant, not to Alice's session
 }
 ~~~
 
-AgentRAS redeems it with a proof of K and binds the handle, H0, to a
-task record that holds no bearer credential and designates
-`analysis-client` to run the task (illustrative):
+The client redeems it at AgentRAS with a proof of K. AgentRAS binds the
+handle, H0, to a task record that holds no bearer credential and
+designates `analysis-client` to run the task (illustrative):
 
 ~~~
 task_id:   task-7
@@ -1484,11 +1484,11 @@ root ({{Section 5.5.5 of ICA}}). `continuation_via` names
 `analysis-client` because the root client continued the chain; the root
 hop itself contributes no entry ({{continuation-via}}).
 
-Runs need no credential that carries Alice's authority: each creates a
-new child of H0 with a short-lived assertion and grant bound to K. If
-Alice withdraws her Delegation Authorization for `agent-42`, the chain
-ends and the next run fails ({{negative-tests}}), while her
-delegations to other agents continue.
+Runs need no retained user credential. Each creates a new child of H0
+and obtains a short-lived, sender-constrained assertion and onward
+grant, both bound to K. If Alice withdraws her Delegation Authorization
+for `agent-42`, the chain ends and the next run fails
+({{negative-tests}}), while her delegations to other agents continue.
 
 ## Negative Tests {#negative-tests}
 

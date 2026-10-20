@@ -236,6 +236,15 @@ grant, and the worker redeems it with its own DPoP proof. That proof
 binds the access token to the worker's key ([Grant
 Protection][grant-protection]).
 
+Narrower permissions for each worker do not conserve a shared quantity:
+two workers each permitted ten operations can together perform twenty,
+whatever their keys. The core profile defines no aggregate budget,
+quota, or concurrency semantics ([Governance Boundary and Execution
+Independence][governance-boundary]). A limit that spans workers needs
+an allocator outside this profile, for example disjoint allocations of
+five each against a limit of ten, or the aggregate bounds of
+[Mission-Bound Authorization][mission].
+
 ## Adoption tradeoffs
 
 The profile's security controls carry these deployment costs. The
@@ -328,3 +337,5 @@ Revocation][status-changes] state the core profile's guarantees.
 [walkthrough]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#walkthrough
 [aws-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#aws-example
 [excluded-compositions]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#excluded-compositions
+[governance-boundary]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#governance-boundary
+[mission]: https://github.com/mcguinness/mission-bound-authorization

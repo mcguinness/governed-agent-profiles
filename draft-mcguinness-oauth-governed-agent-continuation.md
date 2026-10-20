@@ -908,6 +908,14 @@ implements {{FEDERATION}} with DPoP support at its token endpoint, and
 nothing from this document unless it supports path disclosure
 ({{continuation-via}}).
 
+An IdP claiming delegated continuation can additionally claim
+grant-anchored continuation. This claim requires support for
+refresh-token subjects under "Subject Token Validation" in
+{{FEDERATION}} and grant anchors under {{Section 6.1 of ICA}}. Such
+chains can continue after the user's session ends, as unattended work
+needs ({{walkthrough-scheduled}}). A delegated continuation claim alone
+does not guarantee grant-anchor support.
+
 Each claim has this mandatory interoperability path:
 
 * **Client authentication:** The continuing client, CAI, IdP, and
@@ -944,7 +952,8 @@ An IdP that supports delegated continuation advertises
 indicates continuation-capable ID-JAG issuance; an IdP that supports
 only self-acting continuation does not. Support for self-acting
 continuation is established through trusted configuration ("Capability
-Discovery" in {{FEDERATION}}); no IdP metadata advertises it.
+Discovery" in {{FEDERATION}}); no IdP metadata advertises it. The same
+holds for grant-anchored continuation ({{conformance-claims}}).
 Advertisement indicates capability and does not authorize continuation.
 
 # Security Considerations {#security}
@@ -1384,8 +1393,9 @@ from server-held task state.
 The agent's operator runs `https://ras.agents.example/` as a
 continuation-aware RAS and CAI for
 its task service `https://agents.example/tasks`, where the agent's
-client is `analysis-tasks` and Alice is `alice-tasks` to the IdP. This
-deployment supports grant-anchored continuation and durable task
+client is `analysis-tasks` and Alice is `alice-tasks` to the IdP. The
+IdP claims grant-anchored continuation ({{conformance-claims}}), and the
+deployment supports durable task
 authorization, with Transaction Tokens carrying each scheduled run's
 context; an IdP without grant-anchor support issues the root ID-JAG
 without a handle ({{Section 6.1 of ICA}}). The IdP accepts
@@ -1611,10 +1621,6 @@ Where this document is silent, {{FEDERATION}} applies unchanged.
    response for state it cannot confirm, and define an OAuth error code
    for policy that blocks a chain only temporarily
    ({{continuation-errors}})?
-8. **Grant anchors:** Unattended work, as in {{walkthrough-scheduled}},
-   needs a chain anchored to a refresh-token grant, which
-   {{Section 6.1 of ICA}} makes optional. Should a delegated
-   continuation claim require IdP support for grant anchors?
 
 # Design Rationale {#rationale}
 

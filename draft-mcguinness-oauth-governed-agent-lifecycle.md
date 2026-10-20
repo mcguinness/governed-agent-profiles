@@ -564,13 +564,13 @@ finite end-to-end denial bound. A local stale-state restriction can
 limit new issuance; it does not by itself revoke already-issued tokens.
 
 A decision made when an action is queued or scheduled does not
-authorize its later dispatch. A resource domain or hosting platform that
-authorizes actions from local state treats each dispatch as new
-authorization, evaluated against the state applied at dispatch. An
-applied disablement ({{platform-hosted}}), Local Suspension, or expired
-revalidation bound ({{recovery}}) therefore blocks queued actions that
-have not yet been dispatched. Applying a change does not cancel an
-operation that another system has already accepted.
+authorize its later dispatch. The point that authorizes dispatch from
+local state treats each dispatch as new authorization: once it has
+applied a disablement ({{platform-hosted}}), a Local Suspension, or an
+expired revalidation bound ({{recovery}}), it denies dispatch of queued
+actions. Other enforcement points keep the delays in the table above.
+Applying a change does not cancel an operation that another system has
+already accepted.
 
 # Revocation Boundaries {#relationship-changes}
 

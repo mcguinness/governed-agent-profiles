@@ -1377,8 +1377,12 @@ last entry identifies the client that presented the grant.
 ## Scheduled Variant {#walkthrough-scheduled}
 
 Here `agent-42` prepares a daily report for Alice after she has signed
-out, without a gateway. The agent's operator runs
-`https://ras.agents.example/` as a continuation-aware RAS and CAI for
+out, without a gateway. The client uses Alice's refresh token once to
+establish the chain. Later runs authenticate the client and continue
+from server-held task state.
+
+The agent's operator runs `https://ras.agents.example/` as a
+continuation-aware RAS and CAI for
 its task service `https://agents.example/tasks`, where the agent's
 client is `analysis-tasks` and Alice is `alice-tasks` to the IdP. This
 deployment supports grant-anchored continuation and durable task
@@ -1393,6 +1397,8 @@ resources in `acme-data`. `analysis-client` has the default canonical
 actor identity of {{Section 5.5.2 of ICA}}, (`https://idp.example/`,
 `analysis-client`), so the IdP pairs AgentRAS with itself as the
 client's identity authority.
+
+### One-Time Setup {#walkthrough-scheduled-setup}
 
 While Alice is signed in, she asks for the report. The client holds a
 refresh token that the IdP issued to `analysis-client` for Alice, whose
@@ -1436,6 +1442,8 @@ status:    active
 The client does not need the refresh token for this task again. Every
 run continues from H0, so the deployment sets the continuation window
 ({{governed-chain-authorization}}) to the task's duration.
+
+### Each Scheduled Run {#walkthrough-scheduled-run}
 
 At 06:00 UTC the next day, with Alice signed out, the platform's
 scheduler starts a run that names only `task-7`. The run has no
@@ -1486,9 +1494,14 @@ hop itself contributes no entry ({{continuation-via}}).
 
 Runs need no retained user credential. Each creates a new child of H0
 and obtains a short-lived, sender-constrained assertion and onward
-grant, both bound to K. If Alice withdraws her Delegation Authorization
-for `agent-42`, the chain ends and the next run fails
-({{negative-tests}}), while her delegations to other agents continue.
+grant, both bound to K.
+
+### Withdrawal {#walkthrough-scheduled-withdrawal}
+
+If Alice withdraws her Delegation Authorization for `agent-42`, the
+chain ends and the next run fails ({{negative-tests}}), while her
+delegations to other agents continue. Revoking the refresh-token grant
+that anchors the chain also ends it ({{Section 6.2 of ICA}}).
 
 ## Negative Tests {#negative-tests}
 

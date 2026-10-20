@@ -431,21 +431,22 @@ Suspension need not be exposed through this SCIM interface.
 Each fact that eligibility depends on is decided by one party, and no
 party rewrites another's fact:
 
-| Fact | Decided by | Applied at | When the denial is lifted |
+| Fact | Decided by | Applied at | What resumes when lifted |
 |---|---|---|---|
-| Agent administrative state (`active`) | Governing IdP | IdP issuance; the Receiver, after reconciliation ({{recovery}}) | New decisions are permitted; revoked authorization is not restored |
-| Identity Binding or Client Association | Governing IdP | IdP issuance | New grants through it are permitted |
-| Delegation Authorization or Agent Authorization | Governing IdP | IdP issuance | New grants under it are permitted |
-| Correlation | Resource domain | RAS redemption and refresh | New decisions are permitted |
-| Local Suspension | Resource domain | RAS and API | Only the resource domain lifts it; upstream activation cannot |
+| Agent administrative state (`active`) | Governing IdP | IdP issuance; the Receiver, after reconciliation ({{recovery}}) | New decisions; revoked authorization is not restored |
+| Identity Binding or Client Association | Governing IdP | IdP issuance | New grants through it |
+| Delegation Authorization or Agent Authorization | Governing IdP | IdP issuance | New grants under it |
+| Correlation | Resource domain | RAS redemption and refresh | New decisions |
+| Local Suspension | Resource domain | RAS and API | New decisions |
 | RAS session or refresh token | RAS | RAS and API | Revoked sessions and refresh tokens are not restored; a still-valid grant can be redeemed again only as "Common Grant Validation" in {{FEDERATION}} permits, and not after grant-derived revocation ({{grant-revocation}}) |
 | Resource policy | Resource domain | RAS and API | Under local policy |
 {: title="Who decides each eligibility fact"}
 
 Eligibility requires every fact, so a denial from any party denies
-whatever another party reports: an upstream activation does not clear a
-Local Suspension, and a Local Suspension does not change the IdP's
-administrative state. A Receiver's report that it applied a change
+whatever another party reports: only the resource domain lifts a Local
+Suspension, and an upstream activation does not clear it; a Local
+Suspension does not change the IdP's administrative state. A Receiver's
+report that it applied a change
 covers only that Receiver. Enforcement in a resource domain that has not
 applied the change is unknown, and this profile claims no finite
 end-to-end denial bound ({{api-enforcement}}).

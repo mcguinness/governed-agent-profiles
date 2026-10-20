@@ -242,8 +242,10 @@ whatever their keys. The core profile defines no aggregate budget,
 quota, or concurrency semantics ([Governance Boundary and Execution
 Independence][governance-boundary]). A limit that spans workers needs
 an allocator outside this profile, for example disjoint allocations of
-five each against a limit of ten, or the aggregate bounds of
-[Mission-Bound Authorization][mission].
+five each against a limit of ten. One such allocator is the optional
+[Aggregate Bounds][mission-aggregate-bounds] mechanism of
+Mission-Bound Authorization's metering companion; support for
+Mission-bound authorization alone does not provide it.
 
 ## Adoption tradeoffs
 
@@ -338,4 +340,4 @@ Revocation][status-changes] state the core profile's guarantees.
 [aws-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#aws-example
 [excluded-compositions]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#excluded-compositions
 [governance-boundary]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#governance-boundary
-[mission]: https://github.com/mcguinness/mission-bound-authorization
+[mission-aggregate-bounds]: https://mcguinness.github.io/mission-bound-authorization/draft-mcguinness-mission-metering.html#aggregate-bounds

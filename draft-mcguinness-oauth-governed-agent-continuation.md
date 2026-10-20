@@ -1451,10 +1451,11 @@ ID-JAG from the IdP for `https://ras.example/`, `resource`
 
 The continuation exchange performs no agent resolution: the agent comes
 from the chain record, not from `analysis-client`'s Identity Binding
-({{continuation-association}}). The grant is unexpired and unrevoked,
-the Continuation Association permits `analysis-client`, and Alice's
-Delegation Authorization permits `agent-42` to act for her with
-`files.read`. The onward ID-JAG (excerpt):
+({{continuation-association}}). The refresh-token grant anchoring the
+chain remains active, even though the root ID-JAG's redemption window
+has expired. The Continuation Association permits `analysis-client`,
+and Alice's Delegation Authorization permits `agent-42` to act for her
+with `files.read`. The onward ID-JAG (excerpt):
 
 ~~~ json
 {

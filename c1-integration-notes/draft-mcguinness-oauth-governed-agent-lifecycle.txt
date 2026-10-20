@@ -521,51 +521,60 @@ Table of Contents
    Each fact that eligibility depends on is decided by one party, and no
    party rewrites another's fact:
 
-    +================+===========+================+===================+
-    | Fact           | Decided   | Applied at     | When the denial   |
-    |                | by        |                | is lifted         |
-    +================+===========+================+===================+
-    | Agent          | Governing | IdP issuance;  | New decisions are |
-    | administrative | IdP       | the Receiver,  | permitted;        |
-    | state (active) |           | after          | revoked           |
-    |                |           | reconciliation | authorization is  |
-    |                |           | (Section 6)    | not restored      |
-    +----------------+-----------+----------------+-------------------+
-    | Identity       | Governing | IdP issuance   | New grants        |
-    | Binding or     | IdP       |                | through it are    |
-    | Client         |           |                | permitted         |
-    | Association    |           |                |                   |
-    +----------------+-----------+----------------+-------------------+
-    | Delegation     | Governing | IdP issuance   | New grants under  |
-    | Authorization  | IdP       |                | it are permitted  |
-    | or Agent       |           |                |                   |
-    | Authorization  |           |                |                   |
-    +----------------+-----------+----------------+-------------------+
-    | Correlation    | Resource  | RAS redemption | New decisions are |
-    |                | domain    | and refresh    | permitted         |
-    +----------------+-----------+----------------+-------------------+
-    | Local          | Resource  | RAS and API    | Only the resource |
-    | Suspension     | domain    |                | domain lifts it;  |
-    |                |           |                | upstream          |
-    |                |           |                | activation cannot |
-    +----------------+-----------+----------------+-------------------+
-    | RAS session or | RAS       | RAS and API    | Not restored;     |
-    | refresh token  |           |                | access requires a |
-    |                |           |                | new grant         |
-    +----------------+-----------+----------------+-------------------+
-    | Resource       | Resource  | RAS and API    | Under local       |
-    | policy         | domain    |                | policy            |
-    +----------------+-----------+----------------+-------------------+
+   +================+===========+================+====================+
+   | Fact           | Decided   | Applied at     | What resumes when  |
+   |                | by        |                | lifted             |
+   +================+===========+================+====================+
+   | Agent          | Governing | IdP issuance;  | New decisions;     |
+   | administrative | IdP       | the Receiver,  | revoked            |
+   | state (active) |           | after          | authorization is   |
+   |                |           | reconciliation | not restored       |
+   |                |           | (Section 6)    |                    |
+   +----------------+-----------+----------------+--------------------+
+   | Identity       | Governing | IdP issuance   | New grants through |
+   | Binding or     | IdP       |                | it                 |
+   | Client         |           |                |                    |
+   | Association    |           |                |                    |
+   +----------------+-----------+----------------+--------------------+
+   | Delegation     | Governing | IdP issuance   | New grants under   |
+   | Authorization  | IdP       |                | it                 |
+   | or Agent       |           |                |                    |
+   | Authorization  |           |                |                    |
+   +----------------+-----------+----------------+--------------------+
+   | Correlation    | Resource  | RAS redemption | New decisions      |
+   |                | domain    | and refresh    |                    |
+   +----------------+-----------+----------------+--------------------+
+   | Local          | Resource  | RAS and API    | New decisions      |
+   | Suspension     | domain    |                |                    |
+   +----------------+-----------+----------------+--------------------+
+   | RAS session or | RAS       | RAS and API    | Revoked sessions   |
+   | refresh token  |           |                | and refresh tokens |
+   |                |           |                | are not restored;  |
+   |                |           |                | a still-valid      |
+   |                |           |                | grant can be       |
+   |                |           |                | redeemed again     |
+   |                |           |                | only as "Common    |
+   |                |           |                | Grant Validation"  |
+   |                |           |                | in [FEDERATION]    |
+   |                |           |                | permits, and not   |
+   |                |           |                | after grant-       |
+   |                |           |                | derived revocation |
+   |                |           |                | (Appendix A.4)     |
+   +----------------+-----------+----------------+--------------------+
+   | Resource       | Resource  | RAS and API    | Under local policy |
+   | policy         | domain    |                |                    |
+   +----------------+-----------+----------------+--------------------+
 
-                 Table 4: Who decides each eligibility fact
+                Table 4: Who decides each eligibility fact
 
    Eligibility requires every fact, so a denial from any party denies
-   whatever another party reports: an upstream activation does not clear
-   a Local Suspension, and a Local Suspension does not change the IdP's
-   administrative state.  A Receiver's report that it applied a change
-   covers only that Receiver.  Enforcement in a resource domain that has
-   not applied the change is unknown, and this profile claims no finite
-   end-to-end denial bound (Section 7.1).
+   whatever another party reports: only the resource domain lifts a
+   Local Suspension, and an upstream activation does not clear it; a
+   Local Suspension does not change the IdP's administrative state.  A
+   Receiver's report that it applied a change covers only that Receiver.
+   Enforcement in a resource domain that has not applied the change is
+   unknown, and this profile claims no finite end-to-end denial bound
+   (Section 7.1).
 
    Owners provide accountability; they are not automatically user
    delegators.  Group membership has only the meaning assigned by local
@@ -699,13 +708,13 @@ Table of Contents
    revoke already-issued tokens.
 
    A decision made when an action is queued or scheduled does not
-   authorize its later dispatch.  A resource domain or hosting platform
-   that authorizes actions from local state treats each dispatch as new
-   authorization, evaluated against the state applied at dispatch.  An
-   applied disablement (Section 9), Local Suspension, or expired
-   revalidation bound (Section 6) therefore blocks queued actions that
-   have not yet been dispatched.  Applying a change does not cancel an
-   operation that another system has already accepted.
+   authorize its later dispatch.  The point that authorizes dispatch
+   from local state treats each dispatch as new authorization: once it
+   has applied a disablement (Section 9), a Local Suspension, or an
+   expired revalidation bound (Section 6), it denies dispatch of queued
+   actions.  Other enforcement points keep the delays in the table
+   above.  Applying a change does not cancel an operation that another
+   system has already accepted.
 
 8.  Revocation Boundaries
 

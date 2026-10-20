@@ -1823,7 +1823,7 @@ party rewrites another's fact:<a href="#section-5.3-2" class="pilcrow">¶</a></p
               <th class="text-left" rowspan="1" colspan="1">Fact</th>
               <th class="text-left" rowspan="1" colspan="1">Decided by</th>
               <th class="text-left" rowspan="1" colspan="1">Applied at</th>
-              <th class="text-left" rowspan="1" colspan="1">When the denial is lifted</th>
+              <th class="text-left" rowspan="1" colspan="1">What resumes when lifted</th>
             </tr>
           </thead>
           <tbody>
@@ -1831,37 +1831,37 @@ party rewrites another's fact:<a href="#section-5.3-2" class="pilcrow">¶</a></p
               <td class="text-left" rowspan="1" colspan="1">Agent administrative state (<code>active</code>)</td>
               <td class="text-left" rowspan="1" colspan="1">Governing IdP</td>
               <td class="text-left" rowspan="1" colspan="1">IdP issuance; the Receiver, after reconciliation (<a href="#recovery" class="auto internal xref">Section 6</a>)</td>
-              <td class="text-left" rowspan="1" colspan="1">New decisions are permitted; revoked authorization is not restored</td>
+              <td class="text-left" rowspan="1" colspan="1">New decisions; revoked authorization is not restored</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Identity Binding or Client Association</td>
               <td class="text-left" rowspan="1" colspan="1">Governing IdP</td>
               <td class="text-left" rowspan="1" colspan="1">IdP issuance</td>
-              <td class="text-left" rowspan="1" colspan="1">New grants through it are permitted</td>
+              <td class="text-left" rowspan="1" colspan="1">New grants through it</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Delegation Authorization or Agent Authorization</td>
               <td class="text-left" rowspan="1" colspan="1">Governing IdP</td>
               <td class="text-left" rowspan="1" colspan="1">IdP issuance</td>
-              <td class="text-left" rowspan="1" colspan="1">New grants under it are permitted</td>
+              <td class="text-left" rowspan="1" colspan="1">New grants under it</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Correlation</td>
               <td class="text-left" rowspan="1" colspan="1">Resource domain</td>
               <td class="text-left" rowspan="1" colspan="1">RAS redemption and refresh</td>
-              <td class="text-left" rowspan="1" colspan="1">New decisions are permitted</td>
+              <td class="text-left" rowspan="1" colspan="1">New decisions</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Local Suspension</td>
               <td class="text-left" rowspan="1" colspan="1">Resource domain</td>
               <td class="text-left" rowspan="1" colspan="1">RAS and API</td>
-              <td class="text-left" rowspan="1" colspan="1">Only the resource domain lifts it; upstream activation cannot</td>
+              <td class="text-left" rowspan="1" colspan="1">New decisions</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">RAS session or refresh token</td>
               <td class="text-left" rowspan="1" colspan="1">RAS</td>
               <td class="text-left" rowspan="1" colspan="1">RAS and API</td>
-              <td class="text-left" rowspan="1" colspan="1">Not restored; access requires a new grant</td>
+              <td class="text-left" rowspan="1" colspan="1">Revoked sessions and refresh tokens are not restored; a still-valid grant can be redeemed again only as "Common Grant Validation" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> permits, and not after grant-derived revocation (<a href="#grant-revocation" class="auto internal xref">Appendix A.4</a>)</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Resource policy</td>
@@ -1872,9 +1872,10 @@ party rewrites another's fact:<a href="#section-5.3-2" class="pilcrow">¶</a></p
           </tbody>
         </table>
 <p id="section-5.3-4">Eligibility requires every fact, so a denial from any party denies
-whatever another party reports: an upstream activation does not clear a
-Local Suspension, and a Local Suspension does not change the IdP's
-administrative state. A Receiver's report that it applied a change
+whatever another party reports: only the resource domain lifts a Local
+Suspension, and an upstream activation does not clear it; a Local
+Suspension does not change the IdP's administrative state. A Receiver's
+report that it applied a change
 covers only that Receiver. Enforcement in a resource domain that has not
 applied the change is unknown, and this profile claims no finite
 end-to-end denial bound (<a href="#api-enforcement" class="auto internal xref">Section 7.1</a>).<a href="#section-5.3-4" class="pilcrow">¶</a></p>
@@ -2015,13 +2016,13 @@ Without a bound on propagation and enforcement, this profile claims no
 finite end-to-end denial bound. A local stale-state restriction can
 limit new issuance; it does not by itself revoke already-issued tokens.<a href="#section-7.1-4" class="pilcrow">¶</a></p>
 <p id="section-7.1-5">A decision made when an action is queued or scheduled does not
-authorize its later dispatch. A resource domain or hosting platform that
-authorizes actions from local state treats each dispatch as new
-authorization, evaluated against the state applied at dispatch. An
-applied disablement (<a href="#platform-hosted" class="auto internal xref">Section 9</a>), Local Suspension, or expired
-revalidation bound (<a href="#recovery" class="auto internal xref">Section 6</a>) therefore blocks queued actions that
-have not yet been dispatched. Applying a change does not cancel an
-operation that another system has already accepted.<a href="#section-7.1-5" class="pilcrow">¶</a></p>
+authorize its later dispatch. The point that authorizes dispatch from
+local state treats each dispatch as new authorization: once it has
+applied a disablement (<a href="#platform-hosted" class="auto internal xref">Section 9</a>), a Local Suspension, or an
+expired revalidation bound (<a href="#recovery" class="auto internal xref">Section 6</a>), it denies dispatch of queued
+actions. Other enforcement points keep the delays in the table above.
+Applying a change does not cancel an operation that another system has
+already accepted.<a href="#section-7.1-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>

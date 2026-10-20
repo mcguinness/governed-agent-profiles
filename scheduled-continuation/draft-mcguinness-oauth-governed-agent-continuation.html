@@ -3425,10 +3425,12 @@ run continues from H0, so the deployment sets the continuation window
 <p id="appendix-A.7-7">At 06:00 UTC the next day, with Alice signed out, the platform's
 scheduler starts a run that names only <code>task-7</code>. The run has no
 incoming request: it continues from the task's hop under the
-scheduled-run carrier of <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.3" class="relref">Section 5.3</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>. AgentRAS derives H0
-from the active task record into a Transaction Token for the run, as
-in <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#appendix-B.3" class="relref">Appendix B.3</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>, and the client exchanges it at AgentRAS's
-token endpoint for an assertion bound to K. The client then requests an
+scheduled-run carrier of <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.3" class="relref">Section 5.3</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>. The client,
+authenticating to AgentRAS, names <code>task-7</code>; AgentRAS derives H0 from
+the active task record for which <code>analysis-client</code> is designated into
+a Transaction Token for the run, as in <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#appendix-B.3" class="relref">Appendix B.3</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>, and
+the client exchanges it at AgentRAS's token endpoint for an assertion
+bound to K. The client then requests an
 ID-JAG from the IdP for <code>https://ras.example/</code>, <code>resource</code>
           <code>https://api.example/tenants/acme-data/</code>, and <code>scope</code> <code>files.read</code>.<a href="#appendix-A.7-7" class="pilcrow">¶</a></p>
 <p id="appendix-A.7-8">The continuation exchange performs no agent resolution: the agent comes

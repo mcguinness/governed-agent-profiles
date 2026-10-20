@@ -128,7 +128,9 @@ authorization server (RAS) that trusts the same identity provider
 (IdP). Applied to governed agents, a gateway exchanges evidence of an
 accepted request for a new grant, and the IdP preserves the agent and
 user, checks that the gateway may continue for that agent, and
-authorizes access to the next resource.
+authorizes access to the next resource. The agent's own client can
+continue a chain in the same way, as for scheduled work after the user
+signs out ({{walkthrough-scheduled}}).
 
 The onward grant names the Agent Principal and acting relationship of
 the chain's root grant, and for delegated access the same user. The
@@ -1372,6 +1374,135 @@ The API applies the actor gate to `agent-42` alone. A policy that admits
 `agent-42` only through `tool-gateway` matches the first entry, and the
 last entry identifies the client that presented the grant.
 
+## Scheduled Variant {#walkthrough-scheduled}
+
+Here `agent-42` prepares a daily report for Alice after she has signed
+out, without a gateway. The client uses Alice's refresh token once to
+establish the chain. Later runs authenticate the client and continue
+from server-held task state.
+
+The agent's operator runs `https://ras.agents.example/` as a
+continuation-aware RAS and CAI for
+its task service `https://agents.example/tasks`, where the agent's
+client is `analysis-tasks` and Alice is `alice-tasks` to the IdP. This
+deployment supports grant-anchored continuation and durable task
+authorization, with Transaction Tokens carrying each scheduled run's
+context; an IdP without grant-anchor support issues the root ID-JAG
+without a handle ({{Section 6.1 of ICA}}). The IdP accepts
+refresh-token subjects from `analysis-client` ("Subject
+Token Validation" in {{FEDERATION}}), trusts AgentRAS as CAI for its
+own hops, and has a Continuation Association that permits
+`analysis-client` to continue `agent-42`'s delegated chains to
+resources in `acme-data`. `analysis-client` has the default canonical
+actor identity of {{Section 5.5.2 of ICA}}, (`https://idp.example/`,
+`analysis-client`), so the IdP pairs AgentRAS with itself as the
+client's identity authority.
+
+### One-Time Setup {#walkthrough-scheduled-setup}
+
+While Alice is signed in, she asks for the report. The client holds a
+refresh token that the IdP issued to `analysis-client` for Alice, whose
+grant has her Delegation Authorization for `agent-42` explicitly
+associated. It presents that refresh token as the `subject_token`, with
+`subject_token_type`
+`urn:ietf:params:oauth:token-type:refresh_token`, for `audience`
+`https://ras.agents.example/`, `resource`
+`https://agents.example/tasks`, and `scope` `tasks.run`. The IdP
+anchors the chain to the refresh token's grant, not to Alice's session
+({{Section 6.1 of ICA}}). The root ID-JAG (excerpt):
+
+~~~ json
+{
+  "sub": "alice-tasks",
+  "aud": "https://ras.agents.example/",
+  "client_id": "analysis-tasks",
+  "resource": "https://agents.example/tasks",
+  "scope": "tasks.run",
+  "auth_time": 1789646400,
+  "act": {"iss": "https://idp.example/", "sub": "agent-42"},
+  "cnf": {"jkt": "JKT_K"},
+  "identity_continuation_handle": "Wd4nKs8QpZ2vXe6TbR1mLy"
+}
+~~~
+
+The client redeems it at AgentRAS with a proof of K. AgentRAS binds the
+handle, H0, to a task record that holds no bearer credential and
+designates `analysis-client` to run the task (illustrative):
+
+~~~
+task_id:   task-7
+user:      alice-tasks
+agent:     agent-42
+runner:    analysis-client
+handle:    Wd4nKs8QpZ2vXe6TbR1mLy   # H0
+schedule:  daily at 06:00 UTC
+status:    active
+~~~
+
+The client does not need the refresh token for this task again. Every
+run continues from H0, so the deployment sets the continuation window
+({{governed-chain-authorization}}) to the task's duration.
+
+### Each Scheduled Run {#walkthrough-scheduled-run}
+
+At 06:00 UTC the next day, with Alice signed out, the platform's
+scheduler starts a run that names only `task-7`. The run has no
+incoming request: it continues from the task's hop under the
+scheduled-run carrier of {{Section 5.3 of ICA}}. The client,
+authenticating to AgentRAS, names `task-7`; AgentRAS derives H0 from
+the active task record for which `analysis-client` is designated into
+a Transaction Token for the run, as in {{Appendix B.3 of ICA}}, and
+the client exchanges it at AgentRAS's token endpoint for an assertion
+bound to K. The client then requests an
+ID-JAG from the IdP for `https://ras.example/`, `resource`
+`https://api.example/tenants/acme-data/`, and `scope` `files.read`.
+
+The continuation exchange performs no agent resolution: the agent comes
+from the chain record, not from `analysis-client`'s Identity Binding
+({{continuation-association}}). The refresh-token grant anchoring the
+chain remains active, even though the root ID-JAG's redemption window
+has expired. The Continuation Association permits `analysis-client`,
+and Alice's Delegation Authorization permits `agent-42` to act for her
+with `files.read`. The onward ID-JAG (excerpt):
+
+~~~ json
+{
+  "sub": "alice-ras",
+  "aud": "https://ras.example/",
+  "iat": 1789711205,
+  "exp": 1789711505,
+  "client_id": "analysis-api",
+  "resource": "https://api.example/tenants/acme-data/",
+  "scope": "files.read",
+  "auth_time": 1789646400,
+  "act": {"iss": "https://idp.example/", "sub": "agent-42"},
+  "continuation_via": [
+    {"iss": "https://idp.example/", "sub": "analysis-client"}
+  ],
+  "cnf": {"jkt": "JKT_K"},
+  "identity_continuation_handle": "Hc7rVm3NxT9kQw5ZpB2sJf"
+}
+~~~
+
+Its `sub`, `act`, and `client_id` are those of the grant in the
+walkthrough of {{FEDERATION}}, so `https://ras.example/` processes it as
+before, and the API sees `agent-42` acting for Alice. Its `auth_time`
+is still Alice's sign-in of the previous day, carried unchanged from the
+root ({{Section 5.5.5 of ICA}}). `continuation_via` names
+`analysis-client` because the root client continued the chain; the root
+hop itself contributes no entry ({{continuation-via}}).
+
+Runs need no retained user credential. Each creates a new child of H0
+and obtains a short-lived, sender-constrained assertion and onward
+grant, both bound to K.
+
+### Withdrawal {#walkthrough-scheduled-withdrawal}
+
+If Alice withdraws her Delegation Authorization for `agent-42`, the
+chain ends and the next run fails ({{negative-tests}}), while her
+delegations to other agents continue. Revoking the refresh-token grant
+that anchors the chain also ends it ({{Section 6.2 of ICA}}).
+
 ## Negative Tests {#negative-tests}
 
 Each case changes the stated conditions; all other checks succeed.
@@ -1389,6 +1520,7 @@ Each case changes the stated conditions; all other checks succeed.
 | The continuation used the chain's last permitted hop, its response was lost, and the gateway repeats the request with the same assertion | IdP | Where the IdP offers idempotent retry, HTTP 200 with the same onward grant; limits do not apply to recovery |
 | Governed agent access: the root ID-JAG has no `cnf`, the agent's client redeems it without a DPoP proof, GatewayRAS issues a bearer access token, and no policy permits continuation from it | CAI | HTTP 400, `invalid_request`; the authorization is not eligible for continuation |
 | The gateway redeems the onward ID-JAG without a proof of G | Target RAS | HTTP 400, `invalid_grant` |
+| In the scheduled variant, Alice withdraws her Delegation Authorization for `agent-42` before the next run | IdP | HTTP 400, `invalid_continuation`; the chain stays ended, and Alice's delegations to other agents are unaffected |
 | The gateway holds the target token for `agent-42` and receives a request for another agent with the same scope | Gateway | Continues that agent's own chain; a matching scope does not permit reuse |
 | The gateway holds the target token obtained under H0 and receives a request from `agent-42` for Alice with the same scope on another chain | Gateway | Continues that chain from its own access token; the token obtained under H0 is not reused, so the other chain's ending applies to its requests |
 {: title="Negative test cases"}
@@ -1479,6 +1611,10 @@ Where this document is silent, {{FEDERATION}} applies unchanged.
    response for state it cannot confirm, and define an OAuth error code
    for policy that blocks a chain only temporarily
    ({{continuation-errors}})?
+8. **Grant anchors:** Unattended work, as in {{walkthrough-scheduled}},
+   needs a chain anchored to a refresh-token grant, which
+   {{Section 6.1 of ICA}} makes optional. Should a delegated
+   continuation claim require IdP support for grant anchors?
 
 # Design Rationale {#rationale}
 

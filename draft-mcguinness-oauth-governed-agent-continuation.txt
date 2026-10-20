@@ -1167,6 +1167,14 @@ Table of Contents
    nothing from this document unless it supports path disclosure
    (Section 6.4.2).
 
+   An IdP claiming delegated continuation can additionally claim grant-
+   anchored continuation.  This claim requires support for refresh-token
+   subjects under "Subject Token Validation" in [FEDERATION] and grant
+   anchors under Section 6.1 of [ICA].  Such chains can continue after
+   the user's session ends, as unattended work needs (Appendix A.7).  A
+   delegated continuation claim alone does not guarantee grant-anchor
+   support.
+
    Each claim has this mandatory interoperability path:
 
    *  *Client authentication:* The continuing client, CAI, IdP, and
@@ -1205,7 +1213,8 @@ Table of Contents
    only self-acting continuation does not.  Support for self-acting
    continuation is established through trusted configuration
    ("Capability Discovery" in [FEDERATION]); no IdP metadata advertises
-   it.  Advertisement indicates capability and does not authorize
+   it.  The same holds for grant-anchored continuation (Section 10.1).
+   Advertisement indicates capability and does not authorize
    continuation.
 
 11.  Security Considerations
@@ -1759,18 +1768,19 @@ A.7.  Scheduled Variant
    The agent's operator runs https://ras.agents.example/ as a
    continuation-aware RAS and CAI for its task service
    https://agents.example/tasks, where the agent's client is analysis-
-   tasks and Alice is alice-tasks to the IdP.  This deployment supports
-   grant-anchored continuation and durable task authorization, with
-   Transaction Tokens carrying each scheduled run's context; an IdP
-   without grant-anchor support issues the root ID-JAG without a handle
-   (Section 6.1 of [ICA]).  The IdP accepts refresh-token subjects from
-   analysis-client ("Subject Token Validation" in [FEDERATION]), trusts
-   AgentRAS as CAI for its own hops, and has a Continuation Association
-   that permits analysis-client to continue agent-42's delegated chains
-   to resources in acme-data. analysis-client has the default canonical
-   actor identity of Section 5.5.2 of [ICA], (https://idp.example/,
-   analysis-client), so the IdP pairs AgentRAS with itself as the
-   client's identity authority.
+   tasks and Alice is alice-tasks to the IdP.  The IdP claims grant-
+   anchored continuation (Section 10.1), and the deployment supports
+   durable task authorization, with Transaction Tokens carrying each
+   scheduled run's context; an IdP without grant-anchor support issues
+   the root ID-JAG without a handle (Section 6.1 of [ICA]).  The IdP
+   accepts refresh-token subjects from analysis-client ("Subject Token
+   Validation" in [FEDERATION]), trusts AgentRAS as CAI for its own
+   hops, and has a Continuation Association that permits analysis-client
+   to continue agent-42's delegated chains to resources in acme-data.
+   analysis-client has the default canonical actor identity of
+   Section 5.5.2 of [ICA], (https://idp.example/, analysis-client), so
+   the IdP pairs AgentRAS with itself as the client's identity
+   authority.
 
 A.7.1.  One-Time Setup
 
@@ -2201,11 +2211,6 @@ B.4.  Open Items
        response for state it cannot confirm, and define an OAuth error
        code for policy that blocks a chain only temporarily
        (Section 6.5)?
-
-   8.  *Grant anchors:* Unattended work, as in Appendix A.7, needs a
-       chain anchored to a refresh-token grant, which Section 6.1 of
-       [ICA] makes optional.  Should a delegated continuation claim
-       require IdP support for grant anchors?
 
 Appendix C.  Design Rationale
 

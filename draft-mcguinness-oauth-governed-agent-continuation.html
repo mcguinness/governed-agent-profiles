@@ -2697,24 +2697,31 @@ document changes them. A target RAS that does not continue the chain
 implements <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> with DPoP support at its token endpoint, and
 nothing from this document unless it supports path disclosure
 (<a href="#continuation-via" class="auto internal xref">Section 6.4.2</a>).<a href="#section-10.1-1" class="pilcrow">¶</a></p>
-<p id="section-10.1-2">Each claim has this mandatory interoperability path:<a href="#section-10.1-2" class="pilcrow">¶</a></p>
+<p id="section-10.1-2">An IdP claiming delegated continuation can additionally claim
+grant-anchored continuation. This claim requires support for
+refresh-token subjects under "Subject Token Validation" in
+<span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> and grant anchors under <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-6.1" class="relref">Section 6.1</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>. Such
+chains can continue after the user's session ends, as unattended work
+needs (<a href="#walkthrough-scheduled" class="auto internal xref">Appendix A.7</a>). A delegated continuation claim alone
+does not guarantee grant-anchor support.<a href="#section-10.1-2" class="pilcrow">¶</a></p>
+<p id="section-10.1-3">Each claim has this mandatory interoperability path:<a href="#section-10.1-3" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-10.1-3.1">
-            <p id="section-10.1-3.1.1"><strong>Client authentication:</strong> The continuing client, CAI, IdP, and
+<li class="normal" id="section-10.1-4.1">
+            <p id="section-10.1-4.1.1"><strong>Client authentication:</strong> The continuing client, CAI, IdP, and
 target RAS <span class="bcp14">MUST</span> implement <span>[<a href="#RFC7523" class="cite xref">RFC7523</a>]</span> <code>private_key_jwt</code> client
 authentication, under "Dedicated Client Identity" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>
-for its audience, replay, and retry rules.<a href="#section-10.1-3.1.1" class="pilcrow">¶</a></p>
+for its audience, replay, and retry rules.<a href="#section-10.1-4.1.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-10.1-3.2">
-            <p id="section-10.1-3.2.1"><strong>Proof:</strong> They <span class="bcp14">MUST</span> implement DPoP <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span> with the algorithms
-of "Client Authentication and Algorithms" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>.<a href="#section-10.1-3.2.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-10.1-4.2">
+            <p id="section-10.1-4.2.1"><strong>Proof:</strong> They <span class="bcp14">MUST</span> implement DPoP <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span> with the algorithms
+of "Client Authentication and Algorithms" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>.<a href="#section-10.1-4.2.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-10.1-3.3">
-            <p id="section-10.1-3.3.1"><strong>Assertion issuance:</strong> Every CAI that serves a continuing client <span class="bcp14">MUST</span>
+          <li class="normal" id="section-10.1-4.3">
+            <p id="section-10.1-4.3.1"><strong>Assertion issuance:</strong> Every CAI that serves a continuing client <span class="bcp14">MUST</span>
 support assertion issuance at its token endpoint with an access-token
 <code>subject_token</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.4.1" class="relref">Section 5.4.1</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>), resolving the token as
 <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.4.6" class="relref">Section 5.4.6</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span> describes when the CAI is not the accepting
-RAS. The continuing client <span class="bcp14">MUST</span> implement that request.<a href="#section-10.1-3.3.1" class="pilcrow">¶</a></p>
+RAS. The continuing client <span class="bcp14">MUST</span> implement that request.<a href="#section-10.1-4.3.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 </section>
@@ -2743,7 +2750,8 @@ coordination (<a href="#dependencies" class="auto internal xref">Appendix B.3</a
 indicates continuation-capable ID-JAG issuance; an IdP that supports
 only self-acting continuation does not. Support for self-acting
 continuation is established through trusted configuration ("Capability
-Discovery" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>); no IdP metadata advertises it.
+Discovery" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>); no IdP metadata advertises it. The same
+holds for grant-anchored continuation (<a href="#conformance-claims" class="auto internal xref">Section 10.1</a>).
 Advertisement indicates capability and does not authorize continuation.<a href="#section-10.2-2" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -3385,8 +3393,9 @@ from server-held task state.<a href="#appendix-A.7-1" class="pilcrow">¶</a></p>
 <p id="appendix-A.7-2">The agent's operator runs <code>https://ras.agents.example/</code> as a
 continuation-aware RAS and CAI for
 its task service <code>https://agents.example/tasks</code>, where the agent's
-client is <code>analysis-tasks</code> and Alice is <code>alice-tasks</code> to the IdP. This
-deployment supports grant-anchored continuation and durable task
+client is <code>analysis-tasks</code> and Alice is <code>alice-tasks</code> to the IdP. The
+IdP claims grant-anchored continuation (<a href="#conformance-claims" class="auto internal xref">Section 10.1</a>), and the
+deployment supports durable task
 authorization, with Transaction Tokens carrying each scheduled run's
 context; an IdP without grant-anchor support issues the root ID-JAG
 without a handle (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-6.1" class="relref">Section 6.1</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>). The IdP accepts
@@ -3883,12 +3892,6 @@ names the Governance Tenant?<a href="#appendix-B.4-2.6.1" class="pilcrow">¶</a>
 response for state it cannot confirm, and define an OAuth error code
 for policy that blocks a chain only temporarily
 (<a href="#continuation-errors" class="auto internal xref">Section 6.5</a>)?<a href="#appendix-B.4-2.7.1" class="pilcrow">¶</a></p>
-</li>
-          <li id="appendix-B.4-2.8">
-            <p id="appendix-B.4-2.8.1"><strong>Grant anchors:</strong> Unattended work, as in <a href="#walkthrough-scheduled" class="auto internal xref">Appendix A.7</a>,
-needs a chain anchored to a refresh-token grant, which
-<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-6.1" class="relref">Section 6.1</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span> makes optional. Should a delegated
-continuation claim require IdP support for grant anchors?<a href="#appendix-B.4-2.8.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
 </section>

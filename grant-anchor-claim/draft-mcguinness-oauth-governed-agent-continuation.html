@@ -2697,13 +2697,13 @@ document changes them. A target RAS that does not continue the chain
 implements <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> with DPoP support at its token endpoint, and
 nothing from this document unless it supports path disclosure
 (<a href="#continuation-via" class="auto internal xref">Section 6.4.2</a>).<a href="#section-10.1-1" class="pilcrow">¶</a></p>
-<p id="section-10.1-2">An IdP that claims delegated continuation can also claim grant-anchored
-continuation. That claim adds support for refresh-token subjects
-("Subject Token Validation" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>) and for chains anchored
-to a refresh-token grant (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-6.1" class="relref">Section 6.1</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>), which outlive the
-user's session, as unattended work needs (<a href="#walkthrough-scheduled" class="auto internal xref">Appendix A.7</a>).
-Without it, an IdP's delegated chains can be anchored to user sessions
-only, which <span>[<a href="#ICA" class="cite xref">ICA</a>]</span> permits.<a href="#section-10.1-2" class="pilcrow">¶</a></p>
+<p id="section-10.1-2">An IdP claiming delegated continuation can additionally claim
+grant-anchored continuation. This claim requires support for
+refresh-token subjects under "Subject Token Validation" in
+<span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> and grant anchors under <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-6.1" class="relref">Section 6.1</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>. Such
+chains can continue after the user's session ends, as unattended work
+needs (<a href="#walkthrough-scheduled" class="auto internal xref">Appendix A.7</a>). A delegated continuation claim alone
+does not guarantee grant-anchor support.<a href="#section-10.1-2" class="pilcrow">¶</a></p>
 <p id="section-10.1-3">Each claim has this mandatory interoperability path:<a href="#section-10.1-3" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-10.1-4.1">

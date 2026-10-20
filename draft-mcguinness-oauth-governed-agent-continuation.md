@@ -1380,8 +1380,12 @@ Here `agent-42` prepares a daily report for Alice after she has signed
 out, without a gateway. The agent's operator runs
 `https://ras.agents.example/` as a continuation-aware RAS and CAI for
 its task service `https://agents.example/tasks`, where the agent's
-client is `analysis-tasks` and Alice is `alice-tasks` to the IdP. The
-IdP accepts refresh-token subjects from `analysis-client` ("Subject
+client is `analysis-tasks` and Alice is `alice-tasks` to the IdP. This
+deployment supports grant-anchored continuation and durable task
+authorization, with Transaction Tokens carrying each scheduled run's
+context; an IdP without grant-anchor support issues the root ID-JAG
+without a handle ({{Section 6.1 of ICA}}). The IdP accepts
+refresh-token subjects from `analysis-client` ("Subject
 Token Validation" in {{FEDERATION}}), trusts AgentRAS as CAI for its
 own hops, and has a Continuation Association that permits
 `analysis-client` to continue `agent-42`'s delegated chains to

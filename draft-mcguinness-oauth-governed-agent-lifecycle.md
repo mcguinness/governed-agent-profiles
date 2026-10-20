@@ -438,7 +438,7 @@ party rewrites another's fact:
 | Delegation Authorization or Agent Authorization | Governing IdP | IdP issuance | New grants under it are permitted |
 | Correlation | Resource domain | RAS redemption and refresh | New decisions are permitted |
 | Local Suspension | Resource domain | RAS and API | Only the resource domain lifts it; upstream activation cannot |
-| RAS session or refresh token | RAS | RAS and API | Not restored; access requires a new grant |
+| RAS session or refresh token | RAS | RAS and API | Revoked sessions and refresh tokens are not restored; a still-valid grant can be redeemed again only as "Common Grant Validation" in {{FEDERATION}} permits, and not after grant-derived revocation ({{grant-revocation}}) |
 | Resource policy | Resource domain | RAS and API | Under local policy |
 {: title="Who decides each eligibility fact"}
 

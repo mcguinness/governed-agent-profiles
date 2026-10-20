@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-10-18T01:53:58.400649+00:00",
+  "timestamp": "2026-10-20T02:26:24.566284+00:00",
   "repo": "mcguinness/governed-agent-profiles",
   "labels": [
     {
@@ -720,6 +720,32 @@
           "updatedAt": "2026-10-15T18:09:47Z"
         }
       ],
+      "reviews": []
+    },
+    {
+      "number": 24,
+      "id": "PR_kwDOUa5iRM8AAAABJdEhsg",
+      "title": "Apply the in-scope C1 integration review items",
+      "url": "https://github.com/mcguinness/governed-agent-profiles/pull/24",
+      "state": "OPEN",
+      "author": "mcguinness",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "## Summary\n\nThis PR applies the in-scope parts of the C1 integration review. That review asked for six integration examples (KF-01 to KF-06) about queued work, approvals, evidence, child limits, disclosure, and status. Each item was assessed against one test: does it concern the allow-or-deny decision at an action, or what happens to work after that decision? These drafts own the first. The README's \"Work\" row and the family's scope give the second to [Mission-Bound Authorization](https://github.com/mcguinness/mission-bound-authorization).\n\n| Item | Disposition | In this PR |\n|---|---|---|\n| KF-01 Queued work after a stop | In part | Lifecycle: a queued action is authorized again at dispatch |\n| KF-02 What an approval binds | Mission | None. Mission runtime already defines action-bound approval and `parameter_digest` |\n| KF-03 Dispatch and outcome evidence | Mission | None. Mission covers decision vs execution evidence and the `unknown` outcome |\n| KF-04 Narrower child authority | In part | Guide: narrower worker permissions do not conserve a shared limit |\n| KF-05 Combined disclosure | Resource domain or Mission | None. Mission orchestration already says prior disclosure cannot be undone |\n| KF-06 Who decides each status fact | Agree, for this family's facts | Lifecycle: table of who decides each eligibility fact |\n\n### 1. Evaluate a queued action when it is dispatched (KF-01)\n\nLifecycle, \"Resource Enforcement and Delay\".\n- A decision made when an action is queued or scheduled does not authorize its later dispatch.\n- Dispatch is new authorization, evaluated against the state applied at dispatch. An applied disablement, a Local Suspension, or an expired revalidation bound therefore blocks queued actions.\n- Applying a change does not cancel an operation that another system has already accepted.\n\nThis adds no requirement. It shows how the existing \"deny new authorization\" rules of \"Platform-Hosted Agents\" and \"Signals and Reconciliation\" apply to queued work.\n\n### 2. Name who decides each eligibility fact (KF-06)\n\nLifecycle, \"Effective Eligibility\". A new informative table covers seven facts:\n- agent administrative state;\n- Identity Binding or Client Association;\n- Delegation Authorization or Agent Authorization;\n- correlation;\n- Local Suspension;\n- RAS session or refresh token;\n- resource policy.\n\nFor each fact, the table gives the party that decides it, where it is applied, and what happens when its denial is lifted. A closing paragraph states the consequences:\n- a denial from any party denies, whatever another party reports;\n- an upstream activation does not clear a Local Suspension, and a Local Suspension does not change the IdP's state;\n- a Receiver's report that it applied a change covers only that Receiver;\n- enforcement elsewhere is unknown, with no finite end-to-end denial bound.\n\nThe column is \"Decided by\", not \"Owner\", because the next paragraph discusses the SCIM `owners` attribute.\n\nThe table restates existing rules only. It leaves three behaviors open: what an authenticated deactivation event does, what a Local Suspension does to tokens already issued, and how an agent session ends. It has no agent-session row while the lifecycle draft covers only delegated access. The request's columns for source revision, observation time, and reliance period were not added: ETags and the revalidation policy already cover them.\n\n### 3. Warn that narrower worker permissions do not conserve a limit (KF-04)\n\nImplementer's guide, \"Distributed platforms and key use\":\n- Two workers each permitted ten operations can together perform twenty, whatever their keys.\n- The paragraph points to the core's statement that it defines no aggregate budget, quota, or concurrency semantics.\n- A shared limit needs an allocator outside this profile, such as disjoint allocations or Mission-Bound Authorization's aggregate bounds.\n\n## Not in this PR\n\n- **KF-02, KF-03 and KF-05 are routed to Mission-Bound Authorization.** Checked against its current main:\n  - approval binding to the action-definition version extends mcguinness/mission-bound-authorization#249 (comment added);\n  - re-executing an action whose outcome is unresolved is mcguinness/mission-bound-authorization#1368;\n  - what a non-active Mission does not establish is mcguinness/mission-bound-authorization#1369;\n  - narrower child authority not conserving a shared quantity is already covered, by Metering \"Capacity Across Missions\" and Child Delegation, so no issue was filed.\n- **New terms are not adopted.** \"Work grant\", \"exact action\" and \"stop status\" are defined in neither family, and \"work grant\" collides with ID-JAG and WAG.\n\n## Checks\n\n- The lifecycle draft builds after each commit with kramdown-rfc and xml2rfc: 36 pages (was 35), all citations resolved, no uncited references.\n- The normative diff shows 45 BCP 14 sentences before and after, with none removed or added. The guide has no BCP 14 keywords.\n- The guide's new link targets exist: the core `governance-boundary` anchor and the Mission repository.\n",
+      "createdAt": "2026-10-20T00:53:20Z",
+      "updatedAt": "2026-10-20T01:02:06Z",
+      "baseRepository": "mcguinness/governed-agent-profiles",
+      "baseRefName": "main",
+      "baseRefOid": "da907f3fbf418a073767e1a795e493aa75146373",
+      "headRepository": "mcguinness/governed-agent-profiles",
+      "headRefName": "c1-integration-notes",
+      "headRefOid": "7d7652f47bd42dd2ad8b2644447ff2ce2eb469c6",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
       "reviews": []
     }
   ]

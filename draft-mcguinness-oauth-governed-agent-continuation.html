@@ -41,11 +41,11 @@ the governance events that end it.
     Jinja2 3.1.6
     lxml 6.1.1
     natsort 8.4.0
-    platformdirs 4.12.2
+    platformdirs 4.13.4
     pycountry 24.6.1
     PyYAML 6.0.3
     requests 2.33.1
-    wcwidth 0.9.1
+    wcwidth 0.9.2
 -->
 <link href="draft-mcguinness-oauth-governed-agent-continuation.xml" rel="alternate" type="application/rfc+xml">
 <link href="#copyright" rel="license">
@@ -1065,7 +1065,7 @@ svg {
 </tr></thead>
 <tfoot><tr>
 <td class="left">McGuinness</td>
-<td class="center">Expires 19 April 2027</td>
+<td class="center">Expires 23 April 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1078,12 +1078,12 @@ svg {
 <dd class="internet-draft">draft-mcguinness-oauth-governed-agent-continuation-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-10-16" class="published">16 October 2026</time>
+<time datetime="2026-10-20" class="published">20 October 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2027-04-19">19 April 2027</time></dd>
+<dd class="expires"><time datetime="2027-04-23">23 April 2027</time></dd>
 <dt class="label-authors">Author:</dt>
 <dd class="authors">
 <div class="author">
@@ -1149,7 +1149,7 @@ the governance events that end it.<a href="#section-abstract-2" class="pilcrow">
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 19 April 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 23 April 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1333,7 +1333,21 @@ the governance events that end it.<a href="#section-abstract-2" class="pilcrow">
                 <p id="section-toc.1-1.15.2.6.1"><a href="#appendix-A.6" class="auto internal xref">A.6</a>.  <a href="#name-two-gateway-variant" class="internal xref">Two-Gateway Variant</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.7">
-                <p id="section-toc.1-1.15.2.7.1"><a href="#appendix-A.7" class="auto internal xref">A.7</a>.  <a href="#name-negative-tests" class="internal xref">Negative Tests</a></p>
+                <p id="section-toc.1-1.15.2.7.1"><a href="#appendix-A.7" class="auto internal xref">A.7</a>.  <a href="#name-scheduled-variant" class="internal xref">Scheduled Variant</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.7.2.1">
+                    <p id="section-toc.1-1.15.2.7.2.1.1"><a href="#appendix-A.7.1" class="auto internal xref">A.7.1</a>.  <a href="#name-one-time-setup" class="internal xref">One-Time Setup</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.7.2.2">
+                    <p id="section-toc.1-1.15.2.7.2.2.1"><a href="#appendix-A.7.2" class="auto internal xref">A.7.2</a>.  <a href="#name-each-scheduled-run" class="internal xref">Each Scheduled Run</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.7.2.3">
+                    <p id="section-toc.1-1.15.2.7.2.3.1"><a href="#appendix-A.7.3" class="auto internal xref">A.7.3</a>.  <a href="#name-withdrawal" class="internal xref">Withdrawal</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.8">
+                <p id="section-toc.1-1.15.2.8.1"><a href="#appendix-A.8" class="auto internal xref">A.8</a>.  <a href="#name-negative-tests" class="internal xref">Negative Tests</a></p>
 </li>
             </ul>
 </li>
@@ -1397,7 +1411,9 @@ authorization server (RAS) that trusts the same identity provider
 (IdP). Applied to governed agents, a gateway exchanges evidence of an
 accepted request for a new grant, and the IdP preserves the agent and
 user, checks that the gateway may continue for that agent, and
-authorizes access to the next resource.<a href="#section-1-2" class="pilcrow">¶</a></p>
+authorizes access to the next resource. The agent's own client can
+continue a chain in the same way, as for scheduled work after the user
+signs out (<a href="#walkthrough-scheduled" class="auto internal xref">Appendix A.7</a>).<a href="#section-1-2" class="pilcrow">¶</a></p>
 <p id="section-1-3">The onward grant names the Agent Principal and acting relationship of
 the chain's root grant, and for delegated access the same user. The
 continuing client, typically a gateway, is its client, not an added
@@ -3357,12 +3373,154 @@ list to the API (excerpt):<a href="#appendix-A.6-4" class="pilcrow">¶</a></p>
 last entry identifies the client that presented the grant.<a href="#appendix-A.6-6" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="negative-tests">
+<div id="walkthrough-scheduled">
 <section id="appendix-A.7">
-        <h3 id="name-negative-tests">
-<a href="#appendix-A.7" class="section-number selfRef">A.7. </a><a href="#name-negative-tests" class="section-name selfRef">Negative Tests</a>
+        <h3 id="name-scheduled-variant">
+<a href="#appendix-A.7" class="section-number selfRef">A.7. </a><a href="#name-scheduled-variant" class="section-name selfRef">Scheduled Variant</a>
         </h3>
-<p id="appendix-A.7-1">Each case changes the stated conditions; all other checks succeed.<a href="#appendix-A.7-1" class="pilcrow">¶</a></p>
+<p id="appendix-A.7-1">Here <code>agent-42</code> prepares a daily report for Alice after she has signed
+out, without a gateway. The client uses Alice's refresh token once to
+establish the chain. Later runs authenticate the client and continue
+from server-held task state.<a href="#appendix-A.7-1" class="pilcrow">¶</a></p>
+<p id="appendix-A.7-2">The agent's operator runs <code>https://ras.agents.example/</code> as a
+continuation-aware RAS and CAI for
+its task service <code>https://agents.example/tasks</code>, where the agent's
+client is <code>analysis-tasks</code> and Alice is <code>alice-tasks</code> to the IdP. This
+deployment supports grant-anchored continuation and durable task
+authorization, with Transaction Tokens carrying each scheduled run's
+context; an IdP without grant-anchor support issues the root ID-JAG
+without a handle (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-6.1" class="relref">Section 6.1</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>). The IdP accepts
+refresh-token subjects from <code>analysis-client</code> ("Subject
+Token Validation" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>), trusts AgentRAS as CAI for its
+own hops, and has a Continuation Association that permits
+<code>analysis-client</code> to continue <code>agent-42</code>'s delegated chains to
+resources in <code>acme-data</code>. <code>analysis-client</code> has the default canonical
+actor identity of <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.5.2" class="relref">Section 5.5.2</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>, (<code>https://idp.example/</code>,
+<code>analysis-client</code>), so the IdP pairs AgentRAS with itself as the
+client's identity authority.<a href="#appendix-A.7-2" class="pilcrow">¶</a></p>
+<div id="walkthrough-scheduled-setup">
+<section id="appendix-A.7.1">
+          <h4 id="name-one-time-setup">
+<a href="#appendix-A.7.1" class="section-number selfRef">A.7.1. </a><a href="#name-one-time-setup" class="section-name selfRef">One-Time Setup</a>
+          </h4>
+<p id="appendix-A.7.1-1">While Alice is signed in, she asks for the report. The client holds a
+refresh token that the IdP issued to <code>analysis-client</code> for Alice, whose
+grant has her Delegation Authorization for <code>agent-42</code> explicitly
+associated. It presents that refresh token as the <code>subject_token</code>, with
+<code>subject_token_type</code>
+            <code>urn:ietf:params:oauth:token-type:refresh_token</code>, for <code>audience</code>
+            <code>https://ras.agents.example/</code>, <code>resource</code>
+            <code>https://agents.example/tasks</code>, and <code>scope</code> <code>tasks.run</code>. The IdP
+anchors the chain to the refresh token's grant, not to Alice's session
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-6.1" class="relref">Section 6.1</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>). The root ID-JAG (excerpt):<a href="#appendix-A.7.1-1" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="appendix-A.7.1-2">
+<pre>
+{
+  "sub": "alice-tasks",
+  "aud": "https://ras.agents.example/",
+  "client_id": "analysis-tasks",
+  "resource": "https://agents.example/tasks",
+  "scope": "tasks.run",
+  "auth_time": 1789646400,
+  "act": {"iss": "https://idp.example/", "sub": "agent-42"},
+  "cnf": {"jkt": "JKT_K"},
+  "identity_continuation_handle": "Wd4nKs8QpZ2vXe6TbR1mLy"
+}
+</pre><a href="#appendix-A.7.1-2" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A.7.1-3">The client redeems it at AgentRAS with a proof of K. AgentRAS binds the
+handle, H0, to a task record that holds no bearer credential and
+designates <code>analysis-client</code> to run the task (illustrative):<a href="#appendix-A.7.1-3" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="appendix-A.7.1-4">
+<pre>
+task_id:   task-7
+user:      alice-tasks
+agent:     agent-42
+runner:    analysis-client
+handle:    Wd4nKs8QpZ2vXe6TbR1mLy   # H0
+schedule:  daily at 06:00 UTC
+status:    active
+</pre><a href="#appendix-A.7.1-4" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A.7.1-5">The client does not need the refresh token for this task again. Every
+run continues from H0, so the deployment sets the continuation window
+(<a href="#governed-chain-authorization" class="auto internal xref">Section 3.1</a>) to the task's duration.<a href="#appendix-A.7.1-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="walkthrough-scheduled-run">
+<section id="appendix-A.7.2">
+          <h4 id="name-each-scheduled-run">
+<a href="#appendix-A.7.2" class="section-number selfRef">A.7.2. </a><a href="#name-each-scheduled-run" class="section-name selfRef">Each Scheduled Run</a>
+          </h4>
+<p id="appendix-A.7.2-1">At 06:00 UTC the next day, with Alice signed out, the platform's
+scheduler starts a run that names only <code>task-7</code>. The run has no
+incoming request: it continues from the task's hop under the
+scheduled-run carrier of <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.3" class="relref">Section 5.3</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>. The client,
+authenticating to AgentRAS, names <code>task-7</code>; AgentRAS derives H0 from
+the active task record for which <code>analysis-client</code> is designated into
+a Transaction Token for the run, as in <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#appendix-B.3" class="relref">Appendix B.3</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>, and
+the client exchanges it at AgentRAS's token endpoint for an assertion
+bound to K. The client then requests an
+ID-JAG from the IdP for <code>https://ras.example/</code>, <code>resource</code>
+            <code>https://api.example/tenants/acme-data/</code>, and <code>scope</code> <code>files.read</code>.<a href="#appendix-A.7.2-1" class="pilcrow">¶</a></p>
+<p id="appendix-A.7.2-2">The continuation exchange performs no agent resolution: the agent comes
+from the chain record, not from <code>analysis-client</code>'s Identity Binding
+(<a href="#continuation-association" class="auto internal xref">Section 6.2</a>). The refresh-token grant anchoring the
+chain remains active, even though the root ID-JAG's redemption window
+has expired. The Continuation Association permits <code>analysis-client</code>,
+and Alice's Delegation Authorization permits <code>agent-42</code> to act for her
+with <code>files.read</code>. The onward ID-JAG (excerpt):<a href="#appendix-A.7.2-2" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="appendix-A.7.2-3">
+<pre>
+{
+  "sub": "alice-ras",
+  "aud": "https://ras.example/",
+  "iat": 1789711205,
+  "exp": 1789711505,
+  "client_id": "analysis-api",
+  "resource": "https://api.example/tenants/acme-data/",
+  "scope": "files.read",
+  "auth_time": 1789646400,
+  "act": {"iss": "https://idp.example/", "sub": "agent-42"},
+  "continuation_via": [
+    {"iss": "https://idp.example/", "sub": "analysis-client"}
+  ],
+  "cnf": {"jkt": "JKT_K"},
+  "identity_continuation_handle": "Hc7rVm3NxT9kQw5ZpB2sJf"
+}
+</pre><a href="#appendix-A.7.2-3" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A.7.2-4">Its <code>sub</code>, <code>act</code>, and <code>client_id</code> are those of the grant in the
+walkthrough of <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>, so <code>https://ras.example/</code> processes it as
+before, and the API sees <code>agent-42</code> acting for Alice. Its <code>auth_time</code>
+is still Alice's sign-in of the previous day, carried unchanged from the
+root (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.5.5" class="relref">Section 5.5.5</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>). <code>continuation_via</code> names
+<code>analysis-client</code> because the root client continued the chain; the root
+hop itself contributes no entry (<a href="#continuation-via" class="auto internal xref">Section 6.4.2</a>).<a href="#appendix-A.7.2-4" class="pilcrow">¶</a></p>
+<p id="appendix-A.7.2-5">Runs need no retained user credential. Each creates a new child of H0
+and obtains a short-lived, sender-constrained assertion and onward
+grant, both bound to K.<a href="#appendix-A.7.2-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="walkthrough-scheduled-withdrawal">
+<section id="appendix-A.7.3">
+          <h4 id="name-withdrawal">
+<a href="#appendix-A.7.3" class="section-number selfRef">A.7.3. </a><a href="#name-withdrawal" class="section-name selfRef">Withdrawal</a>
+          </h4>
+<p id="appendix-A.7.3-1">If Alice withdraws her Delegation Authorization for <code>agent-42</code>, the
+chain ends and the next run fails (<a href="#negative-tests" class="auto internal xref">Appendix A.8</a>), while her
+delegations to other agents continue. Revoking the refresh-token grant
+that anchors the chain also ends it (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-6.2" class="relref">Section 6.2</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>).<a href="#appendix-A.7.3-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="negative-tests">
+<section id="appendix-A.8">
+        <h3 id="name-negative-tests">
+<a href="#appendix-A.8" class="section-number selfRef">A.8. </a><a href="#name-negative-tests" class="section-name selfRef">Negative Tests</a>
+        </h3>
+<p id="appendix-A.8-1">Each case changes the stated conditions; all other checks succeed.<a href="#appendix-A.8-1" class="pilcrow">¶</a></p>
 <span id="name-negative-test-cases"></span><table class="center" id="table-10">
           <caption>
 <a href="#table-10" class="selfRef">Table 10</a>:
@@ -3434,6 +3592,11 @@ last entry identifies the client that presented the grant.<a href="#appendix-A.6
               <td class="text-left" rowspan="1" colspan="1">Target RAS</td>
               <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>invalid_grant</code>
 </td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">In the scheduled variant, Alice withdraws her Delegation Authorization for <code>agent-42</code> before the next run</td>
+              <td class="text-left" rowspan="1" colspan="1">IdP</td>
+              <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>invalid_continuation</code>; the chain stays ended, and Alice's delegations to other agents are unaffected</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">The gateway holds the target token for <code>agent-42</code> and receives a request for another agent with the same scope</td>
@@ -3720,6 +3883,12 @@ names the Governance Tenant?<a href="#appendix-B.4-2.6.1" class="pilcrow">¶</a>
 response for state it cannot confirm, and define an OAuth error code
 for policy that blocks a chain only temporarily
 (<a href="#continuation-errors" class="auto internal xref">Section 6.5</a>)?<a href="#appendix-B.4-2.7.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="appendix-B.4-2.8">
+            <p id="appendix-B.4-2.8.1"><strong>Grant anchors:</strong> Unattended work, as in <a href="#walkthrough-scheduled" class="auto internal xref">Appendix A.7</a>,
+needs a chain anchored to a refresh-token grant, which
+<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-6.1" class="relref">Section 6.1</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span> makes optional. Should a delegated
+continuation claim require IdP support for grant anchors?<a href="#appendix-B.4-2.8.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
 </section>

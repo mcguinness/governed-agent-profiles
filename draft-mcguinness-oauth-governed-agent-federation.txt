@@ -4,8 +4,8 @@
 
 Web Authorization Protocol                                 K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                         16 October 2026
-Expires: 19 April 2027
+Intended status: Standards Track                         20 October 2026
+Expires: 23 April 2027
 
 
             OAuth 2.0 Profile for Governed Agent Federation
@@ -67,7 +67,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 19 April 2027.
+   This Internet-Draft will expire on 23 April 2027.
 
 Copyright Notice
 
@@ -2523,27 +2523,34 @@ Table of Contents
 
    Deployments select a renewal model before scheduling unattended work:
 
-     +=================+============================================+
-     | Mechanism       | Conditions                                 |
-     +=================+============================================+
-     | Redeem an       | Grant remains valid, and is bound with RAS |
-     | existing ID-JAG | policy permitting reuse; an unbound grant  |
-     |                 | is single-use (Section 6.2)                |
-     +-----------------+--------------------------------------------+
-     | Obtain a new    | Valid subject credential, current agent-   |
-     | ID-JAG          | resolution input, and a fresh IdP          |
-     |                 | authorization decision (Section 5.6)       |
-     +-----------------+--------------------------------------------+
-     | RAS refresh     | Preserves authorization at the same RAS    |
-     | (delegated      | within its lifetime and policy limits      |
-     | access)         | (Section 8.2)                              |
-     +-----------------+--------------------------------------------+
-     | Obtain a new    | Current agent-resolution input and a fresh |
-     | WAG             | IdP authorization decision (Section 5.7);  |
-     |                 | a WAG redemption yields no refresh token   |
-     +-----------------+--------------------------------------------+
+   +================+==================================================+
+   | Mechanism      | Conditions                                       |
+   +================+==================================================+
+   | Redeem an      | Grant remains valid, and is bound with RAS       |
+   | existing ID-   | policy permitting reuse; an unbound grant        |
+   | JAG            | is single-use (Section 6.2)                      |
+   +----------------+--------------------------------------------------+
+   | Obtain a new   | Valid subject credential, current agent-         |
+   | ID-JAG         | resolution input, and a fresh IdP                |
+   |                | authorization decision (Section 5.6)             |
+   +----------------+--------------------------------------------------+
+   | RAS refresh    | Preserves authorization at the same RAS          |
+   | (delegated     | within its lifetime and policy limits            |
+   | access)        | (Section 8.2)                                    |
+   +----------------+--------------------------------------------------+
+   | Continue a     | The IdP supports grant anchors, the              |
+   | grant-anchored | Delegation Authorization permits                 |
+   | chain          | continuation, a refresh-token subject            |
+   | (delegated     | roots the chain at a continuation-aware          |
+   | access)        | RAS, and each run obtains a new ID-JAG           |
+   |                | without a user credential ([CONTINUATION])       |
+   +----------------+--------------------------------------------------+
+   | Obtain a new   | Current agent-resolution input and a fresh       |
+   | WAG            | IdP authorization decision (Section 5.7);        |
+   |                | a WAG redemption yields no refresh token         |
+   +----------------+--------------------------------------------------+
 
-                       Table 22: Renewal mechanisms
+                        Table 22: Renewal mechanisms
 
 8.1.  Client Token Reuse
 

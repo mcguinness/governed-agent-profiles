@@ -908,13 +908,13 @@ implements {{FEDERATION}} with DPoP support at its token endpoint, and
 nothing from this document unless it supports path disclosure
 ({{continuation-via}}).
 
-An IdP that claims delegated continuation can also claim grant-anchored
-continuation. That claim adds support for refresh-token subjects
-("Subject Token Validation" in {{FEDERATION}}) and for chains anchored
-to a refresh-token grant ({{Section 6.1 of ICA}}), which outlive the
-user's session, as unattended work needs ({{walkthrough-scheduled}}).
-Without it, an IdP's delegated chains can be anchored to user sessions
-only, which {{ICA}} permits.
+An IdP claiming delegated continuation can additionally claim
+grant-anchored continuation. This claim requires support for
+refresh-token subjects under "Subject Token Validation" in
+{{FEDERATION}} and grant anchors under {{Section 6.1 of ICA}}. Such
+chains can continue after the user's session ends, as unattended work
+needs ({{walkthrough-scheduled}}). A delegated continuation claim alone
+does not guarantee grant-anchor support.
 
 Each claim has this mandatory interoperability path:
 

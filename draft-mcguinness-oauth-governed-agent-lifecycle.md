@@ -428,6 +428,28 @@ this interface. Effective eligibility also requires an authorized
 correlation, no Local Suspension, and applicable resource policy. Local
 Suspension need not be exposed through this SCIM interface.
 
+Each fact that eligibility depends on is decided by one party, and no
+party rewrites another's fact:
+
+| Fact | Decided by | Applied at | When the denial is lifted |
+|---|---|---|---|
+| Agent administrative state (`active`) | Governing IdP | IdP issuance; the Receiver, after reconciliation ({{recovery}}) | New decisions are permitted; revoked authorization is not restored |
+| Identity Binding or Client Association | Governing IdP | IdP issuance | New grants through it are permitted |
+| Delegation Authorization or Agent Authorization | Governing IdP | IdP issuance | New grants under it are permitted |
+| Correlation | Resource domain | RAS redemption and refresh | New decisions are permitted |
+| Local Suspension | Resource domain | RAS and API | Only the resource domain lifts it; upstream activation cannot |
+| RAS session or refresh token | RAS | RAS and API | Not restored; access requires a new grant |
+| Resource policy | Resource domain | RAS and API | Under local policy |
+{: title="Who decides each eligibility fact"}
+
+Eligibility requires every fact, so a denial from any party denies
+whatever another party reports: an upstream activation does not clear a
+Local Suspension, and a Local Suspension does not change the IdP's
+administrative state. A Receiver's report that it applied a change
+covers only that Receiver. Enforcement in a resource domain that has not
+applied the change is unknown, and this profile claims no finite
+end-to-end denial bound ({{api-enforcement}}).
+
 Owners provide accountability; they are not automatically user
 delegators. Group membership has only the meaning assigned by local
 policy. Neither provisioning nor a successful administrative write opens

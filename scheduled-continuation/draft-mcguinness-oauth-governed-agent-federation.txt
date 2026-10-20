@@ -2523,31 +2523,32 @@ Table of Contents
 
    Deployments select a renewal model before scheduling unattended work:
 
-     +==================+============================================+
-     | Mechanism        | Conditions                                 |
-     +==================+============================================+
-     | Redeem an        | Grant remains valid, and is bound with RAS |
-     | existing ID-JAG  | policy permitting reuse; an unbound grant  |
-     |                  | is single-use (Section 6.2)                |
-     +------------------+--------------------------------------------+
-     | Obtain a new ID- | Valid subject credential, current agent-   |
-     | JAG              | resolution input, and a fresh IdP          |
-     |                  | authorization decision (Section 5.6)       |
-     +------------------+--------------------------------------------+
-     | RAS refresh      | Preserves authorization at the same RAS    |
-     | (delegated       | within its lifetime and policy limits      |
-     | access)          | (Section 8.2)                              |
-     +------------------+--------------------------------------------+
-     | Continue a       | The Delegation Authorization permits       |
-     | grant-anchored   | continuation, a refresh-token subject      |
-     | chain (delegated | roots the chain at a continuation-aware    |
-     | access)          | RAS, and each run obtains a new ID-JAG     |
-     |                  | without a user credential ([CONTINUATION]) |
-     +------------------+--------------------------------------------+
-     | Obtain a new WAG | Current agent-resolution input and a fresh |
-     |                  | IdP authorization decision (Section 5.7);  |
-     |                  | a WAG redemption yields no refresh token   |
-     +------------------+--------------------------------------------+
+   +================+==================================================+
+   | Mechanism      | Conditions                                       |
+   +================+==================================================+
+   | Redeem an      | Grant remains valid, and is bound with RAS       |
+   | existing ID-   | policy permitting reuse; an unbound grant        |
+   | JAG            | is single-use (Section 6.2)                      |
+   +----------------+--------------------------------------------------+
+   | Obtain a new   | Valid subject credential, current agent-         |
+   | ID-JAG         | resolution input, and a fresh IdP                |
+   |                | authorization decision (Section 5.6)             |
+   +----------------+--------------------------------------------------+
+   | RAS refresh    | Preserves authorization at the same RAS          |
+   | (delegated     | within its lifetime and policy limits            |
+   | access)        | (Section 8.2)                                    |
+   +----------------+--------------------------------------------------+
+   | Continue a     | The IdP supports grant anchors, the              |
+   | grant-anchored | Delegation Authorization permits                 |
+   | chain          | continuation, a refresh-token subject            |
+   | (delegated     | roots the chain at a continuation-aware          |
+   | access)        | RAS, and each run obtains a new ID-JAG           |
+   |                | without a user credential ([CONTINUATION])       |
+   +----------------+--------------------------------------------------+
+   | Obtain a new   | Current agent-resolution input and a fresh       |
+   | WAG            | IdP authorization decision (Section 5.7);        |
+   |                | a WAG redemption yields no refresh token         |
+   +----------------+--------------------------------------------------+
 
                         Table 22: Renewal mechanisms
 

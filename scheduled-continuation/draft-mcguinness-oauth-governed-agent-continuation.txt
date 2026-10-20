@@ -132,6 +132,9 @@ Table of Contents
      A.5.  Self-Acting Variant
      A.6.  Two-Gateway Variant
      A.7.  Scheduled Variant
+       A.7.1.  One-Time Setup
+       A.7.2.  Each Scheduled Run
+       A.7.3.  Withdrawal
      A.8.  Negative Tests
    Appendix B.  Relationship to Other Specifications
      B.1.  Changes to ICA
@@ -1749,18 +1752,27 @@ A.6.  Two-Gateway Variant
 A.7.  Scheduled Variant
 
    Here agent-42 prepares a daily report for Alice after she has signed
-   out, without a gateway.  The agent's operator runs
-   https://ras.agents.example/ as a continuation-aware RAS and CAI for
-   its task service https://agents.example/tasks, where the agent's
-   client is analysis-tasks and Alice is alice-tasks to the IdP.  The
-   IdP accepts refresh-token subjects from analysis-client ("Subject
-   Token Validation" in [FEDERATION]), trusts AgentRAS as CAI for its
-   own hops, and has a Continuation Association that permits analysis-
-   client to continue agent-42's delegated chains to resources in acme-
-   data. analysis-client has the default canonical actor identity of
-   Section 5.5.2 of [ICA], (https://idp.example/, analysis-client), so
-   the IdP pairs AgentRAS with itself as the client's identity
-   authority.
+   out, without a gateway.  The client uses Alice's refresh token once
+   to establish the chain.  Later runs authenticate the client and
+   continue from server-held task state.
+
+   The agent's operator runs https://ras.agents.example/ as a
+   continuation-aware RAS and CAI for its task service
+   https://agents.example/tasks, where the agent's client is analysis-
+   tasks and Alice is alice-tasks to the IdP.  This deployment supports
+   grant-anchored continuation and durable task authorization, with
+   Transaction Tokens carrying each scheduled run's context; an IdP
+   without grant-anchor support issues the root ID-JAG without a handle
+   (Section 6.1 of [ICA]).  The IdP accepts refresh-token subjects from
+   analysis-client ("Subject Token Validation" in [FEDERATION]), trusts
+   AgentRAS as CAI for its own hops, and has a Continuation Association
+   that permits analysis-client to continue agent-42's delegated chains
+   to resources in acme-data. analysis-client has the default canonical
+   actor identity of Section 5.5.2 of [ICA], (https://idp.example/,
+   analysis-client), so the IdP pairs AgentRAS with itself as the
+   client's identity authority.
+
+A.7.1.  One-Time Setup
 
    While Alice is signed in, she asks for the report.  The client holds
    a refresh token that the IdP issued to analysis-client for Alice,
@@ -1784,9 +1796,9 @@ A.7.  Scheduled Variant
      "identity_continuation_handle": "Wd4nKs8QpZ2vXe6TbR1mLy"
    }
 
-   AgentRAS redeems it with a proof of K and binds the handle, H0, to a
-   task record that holds no bearer credential and designates analysis-
-   client to run the task (illustrative):
+   The client redeems it at AgentRAS with a proof of K.  AgentRAS binds
+   the handle, H0, to a task record that holds no bearer credential and
+   designates analysis-client to run the task (illustrative):
 
    task_id:   task-7
    user:      alice-tasks
@@ -1799,6 +1811,8 @@ A.7.  Scheduled Variant
    The client does not need the refresh token for this task again.
    Every run continues from H0, so the deployment sets the continuation
    window (Section 3.1) to the task's duration.
+
+A.7.2.  Each Scheduled Run
 
    At 06:00 UTC the next day, with Alice signed out, the platform's
    scheduler starts a run that names only task-7.  The run has no
@@ -1814,9 +1828,10 @@ A.7.  Scheduled Variant
 
    The continuation exchange performs no agent resolution: the agent
    comes from the chain record, not from analysis-client's Identity
-   Binding (Section 6.2).  The grant is unexpired and unrevoked, the
-   Continuation Association permits analysis-client, and Alice's
-   Delegation Authorization permits agent-42 to act for her with
+   Binding (Section 6.2).  The refresh-token grant anchoring the chain
+   remains active, even though the root ID-JAG's redemption window has
+   expired.  The Continuation Association permits analysis-client, and
+   Alice's Delegation Authorization permits agent-42 to act for her with
    files.read.  The onward ID-JAG (excerpt):
 
    {
@@ -1844,11 +1859,16 @@ A.7.  Scheduled Variant
    because the root client continued the chain; the root hop itself
    contributes no entry (Section 6.4.2).
 
-   Runs need no credential that carries Alice's authority: each creates
-   a new child of H0 with a short-lived assertion and grant bound to K.
+   Runs need no retained user credential.  Each creates a new child of
+   H0 and obtains a short-lived, sender-constrained assertion and onward
+   grant, both bound to K.
+
+A.7.3.  Withdrawal
+
    If Alice withdraws her Delegation Authorization for agent-42, the
    chain ends and the next run fails (Appendix A.8), while her
-   delegations to other agents continue.
+   delegations to other agents continue.  Revoking the refresh-token
+   grant that anchors the chain also ends it (Section 6.2 of [ICA]).
 
 A.8.  Negative Tests
 

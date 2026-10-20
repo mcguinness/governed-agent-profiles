@@ -1591,6 +1591,10 @@ Where this document is silent, {{FEDERATION}} applies unchanged.
    response for state it cannot confirm, and define an OAuth error code
    for policy that blocks a chain only temporarily
    ({{continuation-errors}})?
+8. **Grant anchors:** Unattended work, as in {{walkthrough-scheduled}},
+   needs a chain anchored to a refresh-token grant, which
+   {{Section 6.1 of ICA}} makes optional. Should a delegated
+   continuation claim require IdP support for grant anchors?
 
 # Design Rationale {#rationale}
 

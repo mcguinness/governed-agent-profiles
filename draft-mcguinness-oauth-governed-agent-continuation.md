@@ -1436,10 +1436,12 @@ run continues from H0, so the deployment sets the continuation window
 At 06:00 UTC the next day, with Alice signed out, the platform's
 scheduler starts a run that names only `task-7`. The run has no
 incoming request: it continues from the task's hop under the
-scheduled-run carrier of {{Section 5.3 of ICA}}. AgentRAS derives H0
-from the active task record into a Transaction Token for the run, as
-in {{Appendix B.3 of ICA}}, and the client exchanges it at AgentRAS's
-token endpoint for an assertion bound to K. The client then requests an
+scheduled-run carrier of {{Section 5.3 of ICA}}. The client,
+authenticating to AgentRAS, names `task-7`; AgentRAS derives H0 from
+the active task record for which `analysis-client` is designated into
+a Transaction Token for the run, as in {{Appendix B.3 of ICA}}, and
+the client exchanges it at AgentRAS's token endpoint for an assertion
+bound to K. The client then requests an
 ID-JAG from the IdP for `https://ras.example/`, `resource`
 `https://api.example/tenants/acme-data/`, and `scope` `files.read`.
 

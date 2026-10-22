@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-10-20T02:26:24.566284+00:00",
+  "timestamp": "2026-10-22T02:14:32.938637+00:00",
   "repo": "mcguinness/governed-agent-profiles",
   "labels": [
     {
@@ -732,20 +732,100 @@
       "authorAssociation": "OWNER",
       "assignees": [],
       "labels": [],
-      "body": "## Summary\n\nThis PR applies the in-scope parts of the C1 integration review. That review asked for six integration examples (KF-01 to KF-06) about queued work, approvals, evidence, child limits, disclosure, and status. Each item was assessed against one test: does it concern the allow-or-deny decision at an action, or what happens to work after that decision? These drafts own the first. The README's \"Work\" row and the family's scope give the second to [Mission-Bound Authorization](https://github.com/mcguinness/mission-bound-authorization).\n\n| Item | Disposition | In this PR |\n|---|---|---|\n| KF-01 Queued work after a stop | In part | Lifecycle: a queued action is authorized again at dispatch |\n| KF-02 What an approval binds | Mission | None. Mission runtime already defines action-bound approval and `parameter_digest` |\n| KF-03 Dispatch and outcome evidence | Mission | None. Mission covers decision vs execution evidence and the `unknown` outcome |\n| KF-04 Narrower child authority | In part | Guide: narrower worker permissions do not conserve a shared limit |\n| KF-05 Combined disclosure | Resource domain or Mission | None. Mission orchestration already says prior disclosure cannot be undone |\n| KF-06 Who decides each status fact | Agree, for this family's facts | Lifecycle: table of who decides each eligibility fact |\n\n### 1. Evaluate a queued action when it is dispatched (KF-01)\n\nLifecycle, \"Resource Enforcement and Delay\".\n- A decision made when an action is queued or scheduled does not authorize its later dispatch.\n- Dispatch is new authorization, evaluated against the state applied at dispatch. An applied disablement, a Local Suspension, or an expired revalidation bound therefore blocks queued actions.\n- Applying a change does not cancel an operation that another system has already accepted.\n\nThis adds no requirement. It shows how the existing \"deny new authorization\" rules of \"Platform-Hosted Agents\" and \"Signals and Reconciliation\" apply to queued work.\n\n### 2. Name who decides each eligibility fact (KF-06)\n\nLifecycle, \"Effective Eligibility\". A new informative table covers seven facts:\n- agent administrative state;\n- Identity Binding or Client Association;\n- Delegation Authorization or Agent Authorization;\n- correlation;\n- Local Suspension;\n- RAS session or refresh token;\n- resource policy.\n\nFor each fact, the table gives the party that decides it, where it is applied, and what happens when its denial is lifted. A closing paragraph states the consequences:\n- a denial from any party denies, whatever another party reports;\n- an upstream activation does not clear a Local Suspension, and a Local Suspension does not change the IdP's state;\n- a Receiver's report that it applied a change covers only that Receiver;\n- enforcement elsewhere is unknown, with no finite end-to-end denial bound.\n\nThe column is \"Decided by\", not \"Owner\", because the next paragraph discusses the SCIM `owners` attribute.\n\nThe table restates existing rules only. It leaves three behaviors open: what an authenticated deactivation event does, what a Local Suspension does to tokens already issued, and how an agent session ends. It has no agent-session row while the lifecycle draft covers only delegated access. The request's columns for source revision, observation time, and reliance period were not added: ETags and the revalidation policy already cover them.\n\n### 3. Warn that narrower worker permissions do not conserve a limit (KF-04)\n\nImplementer's guide, \"Distributed platforms and key use\":\n- Two workers each permitted ten operations can together perform twenty, whatever their keys.\n- The paragraph points to the core's statement that it defines no aggregate budget, quota, or concurrency semantics.\n- A shared limit needs an allocator outside this profile, such as disjoint allocations or Mission-Bound Authorization's aggregate bounds.\n\n## Not in this PR\n\n- **KF-02, KF-03 and KF-05 are routed to Mission-Bound Authorization.** Checked against its current main:\n  - approval binding to the action-definition version extends mcguinness/mission-bound-authorization#249 (comment added);\n  - re-executing an action whose outcome is unresolved is mcguinness/mission-bound-authorization#1368;\n  - what a non-active Mission does not establish is mcguinness/mission-bound-authorization#1369;\n  - narrower child authority not conserving a shared quantity is already covered, by Metering \"Capacity Across Missions\" and Child Delegation, so no issue was filed.\n- **New terms are not adopted.** \"Work grant\", \"exact action\" and \"stop status\" are defined in neither family, and \"work grant\" collides with ID-JAG and WAG.\n\n## Checks\n\n- The lifecycle draft builds after each commit with kramdown-rfc and xml2rfc: 36 pages (was 35), all citations resolved, no uncited references.\n- The normative diff shows 45 BCP 14 sentences before and after, with none removed or added. The guide has no BCP 14 keywords.\n- The guide's new link targets exist: the core `governance-boundary` anchor and the Mission repository.\n",
+      "body": "## Summary\n\nThis PR applies the in-scope parts of the C1 integration review. That review asked for six integration examples (KF-01 to KF-06) about queued work, approvals, evidence, child limits, disclosure, and status. Each item was assessed against one test: does it concern the allow-or-deny decision at an action, or what happens to work after that decision? These drafts own the first. The README's \"Work\" row and the family's scope give the second to [Mission-Bound Authorization](https://github.com/mcguinness/mission-bound-authorization).\n\n| Item | Disposition | In this PR |\n|---|---|---|\n| KF-01 Queued work after a stop | In part | Lifecycle: a queued action is authorized again at dispatch |\n| KF-02 What an approval binds | Mission | None. Mission runtime already defines action-bound approval and `parameter_digest` |\n| KF-03 Dispatch and outcome evidence | Mission | None. Mission covers decision vs execution evidence and the `unknown` outcome |\n| KF-04 Narrower child authority | In part | Guide: narrower worker permissions do not conserve a shared limit |\n| KF-05 Combined disclosure | Resource domain or Mission | None. Mission orchestration already says prior disclosure cannot be undone |\n| KF-06 Who decides each status fact | Agree, for this family's facts | Lifecycle: table of who decides each eligibility fact |\n\n### 1. Evaluate a queued action when it is dispatched (KF-01)\n\nLifecycle, \"Resource Enforcement and Delay\".\n- A decision made when an action is queued or scheduled does not authorize its later dispatch.\n- The point that authorizes dispatch from local state treats each dispatch as new authorization. Once it has applied a disablement, a Local Suspension, or an expired revalidation bound, it denies dispatch of queued actions; other enforcement points keep their documented delays.\n- Applying a change does not cancel an operation that another system has already accepted.\n\nThis adds no requirement. It shows how the existing \"deny new authorization\" rules of \"Platform-Hosted Agents\" and \"Signals and Reconciliation\" apply to queued work.\n\n### 2. Name who decides each eligibility fact (KF-06)\n\nLifecycle, \"Effective Eligibility\". A new informative table covers seven facts:\n- agent administrative state;\n- Identity Binding or Client Association;\n- Delegation Authorization or Agent Authorization;\n- correlation;\n- Local Suspension;\n- RAS session or refresh token;\n- resource policy.\n\nFor each fact, the table gives the party that decides it, where it is applied, and what resumes when its denial is lifted. A revoked RAS session is not restored, but a still-valid grant can be redeemed again as Federation's grant validation permits. A closing paragraph states the consequences:\n- a denial from any party denies, whatever another party reports;\n- an upstream activation does not clear a Local Suspension, and a Local Suspension does not change the IdP's state;\n- a Receiver's report that it applied a change covers only that Receiver;\n- enforcement elsewhere is unknown, with no finite end-to-end denial bound.\n\nThe column is \"Decided by\", not \"Owner\", because the next paragraph discusses the SCIM `owners` attribute.\n\nThe table restates existing rules only. It leaves three behaviors open: what an authenticated deactivation event does, what a Local Suspension does to tokens already issued, and how an agent session ends. It has no agent-session row while the lifecycle draft covers only delegated access. The request's columns for source revision, observation time, and reliance period were not added: ETags and the revalidation policy already cover them.\n\n### 3. Warn that narrower worker permissions do not conserve a limit (KF-04)\n\nImplementer's guide, \"Distributed platforms and key use\":\n- Two workers each permitted ten operations can together perform twenty, whatever their keys.\n- The paragraph points to the core's statement that it defines no aggregate budget, quota, or concurrency semantics.\n- A shared limit needs an allocator outside this profile, such as disjoint allocations or Mission-Bound Authorization's aggregate bounds.\n\n## Not in this PR\n\n- **KF-02, KF-03 and KF-05 are routed to Mission-Bound Authorization.** Checked against its current main:\n  - approval binding to the action-definition version extends mcguinness/mission-bound-authorization#249 (comment added);\n  - re-executing an action whose outcome is unresolved is mcguinness/mission-bound-authorization#1368;\n  - what a non-active Mission does not establish is mcguinness/mission-bound-authorization#1369;\n  - narrower child authority not conserving a shared quantity is already covered, by Metering \"Capacity Across Missions\" and Child Delegation, so no issue was filed.\n- **New terms are not adopted.** \"Work grant\", \"exact action\" and \"stop status\" are defined in neither family, and \"work grant\" collides with ID-JAG and WAG.\n\n## Checks\n\n- The lifecycle draft builds after each commit with kramdown-rfc and xml2rfc: 36 pages (was 35), all citations resolved, no uncited references.\n- The normative diff shows 45 BCP 14 sentences before and after, with none removed or added. The guide has no BCP 14 keywords.\n- The guide's new link targets exist: the core `governance-boundary` anchor and the Mission repository.\n",
       "createdAt": "2026-10-20T00:53:20Z",
-      "updatedAt": "2026-10-20T01:02:06Z",
+      "updatedAt": "2026-10-20T04:07:42Z",
       "baseRepository": "mcguinness/governed-agent-profiles",
       "baseRefName": "main",
       "baseRefOid": "da907f3fbf418a073767e1a795e493aa75146373",
       "headRepository": "mcguinness/governed-agent-profiles",
       "headRefName": "c1-integration-notes",
-      "headRefOid": "7d7652f47bd42dd2ad8b2644447ff2ce2eb469c6",
+      "headRefOid": "b4c9bcaf7dc5450d1a3bcc9ee2512fc5a3dac4d9",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
       "mergeCommit": null,
-      "comments": [],
+      "comments": [
+        {
+          "author": "mcguinness",
+          "authorAssociation": "OWNER",
+          "body": "Review fixes, one commit each:\n\n1. **[P2] Session revocation does not require a new grant** (`65703a5`). The RAS session row now reads: revoked sessions and refresh tokens are not restored; a still-valid grant can be redeemed again only as \"Common Grant Validation\" in Federation permits, and not after grant-derived revocation. This follows Federation's continuing-access rule, \"Redeem an existing ID-JAG: grant remains valid, and is bound with RAS policy permitting reuse\".\n2. **Which point denies dispatch** (`361bbb6`). The point that authorizes dispatch from local state denies dispatch of queued actions once it has applied a disablement, a Local Suspension, or an expired revalidation bound. Other enforcement points keep the delays in the table above it.\n3. **Aggregate Bounds link** (`25b29eb`). The guide now links Mission Metering's Aggregate Bounds directly and calls it optional; support for Mission-bound authorization alone does not provide it. The link targets the rendered editor's copy, whose `#aggregate-bounds` anchor resolves. The GitHub source view would render the `{#aggregate-bounds}` heading attribute literally, so that anchor would not resolve there.\n4. **Last column is about what resumes** (`b4c9bca`).\n   - The column is renamed \"What resumes when lifted\".\n   - The Local Suspension cell now reads \"New decisions\".\n   - \"Only the resource domain lifts a Local Suspension\" moved to the closing prose.\n\nChecks:\n- The lifecycle draft builds after each commit: 36 pages, all citations resolved.\n- The normative diff shows 45 BCP 14 sentences before and after, none removed or added.\n- The guide has no BCP 14 keywords.\n",
+          "createdAt": "2026-10-20T04:07:29Z",
+          "updatedAt": "2026-10-20T04:07:29Z"
+        }
+      ],
+      "reviews": []
+    },
+    {
+      "number": 25,
+      "id": "PR_kwDOUa5iRM8AAAABJn1owQ",
+      "title": "Show an agent continuing its own chain while the user is offline (AIMS #113)",
+      "url": "https://github.com/mcguinness/governed-agent-profiles/pull/25",
+      "state": "MERGED",
+      "author": "mcguinness",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "## Why\n\n[AIMS issue #113](https://github.com/ietf-wg-wimse/draft-ietf-wimse-aims/issues/113) (Paul Carleton) asks for an agent that stays identifiable as `act` across domains, including when it runs after the user's SSO session has ended. Today platforms hold per-user refresh tokens shared across agents instead.\n\nThe Actor Profile, ICA, and these profiles already cover this:\n\n| #113 ask | Covered by |\n|---|---|\n| Agent as `act` in the cross-domain grant, kept in the access token | Actor Profile processing rules; the core adds agent resolution behind a shared client, the actor gate, and \"the client identifier MUST NOT stand in for the actor\" |\n| Scope one agent narrowly; revoke it without revoking the user | Per-agent Delegation Authorization; withdrawing it ends that agent's chains (continuation: Chain Ending) |\n| Agent runs at 3am | ICA's grant-anchored chain (ICA-02 Appendix B.3): the IdP holds the delegation, the agent authenticates as itself and holds only a short-lived, sender-constrained assertion and grant, and the `subject_token` is a security token, so RFC 8693 is unchanged |\n| \"Same gap with Identity Chaining\" | ICA complements Identity Chaining; the continuation companion composes it with governed grants |\n\nThe continuation companion already permits this case through refresh-token grant anchors, but nothing showed it: every example used a gateway. The core's renewal table, which deployments consult \"before scheduling unattended work\", also did not point to it.\n\n## Changes\n\n1. **Continuation: Scheduled Variant (Appendix A.7).** A governed counterpart of ICA's background agent example. While Alice is signed in, the root ID-JAG uses a refresh-token subject, so the chain anchors to that grant rather than to her session. Each run, after she has signed out, the agent's own client continues the chain under a Continuation Association using the scheduled-run carrier (ICA Section 5.3). The onward ID-JAG has `sub` = Alice, `act` = `agent-42`, and `continuation_via` = [`analysis-client`], and carries her original `auth_time`. A new negative-test row shows that withdrawing her delegation to `agent-42` ends only that agent's chain. One sentence in the introduction points to the variant.\n2. **Core: renewal table row.** Unattended delegated work now points to continuing a grant-anchored chain under the continuation companion.\n3. **Continuation: open item 8.** Should a delegated continuation claim require IdP support for grant anchors, which ICA Section 6.1 makes optional?\n\n## Checks\n\n- `normative_diff.py` against `main`: no BCP 14 sentence added or removed in either draft. Error-code sentences are unchanged.\n- Both drafts build. Citations resolve (the `overview-figure` flag in the core predates this change). No artwork line is over 72 characters.\n\n## For the author\n\n- **Open item 8:** whether grant anchors should be required. Without that, a conformant IdP need not support the 3am case.\n- **Not addressed here:** (a) a delegation set up only by an administrator, with no grant from a user sign-in, which ICA excludes on purpose; (b) a platform without a continuation-aware RAS and CAI, whose only offline path remains holding a refresh token.\n",
+      "createdAt": "2026-10-20T18:49:22Z",
+      "updatedAt": "2026-10-20T19:02:47Z",
+      "baseRepository": "mcguinness/governed-agent-profiles",
+      "baseRefName": "main",
+      "baseRefOid": "da907f3fbf418a073767e1a795e493aa75146373",
+      "headRepository": "mcguinness/governed-agent-profiles",
+      "headRefName": "scheduled-continuation",
+      "headRefOid": "e1f24fd53b619ce2499d872bf7bacce20bf1e11a",
+      "closedAt": "2026-10-20T19:02:43Z",
+      "mergedAt": "2026-10-20T19:02:43Z",
+      "mergedBy": "mcguinness",
+      "mergeCommit": {
+        "oid": "8c812bcb0298a8344c53a61c9db19b5e23d647e3"
+      },
+      "comments": [
+        {
+          "author": "mcguinness",
+          "authorAssociation": "OWNER",
+          "body": "Review response. All four points accepted, one commit each:\n\n1. **Optional prerequisites** (39de12d). The variant now says the deployment supports grant-anchored continuation and durable task authorization, with Transaction Tokens carrying each run's context. It also says that an IdP without grant-anchor support issues the root ID-JAG without a handle (ICA Section 6.1). The core's renewal row now names grant-anchor support. Open item 8 stays open.\n2. **Anchor versus root ID-JAG lifetime** (2b56ab4). The new text reads: \"The refresh-token grant anchoring the chain remains active, even though the root ID-JAG's redemption window has expired.\"\n3. **Credential claim** (c87fbc6). The new text reads: \"Runs need no retained user credential. Each \u2026 obtains a short-lived, sender-constrained assertion and onward grant.\" The root redemption now says \"The client redeems it at AgentRAS with a proof of K.\"\n4. **Approachability** (e1f24fd). The variant now opens with the mechanism and is split into A.7.1 One-Time Setup, A.7.2 Each Scheduled Run, and A.7.3 Withdrawal. Withdrawal also notes that revoking the anchoring grant ends the chain (ICA Section 6.2).\n\n`normative_diff.py` against `main` still shows no BCP 14 sentence added or removed in either draft. Both drafts build, citations resolve, and no artwork line is over 72 characters.\n",
+          "createdAt": "2026-10-20T18:58:58Z",
+          "updatedAt": "2026-10-20T18:58:58Z"
+        }
+      ],
+      "reviews": []
+    },
+    {
+      "number": 26,
+      "id": "PR_kwDOUa5iRM8AAAABJoEGPw",
+      "title": "Add an optional grant-anchored continuation claim (resolves open item 8)",
+      "url": "https://github.com/mcguinness/governed-agent-profiles/pull/26",
+      "state": "MERGED",
+      "author": "mcguinness",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "## Why\n\nPR #25 added open item 8: should a delegated continuation claim require IdP support for grant anchors? Unattended work needs a chain anchored to a refresh-token grant, which ICA Section 6.1 makes optional. ICA also says a session-anchored implementation is complete.\n\nDecision: keep grant anchors optional, as ICA does, and let an IdP that supports them say so with a separate claim. Requiring them would make this companion stricter than ICA on a point ICA left optional, and the gap matters only to deployments that schedule work.\n\n## Changes\n\n- **Conformance Claims:** an IdP that claims delegated continuation can also claim grant-anchored continuation. That claim requires support for refresh-token subjects (FEDERATION \"Subject Token Validation\") and for grant anchors (ICA Section 6.1). A delegated continuation claim alone does not guarantee grant-anchor support.\n- **Metadata:** support is established through trusted configuration, as for self-acting continuation. No metadata advertises it, and ICA defines no parameter for grant anchors.\n- **Scheduled variant:** the IdP claims grant-anchored continuation, and the text points to the claim.\n- **Open items:** item 8 is removed as resolved.\n\n## Checks\n\n- This is an **optional conformance addition**. No BCP 14 sentence is added or removed (`normative_diff.py` against `main`), but the new claim is a commitment for any IdP that makes it.\n- The draft builds, citations resolve, and no artwork line is over 72 characters.\n",
+      "createdAt": "2026-10-20T19:06:40Z",
+      "updatedAt": "2026-10-20T19:09:51Z",
+      "baseRepository": "mcguinness/governed-agent-profiles",
+      "baseRefName": "main",
+      "baseRefOid": "8c812bcb0298a8344c53a61c9db19b5e23d647e3",
+      "headRepository": "mcguinness/governed-agent-profiles",
+      "headRefName": "grant-anchor-claim",
+      "headRefOid": "e4f1db1270b616f87cd8ddf75a87e807f4ef5eb6",
+      "closedAt": "2026-10-20T19:09:47Z",
+      "mergedAt": "2026-10-20T19:09:47Z",
+      "mergedBy": "mcguinness",
+      "mergeCommit": {
+        "oid": "6154e69abfa08f85cc86d750eb0d5b9e54c58e49"
+      },
+      "comments": [
+        {
+          "author": "mcguinness",
+          "authorAssociation": "OWNER",
+          "body": "Review applied in e4f1db1: the paragraph now says \"A delegated continuation claim alone does not guarantee grant-anchor support\" instead of \"Without it, \u2026\", and \"outlive\" became \"can continue after the user's session ends\". The description now calls this an optional conformance addition rather than editorial.",
+          "createdAt": "2026-10-20T19:08:38Z",
+          "updatedAt": "2026-10-20T19:08:38Z"
+        }
+      ],
       "reviews": []
     }
   ]

@@ -895,14 +895,20 @@ Table of Contents
       root grant, which the agent's client obtains, starts a new chain
       (Section 8).
 
-   *  A limit failure (invalid_grant) other than a rate limit means that
-      the same continuation fails again while policy is unchanged, and
-      that recovery requires a different request (Section 5.5.6 of
-      [ICA]).  The limit can belong to the source hop (its fan-out or
-      its continuation window), to the chain or a chain authorization's
-      shared budget (hop count), or to the branch as this client would
-      extend it (actor-lineage depth) (Section 6.3 of [ICA],
-      Section 3.1).  The error does not say which.
+   *  A limit failure (invalid_grant) means that a limit of Section 6.3
+      of [ICA] or the continuation window (Section 3.1) refused this
+      continuation.  The limit can belong to the source hop (its fan-out
+      or its continuation window), to the chain or a chain
+      authorization's shared budget (hop count or rate), or to the
+      branch as this client would extend it (actor-lineage depth), and
+      the error does not say which.  A rate-limited continuation can
+      succeed after the limit's window; after any other limit, the same
+      continuation fails again while policy is unchanged, and recovery
+      requires a different request (Section 5.5.6 of [ICA]).  The error
+      establishes neither that the chain has ended nor that the incoming
+      access token is invalid.  Without information identifying the
+      limit, a continuing client treats the failure as affecting only
+      the request (Section 8).
 
    *  Any other code affects only the request.
 
@@ -992,13 +998,21 @@ Table of Contents
    invalid_continuation, the gateway SHOULD reject the agent's request
    with HTTP 401 and the invalid_token error code of the access token's
    scheme ([RFC6750], [RFC9449]), so that the agent's client obtains a
-   new access token and, with it, a new root grant.  A limit failure
-   other than a rate limit does not end the chain, and a new access
-   token can lead to a source hop that fails the same way, as when an
-   upstream gateway continues again into the same chain and reaches the
-   same hop count or depth.  The gateway therefore fails the agent's
-   request with an error of its own API, not by rejecting the access
-   token.  A temporary refusal is neither: the gateway retries as
+   new access token from a new root grant.  An access token obtained by
+   refresh at the gateway's RAS ("Optional RAS Refresh Tokens" in
+   [FEDERATION]) can keep the ended source hop, so continuation from it
+   fails again until the agent's client obtains a new root grant.
+
+   A limit failure (invalid_grant) does not end the chain, and a new
+   access token can lead to a source hop that fails the same way, as
+   when an upstream gateway continues again into the same chain and
+   reaches the same hop count or depth.  The gateway MUST NOT reject the
+   agent's request with invalid_token solely because continuation failed
+   with invalid_grant; it fails the request with an error of its own
+   API.  An independent failure to validate the access token still leads
+   to invalid_token.  Where deployment-specific information identifies a
+   rate limit, the gateway can retry under that limit's policy.  A
+   temporary refusal is not an error response: the gateway retries as
    Section 6.5 describes.
 
    After the IdP rejects a governed continuation for a request, the
@@ -1153,16 +1167,18 @@ Table of Contents
 
 11.1.  Identity Provider
 
-   *  *Continuation window:* A deployment sets the window of Section 3.1
-      longer than a source hop stays in use: the redemption window of
-      the grant that carries its handle, plus the lifetime of the access
-      tokens, and of any refresh authorization, that the accepting RAS
-      issues for it.  A hop that passes its window while those tokens
-      are accepted fails every continuation from it, and the gateway
-      fails each such request without prompting a new root grant
-      (Section 8).  A deployment whose gateway or client continues from
-      durable task state sets the window to the task's needs, as in
-      Appendix A.7.
+   *  *Continuation window:* To keep continuation available throughout
+      the authorization that the accepting RAS derives from a hop, a
+      deployment sizes the window of Section 3.1 to cover the redemption
+      window of the grant that carries the hop's handle, plus the
+      lifetime of the access tokens, and of any refresh authorization,
+      that the RAS issues for it.  A shorter window limits how long a
+      compromised CAI can use the hop (Section 12.1).  Its cost is that
+      the IdP rejects new continuation requests from a hop whose tokens
+      are still accepted, and the gateway fails those requests without
+      prompting a new root grant (Section 8).  A deployment whose
+      gateway or client continues from durable task state sets the
+      window to the task's needs, as in Appendix A.7.
 
    *  *Agent sessions:* A working agent obtains a new WAG at least as
       often as its gateway access token expires, since WAG redemption
@@ -1890,103 +1906,114 @@ A.8.  Negative Tests
 
    Each case changes the stated conditions; all other checks succeed.
 
-   +==============================+=========+=========================+
-   | Changed condition            | Checked | Required result         |
-   |                              | by      |                         |
-   +==============================+=========+=========================+
-   | No Continuation Association  | IdP     | HTTP 400,               |
-   | permits tool-gateway for     |         | unauthorized_client,    |
-   | agent-42's delegated chains  |         | before target           |
-   |                              |         | resolution; the gateway |
-   |                              |         | does not call the tool  |
-   |                              |         | with its own authority  |
-   +------------------------------+---------+-------------------------+
-   | Delegated chain; the gateway | IdP     | HTTP 400,               |
-   | requests a WAG               |         | invalid_request; no     |
-   |                              |         | conversion of the       |
-   |                              |         | acting relationship     |
-   +------------------------------+---------+-------------------------+
-   | agent-42 disabled at the IdP | IdP     | HTTP 400,               |
-   | after the root grant, then   |         | invalid_continuation;   |
-   | reactivated before the next  |         | the chain stays ended,  |
-   | continuation                 |         | and a new root grant is |
-   |                              |         | needed                  |
-   +------------------------------+---------+-------------------------+
-   | Root binding of analysis-    | IdP     | HTTP 400,               |
-   | client disabled while        |         | invalid_continuation    |
-   | another binding of agent-42  |         |                         |
-   | remains enabled              |         |                         |
-   +------------------------------+---------+-------------------------+
-   | Alice's Delegation           | IdP     | HTTP 400,               |
-   | Authorization does not cover |         | invalid_target; the     |
-   | the requested resource       |         | chain stays continuable |
-   |                              |         | to other targets        |
-   +------------------------------+---------+-------------------------+
-   | GatewayRAS keeps the self-   | IdP     | HTTP 400,               |
-   | acting hop's authorization   |         | invalid_continuation;   |
-   | active as durable task       |         | the gateway's           |
-   | state, agent-42's client     |         | continuations do not    |
-   | stops obtaining WAGs, and    |         | keep the session active |
-   | the agent session passes its |         |                         |
-   | idle timeout                 |         |                         |
-   +------------------------------+---------+-------------------------+
-   | Two resource parameters in   | IdP     | HTTP 400,               |
-   | the continuation request     |         | invalid_target          |
-   +------------------------------+---------+-------------------------+
-   | The Continuation Association | IdP     | HTTP 400,               |
-   | for tool-gateway requires    |         | invalid_target; the IdP |
-   | path disclosure, and         |         | does not issue a grant  |
-   | https://ras.example/ is not  |         | whose path the target   |
-   | established to support it    |         | would discard           |
-   +------------------------------+---------+-------------------------+
-   | The continuation used the    | IdP     | Where the IdP offers    |
-   | chain's last permitted hop,  |         | idempotent retry, HTTP  |
-   | its response was lost, and   |         | 200 with the same       |
-   | the gateway repeats the      |         | onward grant; limits do |
-   | request with the same        |         | not apply to recovery   |
-   | assertion                    |         |                         |
-   +------------------------------+---------+-------------------------+
-   | Governed agent access: the   | CAI     | HTTP 400,               |
-   | root ID-JAG has no cnf, the  |         | invalid_request; the    |
-   | agent's client redeems it    |         | authorization is not    |
-   | without a DPoP proof,        |         | eligible for            |
-   | GatewayRAS issues a bearer   |         | continuation            |
-   | access token, and no policy  |         |                         |
-   | permits continuation from it |         |                         |
-   +------------------------------+---------+-------------------------+
-   | The gateway redeems the      | Target  | HTTP 400, invalid_grant |
-   | onward ID-JAG without a      | RAS     |                         |
-   | proof of G                   |         |                         |
-   +------------------------------+---------+-------------------------+
-   | The gateway's source hop has | IdP,    | HTTP 400,               |
-   | passed its continuation      | then    | invalid_grant; the      |
-   | window while the agent's     | gateway | gateway fails the       |
-   | access token at the gateway  |         | agent's request with an |
-   | is still accepted            |         | error of its own API,   |
-   |                              |         | not with HTTP 401       |
-   |                              |         | invalid_token           |
-   +------------------------------+---------+-------------------------+
-   | In the scheduled variant,    | IdP     | HTTP 400,               |
-   | Alice withdraws her          |         | invalid_continuation;   |
-   | Delegation Authorization for |         | the chain stays ended,  |
-   | agent-42 before the next run |         | and Alice's delegations |
-   |                              |         | to other agents are     |
-   |                              |         | unaffected              |
-   +------------------------------+---------+-------------------------+
-   | The gateway holds the target | Gateway | Continues that agent's  |
-   | token for agent-42 and       |         | own chain; a matching   |
-   | receives a request for       |         | scope does not permit   |
-   | another agent with the same  |         | reuse                   |
-   | scope                        |         |                         |
-   +------------------------------+---------+-------------------------+
-   | The gateway holds the target | Gateway | Continues that chain    |
-   | token obtained under H0 and  |         | from its own access     |
-   | receives a request from      |         | token; the token        |
-   | agent-42 for Alice with the  |         | obtained under H0 is    |
-   | same scope on another chain  |         | not reused, so the      |
-   |                              |         | other chain's ending    |
-   |                              |         | applies to its requests |
-   +------------------------------+---------+-------------------------+
+   +===========================+=========+============================+
+   | Changed condition         | Checked | Required result            |
+   |                           | by      |                            |
+   +===========================+=========+============================+
+   | No Continuation           | IdP     | HTTP 400,                  |
+   | Association permits tool- |         | unauthorized_client,       |
+   | gateway for agent-42's    |         | before target resolution;  |
+   | delegated chains          |         | the gateway does not call  |
+   |                           |         | the tool with its own      |
+   |                           |         | authority                  |
+   +---------------------------+---------+----------------------------+
+   | Delegated chain; the      | IdP     | HTTP 400, invalid_request; |
+   | gateway requests a WAG    |         | no conversion of the       |
+   |                           |         | acting relationship        |
+   +---------------------------+---------+----------------------------+
+   | agent-42 disabled at the  | IdP     | HTTP 400,                  |
+   | IdP after the root grant, |         | invalid_continuation; the  |
+   | then reactivated before   |         | chain stays ended, and a   |
+   | the next continuation     |         | new root grant is needed   |
+   +---------------------------+---------+----------------------------+
+   | Root binding of analysis- | IdP     | HTTP 400,                  |
+   | client disabled while     |         | invalid_continuation       |
+   | another binding of        |         |                            |
+   | agent-42 remains enabled  |         |                            |
+   +---------------------------+---------+----------------------------+
+   | Alice's Delegation        | IdP     | HTTP 400, invalid_target;  |
+   | Authorization does not    |         | the chain stays            |
+   | cover the requested       |         | continuable to other       |
+   | resource                  |         | targets                    |
+   +---------------------------+---------+----------------------------+
+   | GatewayRAS keeps the      | IdP     | HTTP 400,                  |
+   | self-acting hop's         |         | invalid_continuation; the  |
+   | authorization active as   |         | gateway's continuations do |
+   | durable task state,       |         | not keep the session       |
+   | agent-42's client stops   |         | active                     |
+   | obtaining WAGs, and the   |         |                            |
+   | agent session passes its  |         |                            |
+   | idle timeout              |         |                            |
+   +---------------------------+---------+----------------------------+
+   | Two resource parameters   | IdP     | HTTP 400, invalid_target   |
+   | in the continuation       |         |                            |
+   | request                   |         |                            |
+   +---------------------------+---------+----------------------------+
+   | The Continuation          | IdP     | HTTP 400, invalid_target;  |
+   | Association for tool-     |         | the IdP does not issue a   |
+   | gateway requires path     |         | grant whose path the       |
+   | disclosure, and           |         | target would discard       |
+   | https://ras.example/ is   |         |                            |
+   | not established to        |         |                            |
+   | support it                |         |                            |
+   +---------------------------+---------+----------------------------+
+   | The continuation used the | IdP     | Where the IdP offers       |
+   | chain's last permitted    |         | idempotent retry, HTTP 200 |
+   | hop, its response was     |         | with the same onward       |
+   | lost, and the gateway     |         | grant; limits do not apply |
+   | repeats the request with  |         | to recovery                |
+   | the same assertion        |         |                            |
+   +---------------------------+---------+----------------------------+
+   | Governed agent access:    | CAI     | HTTP 400, invalid_request; |
+   | the root ID-JAG has no    |         | the authorization is not   |
+   | cnf, the agent's client   |         | eligible for continuation  |
+   | redeems it without a DPoP |         |                            |
+   | proof, GatewayRAS issues  |         |                            |
+   | a bearer access token,    |         |                            |
+   | and no policy permits     |         |                            |
+   | continuation from it      |         |                            |
+   +---------------------------+---------+----------------------------+
+   | The gateway redeems the   | Target  | HTTP 400, invalid_grant    |
+   | onward ID-JAG without a   | RAS     |                            |
+   | proof of G                |         |                            |
+   +---------------------------+---------+----------------------------+
+   | The gateway's source hop  | IdP,    | HTTP 400, invalid_grant;   |
+   | has passed its            | then    | the gateway fails the      |
+   | continuation window while | gateway | agent's request with an    |
+   | the agent's access token  |         | error of its own API, not  |
+   | at the gateway is still   |         | with HTTP 401              |
+   | accepted                  |         | invalid_token              |
+   +---------------------------+---------+----------------------------+
+   | Tenant policy sets the    | IdP,    | HTTP 400, invalid_grant;   |
+   | actor-lineage depth bound | then    | H0 is not unusable, and a  |
+   | to 1, and tool-gateway    | gateway | continuation from it by    |
+   | continues H0, whose       |         | analysis-client, whose     |
+   | lineage is the root       |         | entry merges with the      |
+   | client analysis-client    |         | root's, can still succeed; |
+   |                           |         | the gateway fails the      |
+   |                           |         | agent's request without    |
+   |                           |         | HTTP 401 invalid_token     |
+   +---------------------------+---------+----------------------------+
+   | In the scheduled variant, | IdP     | HTTP 400,                  |
+   | Alice withdraws her       |         | invalid_continuation; the  |
+   | Delegation Authorization  |         | chain stays ended, and     |
+   | for agent-42 before the   |         | Alice's delegations to     |
+   | next run                  |         | other agents are           |
+   |                           |         | unaffected                 |
+   +---------------------------+---------+----------------------------+
+   | The gateway holds the     | Gateway | Continues that agent's own |
+   | target token for agent-42 |         | chain; a matching scope    |
+   | and receives a request    |         | does not permit reuse      |
+   | for another agent with    |         |                            |
+   | the same scope            |         |                            |
+   +---------------------------+---------+----------------------------+
+   | The gateway holds the     | Gateway | Continues that chain from  |
+   | target token obtained     |         | its own access token; the  |
+   | under H0 and receives a   |         | token obtained under H0 is |
+   | request from agent-42 for |         | not reused, so the other   |
+   | Alice with the same scope |         | chain's ending applies to  |
+   | on another chain          |         | its requests               |
+   +---------------------------+---------+----------------------------+
 
                        Table 8: Negative test cases
 

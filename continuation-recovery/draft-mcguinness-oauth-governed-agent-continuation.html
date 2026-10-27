@@ -2380,14 +2380,20 @@ root grant, which the agent's client obtains, starts a new chain
 (<a href="#gateway-reuse" class="auto internal xref">Section 8</a>).<a href="#section-6.5-4.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-6.5-4.2">
-            <p id="section-6.5-4.2.1">A limit failure (<code>invalid_grant</code>) other than a rate limit means that
-the same continuation fails again while policy is unchanged, and that
-recovery requires a different request (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.5.6" class="relref">Section 5.5.6</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>). The
+            <p id="section-6.5-4.2.1">A limit failure (<code>invalid_grant</code>) means that a limit of
+<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-6.3" class="relref">Section 6.3</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span> or the continuation window
+(<a href="#governed-chain-authorization" class="auto internal xref">Section 3.1</a>) refused this continuation. The
 limit can belong to the source hop (its fan-out or its continuation
 window), to the chain or a chain authorization's shared budget (hop
-count), or to the branch as this client would extend it (actor-lineage
-depth) (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-6.3" class="relref">Section 6.3</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>, <a href="#governed-chain-authorization" class="auto internal xref">Section 3.1</a>).
-The error does not say which.<a href="#section-6.5-4.2.1" class="pilcrow">¶</a></p>
+count or rate), or to the branch as this client would extend it
+(actor-lineage depth), and the error does not say which. A
+rate-limited continuation can succeed after the limit's window; after
+any other limit, the same continuation fails again while policy is
+unchanged, and recovery requires a different request
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.5.6" class="relref">Section 5.5.6</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>). The error establishes neither that the
+chain has ended nor that the incoming access token is invalid.
+Without information identifying the limit, a continuing client treats
+the failure as affecting only the request (<a href="#gateway-reuse" class="auto internal xref">Section 8</a>).<a href="#section-6.5-4.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-6.5-4.3">
             <p id="section-6.5-4.3.1">Any other code affects only the request.<a href="#section-6.5-4.3.1" class="pilcrow">¶</a></p>
@@ -2494,21 +2500,28 @@ continuation, once for each target.<a href="#section-8-5" class="pilcrow">¶</a>
 <code>invalid_continuation</code>, the gateway <span class="bcp14">SHOULD</span> reject the agent's request
 with HTTP 401 and the <code>invalid_token</code> error code of the access token's
 scheme (<span>[<a href="#RFC6750" class="cite xref">RFC6750</a>]</span>, <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span>), so that the agent's client obtains a
-new access token and, with it, a new root grant. A limit failure other
-than a rate limit does not end the chain, and a new access token can
-lead to a source hop that fails the same way, as when an upstream
-gateway continues again into the same chain and reaches the same hop
-count or depth. The gateway therefore fails the agent's request with an
-error of its own API, not by rejecting the access token. A temporary
-refusal is neither: the gateway retries as <a href="#continuation-errors" class="auto internal xref">Section 6.5</a>
-describes.<a href="#section-8-6" class="pilcrow">¶</a></p>
-<p id="section-8-7">After the IdP rejects a governed continuation for a request, the
+new access token from a new root grant. An access token obtained by
+refresh at the gateway's RAS ("Optional RAS Refresh Tokens" in
+<span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>) can keep the ended source hop, so continuation from it
+fails again until the agent's client obtains a new root grant.<a href="#section-8-6" class="pilcrow">¶</a></p>
+<p id="section-8-7">A limit failure (<code>invalid_grant</code>) does not end the chain, and a new
+access token can lead to a source hop that fails the same way, as when
+an upstream gateway continues again into the same chain and reaches the
+same hop count or depth. The gateway <span class="bcp14">MUST NOT</span> reject the agent's
+request with <code>invalid_token</code> solely because continuation failed with
+<code>invalid_grant</code>; it fails the request with an error of its own API. An
+independent failure to validate the access token still leads to
+<code>invalid_token</code>. Where deployment-specific information identifies a
+rate limit, the gateway can retry under that limit's policy. A
+temporary refusal is not an error response: the gateway retries as
+<a href="#continuation-errors" class="auto internal xref">Section 6.5</a> describes.<a href="#section-8-7" class="pilcrow">¶</a></p>
+<p id="section-8-8">After the IdP rejects a governed continuation for a request, the
 continuing client <span class="bcp14">MUST NOT</span> serve that request with its own authority or
 through a chain established without this document. This extends the
 no-fallback rule of "Profile Applicability and Downgrade Prevention" in
 <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>, which covers retrying as ordinary access or without
 proof. Gateway-side tool filtering narrows what the gateway attempts
-but does not authorize.<a href="#section-8-7" class="pilcrow">¶</a></p>
+but does not authorize.<a href="#section-8-8" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="chain-ending">
@@ -2676,16 +2689,18 @@ intend.<a href="#section-11-1" class="pilcrow">¶</a></p>
         </h3>
 <ul class="normal">
 <li class="normal" id="section-11.1-1.1">
-            <p id="section-11.1-1.1.1"><strong>Continuation window:</strong> A deployment sets the window of
-<a href="#governed-chain-authorization" class="auto internal xref">Section 3.1</a> longer than a source hop stays in
-use: the redemption window of the grant that carries its handle, plus
-the lifetime of the access tokens, and of any refresh authorization,
-that the accepting RAS issues for it. A hop that passes its window
-while those tokens are accepted fails every continuation from it, and
-the gateway fails each such request without prompting a new root grant
-(<a href="#gateway-reuse" class="auto internal xref">Section 8</a>). A deployment whose gateway or client continues
-from durable task state sets the window to the task's needs, as in
-<a href="#walkthrough-scheduled" class="auto internal xref">Appendix A.7</a>.<a href="#section-11.1-1.1.1" class="pilcrow">¶</a></p>
+            <p id="section-11.1-1.1.1"><strong>Continuation window:</strong> To keep continuation available throughout
+the authorization that the accepting RAS derives from a hop, a
+deployment sizes the window of <a href="#governed-chain-authorization" class="auto internal xref">Section 3.1</a> to
+cover the redemption window of the grant that carries the hop's
+handle, plus the lifetime of the access tokens, and of any refresh
+authorization, that the RAS issues for it. A shorter window limits
+how long a compromised CAI can use the hop (<a href="#security-gateway" class="auto internal xref">Section 12.1</a>). Its
+cost is that the IdP rejects new continuation requests from a hop
+whose tokens are still accepted, and the gateway fails those requests
+without prompting a new root grant (<a href="#gateway-reuse" class="auto internal xref">Section 8</a>). A deployment
+whose gateway or client continues from durable task state sets the
+window to the task's needs, as in <a href="#walkthrough-scheduled" class="auto internal xref">Appendix A.7</a>.<a href="#section-11.1-1.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-11.1-1.2">
             <p id="section-11.1-1.2.1"><strong>Agent sessions:</strong> A working agent obtains a new WAG at least as
@@ -3614,6 +3629,13 @@ that anchors the chain also ends it (<span><a href="https://datatracker.ietf.org
               <td class="text-left" rowspan="1" colspan="1">The gateway's source hop has passed its continuation window while the agent's access token at the gateway is still accepted</td>
               <td class="text-left" rowspan="1" colspan="1">IdP, then gateway</td>
               <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>invalid_grant</code>; the gateway fails the agent's request with an error of its own API, not with HTTP 401 <code>invalid_token</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Tenant policy sets the actor-lineage depth bound to 1, and <code>tool-gateway</code> continues H0, whose lineage is the root client <code>analysis-client</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">IdP, then gateway</td>
+              <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>invalid_grant</code>; H0 is not unusable, and a continuation from it by <code>analysis-client</code>, whose entry merges with the root's, can still succeed; the gateway fails the agent's request without HTTP 401 <code>invalid_token</code>
 </td>
             </tr>
             <tr>

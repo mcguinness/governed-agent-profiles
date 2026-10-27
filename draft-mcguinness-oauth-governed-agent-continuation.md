@@ -64,6 +64,12 @@ informative:
     target: https://github.com/modelcontextprotocol/ext-auth/blob/main/specification/stable/enterprise-managed-authorization.mdx
     author:
       - org: Model Context Protocol
+  GUIDE:
+    title: "Implementer's Guide for Governed Agent Federation"
+    author:
+      - name: Karl McGuinness
+    date: false
+    target: https://github.com/mcguinness/governed-agent-profiles/blob/main/docs/implementers-guide.md
   AWS-CALLEDVIA:
     title: "AWS global condition context keys"
     target: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html
@@ -770,36 +776,11 @@ A RAS that does not implement
 {{root-redemption}}, so that a gateway in its domain can continue the
 chain as a further hop that again names the same agent.
 
-# Gateway Requirements {#gateway-deployment}
+# Gateway Requirements {#gateway-reuse}
 
 This section collects what a gateway does as a continuing client; the
 rules of the IdP and the RASes it relies on are in the sections cited.
-
-## Roles and Configuration {#gateway-roles}
-
-A gateway combines roles, as {{FEDERATION}} permits ({{overview}}); its
-operator's RAS is typically the continuation-aware RAS and CAI. A
-deployment adds this configuration to that of {{FEDERATION}}:
-
-| Party | Configuration |
-|---|---|
-| IdP | Tenant policy permitting continuation; Continuation Associations for the gateway; the gateway's client registration and canonical actor identity; trust in the gateway's CAI ({{Section 7.3 of ICA}}); the gateway's registration at each target RAS, for each acting relationship the target serves separately |
-| Gateway's RAS | Continuation-aware processing and advertisement; assertion issuance; the gateway's registration as the client that operates the gateway resource; the gateway's canonical actor identity, as the IdP holds it |
-| Gateway | A client credential for each server and a DPoP key |
-| Target RAS | A client registration for the gateway, one for each population where delegated and self-acting access are distinguished by registration; DPoP support |
-{: title="Configuration added by a gateway deployment"}
-
-## Topologies {#gateway-topologies}
-
-| Topology | CAI | Use |
-|---|---|---|
-| Gateway authorization server | The gateway's own RAS ({{Section 8.1 of ICA}}) | The gateway operator runs an authorization server for the gateway resource; the baseline |
-| Shared authorization server | A separate CAI trusted for that RAS ({{Section 5.4.6 of ICA}}) | The gateway is a resource server behind an API-management or enterprise authorization server |
-| Gateway behind a gateway | Each gateway's RAS | Each hop is a governed continuation; every onward grant names the same agent, and `continuation_via` lists each gateway on the path |
-| IdP-issued gateway tokens | None | Not applicable ({{scope-boundaries}}) |
-{: title="Gateway topologies"}
-
-## Continuing a Request {#gateway-reuse}
+{{GUIDE}} describes gateway configuration and topologies.
 
 To continue a request, a gateway:
 
@@ -989,9 +970,10 @@ its Continuation Associations permit, and can use the downstream tokens
 it holds until they expire. Where its operator does not control the
 CAI, it cannot continue a chain whose token it has not received,
 because the CAI attests only hops bound to tokens presented to it
-({{Section 5.4.3 of ICA}}). In the baseline topology the operator runs
-the CAI, which can attest any hop its RAS accepted, as
-{{Section 9.5 of ICA}} notes for a compromised RAS, until the chain
+({{Section 5.4.3 of ICA}}). Where its operator runs the CAI, as when
+the gateway's own RAS performs that role, the CAI can attest any hop
+its RAS accepted, as {{Section 9.5 of ICA}} notes for a compromised
+RAS, until the chain
 ends or the hop's continuation window passes. In either case it cannot
 change the agent or user, convert the acting relationship, or exceed
 the agent's own authorization. Narrow Continuation Associations, chain

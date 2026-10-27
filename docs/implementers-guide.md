@@ -1,9 +1,11 @@
 # Implementer's Guide for Governed Agent Federation
 
 This guide is non-normative. It accompanies [OAuth 2.0 Profile for
-Governed Agent Federation][core] (the core profile) and [Agent Resolution
-Input Profiles for Governed Agent Federation][INPUTS]. Those documents
-define every requirement, and they govern wherever this guide differs
+Governed Agent Federation][core] (the core profile), [Agent Resolution
+Input Profiles for Governed Agent Federation][INPUTS], and [Identity
+Continuation Profile for Governed Agent Federation][CONTINUATION]. Those
+documents define every requirement, and they govern wherever this guide
+differs
 from them. Nothing here is needed to implement them; the guide explains
 the flows, collects the configuration a deployment needs, and records
 deployment tradeoffs. Section names link to the editor's copy of the
@@ -13,6 +15,7 @@ core profile.
 * [What each role builds](#what-each-role-builds)
 * [Federation configuration](#federation-configuration)
 * [Distributed platforms and key use](#distributed-platforms-and-key-use)
+* [Continuation through gateways](#continuation-through-gateways)
 * [Adoption tradeoffs](#adoption-tradeoffs)
 * [Intermediate adoption](#intermediate-adoption)
 * [Provisioning and linking](#provisioning-and-linking)
@@ -236,6 +239,38 @@ grant, and the worker redeems it with its own DPoP proof. That proof
 binds the access token to the worker's key ([Grant
 Protection][grant-protection]).
 
+## Continuation through gateways
+
+[CONTINUATION] lets a gateway continue an agent's request to a resource
+in another domain, under the same Agent Principal and, for delegated
+access, the same user. A gateway combines roles: it is the API for the
+agent's access token, and the continuing client at the Continuation
+Assertion Issuer (CAI), the IdP, and the tool's RAS. Its operator's RAS
+is typically the continuation-aware RAS and CAI.
+
+A gateway deployment adds this configuration to the [federation
+configuration](#federation-configuration):
+
+| Party | Configuration |
+|---|---|
+| IdP | Tenant policy permitting continuation; Continuation Associations for the gateway; the gateway's client registration and canonical actor identity; trust in the gateway's CAI (Section 7.3 of [ICA]); the gateway's registration at each target RAS, for each acting relationship the target serves separately |
+| Gateway's RAS | Continuation-aware processing and advertisement; assertion issuance; the gateway's registration as the client that operates the gateway resource; the gateway's canonical actor identity, as the IdP holds it |
+| Gateway | A client credential for each server and a DPoP key |
+| Target RAS | A client registration for the gateway, one for each population where delegated and self-acting access are distinguished by registration; DPoP support |
+
+The CAI's placement gives these topologies:
+
+| Topology | CAI | Use |
+|---|---|---|
+| Gateway authorization server | The gateway's own RAS (Section 8.1 of [ICA]) | The gateway operator runs an authorization server for the gateway resource; the baseline |
+| Shared authorization server | A separate CAI trusted for that RAS (Section 5.4.6 of [ICA]) | The gateway is a resource server behind an API-management or enterprise authorization server |
+| Gateway behind a gateway | Each gateway's RAS | Each hop is a governed continuation; every onward grant names the same agent, and `continuation_via` lists each gateway on the path |
+| IdP-issued gateway tokens | None | Not applicable: there is no accepted hop to continue ([Scope][cont-scope]) |
+
+[Gateway Requirements][cont-gateway] lists what the gateway does with
+each request, and [Implementation Considerations][cont-implementation]
+covers continuation-window and agent-session sizing.
+
 ## Adoption tradeoffs
 
 The profile's security controls carry these deployment costs. The
@@ -328,3 +363,8 @@ Revocation][status-changes] state the core profile's guarantees.
 [walkthrough]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#walkthrough
 [aws-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#aws-example
 [excluded-compositions]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#excluded-compositions
+[CONTINUATION]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
+[ICA]: https://www.ietf.org/archive/id/draft-mcguinness-oauth-id-continuation-assertion-02.html
+[cont-scope]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#scope-boundaries
+[cont-gateway]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#gateway-reuse
+[cont-implementation]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#implementation

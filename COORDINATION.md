@@ -213,6 +213,9 @@ optional Shared Signals, and the effects of applied changes on authorization.
 It distinguishes current administrative state from revocation history and
 states the limits of missed-event recovery and token enforcement. Stronger
 guarantees across unobserved transitions require an additional composition.
+One is deferred rather than prohibited: it would carry an authenticated
+authorization generation in the grant, agreed with ID-JAG, and define the
+comparison the RAS applies.
 The companion is not required for conformance to this federation profile;
 `agent-correlation` and `status-changes` state this document's guarantees.
 

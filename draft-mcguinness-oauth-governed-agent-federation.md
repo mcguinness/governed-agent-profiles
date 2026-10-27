@@ -684,11 +684,10 @@ For delegated access, the RAS and API MUST enforce both:
   delegation. A valid signature or an `act` claim alone does not open
   the gate. Failure to establish the gate MUST result in denial.
 
-The actor gate is an authorization condition, not a protocol object. It
-can be implemented through an agent registration, tenant assignment,
-consent policy, or another explicit rule. Requiring the agent to also
-hold independent permissions on each object is local policy, not a
-baseline requirement.
+The actor gate is an authorization condition, not a protocol object
+({{implementation-resource}}). Requiring the agent to also hold
+independent permissions on each object is local policy, not a baseline
+requirement.
 
 Every operation the API permits MUST be covered by an applicable
 actor-gate authorization. The API MAY evaluate the gate directly or rely
@@ -703,8 +702,6 @@ whether to accept that delegation under its local user, actor, client,
 tenant, and resource policy.
 
 The client identifier MUST NOT stand in for the actor in authorization.
-Audit records that identify both the user and the issuer-qualified
-actor, rather than the client identifier alone, preserve attribution.
 
 # Profiles and Common Rules {#common-rules}
 
@@ -1263,11 +1260,7 @@ Association permissions have these limits:
   it.
 
 Policy representation and evaluation mechanisms are outside this
-profile.
-
-For a dedicated client, deployments can administer the Identity Binding
-and the Client Association in one registration or policy object; they
-remain separate checks.
+profile ({{implementation-idp}}).
 
 ## Issuance Authorization {#issuance-authorization}
 
@@ -1931,12 +1924,7 @@ alone does not: a delegated token lacking `act` would otherwise be
 accepted as self-acting.
 
 Conformance does not by itself provide a portable discriminator for
-every mixed-token deployment. For example, where one issuer serves
-ordinary, delegated, and self-acting access to one API, the RAS can use
-a separate client registration or audience for each population, and
-the API is configured with that mapping. A deployment that needs one
-registration and one audience for several populations needs an
-additional bilateral contract.
+every mixed-token deployment ({{implementation-resource}}).
 
 ## Token Validation {#api-validation}
 
@@ -2046,11 +2034,8 @@ The client MUST reuse a token or grant only when that context
 authorizes the operation. A shared client identifier or matching scope
 alone MUST NOT permit reuse across agents, users, or tenants.
 
-The association can use trusted request and configuration context.
-Clients need not parse opaque tokens. If the client cannot establish
-that association, it MUST obtain a token or grant for the current
-context. A credential change alone need not invalidate cached tokens
-when the governed principal and authorization context remain the same.
+If the client cannot establish that association, it MUST obtain a token
+or grant for the current context ({{implementation-client}}).
 
 ## Optional RAS Refresh Tokens {#ras-refresh}
 
@@ -2175,14 +2160,8 @@ ID-JAG requires support for Identity Assertions
 ({{Section 4.3 of ID-JAG}}). Requiring ID Token subjects specifically
 gives independent implementations a common subject-token format. This is
 an implementation baseline, not a requirement to deploy one client per
-agent: deployments MAY use mutually supported optional inputs.
-
-An ID Token's audience identifies the authenticated IdP client
-({{subject-token-validation}}). A dedicated deployment therefore needs a
-user authorization flow for each agent's client registration, though an
-existing IdP session may avoid another login prompt. A platform that
-keeps its shared single sign-on (SSO) client instead uses the existing
-platform JWT ({{imported-jwt-input}}) or an optional input.
+agent: deployments MAY use mutually supported optional inputs
+({{implementation-idp}}).
 
 ## Authorization Server and Client Metadata {#metadata}
 
@@ -2255,6 +2234,49 @@ Before using either grant path:
   `actor_profile_token_exchange` parameter of
   {{Section 10.1 of ACTOR-PROFILE}} is published, it MUST describe only
   the paths actually supported and agree with the ID-JAG advertisement.
+
+# Implementation Considerations {#implementation}
+
+These considerations add no requirements. They describe implementation
+and deployment choices that affect how the requirements of the sections
+cited are met.
+
+## Identity Provider {#implementation-idp}
+
+* **Bindings and associations:** For a dedicated client, deployments can
+  administer the Identity Binding and the Client Association in one
+  registration or policy object; they remain separate checks
+  ({{identity-binding}}).
+* **Dedicated clients and user sign-in:** An ID Token's audience
+  identifies the authenticated IdP client ({{subject-token-validation}}).
+  A dedicated deployment therefore needs a user authorization flow for
+  each agent's client registration, though an existing IdP session may
+  avoid another login prompt. A platform that keeps its shared single
+  sign-on (SSO) client instead uses the existing platform JWT
+  ({{imported-jwt-input}}) or an optional input.
+
+## RAS and API {#implementation-resource}
+
+* **Actor gate:** The actor gate ({{actor-authorization}}) can be
+  implemented through an agent registration, tenant assignment, consent
+  policy, or another explicit rule.
+* **Attribution:** Audit records that identify both the user and the
+  issuer-qualified actor, rather than the client identifier alone,
+  preserve attribution.
+* **Mixed token populations:** Where one issuer serves ordinary,
+  delegated, and self-acting access to one API, the RAS can use a
+  separate client registration or audience for each population, and the
+  API is configured with that mapping ({{api-applicability}}). A
+  deployment that needs one registration and one audience for several
+  populations needs an additional bilateral contract.
+
+## Client {#implementation-client}
+
+* **Cached tokens:** The association of {{client-token-reuse}} can use
+  trusted request and configuration context; clients need not parse
+  opaque tokens. A credential change alone need not invalidate cached
+  tokens when the governed principal and authorization context remain
+  the same.
 
 # Security Considerations {#security}
 

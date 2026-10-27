@@ -589,6 +589,11 @@ The IdP MUST construct every onward grant of a governed chain so that:
 * it lists the chain's continuing clients in `continuation_via`
   ({{continuation-via}}).
 
+Where a target RAS distinguishes delegated and self-acting tokens by
+client registration ("Profile Applicability" under "Access at the
+Resource Server" in {{FEDERATION}}), the IdP selects the continuing
+client's registration there by the chain's acting relationship.
+
 The continuing client MUST NOT appear in the onward grant's `act`; it
 appears as the grant's client and in `continuation_via`, which disclose
 it without making it an actor. The IdP takes the Agent Principal, the
@@ -793,13 +798,9 @@ deployment adds this configuration to that of {{FEDERATION}}:
 | Target RAS | A client registration for the gateway, one for each population where delegated and self-acting access are distinguished by registration; DPoP support |
 {: title="Configuration added by a gateway deployment"}
 
-Where a target RAS distinguishes delegated and self-acting tokens by
-client registration ("Profile Applicability" under "Access at the
-Resource Server" in {{FEDERATION}}), the IdP selects the gateway's
-registration there by the chain's acting relationship. A gateway that
-serves several Governance Tenants is configured in each, because
-{{ICA}} scopes actor identities and CAI trust to one tenant; how it
-selects among those registrations is an open item ({{open-items}}).
+A gateway that serves several Governance Tenants is configured in each,
+because {{ICA}} scopes actor identities and CAI trust to one tenant; how
+it selects among those registrations is an open item ({{open-items}}).
 
 ## Topologies {#gateway-topologies}
 
@@ -1576,7 +1577,7 @@ Where this document is silent, {{FEDERATION}} applies unchanged.
 | Issuance authorization | For the authenticated client ("Issuance Authorization") | For an onward grant, in the root client's context; the continuing client is authorized by its Continuation Association ({{continuation-validation}}) |
 | Agent resolution and Client Association | Required for each grant | None on a continuation exchange; the agent comes from the chain record ({{continuation-association}}) |
 | Grant lifetime | Bounded also by the subject credential and the agent-resolution input | The configured limit and, for a WAG, the agent session ({{onward-grants}}) |
-| Downstream client registration | One association per authenticated client ("Issuance Prerequisites") | Also selected by acting relationship where a target distinguishes the two ({{gateway-roles}}) |
+| Downstream client registration | One association per authenticated client ("Issuance Prerequisites") | Also selected by acting relationship where a target distinguishes the two ({{identity-preservation}}) |
 | Errors | `actor_unauthorized` for a denied delegation and `invalid_grant` for an unresolvable user ("Issuance Errors") | The codes of {{ICA}} ({{continuation-errors}}) |
 | Bearer access tokens | Permitted under explicit configuration ("Access-Token Protection") | Also make a hop ineligible for continuation without explicit policy ({{root-redemption}}) |
 | Fallback | No retry as ordinary access or without proof ("Profile Applicability and Downgrade Prevention") | Also no service of the request with the continuing client's own authority ({{gateway-reuse}}) |

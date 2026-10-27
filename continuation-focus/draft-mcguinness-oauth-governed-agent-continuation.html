@@ -2743,14 +2743,9 @@ outermost actor, recreating at the actor level the shared-client
 problem. A governed RAS and API would have to process nested <code>act</code>,
 which <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> rejects, and a WAG, which carries no <code>act</code>, could
 not represent the gateway at all.<a href="#section-12.2-1" class="pilcrow">¶</a></p>
-<p id="section-12.2-2">In the terms of <span>[<a href="#WS-TRUST" class="cite xref">WS-TRUST</a>]</span>, the gateway requests access on behalf of
-the agent rather than acting as it: the agent acts for the user, and the
-gateway forwards. A forwarding intermediary is still disclosed, in
-<code>continuation_via</code>. Related precedents record forwarding services apart
-from the principal: the Kerberos privilege attribute certificate lists
-the services that a delegated ticket passed through (<span>[<a href="#KERBEROS-PAC" class="cite xref">KERBEROS-PAC</a>]</span>),
-and AWS lists the services that made a request on a principal's behalf
-(<span>[<a href="#AWS-CALLEDVIA" class="cite xref">AWS-CALLEDVIA</a>]</span>). Attribution and path-based policy therefore need no
+<p id="section-12.2-2">The agent acts for the user, and the gateway forwards the agent's
+request. A forwarding intermediary is still disclosed, in
+<code>continuation_via</code>, so attribution and path-based policy need no
 lineage in <code>act</code>.<a href="#section-12.2-2" class="pilcrow">¶</a></p>
 <p id="section-12.2-3">The user's approval reaches the gateway through the Delegation
 Authorization, which must permit continuation for a delegated chain to
@@ -2996,14 +2991,6 @@ WAGs. Errors are those of <span>[<a href="#RFC6749" class="cite xref">RFC6749</a
         <dd>
 <span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Implementer's Guide for Governed Agent Federation"</span>, <span>&lt;<a href="https://github.com/mcguinness/governed-agent-profiles/blob/main/docs/implementers-guide.md">https://github.com/mcguinness/governed-agent-profiles/blob/main/docs/implementers-guide.md</a>&gt;</span>. </dd>
 <dd class="break"></dd>
-<dt id="AWS-CALLEDVIA">[AWS-CALLEDVIA]</dt>
-        <dd>
-<span class="refAuthor">Amazon Web Services</span>, <span class="refTitle">"AWS global condition context keys"</span>, <span>&lt;<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html">https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html</a>&gt;</span>. </dd>
-<dd class="break"></dd>
-<dt id="KERBEROS-PAC">[KERBEROS-PAC]</dt>
-        <dd>
-<span class="refAuthor">Microsoft</span>, <span class="refTitle">"Privilege Attribute Certificate Data Structure"</span>, <span>&lt;<a href="https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-pac/">https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-pac/</a>&gt;</span>. </dd>
-<dd class="break"></dd>
 <dt id="RFC6755">[RFC6755]</dt>
         <dd>
 <span class="refAuthor">Campbell, B.</span> and <span class="refAuthor">H. Tschofenig</span>, <span class="refTitle">"An IETF URN Sub-Namespace for OAuth"</span>, <span class="seriesInfo">RFC 6755</span>, <span class="seriesInfo">DOI 10.17487/RFC6755</span>, <time datetime="2012-10" class="refDate">October 2012</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc6755">https://www.rfc-editor.org/rfc/rfc6755</a>&gt;</span>. </dd>
@@ -3017,12 +3004,8 @@ WAGs. Errors are those of <span>[<a href="#RFC6749" class="cite xref">RFC6749</a
 <span class="refAuthor">Richer, J., Ed.</span>, <span class="refTitle">"OAuth 2.0 Token Introspection"</span>, <span class="seriesInfo">RFC 7662</span>, <span class="seriesInfo">DOI 10.17487/RFC7662</span>, <time datetime="2015-10" class="refDate">October 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7662">https://www.rfc-editor.org/rfc/rfc7662</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="WAG">[WAG]</dt>
-        <dd>
-<span class="refAuthor">Carleton, P.</span>, <span class="refAuthor">Steele, N.</span>, <span class="refAuthor">Parecki, A.</span>, <span class="refAuthor">Schwenkschuster, A.</span>, and <span class="refAuthor">B. Campbell</span>, <span class="refTitle">"Workload Authorization Grant"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-carleton-workload-authz-grant-01</span>, <time datetime="2026-09-22" class="refDate">22 September 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-01">https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-01</a>&gt;</span>. </dd>
-<dd class="break"></dd>
-<dt id="WS-TRUST">[WS-TRUST]</dt>
       <dd>
-<span class="refAuthor">OASIS</span>, <span class="refTitle">"WS-Trust 1.4"</span>, <span>&lt;<a href="http://docs.oasis-open.org/ws-sx/ws-trust/v1.4/os/ws-trust-1.4-spec-os.html">http://docs.oasis-open.org/ws-sx/ws-trust/v1.4/os/ws-trust-1.4-spec-os.html</a>&gt;</span>. </dd>
+<span class="refAuthor">Carleton, P.</span>, <span class="refAuthor">Steele, N.</span>, <span class="refAuthor">Parecki, A.</span>, <span class="refAuthor">Schwenkschuster, A.</span>, and <span class="refAuthor">B. Campbell</span>, <span class="refTitle">"Workload Authorization Grant"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-carleton-workload-authz-grant-01</span>, <time datetime="2026-09-22" class="refDate">22 September 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-01">https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-01</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 </dl>
 </section>

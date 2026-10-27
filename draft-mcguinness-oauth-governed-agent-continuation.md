@@ -603,7 +603,7 @@ issue a WAG from a delegated chain or an ID-JAG from a self-acting
 chain. For a chain established without this document, it MUST NOT issue
 a governed onward grant, and for a governed chain it MUST NOT issue an
 onward ID-JAG whose `act` is constructed under {{Section 5.5.5 of ICA}}.
-{{rationale-client}} explains the choice.
+{{security-client}} explains the choice.
 
 ### Path Disclosure {#continuation-via}
 
@@ -983,6 +983,31 @@ the exposure; the last also keeps a stolen bearer token at the gateway
 from inducing an honest continuation ({{Section 9.1 of ICA}},
 {{root-redemption}}).
 
+## The Continuing Client Is Not an Actor {#security-client}
+
+Placing the gateway in `act`, as {{Section 5.5.5 of ICA}} does for the
+current actor, would give every agent behind a gateway the same
+outermost actor, recreating at the actor level the shared-client
+problem. A governed RAS and API would have to process nested `act`,
+which {{FEDERATION}} rejects, and a WAG, which carries no `act`, could
+not represent the gateway at all.
+
+In the terms of {{WS-TRUST}}, the gateway requests access on behalf of
+the agent rather than acting as it: the agent acts for the user, and the
+gateway forwards. A forwarding intermediary is still disclosed, in
+`continuation_via`. Related precedents record forwarding services apart
+from the principal: the Kerberos privilege attribute certificate lists
+the services that a delegated ticket passed through ({{KERBEROS-PAC}}),
+and AWS lists the services that made a request on a principal's behalf
+({{AWS-CALLEDVIA}}). Attribution and path-based policy therefore need no
+lineage in `act`.
+
+The user's approval reaches the gateway through the Delegation
+Authorization, which must permit continuation for a delegated chain to
+exist. Continuation never turns a delegated chain into a WAG, which
+would let an agent act on its own authority because a user's request
+reached it.
+
 ## Attribution Through an Intermediary {#security-attribution}
 
 Downstream records attribute an action to the Agent Principal and, for
@@ -997,12 +1022,34 @@ presence of `continuation_via`, which only onward grants carry.
 
 ## Self-Acting Chains {#security-self-acting}
 
+{{ICA}} anchors a chain to state showing that its principal is still
+present and records what the chain may do separately. An Agent
+Authorization is often indefinite, so as an anchor it cannot tell a
+working agent from one that has stopped; a dedicated-client assertion
+lasts one request, and routine credential rotation would end chains.
+Only the agent's own authentication refreshes an agent session, so a
+gateway cannot extend a chain it continues, and keeping it per Identity
+Binding stops activity on one platform from sustaining chains rooted
+through another. The absolute expiration bounds a session the agent
+keeps active, as the absolute authorization expiration of "Optional RAS
+Refresh Tokens" in {{FEDERATION}} bounds refresh; without it, a chain
+would substitute for the refresh token that {{WAG}} prohibits.
+
 When an agent stops authenticating through a binding, its self-acting
 chains through that binding end within the idle timeout without
 administrative action. A party holding the agent's credential can keep
 its session active, as a stolen user credential can keep a user session
 active, until the absolute expiration or the credential's revocation
 ({{chain-ending}}).
+
+## Governance Events End the Chain {#security-chain-basis}
+
+The root's Identity Binding, Client Association, and credential are the
+chain's only link between the agent and an authenticated client. When
+any is withdrawn, the chain has no current basis, even if another
+binding resolves the same agent for new issuance. An ended chain stays
+ended, as in {{Section 6.2 of ICA}}, and reactivation permits new
+decisions only, as in {{FEDERATION}}.
 
 ## Disablement Windows {#security-disablement}
 
@@ -1614,7 +1661,7 @@ Where this document is silent, {{FEDERATION}} applies unchanged.
 5. **Durable self-acting anchors:** Should a self-acting chain be able
    to anchor to a work authorization with its own lifecycle, as a
    delegated chain can anchor to a refresh-token grant
-   ({{rationale-anchor}})?
+   ({{security-self-acting}})?
 6. **Tenant selection at a gateway:** How does a gateway that serves
    several Governance Tenants select its registration and credential at
    the IdP, when neither its incoming token nor the assertion response
@@ -1623,71 +1670,6 @@ Where this document is silent, {{FEDERATION}} applies unchanged.
    response for state it cannot confirm, and define an OAuth error code
    for policy that blocks a chain only temporarily
    ({{continuation-errors}})?
-
-# Design Rationale {#rationale}
-
-This non-normative appendix records the principal design choices.
-
-## The Gateway Is a Client, Not an Actor {#rationale-client}
-
-In {{FEDERATION}}, the Agent Principal is the authorization identity,
-and client and workload identities do not replace it downstream. A
-gateway that continues an agent's request selects the target but
-exercises the agent's authority, within the agent's authorization and
-under the Continuation Association, a permission of the same kind as a
-Client Association. A gateway governed as a client has its own
-permission, attribution as `client_id`, and registrations that can be
-disabled, without becoming a principal. A gateway that exercises its
-own authority and needs authorization, attribution, or disablement as a
-principal is an Agent Principal, and its acting for another agent is
-delegation between agents, outside {{FEDERATION}}.
-
-Placing the gateway in `act`, as {{Section 5.5.5 of ICA}} does for the
-current actor, would give every agent behind a gateway the same
-outermost actor, recreating at the actor level the shared-client
-problem. A governed RAS and API would have to process nested `act`,
-which {{FEDERATION}} rejects, and a WAG, which carries no `act`, could
-not represent the gateway at all.
-
-In the terms of {{WS-TRUST}}, the gateway requests access on behalf of
-the agent rather than acting as it: the agent acts for the user, and the
-gateway forwards. A forwarding intermediary is still disclosed, in
-`continuation_via`. Related precedents record forwarding services apart
-from the principal: the Kerberos privilege attribute certificate lists
-the services that a delegated ticket passed through ({{KERBEROS-PAC}}),
-and AWS lists the services that made a request on a principal's behalf
-({{AWS-CALLEDVIA}}). Attribution and path-based policy therefore need no
-lineage in `act`.
-
-The user's approval reaches the
-gateway through the Delegation Authorization, which must permit
-continuation for a delegated chain to exist. Continuation never turns a
-delegated chain into a WAG, which would let an agent act on its own
-authority because a user's request reached it.
-
-## Governance Events End the Chain {#rationale-ending}
-
-The root's Identity Binding, Client Association, and credential are the
-chain's only link between the agent and an authenticated client. When
-any is withdrawn, the chain has no current basis, even if another
-binding resolves the same agent for new issuance. An ended chain stays
-ended, as in {{Section 6.2 of ICA}}, and reactivation permits new
-decisions only, as in {{FEDERATION}}.
-
-## Self-Acting Chains Anchor to an Agent Session {#rationale-anchor}
-
-{{ICA}} anchors a chain to state showing that its principal is still
-present and records what the chain may do separately. An Agent
-Authorization is often indefinite, so as an anchor it cannot tell a
-working agent from one that has stopped; a dedicated-client assertion
-lasts one request, and routine credential rotation would end chains.
-Only the agent's own authentication refreshes an agent session, so a
-gateway cannot extend a chain it continues, and keeping it per Identity
-Binding stops activity on one platform from sustaining chains rooted
-through another. The absolute expiration bounds a session the agent
-keeps active, as the absolute authorization expiration of "Optional RAS
-Refresh Tokens" in {{FEDERATION}} bounds refresh; without it, a chain
-would substitute for the refresh token that {{WAG}} prohibits.
 
 # Document History
 {:numbered="false"}

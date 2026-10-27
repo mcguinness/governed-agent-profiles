@@ -64,28 +64,16 @@ informative:
     target: https://github.com/modelcontextprotocol/ext-auth/blob/main/specification/stable/enterprise-managed-authorization.mdx
     author:
       - org: Model Context Protocol
-  AWS-CALLEDVIA:
-    title: "AWS global condition context keys"
-    target: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html
+  GUIDE:
+    title: "Implementer's Guide for Governed Agent Federation"
     author:
-      - org: Amazon Web Services
+      - name: Karl McGuinness
     date: false
-  KERBEROS-PAC:
-    title: "Privilege Attribute Certificate Data Structure"
-    target: https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-pac/
-    author:
-      - org: Microsoft
-    date: false
+    target: https://github.com/mcguinness/governed-agent-profiles/blob/main/docs/implementers-guide.md
   RFC6755:
   RFC7519:
   RFC7662:
   WAG: I-D.carleton-workload-authz-grant
-  WS-TRUST:
-    title: "WS-Trust 1.4"
-    target: http://docs.oasis-open.org/ws-sx/ws-trust/v1.4/os/ws-trust-1.4-spec-os.html
-    author:
-      - org: OASIS
-    date: false
 
 --- abstract
 
@@ -339,8 +327,7 @@ The IdP SHOULD also enforce a configured continuation window: it refuses
 continuation from a hop more than that window after it issued the hop,
 with `invalid_grant` as for those limits. The window bounds how long a
 CAI, including one that a compromised gateway operator controls, can
-obtain continuations from a hop it accepted. A deployment whose gateway
-continues from durable task state sets the window to the task's needs.
+obtain continuations from a hop it accepted ({{implementation-idp}}).
 
 ## Delegated Root {#delegated-root}
 
@@ -390,21 +377,10 @@ session, governs what the chain may do.
   session's Agent Principal or Identity Binding also ends the session.
 
 A self-acting chain ends with its agent session ({{Section 6.2 of ICA}}),
-which neither the gateway nor the CAI can keep active. Work that a
-gateway performs after the agent stops authenticating, such as queued
-work, therefore loses continuation at the idle timeout; work that must
-outlive the agent's authentication needs a durable anchor
-({{open-items}}). A working agent obtains a new WAG at least as often
-as its gateway access token expires, since WAG redemption yields no
-refresh token, so a deployment sets the idle timeout longer than that
-token's lifetime. If the token outlives the session, continuation fails
-and the gateway's response leads the agent's client to a new root grant
-({{gateway-reuse}}). IdP instances evaluate the idle timeout and the
-absolute expiration against shared session state. An instance that
-cannot confirm the session's state MUST reject the request rather than
-issue, as {{Section 5.5.7 of ICA}} requires for replay reservations,
-with the temporary refusal of {{continuation-errors}}, and MUST NOT
-treat the session as ended on that basis; the chain stays continuable.
+which neither the gateway nor the CAI can keep active
+({{implementation-idp}}). IdP instances evaluate the idle timeout and
+the absolute expiration against shared session state; an instance that
+cannot confirm it refuses temporarily ({{continuation-errors}}).
 
 # Root Redemption at the Gateway's RAS {#root-redemption}
 
@@ -589,6 +565,11 @@ The IdP MUST construct every onward grant of a governed chain so that:
 * it lists the chain's continuing clients in `continuation_via`
   ({{continuation-via}}).
 
+Where a target RAS distinguishes delegated and self-acting tokens by
+client registration ("Profile Applicability" under "Access at the
+Resource Server" in {{FEDERATION}}), the IdP selects the continuing
+client's registration there by the chain's acting relationship.
+
 The continuing client MUST NOT appear in the onward grant's `act`; it
 appears as the grant's client and in `continuation_via`, which disclose
 it without making it an actor. The IdP takes the Agent Principal, the
@@ -601,7 +582,7 @@ issue a WAG from a delegated chain or an ID-JAG from a self-acting
 chain. For a chain established without this document, it MUST NOT issue
 a governed onward grant, and for a governed chain it MUST NOT issue an
 onward ID-JAG whose `act` is constructed under {{Section 5.5.5 of ICA}}.
-{{rationale-client}} explains the choice.
+{{security-client}} explains the choice.
 
 ### Path Disclosure {#continuation-via}
 
@@ -655,10 +636,6 @@ that the target discards as if it were complete. A RAS or API MUST NOT
 read the absence of `continuation_via` as evidence that no continuing
 client was involved, unless trusted configuration establishes that the
 RAS that issued its token supports path disclosure.
-
-This document defines `continuation_via` for governed chains. It is
-proposed for {{ICA}} as the disclosure of forwarding intermediaries in
-general ({{dependencies}}).
 
 ### Delegated: ID-JAG {#onward-id-jag}
 
@@ -737,11 +714,12 @@ root grant, which the agent's client obtains, starts a new chain
 When the IdP cannot confirm shared state that a continuation depends
 on, such as an agent session ({{self-acting-root}}) or a replay
 reservation ({{Section 5.5.7 of ICA}}), it MUST respond with HTTP status
-code 503 (Service Unavailable) ({{Section 15.6.4 of RFC9110}}) and
-SHOULD include a `Retry-After` header field
-({{Section 10.2.3 of RFC9110}}). This temporary refusal is not an OAuth
-error response: the chain has not ended, and the request was not judged
-invalid. Because the IdP reserves an assertion only after every step
+code 503 (Service Unavailable) ({{Section 15.6.4 of RFC9110}}), SHOULD
+include a `Retry-After` header field ({{Section 10.2.3 of RFC9110}}),
+and MUST NOT treat an agent session as ended on that basis. This
+temporary refusal is not an OAuth error response: the chain has not
+ended, and the request was not judged invalid. Because the IdP reserves
+an assertion only after every step
 succeeds, the continuing client MAY retry the same request with the
 same assertion while it is unexpired, after any `Retry-After` interval,
 with a fresh client assertion and DPoP proof as the retry rule of
@@ -774,44 +752,11 @@ A RAS that does not implement
 {{root-redemption}}, so that a gateway in its domain can continue the
 chain as a further hop that again names the same agent.
 
-# Gateway Requirements {#gateway-deployment}
+# Gateway Requirements {#gateway-reuse}
 
 This section collects what a gateway does as a continuing client; the
 rules of the IdP and the RASes it relies on are in the sections cited.
-
-## Roles and Configuration {#gateway-roles}
-
-A gateway combines roles, as {{FEDERATION}} permits ({{overview}}); its
-operator's RAS is typically the continuation-aware RAS and CAI. A
-deployment adds this configuration to that of {{FEDERATION}}:
-
-| Party | Configuration |
-|---|---|
-| IdP | Tenant policy permitting continuation; Continuation Associations for the gateway; the gateway's client registration and canonical actor identity; trust in the gateway's CAI ({{Section 7.3 of ICA}}); the gateway's registration at each target RAS, for each acting relationship the target serves separately |
-| Gateway's RAS | Continuation-aware processing and advertisement; assertion issuance; the gateway's registration as the client that operates the gateway resource; the gateway's canonical actor identity, as the IdP holds it |
-| Gateway | A client credential for each server and a DPoP key |
-| Target RAS | A client registration for the gateway, one for each population where delegated and self-acting access are distinguished by registration; DPoP support |
-{: title="Configuration added by a gateway deployment"}
-
-Where a target RAS distinguishes delegated and self-acting tokens by
-client registration ("Profile Applicability" under "Access at the
-Resource Server" in {{FEDERATION}}), the IdP selects the gateway's
-registration there by the chain's acting relationship. A gateway that
-serves several Governance Tenants is configured in each, because
-{{ICA}} scopes actor identities and CAI trust to one tenant; how it
-selects among those registrations is an open item ({{open-items}}).
-
-## Topologies {#gateway-topologies}
-
-| Topology | CAI | Use |
-|---|---|---|
-| Gateway authorization server | The gateway's own RAS ({{Section 8.1 of ICA}}) | The gateway operator runs an authorization server for the gateway resource; the baseline |
-| Shared authorization server | A separate CAI trusted for that RAS ({{Section 5.4.6 of ICA}}) | The gateway is a resource server behind an API-management or enterprise authorization server |
-| Gateway behind a gateway | Each gateway's RAS | Each hop is a governed continuation; every onward grant names the same agent, and `continuation_via` lists each gateway on the path |
-| IdP-issued gateway tokens | None | Not applicable ({{scope-boundaries}}) |
-{: title="Gateway topologies"}
-
-## Continuing a Request {#gateway-reuse}
+{{GUIDE}} describes gateway configuration and topologies.
 
 To continue a request, a gateway:
 
@@ -887,12 +832,10 @@ The IdP MUST treat a chain as ended once it has applied, since the
 chain's establishment, any change that the table lists as ending it,
 even if the relationship has since been restored. It applies such
 changes within the freshness limit of "Issuance Authorization" in
-{{FEDERATION}}, and it can determine the outcome when it applies the
-change or at the next continuation, for example by comparing a revision
-of each relationship, recorded at establishment and changed by every
-disablement or withdrawal. Grants and access tokens already issued
-follow "Authorization Changes and Revocation" in {{FEDERATION}}, which
-the grant-derived revocation of {{AGENT-LIFECYCLE}} can propagate.
+{{FEDERATION}} ({{implementation-idp}}). Grants and access tokens
+already issued follow "Authorization Changes and Revocation" in
+{{FEDERATION}}, which the grant-derived revocation of
+{{AGENT-LIFECYCLE}} can propagate.
 
 # Conformance and Capability Advertisement {#conformance}
 
@@ -956,6 +899,40 @@ Discovery" in {{FEDERATION}}); no IdP metadata advertises it. The same
 holds for grant-anchored continuation ({{conformance-claims}}).
 Advertisement indicates capability and does not authorize continuation.
 
+# Implementation Considerations {#implementation}
+
+These considerations add no requirements. They describe deployment
+choices that decide whether continuation works as the sections cited
+intend.
+
+## Identity Provider {#implementation-idp}
+
+* **Continuation window:** A deployment whose gateway or client
+  continues from durable task state sets the window of
+  {{governed-chain-authorization}} to the task's needs, as in
+  {{walkthrough-scheduled}}.
+* **Agent sessions:** A working agent obtains a new WAG at least as
+  often as its gateway access token expires, since WAG redemption
+  yields no refresh token, so a deployment sets the idle timeout longer
+  than that token's lifetime. If the token outlives the session,
+  continuation fails, and the gateway's response leads the agent's
+  client to a new root grant ({{gateway-reuse}}). Work that a gateway
+  performs after the agent stops authenticating, such as queued work,
+  loses continuation at the idle timeout; work that must outlive the
+  agent's authentication needs a durable anchor ({{open-items}}).
+* **Restored relationships:** The IdP can determine whether a change
+  ended a chain when it applies the change or at the next continuation,
+  for example by comparing a revision of each relationship, recorded at
+  establishment and changed by every disablement or withdrawal
+  ({{chain-ending}}).
+
+## Continuing Client {#implementation-client}
+
+* **Several Governance Tenants:** A gateway that serves several
+  Governance Tenants is configured in each, because {{ICA}} scopes
+  actor identities and CAI trust to one tenant. How it selects among
+  those registrations is an open item ({{open-items}}).
+
 # Security Considerations {#security}
 
 The security considerations of {{ICA}} and {{FEDERATION}} apply.
@@ -969,9 +946,10 @@ its Continuation Associations permit, and can use the downstream tokens
 it holds until they expire. Where its operator does not control the
 CAI, it cannot continue a chain whose token it has not received,
 because the CAI attests only hops bound to tokens presented to it
-({{Section 5.4.3 of ICA}}). In the baseline topology the operator runs
-the CAI, which can attest any hop its RAS accepted, as
-{{Section 9.5 of ICA}} notes for a compromised RAS, until the chain
+({{Section 5.4.3 of ICA}}). Where its operator runs the CAI, as when
+the gateway's own RAS performs that role, the CAI can attest any hop
+its RAS accepted, as {{Section 9.5 of ICA}} notes for a compromised
+RAS, until the chain
 ends or the hop's continuation window passes. In either case it cannot
 change the agent or user, convert the acting relationship, or exceed
 the agent's own authorization. Narrow Continuation Associations, chain
@@ -980,6 +958,26 @@ short downstream token lifetimes, and sender-constrained ingress reduce
 the exposure; the last also keeps a stolen bearer token at the gateway
 from inducing an honest continuation ({{Section 9.1 of ICA}},
 {{root-redemption}}).
+
+## The Continuing Client Is Not an Actor {#security-client}
+
+Placing the gateway in `act`, as {{Section 5.5.5 of ICA}} does for the
+current actor, would give every agent behind a gateway the same
+outermost actor, recreating at the actor level the shared-client
+problem. A governed RAS and API would have to process nested `act`,
+which {{FEDERATION}} rejects, and a WAG, which carries no `act`, could
+not represent the gateway at all.
+
+The agent acts for the user, and the gateway forwards the agent's
+request. A forwarding intermediary is still disclosed, in
+`continuation_via`, so attribution and path-based policy need no
+lineage in `act`.
+
+The user's approval reaches the gateway through the Delegation
+Authorization, which must permit continuation for a delegated chain to
+exist. Continuation never turns a delegated chain into a WAG, which
+would let an agent act on its own authority because a user's request
+reached it.
 
 ## Attribution Through an Intermediary {#security-attribution}
 
@@ -995,12 +993,34 @@ presence of `continuation_via`, which only onward grants carry.
 
 ## Self-Acting Chains {#security-self-acting}
 
+{{ICA}} anchors a chain to state showing that its principal is still
+present and records what the chain may do separately. An Agent
+Authorization is often indefinite, so as an anchor it cannot tell a
+working agent from one that has stopped; a dedicated-client assertion
+lasts one request, and routine credential rotation would end chains.
+Only the agent's own authentication refreshes an agent session, so a
+gateway cannot extend a chain it continues, and keeping it per Identity
+Binding stops activity on one platform from sustaining chains rooted
+through another. The absolute expiration bounds a session the agent
+keeps active, as the absolute authorization expiration of "Optional RAS
+Refresh Tokens" in {{FEDERATION}} bounds refresh; without it, a chain
+would substitute for the refresh token that {{WAG}} prohibits.
+
 When an agent stops authenticating through a binding, its self-acting
 chains through that binding end within the idle timeout without
 administrative action. A party holding the agent's credential can keep
 its session active, as a stolen user credential can keep a user session
 active, until the absolute expiration or the credential's revocation
 ({{chain-ending}}).
+
+## Governance Events End the Chain {#security-chain-basis}
+
+The root's Identity Binding, Client Association, and credential are the
+chain's only link between the agent and an authenticated client. When
+any is withdrawn, the chain has no current basis, even if another
+binding resolves the same agent for new issuance. An ended chain stays
+ended, as in {{Section 6.2 of ICA}}, and reactivation permits new
+decisions only, as in {{FEDERATION}}.
 
 ## Disablement Windows {#security-disablement}
 
@@ -1576,7 +1596,7 @@ Where this document is silent, {{FEDERATION}} applies unchanged.
 | Issuance authorization | For the authenticated client ("Issuance Authorization") | For an onward grant, in the root client's context; the continuing client is authorized by its Continuation Association ({{continuation-validation}}) |
 | Agent resolution and Client Association | Required for each grant | None on a continuation exchange; the agent comes from the chain record ({{continuation-association}}) |
 | Grant lifetime | Bounded also by the subject credential and the agent-resolution input | The configured limit and, for a WAG, the agent session ({{onward-grants}}) |
-| Downstream client registration | One association per authenticated client ("Issuance Prerequisites") | Also selected by acting relationship where a target distinguishes the two ({{gateway-roles}}) |
+| Downstream client registration | One association per authenticated client ("Issuance Prerequisites") | Also selected by acting relationship where a target distinguishes the two ({{identity-preservation}}) |
 | Errors | `actor_unauthorized` for a denied delegation and `invalid_grant` for an unresolvable user ("Issuance Errors") | The codes of {{ICA}} ({{continuation-errors}}) |
 | Bearer access tokens | Permitted under explicit configuration ("Access-Token Protection") | Also make a hop ineligible for continuation without explicit policy ({{root-redemption}}) |
 | Fallback | No retry as ordinary access or without proof ("Profile Applicability and Downgrade Prevention") | Also no service of the request with the continuing client's own authority ({{gateway-reuse}}) |
@@ -1612,7 +1632,7 @@ Where this document is silent, {{FEDERATION}} applies unchanged.
 5. **Durable self-acting anchors:** Should a self-acting chain be able
    to anchor to a work authorization with its own lifecycle, as a
    delegated chain can anchor to a refresh-token grant
-   ({{rationale-anchor}})?
+   ({{security-self-acting}})?
 6. **Tenant selection at a gateway:** How does a gateway that serves
    several Governance Tenants select its registration and credential at
    the IdP, when neither its incoming token nor the assertion response
@@ -1621,71 +1641,6 @@ Where this document is silent, {{FEDERATION}} applies unchanged.
    response for state it cannot confirm, and define an OAuth error code
    for policy that blocks a chain only temporarily
    ({{continuation-errors}})?
-
-# Design Rationale {#rationale}
-
-This non-normative appendix records the principal design choices.
-
-## The Gateway Is a Client, Not an Actor {#rationale-client}
-
-In {{FEDERATION}}, the Agent Principal is the authorization identity,
-and client and workload identities do not replace it downstream. A
-gateway that continues an agent's request selects the target but
-exercises the agent's authority, within the agent's authorization and
-under the Continuation Association, a permission of the same kind as a
-Client Association. A gateway governed as a client has its own
-permission, attribution as `client_id`, and registrations that can be
-disabled, without becoming a principal. A gateway that exercises its
-own authority and needs authorization, attribution, or disablement as a
-principal is an Agent Principal, and its acting for another agent is
-delegation between agents, outside {{FEDERATION}}.
-
-Placing the gateway in `act`, as {{Section 5.5.5 of ICA}} does for the
-current actor, would give every agent behind a gateway the same
-outermost actor, recreating at the actor level the shared-client
-problem. A governed RAS and API would have to process nested `act`,
-which {{FEDERATION}} rejects, and a WAG, which carries no `act`, could
-not represent the gateway at all.
-
-In the terms of {{WS-TRUST}}, the gateway requests access on behalf of
-the agent rather than acting as it: the agent acts for the user, and the
-gateway forwards. A forwarding intermediary is still disclosed, in
-`continuation_via`. Related precedents record forwarding services apart
-from the principal: the Kerberos privilege attribute certificate lists
-the services that a delegated ticket passed through ({{KERBEROS-PAC}}),
-and AWS lists the services that made a request on a principal's behalf
-({{AWS-CALLEDVIA}}). Attribution and path-based policy therefore need no
-lineage in `act`.
-
-The user's approval reaches the
-gateway through the Delegation Authorization, which must permit
-continuation for a delegated chain to exist. Continuation never turns a
-delegated chain into a WAG, which would let an agent act on its own
-authority because a user's request reached it.
-
-## Governance Events End the Chain {#rationale-ending}
-
-The root's Identity Binding, Client Association, and credential are the
-chain's only link between the agent and an authenticated client. When
-any is withdrawn, the chain has no current basis, even if another
-binding resolves the same agent for new issuance. An ended chain stays
-ended, as in {{Section 6.2 of ICA}}, and reactivation permits new
-decisions only, as in {{FEDERATION}}.
-
-## Self-Acting Chains Anchor to an Agent Session {#rationale-anchor}
-
-{{ICA}} anchors a chain to state showing that its principal is still
-present and records what the chain may do separately. An Agent
-Authorization is often indefinite, so as an anchor it cannot tell a
-working agent from one that has stopped; a dedicated-client assertion
-lasts one request, and routine credential rotation would end chains.
-Only the agent's own authentication refreshes an agent session, so a
-gateway cannot extend a chain it continues, and keeping it per Identity
-Binding stops activity on one platform from sustaining chains rooted
-through another. The absolute expiration bounds a session the agent
-keeps active, as the absolute authorization expiration of "Optional RAS
-Refresh Tokens" in {{FEDERATION}} bounds refresh; without it, a chain
-would substitute for the refresh token that {{WAG}} prohibits.
 
 # Document History
 {:numbered="false"}

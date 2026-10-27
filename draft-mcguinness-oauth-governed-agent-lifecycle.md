@@ -186,10 +186,8 @@ agents it hosts ({{platform-hosted}}). It does not define:
   immediate containment needs complementary runtime enforcement
   ({{api-enforcement}}).
 
-{{recovery}} and {{enforcement}} state the recovery and enforcement
-limits. Deployments requiring stronger revocation-history guarantees need
-an additional composition; timestamps in ordinary resource metadata do
-not provide those guarantees.
+{{recovery}}, {{enforcement}}, and {{missed-transitions}} state the
+recovery and enforcement limits.
 
 # Conventions and Terminology
 
@@ -368,7 +366,9 @@ follow the common provisioning conventions of {{OAUTH-CLIENT}}. In this
 interface, `meta.version` is not a lifecycle counter and
 `meta.lastModified` is not a source decision time or a grant-revocation
 boundary; a descriptive edit can change both without affecting
-authorization.
+authorization. SCIM modification times, SET issuance times, and event
+timestamps MUST NOT be treated as interchangeable grant-issuance
+cutoffs under this profile.
 
 ## Applying Administrative State {#application}
 
@@ -450,29 +450,6 @@ authorization failure.
 A stream verification event proves neither an individual agent's status
 nor completion of resource enforcement. A delivery acknowledgment
 confirms acceptance under the transport, not API denial.
-
-## Missed Transitions and Reactivation {#missed-transitions}
-
-Current state does not establish transition history. If disablement and
-reactivation both occur between successful observations, a later active
-resource does not reveal the missed revocation. A different ETag can
-also result from an ordinary descriptive edit; it does not identify that
-history.
-
-Consequently, this profile does not guarantee rejection after
-reactivation of an old unredeemed ID-JAG or an authorization session
-whose revocation was never observed. Grant validation, replay
-prevention, and expiration still apply. Sessions actually revoked by the
-RAS remain revoked.
-
-Deployments requiring revocation to survive every missed transition need
-retained revocation history, an authoritative authorization check, or a
-separately specified authorization-generation mechanism. That mechanism
-is a deferred composition rather than a prohibition: it would carry an
-authenticated authorization generation in the grant, agreed with ID-JAG,
-and define the comparison the RAS applies. SCIM modification times, SET
-issuance times, and event timestamps MUST NOT be treated as
-interchangeable grant-issuance cutoffs under this profile.
 
 # OAuth Enforcement {#enforcement}
 
@@ -634,6 +611,8 @@ transaction or establish that a remote source replica is current
 
 # Security Considerations
 
+## Provisioning Writers {#security-writers}
+
 Provisioning writers can enable principals and change eligibility. Their
 authority MUST remain scoped to the configured issuer and Target Tenant.
 An event signature, matching display name, or equal `externalId` outside
@@ -645,6 +624,8 @@ Compromised or stale connectors can re-enable principals if their write
 permission remains valid. Administrative authorization, reconciliation,
 and local suspension therefore remain separate controls.
 
+## Events {#security-events}
+
 Event trust, provisioning permission, and session-revocation authority
 remain separate. Receivers MUST constrain source retrieval and
 credential forwarding to authorized endpoints. A signed subject does not
@@ -655,6 +636,26 @@ reconciliation, monitor failures, and retain revoked-session state across
 restarts. Recovery from lost revocation state MUST NOT silently restore
 sessions represented as revoked. The explicit limit in
 {{missed-transitions}} is particularly relevant to unattended refresh.
+
+## Missed Transitions and Reactivation {#missed-transitions}
+
+Current state does not establish transition history. If disablement and
+reactivation both occur between successful observations, a later active
+resource does not reveal the missed revocation. A different ETag can
+also result from an ordinary descriptive edit; it does not identify that
+history.
+
+Consequently, this profile does not guarantee rejection after
+reactivation of an old unredeemed ID-JAG or an authorization session
+whose revocation was never observed. Grant validation, replay
+prevention, and expiration still apply. Sessions actually revoked by the
+RAS remain revoked.
+
+Deployments requiring revocation to survive every missed transition need
+retained revocation history, an authoritative authorization check, or a
+separately specified authorization-generation mechanism.
+
+## Offline Tokens {#security-offline}
 
 A disabled principal may still have tokens accepted by an offline API.
 Token expiry and cached responses MUST be included in operational

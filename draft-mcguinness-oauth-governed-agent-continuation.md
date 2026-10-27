@@ -887,7 +887,7 @@ Each claim has this mandatory interoperability path:
 
 ## Metadata {#metadata}
 
-A continuation-aware RAS that binds handles of governed grants lists
+A continuation-aware RAS that binds handles of governed grants MUST list
 `urn:ietf:params:oauth:grant-profile:governed-agent-continuation` in
 `authorization_grant_profiles_supported` ({{Section 7.2 of ID-JAG}}),
 together with the governed profile URIs that identify the grants it

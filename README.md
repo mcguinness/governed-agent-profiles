@@ -290,10 +290,11 @@ without putting the IdP in the platform's runtime path:
     Association to the same Agent. Its identifier and governance history carry
   over.
 
-The lifecycle draft's
-[platform-hosted walkthrough](https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#platform-example)
-follows one agent from registration through risk signals, disablement,
-re-enablement, third-party access, and retirement.
+The [implementer's guide](docs/implementers-guide.md#platform-hosted-agents)
+follows one agent from registration through third-party access and
+retirement, and the lifecycle draft's
+[platform-hosted example](https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#platform-example)
+shows its risk signals, disablement, and re-enablement.
 
 
 ## Beyond these drafts

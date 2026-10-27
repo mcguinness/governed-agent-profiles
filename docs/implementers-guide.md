@@ -2,14 +2,15 @@
 
 This guide is non-normative. It accompanies [OAuth 2.0 Profile for
 Governed Agent Federation][core] (the core profile), [Agent Resolution
-Input Profiles for Governed Agent Federation][INPUTS], and [Identity
-Continuation Profile for Governed Agent Federation][CONTINUATION]. Those
-documents define every requirement, and they govern wherever this guide
-differs
+Input Profiles for Governed Agent Federation][INPUTS], [Identity
+Continuation Profile for Governed Agent Federation][CONTINUATION], and
+[Governed Agent Lifecycle Profile for SCIM and OAuth][AGENT-LIFECYCLE].
+Those documents define every requirement, and they govern wherever this
+guide differs
 from them. Nothing here is needed to implement them; the guide explains
 the flows, collects the configuration a deployment needs, and records
 deployment tradeoffs. Section names link to the editor's copy of the
-core profile.
+profile that defines them.
 
 * [Primer: two grants, one identity model](#primer-two-grants-one-identity-model)
 * [What each role builds](#what-each-role-builds)
@@ -19,6 +20,7 @@ core profile.
 * [Adoption tradeoffs](#adoption-tradeoffs)
 * [Intermediate adoption](#intermediate-adoption)
 * [Provisioning and linking](#provisioning-and-linking)
+* [Platform-hosted agents](#platform-hosted-agents)
 
 ## Primer: two grants, one identity model
 
@@ -329,6 +331,151 @@ limits. It is not required for conformance to the core profile; [Agent
 Principal Correlation][agent-correlation] and [Authorization Changes and
 Revocation][status-changes] state the core profile's guarantees.
 
+## Platform-hosted agents
+
+A platform that hosts agents and authorizes them for its own resources
+can register them with the IdP for governance ([AGENT-MANAGEMENT]) and
+apply the IdP's administrative state in its own authorization ([Platform-Hosted
+Agents][lc-platform-hosted]). This walkthrough follows one first-party
+agent on a data platform from creation to retirement. The lifecycle
+profile's [example][lc-platform-example] shows the signals, risk change,
+disablement, and re-enablement in between. Signatures, credentials, and
+tokens are omitted or shown as placeholders.
+
+| Party | Identifier |
+|---|---|
+| Enterprise IdP | `https://idp.example/`, SCIM base `https://idp.example/scim/acme` |
+| Data platform | `https://dataplatform.example/` |
+| Platform's workload identifier for the agent (`agt-31`) | `wimse://dataplatform.example/agents/agt-31` |
+| IdP SCIM resource for the agent | `/Agents/a58` |
+| Agent Principal | (`https://idp.example/`, `agent-58`) |
+| Agent owner, an IdP User | `u-2819` |
+
+### Configure the relationship
+
+Once, before any agent exists, the IdP administrator:
+
+* authorizes the platform's connector to register and describe Agents
+  in Governance Tenant `acme`, without authority to create Identity
+  Bindings or Client Associations, or to enable an Agent the IdP
+  disabled;
+* configures a stream from the IdP to the platform for SCIM change
+  notices about the Agents that connector registered, and for CAEP
+  `risk-level-change` with `principal` value `AGENT` agreed for
+  registered agents; and
+* configures a stream from the platform to the IdP for WISE credential
+  and posture events and CAEP `session-revoked` about those Agents.
+
+The platform needs nothing else from the IdP to run its agents. This
+deployment sets no revalidation bound, so the platform keeps
+authorizing on locally applied state while the IdP is unreachable.
+
+### Register the agent
+
+At 14:00 UTC on September 17, 2026, a customer creates a
+report-building agent on the platform. The platform names it `agt-31`,
+with workload identifier `wimse://dataplatform.example/agents/agt-31`,
+and its connector registers the agent:
+
+~~~ http
+POST /scim/acme/Agents HTTP/1.1
+Host: idp.example
+Authorization: Bearer CONNECTOR_ACCESS_TOKEN
+Content-Type: application/scim+json
+
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:Agent",
+    "urn:ietf:params:scim:schemas:extension:agent-federation:2.0:Agent"
+  ],
+  "urn:ietf:params:scim:schemas:extension:agent-federation:2.0:Agent": {},
+  "externalId": "wimse://dataplatform.example/agents/agt-31",
+  "agentUserName": "report-builder",
+  "displayName": "Quarterly report builder",
+  "description": "Builds finance reports from platform tables",
+  "owners": [{"value": "u-2819"}],
+  "active": true
+}
+~~~
+
+IdP policy approves registrations from this connector automatically,
+so the Agent is created active. The response carries SCIM `id` `a58`
+and `AgentFederation.subject` `agent-58`. The platform stores the
+correlation from `agt-31` to (`https://idp.example/`, `agent-58`). The
+Agent has no Identity Binding or Client Association, so the IdP issues
+it no grant.
+
+Under an approval policy, the IdP would instead create the Agent with
+`active: false`, and the platform would deny the agent authorization
+until the IdP activated it.
+
+### Operate on the platform
+
+The agent reads finance tables and writes reports through the
+platform's own authorization; no request reaches the IdP. The
+platform's audit record for one read carries both identifiers, for
+example:
+
+~~~ json
+{
+  "time": "2026-09-17T14:05:00Z",
+  "action": "table.read",
+  "resource": "finance.q3_ledger",
+  "agent": {
+    "platform_id": "wimse://dataplatform.example/agents/agt-31",
+    "principal": {"iss": "https://idp.example/", "sub": "agent-58"}
+  }
+}
+~~~
+
+This shape is illustrative; the lifecycle profile defines no log
+format. The IdP, a SIEM, or a posture tool joins this record with the
+Agent's SCIM resource and the platform's events on the qualified
+identifier.
+
+### Signals, risk, and disablement
+
+From 14:20 to 15:00, the platform reports a credential rotation and
+anomalous behavior, the IdP raises the agent's risk, and an
+administrator disables and then re-enables the agent. The lifecycle
+profile's [example][lc-platform-example] shows each step.
+
+### Reach a third-party resource
+
+Later, the agent needs a third-party API on behalf of Alice, a finance
+analyst who is not its owner. An administrator authorized for bindings
+adds an Identity Binding to `/Agents/a58` with credential class
+`platform-jwt`, source authority `https://dataplatform.example/`, and
+source subject `wimse://dataplatform.example/agents/agt-31`. The
+administrator also adds a Client Association permitting the platform's
+OAuth client to use that binding ([AGENT-MANAGEMENT]). Separately, the
+IdP records Alice's delegation authorization for the agent at that
+resource and scope. The Agent's `owners` do not establish that
+delegation.
+
+For access on Alice's behalf, the platform authenticates its OAuth
+client and presents Alice's ID Token as `subject_token` and its JWT for
+`agt-31` as `actor_token`. After validating delegation authorization for
+the requested resource and scope, the IdP issues an ID-JAG identifying
+Alice in `sub` and (`https://idp.example/`, `agent-58`) in `act` under
+the [core profile][core]. The third-party RAS correlates that pair as in
+the lifecycle profile's [delegated walkthrough][lc-example].
+
+For the agent's own access, with no user, the IdP would instead need
+Agent Authorization and a Client Association for self-acting issuance,
+and would issue a WAG with `agent-58` as `sub`.
+
+Either way, the principal identifier, owner, and audit history
+registered at 14:00 carry over unchanged.
+
+### Retire the agent
+
+At 16:00, the customer deletes the agent. The connector deletes
+`/Agents/a58` at the IdP. The binding and association become unusable,
+and `agent-58` is never assigned to another agent. A third-party
+resource domain provisioned for `agent-58` applies the deletion under
+[Applying Administrative State][lc-application].
+
 [core]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
 [INPUTS]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html
 [AGENT-LIFECYCLE]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
@@ -368,3 +515,7 @@ Revocation][status-changes] state the core profile's guarantees.
 [cont-scope]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#scope-boundaries
 [cont-gateway]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#gateway-reuse
 [cont-implementation]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#implementation
+[lc-platform-hosted]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#platform-hosted
+[lc-platform-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#platform-example
+[lc-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#example
+[lc-application]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#application

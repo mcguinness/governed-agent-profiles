@@ -704,12 +704,25 @@ The client is not the actor, and the subject token is the assertion,
 so failures that {{FEDERATION}} reports at issuance as
 `actor_unauthorized` or `invalid_grant` concern only the requested
 target here. A continuing client recovers as follows:
-`invalid_continuation` means the chain has ended; a limit failure
-(`invalid_grant`) other than a rate limit means that the source hop can
-no longer be continued ({{Section 5.5.6 of ICA}}); and any other code
-affects only the request. After either of the first two, only a new
-root grant, which the agent's client obtains, starts a new chain
-({{gateway-reuse}}).
+
+* `invalid_continuation` means that the chain has ended. Only a new
+  root grant, which the agent's client obtains, starts a new chain
+  ({{gateway-reuse}}).
+* A limit failure (`invalid_grant`) means that a limit of
+  {{Section 6.3 of ICA}} or the continuation window
+  ({{governed-chain-authorization}}) refused this continuation. The
+  limit can belong to the source hop (its fan-out or its continuation
+  window), to the chain or a chain authorization's shared budget (hop
+  count or rate), or to the branch as this client would extend it
+  (actor-lineage depth), and the error does not say which. A
+  rate-limited continuation can succeed after the limit's window; after
+  any other limit, the same continuation fails again while policy is
+  unchanged, and recovery requires a different request
+  ({{Section 5.5.6 of ICA}}). The error establishes neither that the
+  chain has ended nor that the incoming access token is invalid.
+  Without information identifying the limit, a continuing client treats
+  the failure as affecting only the request ({{gateway-reuse}}).
+* Any other code affects only the request.
 
 When the IdP cannot confirm shared state that a continuation depends
 on, such as an agent session ({{self-acting-root}}) or a replay
@@ -791,12 +804,25 @@ another would let it continue after its own chain had ended
 continuation, once for each target.
 
 When continuation from a request's source hop fails with
-`invalid_continuation`, or with a limit failure other than a rate limit,
-the gateway SHOULD reject the agent's request with HTTP 401 and the
-`invalid_token` error code of the access token's scheme ({{RFC6750}},
-{{RFC9449}}), so that the agent's client obtains a new access token and,
-with it, a new root grant. A temporary refusal is not such a failure:
-the gateway retries as {{continuation-errors}} describes.
+`invalid_continuation`, the gateway SHOULD reject the agent's request
+with HTTP 401 and the `invalid_token` error code of the access token's
+scheme ({{RFC6750}}, {{RFC9449}}), so that the agent's client obtains a
+new access token from a new root grant. An access token obtained by
+refresh at the gateway's RAS ("Optional RAS Refresh Tokens" in
+{{FEDERATION}}) can keep the ended source hop, so continuation from it
+fails again until the agent's client obtains a new root grant.
+
+A limit failure (`invalid_grant`) does not end the chain, and a new
+access token can lead to a source hop that fails the same way, as when
+an upstream gateway continues again into the same chain and reaches the
+same hop count or depth. The gateway MUST NOT reject the agent's
+request with `invalid_token` solely because continuation failed with
+`invalid_grant`; it fails the request with an error of its own API. An
+independent failure to validate the access token still leads to
+`invalid_token`. Where deployment-specific information identifies a
+rate limit, the gateway can retry under that limit's policy. A
+temporary refusal is not an error response: the gateway retries as
+{{continuation-errors}} describes.
 
 After the IdP rejects a governed continuation for a request, the
 continuing client MUST NOT serve that request with its own authority or
@@ -875,7 +901,7 @@ Each claim has this mandatory interoperability path:
 
 ## Metadata {#metadata}
 
-A continuation-aware RAS that binds handles of governed grants lists
+A continuation-aware RAS that binds handles of governed grants MUST list
 `urn:ietf:params:oauth:grant-profile:governed-agent-continuation` in
 `authorization_grant_profiles_supported` ({{Section 7.2 of ID-JAG}}),
 together with the governed profile URIs that identify the grants it
@@ -907,10 +933,18 @@ intend.
 
 ## Identity Provider {#implementation-idp}
 
-* **Continuation window:** A deployment whose gateway or client
-  continues from durable task state sets the window of
-  {{governed-chain-authorization}} to the task's needs, as in
-  {{walkthrough-scheduled}}.
+* **Continuation window:** To keep continuation available throughout
+  the authorization that the accepting RAS derives from a hop, a
+  deployment sizes the window of {{governed-chain-authorization}} to
+  cover the redemption window of the grant that carries the hop's
+  handle, plus the lifetime of the access tokens, and of any refresh
+  authorization, that the RAS issues for it. A shorter window limits
+  how long a compromised CAI can use the hop ({{security-gateway}}). Its
+  cost is that the IdP rejects new continuation requests from a hop
+  whose tokens are still accepted, and the gateway fails those requests
+  without prompting a new root grant ({{gateway-reuse}}). A deployment
+  whose gateway or client continues from durable task state sets the
+  window to the task's needs, as in {{walkthrough-scheduled}}.
 * **Agent sessions:** A working agent obtains a new WAG at least as
   often as its gateway access token expires, since WAG redemption
   yields no refresh token, so a deployment sets the idle timeout longer
@@ -1550,6 +1584,8 @@ Each case changes the stated conditions; all other checks succeed.
 | The continuation used the chain's last permitted hop, its response was lost, and the gateway repeats the request with the same assertion | IdP | Where the IdP offers idempotent retry, HTTP 200 with the same onward grant; limits do not apply to recovery |
 | Governed agent access: the root ID-JAG has no `cnf`, the agent's client redeems it without a DPoP proof, GatewayRAS issues a bearer access token, and no policy permits continuation from it | CAI | HTTP 400, `invalid_request`; the authorization is not eligible for continuation |
 | The gateway redeems the onward ID-JAG without a proof of G | Target RAS | HTTP 400, `invalid_grant` |
+| The gateway's source hop has passed its continuation window while the agent's access token at the gateway is still accepted | IdP, then gateway | HTTP 400, `invalid_grant`; the gateway fails the agent's request with an error of its own API, not with HTTP 401 `invalid_token` |
+| Tenant policy sets the actor-lineage depth bound to 1, and `tool-gateway` continues H0, whose lineage is the root client `analysis-client` | IdP, then gateway | HTTP 400, `invalid_grant`; H0 is not unusable, and a continuation from it by `analysis-client`, whose entry merges with the root's, can still succeed; the gateway fails the agent's request without HTTP 401 `invalid_token` |
 | In the scheduled variant, Alice withdraws her Delegation Authorization for `agent-42` before the next run | IdP | HTTP 400, `invalid_continuation`; the chain stays ended, and Alice's delegations to other agents are unaffected |
 | The gateway holds the target token for `agent-42` and receives a request for another agent with the same scope | Gateway | Continues that agent's own chain; a matching scope does not permit reuse |
 | The gateway holds the target token obtained under H0 and receives a request from `agent-42` for Alice with the same scope on another chain | Gateway | Continues that chain from its own access token; the token obtained under H0 is not reused, so the other chain's ending applies to its requests |

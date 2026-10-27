@@ -286,26 +286,8 @@ Thus, `externalId` alone is not a globally qualified identity. A
 deployment with multiple IdPs MUST retain the context with each
 resource; it cannot merge records on equal `externalId` values across
 issuers. This use of `externalId` is specific to the IdP-to-resource
-interface. A platform's `externalId` at the IdP remains its own
-provisioning correlation value.
-The mutability differs for the same reason: at the platform-to-IdP
-interface of {{AGENT-MANAGEMENT}} it is the connector's record key and
-stays readWrite; here it carries the principal identifier and is
-immutable once established.
-
-When the source uses {{AGENT-MANAGEMENT}}, the connector maps the
-interfaces as follows; it does not copy the source Agent unchanged:
-
-| IdP-side source | Resource-domain use |
-|---|---|
-| Configured governing issuer | Issuer established by the authenticated Provisioning Domain |
-| `AgentFederation.subject` | Exact value of the destination Agent's `externalId` |
-| Agent `active` | Upstream administrative state; local restrictions remain independent |
-| Agent `id` | Source-resource correlation, not the destination SCIM `id` |
-| Platform-assigned `externalId` | Platform correlation only; not the federated principal identifier |
-
-This mapping applies equally to direct provisioning and event-driven
-reconciliation. It introduces no additional destination attributes.
+interface; {{implementation-connector}} maps it from the IdP-side
+interface of {{AGENT-MANAGEMENT}}.
 
 For delegated access, the RAS MUST resolve the validated ID-JAG's
 `act.iss` and `act.sub` to this pair within the authorized Target
@@ -359,8 +341,7 @@ including required `agentUserName`, plus the common attributes of
 {{RFC7643}}. It defines no extension schema. Receivers MUST support
 creation, retrieval, filtering by `externalId`, PUT, PATCH, and deletion using
 {{RFC7644}}. The Receiver MUST advertise filtering, PATCH, and ETag
-support in `/ServiceProviderConfig`. Connectors for `/Agents` are
-purpose-built for this resource; User/Group support alone is insufficient.
+support in `/ServiceProviderConfig`.
 
 ## Creation and Updates
 
@@ -447,12 +428,8 @@ receiver SCIM `id` values need not match. A GET of the receiver's own
 replica does not establish the governing IdP's current state.
 
 Direct SCIM connectors and event-driven workers MUST coordinate local
-writes through the same correlation and conditional-update rules. A
-reconciliation worker reads the receiver's ETag before retrieving source
-state, then uses that ETag for its conditional write. After a conflict,
-it retrieves both again. This prevents an in-flight fetch from
-overwriting a later local restriction; it does not create a cross-domain
-transaction or establish that a remote source replica is current.
+writes through the same correlation and conditional-update rules
+({{implementation-receiver}}).
 
 Deployments SHOULD periodically reconcile managed principals even when
 an event stream appears operational. They MUST document how source
@@ -615,6 +592,45 @@ Audit records and telemetry about a registered agent's actions SHOULD
 carry the qualified Agent Principal identifier alongside the platform's
 own identifier for the agent, so that the IdP and other consumers can
 correlate them. This document defines no log or telemetry format.
+
+# Implementation Considerations {#implementation}
+
+These considerations add no requirements. They describe how a connector
+and a Receiver meet the requirements of the sections cited.
+
+## Connector {#implementation-connector}
+
+When the source uses {{AGENT-MANAGEMENT}}, the connector maps the
+interfaces as follows; it does not copy the source Agent unchanged:
+
+| IdP-side source | Resource-domain use |
+|---|---|
+| Configured governing issuer | Issuer established by the authenticated Provisioning Domain |
+| `AgentFederation.subject` | Exact value of the destination Agent's `externalId` |
+| Agent `active` | Upstream administrative state; local restrictions remain independent |
+| Agent `id` | Source-resource correlation, not the destination SCIM `id` |
+| Platform-assigned `externalId` | Platform correlation only; not the federated principal identifier |
+{: title="Mapping from the IdP-side Agent"}
+
+This mapping applies equally to direct provisioning and event-driven
+reconciliation. It introduces no additional destination attributes. A
+platform's `externalId` at the IdP remains its own provisioning
+correlation value. The mutability differs for the same reason: at the
+platform-to-IdP interface of {{AGENT-MANAGEMENT}} it is the connector's
+record key and stays readWrite; here it carries the principal identifier
+and is immutable once established ({{identity}}).
+
+Connectors for `/Agents` are purpose-built for this resource; User and
+Group support alone is insufficient.
+
+## Receiver {#implementation-receiver}
+
+A reconciliation worker reads the Receiver's ETag before retrieving
+source state, then uses that ETag for its conditional write. After a
+conflict, it retrieves both again. This prevents an in-flight fetch from
+overwriting a later local restriction; it does not create a cross-domain
+transaction or establish that a remote source replica is current
+({{recovery}}).
 
 # Security Considerations
 

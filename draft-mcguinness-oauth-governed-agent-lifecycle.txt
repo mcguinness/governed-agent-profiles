@@ -89,18 +89,24 @@ Table of Contents
      5.2.  Applying Administrative State
      5.3.  Effective Eligibility
    6.  Signals and Reconciliation
-     6.1.  Missed Transitions and Reactivation
    7.  OAuth Enforcement
      7.1.  Resource Enforcement and Delay
    8.  Revocation Boundaries
      8.1.  Self-Acting Access
    9.  Platform-Hosted Agents
-   10. Security Considerations
-   11. Privacy Considerations
-   12. IANA Considerations
-   13. References
-     13.1.  Normative References
-     13.2.  Informative References
+   10. Implementation Considerations
+     10.1.  Connector
+     10.2.  Receiver
+   11. Security Considerations
+     11.1.  Provisioning Writers
+     11.2.  Events
+     11.3.  Missed Transitions and Reactivation
+     11.4.  Offline Tokens
+   12. Privacy Considerations
+   13. IANA Considerations
+   14. References
+     14.1.  Normative References
+     14.2.  Informative References
    Appendix A.  Optional Shared Signals Profile
      A.1.  Trust and Delivery
      A.2.  SCIM Reconciliation Triggers
@@ -115,17 +121,12 @@ Table of Contents
    Appendix C.  Signal Examples
      C.1.  Provisioning Change Notice
      C.2.  Revoke Authorization Derived from an ID-JAG
-   Appendix D.  Platform-Hosted Agent Walkthrough
-     D.1.  Configure the Relationship
-     D.2.  Register the Agent
-     D.3.  Operate on the Platform
-     D.4.  Report a Credential Change
-     D.5.  Report Anomalous Behavior
-     D.6.  Raise the Agent's Risk
-     D.7.  Disable the Agent
-     D.8.  Re-enable
-     D.9.  Reach a Third-Party Resource
-     D.10. Retire the Agent
+   Appendix D.  Platform-Hosted Agent Example
+     D.1.  Report a Credential Change
+     D.2.  Report Anomalous Behavior
+     D.3.  Raise the Agent's Risk
+     D.4.  Disable the Agent
+     D.5.  Re-enable
    Appendix E.  Document History
    Acknowledgments
    Author's Address
@@ -237,10 +238,8 @@ Table of Contents
       sessions; immediate containment needs complementary runtime
       enforcement (Section 7.1).
 
-   Section 6 and Section 7 state the recovery and enforcement limits.
-   Deployments requiring stronger revocation-history guarantees need an
-   additional composition; timestamps in ordinary resource metadata do
-   not provide those guarantees.
+   Section 6, Section 7, and Section 11.3 state the recovery and
+   enforcement limits.
 
 2.  Conventions and Terminology
 
@@ -349,38 +348,8 @@ Table of Contents
    deployment with multiple IdPs MUST retain the context with each
    resource; it cannot merge records on equal externalId values across
    issuers.  This use of externalId is specific to the IdP-to-resource
-   interface.  A platform's externalId at the IdP remains its own
-   provisioning correlation value.  The mutability differs for the same
-   reason: at the platform-to-IdP interface of [AGENT-MANAGEMENT] it is
-   the connector's record key and stays readWrite; here it carries the
-   principal identifier and is immutable once established.
-
-   When the source uses [AGENT-MANAGEMENT], the connector maps the
-   interfaces as follows; it does not copy the source Agent unchanged:
-
-    +=========================+======================================+
-    | IdP-side source         | Resource-domain use                  |
-    +=========================+======================================+
-    | Configured governing    | Issuer established by the            |
-    | issuer                  | authenticated Provisioning Domain    |
-    +-------------------------+--------------------------------------+
-    | AgentFederation.subject | Exact value of the destination       |
-    |                         | Agent's externalId                   |
-    +-------------------------+--------------------------------------+
-    | Agent active            | Upstream administrative state; local |
-    |                         | restrictions remain independent      |
-    +-------------------------+--------------------------------------+
-    | Agent id                | Source-resource correlation, not the |
-    |                         | destination SCIM id                  |
-    +-------------------------+--------------------------------------+
-    | Platform-assigned       | Platform correlation only; not the   |
-    | externalId              | federated principal identifier       |
-    +-------------------------+--------------------------------------+
-
-                                 Table 2
-
-   This mapping applies equally to direct provisioning and event-driven
-   reconciliation.  It introduces no additional destination attributes.
+   interface; Section 10.1 maps it from the IdP-side interface of
+   [AGENT-MANAGEMENT].
 
    For delegated access, the RAS MUST resolve the validated ID-JAG's
    act.iss and act.sub to this pair within the authorized Target Tenant.
@@ -433,9 +402,7 @@ Table of Contents
    [RFC7643].  It defines no extension schema.  Receivers MUST support
    creation, retrieval, filtering by externalId, PUT, PATCH, and
    deletion using [RFC7644].  The Receiver MUST advertise filtering,
-   PATCH, and ETag support in /ServiceProviderConfig.  Connectors for
-   /Agents are purpose-built for this resource; User/Group support alone
-   is insufficient.
+   PATCH, and ETag support in /ServiceProviderConfig.
 
 5.1.  Creation and Updates
 
@@ -460,7 +427,9 @@ Table of Contents
    this interface, meta.version is not a lifecycle counter and
    meta.lastModified is not a source decision time or a grant-revocation
    boundary; a descriptive edit can change both without affecting
-   authorization.
+   authorization.  SCIM modification times, SET issuance times, and
+   event timestamps MUST NOT be treated as interchangeable grant-
+   issuance cutoffs under this profile.
 
 5.2.  Applying Administrative State
 
@@ -491,7 +460,7 @@ Table of Contents
    |                      |                       | authority          |
    +----------------------+-----------------------+--------------------+
 
-                                  Table 3
+                                  Table 2
 
    The durable restriction rule of [OAUTH-CLIENT] applies to disablement
    and deletion with the RAS decision point as the decision point; an
@@ -538,13 +507,8 @@ Table of Contents
    state.
 
    Direct SCIM connectors and event-driven workers MUST coordinate local
-   writes through the same correlation and conditional-update rules.  A
-   reconciliation worker reads the receiver's ETag before retrieving
-   source state, then uses that ETag for its conditional write.  After a
-   conflict, it retrieves both again.  This prevents an in-flight fetch
-   from overwriting a later local restriction; it does not create a
-   cross-domain transaction or establish that a remote source replica is
-   current.
+   writes through the same correlation and conditional-update rules
+   (Section 10.2).
 
    Deployments SHOULD periodically reconcile managed principals even
    when an event stream appears operational.  They MUST document how
@@ -567,30 +531,6 @@ Table of Contents
    acknowledgment confirms acceptance under the transport, not API
    denial.
 
-6.1.  Missed Transitions and Reactivation
-
-   Current state does not establish transition history.  If disablement
-   and reactivation both occur between successful observations, a later
-   active resource does not reveal the missed revocation.  A different
-   ETag can also result from an ordinary descriptive edit; it does not
-   identify that history.
-
-   Consequently, this profile does not guarantee rejection after
-   reactivation of an old unredeemed ID-JAG or an authorization session
-   whose revocation was never observed.  Grant validation, replay
-   prevention, and expiration still apply.  Sessions actually revoked by
-   the RAS remain revoked.
-
-   Deployments requiring revocation to survive every missed transition
-   need retained revocation history, an authoritative authorization
-   check, or a separately specified authorization-generation mechanism.
-   That mechanism is a deferred composition rather than a prohibition:
-   it would carry an authenticated authorization generation in the
-   grant, agreed with ID-JAG, and define the comparison the RAS applies.
-   SCIM modification times, SET issuance times, and event timestamps
-   MUST NOT be treated as interchangeable grant-issuance cutoffs under
-   this profile.
-
 7.  OAuth Enforcement
 
    The RAS requirements that apply administrative state to authorization
@@ -605,7 +545,7 @@ Table of Contents
    optional capability in Appendix A.4 additionally retains the ID-JAG
    issuer and jti.  Once reactivated, the principal may establish new
    authorization under ordinary Federation processing, subject to
-   Section 6.1.  Existing tokens whose agent correlation cannot be
+   Section 11.3.  Existing tokens whose agent correlation cannot be
    established MUST NOT be represented as covered by this profile.
 
 7.1.  Resource Enforcement and Delay
@@ -631,7 +571,7 @@ Table of Contents
         |                 | effect earlier                       |
         +-----------------+--------------------------------------+
 
-                                 Table 4
+                                 Table 3
 
    Caching follows Federation and Section 4 of [RFC7662].  In
    particular, cached active responses cannot outlive token expiration
@@ -683,7 +623,7 @@ Table of Contents
     |             | clear it                                          |
     +-------------+---------------------------------------------------+
 
-                                  Table 5
+                                  Table 4
 
    [FEDERATION] defines the binding, association, and delegation
    relationships.  Grant-derived revocation under Appendix A.4 can
@@ -753,7 +693,60 @@ Table of Contents
    consumers can correlate them.  This document defines no log or
    telemetry format.
 
-10.  Security Considerations
+10.  Implementation Considerations
+
+   These considerations add no requirements.  They describe how a
+   connector and a Receiver meet the requirements of the sections cited.
+
+10.1.  Connector
+
+   When the source uses [AGENT-MANAGEMENT], the connector maps the
+   interfaces as follows; it does not copy the source Agent unchanged:
+
+    +=========================+======================================+
+    | IdP-side source         | Resource-domain use                  |
+    +=========================+======================================+
+    | Configured governing    | Issuer established by the            |
+    | issuer                  | authenticated Provisioning Domain    |
+    +-------------------------+--------------------------------------+
+    | AgentFederation.subject | Exact value of the destination       |
+    |                         | Agent's externalId                   |
+    +-------------------------+--------------------------------------+
+    | Agent active            | Upstream administrative state; local |
+    |                         | restrictions remain independent      |
+    +-------------------------+--------------------------------------+
+    | Agent id                | Source-resource correlation, not the |
+    |                         | destination SCIM id                  |
+    +-------------------------+--------------------------------------+
+    | Platform-assigned       | Platform correlation only; not the   |
+    | externalId              | federated principal identifier       |
+    +-------------------------+--------------------------------------+
+
+                 Table 5: Mapping from the IdP-side Agent
+
+   This mapping applies equally to direct provisioning and event-driven
+   reconciliation.  It introduces no additional destination attributes.
+   A platform's externalId at the IdP remains its own provisioning
+   correlation value.  The mutability differs for the same reason: at
+   the platform-to-IdP interface of [AGENT-MANAGEMENT] it is the
+   connector's record key and stays readWrite; here it carries the
+   principal identifier and is immutable once established (Section 4).
+
+   Connectors for /Agents are purpose-built for this resource; User and
+   Group support alone is insufficient.
+
+10.2.  Receiver
+
+   A reconciliation worker reads the Receiver's ETag before retrieving
+   source state, then uses that ETag for its conditional write.  After a
+   conflict, it retrieves both again.  This prevents an in-flight fetch
+   from overwriting a later local restriction; it does not create a
+   cross-domain transaction or establish that a remote source replica is
+   current (Section 6).
+
+11.  Security Considerations
+
+11.1.  Provisioning Writers
 
    Provisioning writers can enable principals and change eligibility.
    Their authority MUST remain scoped to the configured issuer and
@@ -768,6 +761,8 @@ Table of Contents
    reconciliation, and local suspension therefore remain separate
    controls.
 
+11.2.  Events
+
    Event trust, provisioning permission, and session-revocation
    authority remain separate.  Receivers MUST constrain source retrieval
    and credential forwarding to authorized endpoints.  A signed subject
@@ -778,14 +773,34 @@ Table of Contents
    retry reconciliation, monitor failures, and retain revoked-session
    state across restarts.  Recovery from lost revocation state MUST NOT
    silently restore sessions represented as revoked.  The explicit limit
-   in Section 6.1 is particularly relevant to unattended refresh.
+   in Section 11.3 is particularly relevant to unattended refresh.
+
+11.3.  Missed Transitions and Reactivation
+
+   Current state does not establish transition history.  If disablement
+   and reactivation both occur between successful observations, a later
+   active resource does not reveal the missed revocation.  A different
+   ETag can also result from an ordinary descriptive edit; it does not
+   identify that history.
+
+   Consequently, this profile does not guarantee rejection after
+   reactivation of an old unredeemed ID-JAG or an authorization session
+   whose revocation was never observed.  Grant validation, replay
+   prevention, and expiration still apply.  Sessions actually revoked by
+   the RAS remain revoked.
+
+   Deployments requiring revocation to survive every missed transition
+   need retained revocation history, an authoritative authorization
+   check, or a separately specified authorization-generation mechanism.
+
+11.4.  Offline Tokens
 
    A disabled principal may still have tokens accepted by an offline
    API.  Token expiry and cached responses MUST be included in
    operational claims; stopping issuance alone does not terminate
    ongoing work or retract operations already performed.
 
-11.  Privacy Considerations
+12.  Privacy Considerations
 
    The qualified identity permits correlation across users and
    resources.  Provisioning and event access SHOULD be limited to the
@@ -793,13 +808,13 @@ Table of Contents
    actions and affected identities without copying reusable grants,
    access tokens, or credentials.
 
-12.  IANA Considerations
+13.  IANA Considerations
 
    This document requests no IANA actions.
 
-13.  References
+14.  References
 
-13.1.  Normative References
+14.1.  Normative References
 
    [CAEP]     OpenID Foundation, "OpenID Continuous Access Evaluation
               Profile 1.0", 29 August 2025,
@@ -897,7 +912,7 @@ Table of Contents
               2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
               May 2017, <https://www.rfc-editor.org/info/rfc8174>.
 
-13.2.  Informative References
+14.2.  Informative References
 
    [AGENT-MANAGEMENT]
               McGuinness, K., "SCIM Profile for Governed Agent
@@ -905,6 +920,10 @@ Table of Contents
               draft-mcguinness-scim-agent-federation, 18 September 2026,
               <https://mcguinness.github.io/governed-agent-profiles/
               draft-mcguinness-scim-agent-federation.html>.
+
+   [GUIDE]    McGuinness, K., "Implementer's Guide for Governed Agent
+              Federation", <https://github.com/mcguinness/governed-
+              agent-profiles/blob/main/docs/implementers-guide.md>.
 
    [RFC7009]  Lodderstedt, T., Ed., Dronia, S., and M. Scurtescu, "OAuth
               2.0 Token Revocation", RFC 7009, DOI 10.17487/RFC7009,
@@ -1355,13 +1374,18 @@ C.2.  Revoke Authorization Derived from an ID-JAG
    session derived from grant-7, not another grant's sessions or every
    session involving the same agent.
 
-Appendix D.  Platform-Hosted Agent Walkthrough
+Appendix D.  Platform-Hosted Agent Example
 
-   This non-normative walkthrough follows one first-party agent on a
-   data platform from creation to retirement, under Section 9 and
-   [AGENT-MANAGEMENT].  It is a specification walkthrough, not an
-   executed implementation test.  Signatures, credentials, and tokens
-   are omitted or shown as placeholders.
+   This non-normative example follows one first-party agent on a data
+   platform through signals, a risk change, disablement, and re-
+   enablement under Section 9.  The platform's connector registered the
+   agent with the IdP under [AGENT-MANAGEMENT], which returned the Agent
+   Principal identifier, and streams in both directions are configured
+   as Appendix A.3 describes.  This deployment sets no revalidation
+   bound (Section 6), so the platform keeps authorizing on locally
+   applied state while the IdP is unreachable.  [GUIDE] shows that
+   setup, and the agent's later federation and retirement.  Signatures,
+   credentials, and tokens are omitted or shown as placeholders.
 
       +=====================+======================================+
       | Party               | Identifier                           |
@@ -1380,97 +1404,14 @@ Appendix D.  Platform-Hosted Agent Walkthrough
       +---------------------+--------------------------------------+
       | Agent Principal     | (https://idp.example/, agent-58)     |
       +---------------------+--------------------------------------+
-      | Agent owner, an IdP | u-2819                               |
-      | User                |                                      |
-      +---------------------+--------------------------------------+
 
-                     Table 9: Walkthrough identifiers
+                       Table 9: Example identifiers
 
-D.1.  Configure the Relationship
+D.1.  Report a Credential Change
 
-   Once, before any agent exists, the IdP administrator:
-
-   *  authorizes the platform's connector to register and describe
-      Agents in Governance Tenant acme, without authority to create
-      Identity Bindings or Client Associations, or to enable an Agent
-      the IdP disabled;
-
-   *  configures a stream from the IdP to the platform for SCIM change
-      notices about the Agents that connector registered, and for CAEP
-      risk-level-change with principal value AGENT agreed for registered
-      agents; and
-
-   *  configures a stream from the platform to the IdP for WISE
-      credential and posture events and CAEP session-revoked about those
-      Agents.
-
-   The platform needs nothing else from the IdP to run its agents.  This
-   deployment sets no revalidation bound, so the platform keeps
-   authorizing on locally applied state while the IdP is unreachable.
-
-D.2.  Register the Agent
-
-   At 14:00 UTC on September 17, 2026, a customer creates a report-
-   building agent on the platform.  The platform names it agt-31, with
-   workload identifier wimse://dataplatform.example/agents/agt-31, and
-   its connector registers the agent:
-
-   POST /scim/acme/Agents HTTP/1.1
-   Host: idp.example
-   Authorization: Bearer CONNECTOR_ACCESS_TOKEN
-   Content-Type: application/scim+json
-
-   {
-     "schemas": [
-       "urn:ietf:params:scim:schemas:core:2.0:Agent",
-     "urn:ietf:params:scim:schemas:extension:agent-federation:2.0:Agent"
-     ],
-    "urn:ietf:params:scim:schemas:extension:agent-federation:2.0:Agent":
-       {},
-     "externalId": "wimse://dataplatform.example/agents/agt-31",
-     "agentUserName": "report-builder",
-     "displayName": "Quarterly report builder",
-     "description": "Builds finance reports from platform tables",
-     "owners": [{"value": "u-2819"}],
-     "active": true
-   }
-
-   IdP policy approves registrations from this connector automatically,
-   so the Agent is created active.  The response carries SCIM id a58 and
-   AgentFederation.subject agent-58.  The platform stores the
-   correlation from agt-31 to (https://idp.example/, agent-58).  The
-   Agent has no Identity Binding or Client Association, so the IdP
-   issues it no grant.
-
-   Under an approval policy, the IdP would instead create the Agent with
-   active: false, and the platform would deny the agent authorization
-   until the IdP activated it.
-
-D.3.  Operate on the Platform
-
-   The agent reads finance tables and writes reports through the
-   platform's own authorization; no request reaches the IdP.  The
-   platform's audit record for one read carries both identifiers, for
-   example:
-
-   {
-     "time": "2026-09-17T14:05:00Z",
-     "action": "table.read",
-     "resource": "finance.q3_ledger",
-     "agent": {
-       "platform_id": "wimse://dataplatform.example/agents/agt-31",
-       "principal": {"iss": "https://idp.example/", "sub": "agent-58"}
-     }
-   }
-
-   This shape is illustrative; Section 9 defines no log format.  The
-   IdP, a SIEM, or a posture tool joins this record with the Agent's
-   SCIM resource and the events below on the qualified identifier.
-
-D.4.  Report a Credential Change
-
-   At 14:20, the platform rotates the agent's Workload Identity
-   Certificate and reports it to the IdP in a SET with these claims:
+   At 14:20 UTC on September 17, 2026, the platform rotates the agent's
+   Workload Identity Certificate and reports it to the IdP in a SET with
+   these claims:
 
    {
      "iss": "https://dataplatform.example/",
@@ -1510,13 +1451,13 @@ D.4.  Report a Credential Change
    registered agent-58 and both identifiers name that Agent.  The event
    updates the IdP's view of the agent; it does not change active.
 
-D.5.  Report Anomalous Behavior
+D.2.  Report Anomalous Behavior
 
    At 14:25, the platform observes the agent reading tables outside its
    usual pattern and sends WISE anomalous-behavior-detected with
    severity high and the same subject.  The event is advisory.
 
-D.6.  Raise the Agent's Risk
+D.3.  Raise the Agent's Risk
 
    At 14:30, the IdP's risk analysis, combining the platform's report
    with other signals, rates the agent HIGH.  It sends CAEP risk-level-
@@ -1524,7 +1465,7 @@ D.6.  Raise the Agent's Risk
    Platform policy restricts the agent to read-only operations.  The
    agent remains active; a risk event is not a disablement.
 
-D.7.  Disable the Agent
+D.4.  Disable the Agent
 
    At 14:31, an IdP administrator disables agent-58.  The IdP sends the
    platform a SCIM change notice for /Agents/a58, as in Appendix C.  The
@@ -1544,7 +1485,7 @@ D.7.  Disable the Agent
    reconciliation retrieves the Agent.  An unreachable IdP neither
    disables nor re-enables the agent.
 
-D.8.  Re-enable
+D.5.  Re-enable
 
    At 15:00, the IdP administrator re-enables the Agent, and the
    platform retrieves and applies active: true.  The agent can obtain
@@ -1554,42 +1495,6 @@ D.8.  Re-enable
 
    If the platform had suspended the agent itself, re-enablement at the
    IdP would not clear that Local Suspension.
-
-D.9.  Reach a Third-Party Resource
-
-   Later, the agent needs a third-party API on behalf of Alice, a
-   finance analyst who is not its owner.  An administrator authorized
-   for bindings adds an Identity Binding to /Agents/a58 with credential
-   class platform-jwt, source authority https://dataplatform.example/,
-   and source subject wimse://dataplatform.example/agents/agt-31.  The
-   administrator also adds a Client Association permitting the
-   platform's OAuth client to use that binding ([AGENT-MANAGEMENT]).
-   Separately, the IdP records Alice's delegation authorization for the
-   agent at that resource and scope.  The Agent's owners do not
-   establish that delegation.
-
-   For access on Alice's behalf, the platform authenticates its OAuth
-   client and presents Alice's ID Token as subject_token and its JWT for
-   agt-31 as actor_token.  After validating delegation authorization for
-   the requested resource and scope, the IdP issues an ID-JAG
-   identifying Alice in sub and (https://idp.example/, agent-58) in act
-   under [FEDERATION].  The third-party RAS correlates that pair as in
-   Appendix B.
-
-   For the agent's own access, with no user, the IdP would instead need
-   Agent Authorization and a Client Association for self-acting
-   issuance, and would issue a WAG with agent-58 as sub.
-
-   Either way, the principal identifier, owner, and audit history
-   registered at 14:00 carry over unchanged.
-
-D.10.  Retire the Agent
-
-   At 16:00, the customer deletes the agent.  The connector deletes
-   /Agents/a58 at the IdP.  The binding and association become unusable,
-   and agent-58 is never assigned to another agent.  A third-party
-   resource domain provisioned for agent-58 applies the deletion under
-   Section 5.2.
 
 Appendix E.  Document History
 

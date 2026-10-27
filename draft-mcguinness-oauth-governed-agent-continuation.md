@@ -397,11 +397,8 @@ session, governs what the chain may do.
 A self-acting chain ends with its agent session ({{Section 6.2 of ICA}}),
 which neither the gateway nor the CAI can keep active
 ({{implementation-idp}}). IdP instances evaluate the idle timeout and
-the absolute expiration against shared session state. An instance that
-cannot confirm the session's state MUST reject the request rather than
-issue, as {{Section 5.5.7 of ICA}} requires for replay reservations,
-with the temporary refusal of {{continuation-errors}}, and MUST NOT
-treat the session as ended on that basis; the chain stays continuable.
+the absolute expiration against shared session state; an instance that
+cannot confirm it refuses temporarily ({{continuation-errors}}).
 
 # Root Redemption at the Gateway's RAS {#root-redemption}
 
@@ -735,11 +732,12 @@ root grant, which the agent's client obtains, starts a new chain
 When the IdP cannot confirm shared state that a continuation depends
 on, such as an agent session ({{self-acting-root}}) or a replay
 reservation ({{Section 5.5.7 of ICA}}), it MUST respond with HTTP status
-code 503 (Service Unavailable) ({{Section 15.6.4 of RFC9110}}) and
-SHOULD include a `Retry-After` header field
-({{Section 10.2.3 of RFC9110}}). This temporary refusal is not an OAuth
-error response: the chain has not ended, and the request was not judged
-invalid. Because the IdP reserves an assertion only after every step
+code 503 (Service Unavailable) ({{Section 15.6.4 of RFC9110}}), SHOULD
+include a `Retry-After` header field ({{Section 10.2.3 of RFC9110}}),
+and MUST NOT treat an agent session as ended on that basis. This
+temporary refusal is not an OAuth error response: the chain has not
+ended, and the request was not judged invalid. Because the IdP reserves
+an assertion only after every step
 succeeds, the continuing client MAY retry the same request with the
 same assertion while it is unexpired, after any `Retry-After` interval,
 with a fresh client assertion and DPoP proof as the retry rule of

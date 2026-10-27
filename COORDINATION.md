@@ -220,8 +220,9 @@ The companion is not required for conformance to this federation profile;
 
 `draft-mcguinness-oauth-governed-agent-continuation.md` (`CONTINUATION`)
 profiles ICA-02 for governed chains, with gateways as the primary
-deployment. Its "Dependencies and Open Items" appendix summarizes these
-notes. Backquoted anchors in this section refer to that draft.
+deployment. Its "Relationship to Other Specifications" appendix lists
+the changes these notes discuss. Backquoted anchors in this section
+refer to that draft.
 
 ### ICA
 

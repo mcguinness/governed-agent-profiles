@@ -658,10 +658,6 @@ read the absence of `continuation_via` as evidence that no continuing
 client was involved, unless trusted configuration establishes that the
 RAS that issued its token supports path disclosure.
 
-This document defines `continuation_via` for governed chains. It is
-proposed for {{ICA}} as the disclosure of forwarding intermediaries in
-general ({{dependencies}}).
-
 ### Delegated: ID-JAG {#onward-id-jag}
 
 The onward ID-JAG uses the format and claims of

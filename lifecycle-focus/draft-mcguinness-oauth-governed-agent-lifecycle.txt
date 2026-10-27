@@ -1381,9 +1381,11 @@ Appendix D.  Platform-Hosted Agent Example
    enablement under Section 9.  The platform's connector registered the
    agent with the IdP under [AGENT-MANAGEMENT], which returned the Agent
    Principal identifier, and streams in both directions are configured
-   as Appendix A.3 describes.  [GUIDE] shows that setup, and the agent's
-   later federation and retirement.  Signatures, credentials, and tokens
-   are omitted or shown as placeholders.
+   as Appendix A.3 describes.  This deployment sets no revalidation
+   bound (Section 6), so the platform keeps authorizing on locally
+   applied state while the IdP is unreachable.  [GUIDE] shows that
+   setup, and the agent's later federation and retirement.  Signatures,
+   credentials, and tokens are omitted or shown as placeholders.
 
       +=====================+======================================+
       | Party               | Identifier                           |

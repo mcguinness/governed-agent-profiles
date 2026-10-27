@@ -807,7 +807,10 @@ When continuation from a request's source hop fails with
 `invalid_continuation`, the gateway SHOULD reject the agent's request
 with HTTP 401 and the `invalid_token` error code of the access token's
 scheme ({{RFC6750}}, {{RFC9449}}), so that the agent's client obtains a
-new access token and, with it, a new root grant.
+new access token from a new root grant. An access token obtained by
+refresh at the gateway's RAS ("Optional RAS Refresh Tokens" in
+{{FEDERATION}}) can keep the ended source hop, so continuation from it
+fails again until the agent's client obtains a new root grant.
 
 A limit failure (`invalid_grant`) does not end the chain, and a new
 access token can lead to a source hop that fails the same way, as when

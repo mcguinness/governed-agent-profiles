@@ -239,7 +239,15 @@ rule that stays local to the profile:
   The companion now defines `continuation_via`, which discloses
   continuing clients as intermediaries rather than actors, and proposes
   it for ICA with an acting or forwarding mode per hop (ICA issue #138).
-  If ICA adopts it, the companion uses ICA's claim instead.
+  If ICA adopts it, the companion uses ICA's claim instead. Precedents
+  record forwarding services apart from the principal: in the terms of
+  [WS-Trust 1.4](http://docs.oasis-open.org/ws-sx/ws-trust/v1.4/os/ws-trust-1.4-spec-os.html),
+  the gateway requests access on behalf of the agent rather than acting
+  as it; the Kerberos privilege attribute certificate lists the services
+  that a delegated ticket passed through
+  ([MS-PAC](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-pac/));
+  and AWS lists the services that made a request on a principal's
+  behalf ([AWS global condition context keys](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html)).
 * **Non-user anchors:** Section 6.1 of ICA puts non-user-rooted
   authority out of scope. Self-acting chains anchor to an agent
   session: IdP state refreshed only by the agent's own authentication

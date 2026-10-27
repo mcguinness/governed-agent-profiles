@@ -70,28 +70,10 @@ informative:
       - name: Karl McGuinness
     date: false
     target: https://github.com/mcguinness/governed-agent-profiles/blob/main/docs/implementers-guide.md
-  AWS-CALLEDVIA:
-    title: "AWS global condition context keys"
-    target: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html
-    author:
-      - org: Amazon Web Services
-    date: false
-  KERBEROS-PAC:
-    title: "Privilege Attribute Certificate Data Structure"
-    target: https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-pac/
-    author:
-      - org: Microsoft
-    date: false
   RFC6755:
   RFC7519:
   RFC7662:
   WAG: I-D.carleton-workload-authz-grant
-  WS-TRUST:
-    title: "WS-Trust 1.4"
-    target: http://docs.oasis-open.org/ws-sx/ws-trust/v1.4/os/ws-trust-1.4-spec-os.html
-    author:
-      - org: OASIS
-    date: false
 
 --- abstract
 
@@ -986,14 +968,9 @@ problem. A governed RAS and API would have to process nested `act`,
 which {{FEDERATION}} rejects, and a WAG, which carries no `act`, could
 not represent the gateway at all.
 
-In the terms of {{WS-TRUST}}, the gateway requests access on behalf of
-the agent rather than acting as it: the agent acts for the user, and the
-gateway forwards. A forwarding intermediary is still disclosed, in
-`continuation_via`. Related precedents record forwarding services apart
-from the principal: the Kerberos privilege attribute certificate lists
-the services that a delegated ticket passed through ({{KERBEROS-PAC}}),
-and AWS lists the services that made a request on a principal's behalf
-({{AWS-CALLEDVIA}}). Attribution and path-based policy therefore need no
+The agent acts for the user, and the gateway forwards the agent's
+request. A forwarding intermediary is still disclosed, in
+`continuation_via`, so attribution and path-based policy need no
 lineage in `act`.
 
 The user's approval reaches the gateway through the Delegation

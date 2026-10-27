@@ -731,23 +731,8 @@ Existing OAuth mechanisms leave three relationships open:
    client or workload credential, or how a resource domain correlates
    that name with local state.
 
-The following table lists how this profile fills them. It is
-non-normative; the referenced sections define each requirement.
-
-| Area | Profile requirement | Defined in |
-|---|---|---|
-| Actor extension | Identity Binding resolves the agent; a separate Client Association authorizes client use | {{identity-binding}} |
-| Dedicated-client input | Resolved from authenticated client context; issuer identifier as sole assertion audience; single-use `jti` | {{client-assertion-input}}, {{Section 4 of RFC7523bis}} |
-| Other authentication-context inputs | Resolved from the identity validated by SPIFFE or Client Attestation authentication | {{actor-inputs}}; the inputs are defined in {{INPUTS}} |
-| Actor representation | One actor: Agent Principal as `act.sub`, IdP as `act.iss`; replaces Actor Profile's credential-to-actor copying | {{actor-construction}} |
-| Request narrowing | Configured resolution mode; one resource; non-empty scope; actor-token parameters required in presented-evidence mode and rejected otherwise; no incoming actor chain | {{issuance-request}}, {{root-request}}, {{actor-inputs}} |
-| Identity and client binding | Users and agents resolved separately; downstream `client_id` from an authoritative client-registration association | {{idp-subject-resolution}}, {{subject-resolution}}, {{agent-correlation}}, {{flow-configuration}} |
-| Grant narrowing | One resource URI (a string; singleton arrays accepted), scope constraints, input-specific expiration limits; single use unless bound; DPoP and `cnf.jkt` in the bound profile | {{grant-common}}, {{grant-issuance}}, {{redemption-common}}, {{grant-protection}} |
-| Resource processing | Actor and tenant context preserved; user authority and actor gate enforced with the selected token protection | {{access-token-response}}, {{api-processing}} |
-| Refresh narrowing | Explicit policy, client binding, preserved proof binding and profile, finite absolute authorization expiration | {{ras-refresh}} |
-| Error processing | `invalid_grant`, not RFC 8693's default `invalid_request`, for subject or actor credential and resolution failures; `actor_unauthorized` for a denied resolved actor | {{issuance-errors}} |
-| Profile discovery | Governed profiles in existing ID-JAG metadata; trusted policy sets the minimum | {{metadata}}, {{discovery}} |
-{: title="Additions and narrowings to the base specifications"}
+{{base-differences}} lists how this profile fills them; the referenced
+sections define each requirement.
 
 ## Self-Acting Access with WAG {#wag-flow}
 
@@ -761,18 +746,7 @@ these requirements. This document defines the complete wire contract it
 relies on, so {{WAG}} is an informative reference, and the composition
 remains subject to alignment with the evolving WAG specification
 ({{wag-gaps}}). The WAG token and JWT types are provisional.
-
-| Area | WAG-01 | This profile |
-|---|---|---|
-| Issuer | The Platform that created the agent | The governing IdP, through token exchange ({{wag-issuance}}) |
-| Client authentication | Not required; `client_id` carries no meaning | Required at issuance and redemption; `client_id` is the client's registration at the RAS ({{redemption-common}}) |
-| Grant binding | Bearer; proof of possession open | DPoP under {{grant-protection}}, required for the bound profile |
-| Explicit type | None defined | `typ` `wag+jwt`, checked at redemption ({{wag-redemption}}) |
-| Replay | Open | Unbound grants are single-use ({{redemption-common}}) |
-| `resource` | Recommended, not required | Exactly one ({{issuance-request}}) |
-| Previously unseen agents | Accepted on first assertion | Authorized correlation required ({{agent-correlation}}) |
-| Refresh tokens | Prohibited | Prohibited |
-{: title="Governed composition of WAG"}
+{{base-differences}} compares this composition with WAG-01.
 
 ## Adoption Profiles {#adoption-profiles}
 
@@ -2858,12 +2832,48 @@ variant covers evidence resolution, not a product's end-to-end
 conformance. User-access-token OBO composition remains outside the scope
 of this document ({{excluded-compositions}}).
 
-# Dependencies and Excluded Compositions {#upstream-gaps}
+# Differences, Dependencies, and Excluded Compositions {#upstream-gaps}
 
-This informative appendix records dependencies and the compositions this
-document does not define. They were assessed against WAG-01, ID-JAG-04,
-ICA-02, Actor Profile-01, SPIFFE OAuth-02, ATTEST-11, CIMD-02, and Client
-Instance Identification-00.
+This informative appendix records how this document differs from its
+base specifications, what it depends on, and the compositions it does
+not define. They were assessed against WAG-01, ID-JAG-04, ICA-02, Actor
+Profile-01, SPIFFE OAuth-02, ATTEST-11, CIMD-02, and Client Instance
+Identification-00.
+
+## Differences from Base Specifications {#base-differences}
+
+This profile fills the gaps of {{profile-additions}} as follows. The
+referenced sections define each requirement.
+
+| Area | Profile requirement | Defined in |
+|---|---|---|
+| Actor extension | Identity Binding resolves the agent; a separate Client Association authorizes client use | {{identity-binding}} |
+| Dedicated-client input | Resolved from authenticated client context; issuer identifier as sole assertion audience; single-use `jti` | {{client-assertion-input}}, {{Section 4 of RFC7523bis}} |
+| Other authentication-context inputs | Resolved from the identity validated by SPIFFE or Client Attestation authentication | {{actor-inputs}}; the inputs are defined in {{INPUTS}} |
+| Actor representation | One actor: Agent Principal as `act.sub`, IdP as `act.iss`; replaces Actor Profile's credential-to-actor copying | {{actor-construction}} |
+| Request narrowing | Configured resolution mode; one resource; non-empty scope; actor-token parameters required in presented-evidence mode and rejected otherwise; no incoming actor chain | {{issuance-request}}, {{root-request}}, {{actor-inputs}} |
+| Identity and client binding | Users and agents resolved separately; downstream `client_id` from an authoritative client-registration association | {{idp-subject-resolution}}, {{subject-resolution}}, {{agent-correlation}}, {{flow-configuration}} |
+| Grant narrowing | One resource URI (a string; singleton arrays accepted), scope constraints, input-specific expiration limits; single use unless bound; DPoP and `cnf.jkt` in the bound profile | {{grant-common}}, {{grant-issuance}}, {{redemption-common}}, {{grant-protection}} |
+| Resource processing | Actor and tenant context preserved; user authority and actor gate enforced with the selected token protection | {{access-token-response}}, {{api-processing}} |
+| Refresh narrowing | Explicit policy, client binding, preserved proof binding and profile, finite absolute authorization expiration | {{ras-refresh}} |
+| Error processing | `invalid_grant`, not RFC 8693's default `invalid_request`, for subject or actor credential and resolution failures; `actor_unauthorized` for a denied resolved actor | {{issuance-errors}} |
+| Profile discovery | Governed profiles in existing ID-JAG metadata; trusted policy sets the minimum | {{metadata}}, {{discovery}} |
+{: title="Additions and narrowings to the base specifications"}
+
+For self-acting access, this profile composes {{WAG}} as follows
+({{wag-flow}}):
+
+| Area | WAG-01 | This profile |
+|---|---|---|
+| Issuer | The Platform that created the agent | The governing IdP, through token exchange ({{wag-issuance}}) |
+| Client authentication | Not required; `client_id` carries no meaning | Required at issuance and redemption; `client_id` is the client's registration at the RAS ({{redemption-common}}) |
+| Grant binding | Bearer; proof of possession open | DPoP under {{grant-protection}}, required for the bound profile |
+| Explicit type | None defined | `typ` `wag+jwt`, checked at redemption ({{wag-redemption}}) |
+| Replay | Open | Unbound grants are single-use ({{redemption-common}}) |
+| `resource` | Recommended, not required | Exactly one ({{issuance-request}}) |
+| Previously unseen agents | Accepted on first assertion | Authorized correlation required ({{agent-correlation}}) |
+| Refresh tokens | Prohibited | Prohibited |
+{: title="Governed composition of WAG"}
 
 ## Upstream Dependencies
 

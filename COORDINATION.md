@@ -1,10 +1,11 @@
 # Coordination Notes for OAuth 2.0 Profile for Governed Agent Federation
 
 This file keeps the full coordination notes that the draft's
-"Dependencies and Excluded Compositions" appendix summarizes. They list
-what the profile needs from the specifications it depends on, and the
-compositions it defers, in more detail than the draft carries before
-working-group adoption. Backquoted names refer to anchors and references
+"Differences, Dependencies, and Excluded Compositions" appendix
+summarizes. They list what the profile needs from the specifications it
+depends on, and the compositions it defers, in more detail than the
+draft carries before working-group adoption. Backquoted names refer to
+anchors and references
 in `draft-mcguinness-oauth-governed-agent-federation.md`, except where a
 note names the input profiles companion
 (`draft-mcguinness-oauth-governed-agent-inputs.md`, `INPUTS`) or the

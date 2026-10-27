@@ -933,16 +933,18 @@ intend.
 
 ## Identity Provider {#implementation-idp}
 
-* **Continuation window:** A deployment sets the window of
-  {{governed-chain-authorization}} longer than a source hop stays in
-  use: the redemption window of the grant that carries its handle, plus
-  the lifetime of the access tokens, and of any refresh authorization,
-  that the accepting RAS issues for it. A hop that passes its window
-  while those tokens are accepted fails every continuation from it, and
-  the gateway fails each such request without prompting a new root grant
-  ({{gateway-reuse}}). A deployment whose gateway or client continues
-  from durable task state sets the window to the task's needs, as in
-  {{walkthrough-scheduled}}.
+* **Continuation window:** To keep continuation available throughout
+  the authorization that the accepting RAS derives from a hop, a
+  deployment sizes the window of {{governed-chain-authorization}} to
+  cover the redemption window of the grant that carries the hop's
+  handle, plus the lifetime of the access tokens, and of any refresh
+  authorization, that the RAS issues for it. A shorter window limits
+  how long a compromised CAI can use the hop ({{security-gateway}}). Its
+  cost is that the IdP rejects new continuation requests from a hop
+  whose tokens are still accepted, and the gateway fails those requests
+  without prompting a new root grant ({{gateway-reuse}}). A deployment
+  whose gateway or client continues from durable task state sets the
+  window to the task's needs, as in {{walkthrough-scheduled}}.
 * **Agent sessions:** A working agent obtains a new WAG at least as
   often as its gateway access token expires, since WAG redemption
   yields no refresh token, so a deployment sets the idle timeout longer

@@ -339,8 +339,7 @@ The IdP SHOULD also enforce a configured continuation window: it refuses
 continuation from a hop more than that window after it issued the hop,
 with `invalid_grant` as for those limits. The window bounds how long a
 CAI, including one that a compromised gateway operator controls, can
-obtain continuations from a hop it accepted. A deployment whose gateway
-continues from durable task state sets the window to the task's needs.
+obtain continuations from a hop it accepted ({{implementation-idp}}).
 
 ## Delegated Root {#delegated-root}
 
@@ -390,17 +389,9 @@ session, governs what the chain may do.
   session's Agent Principal or Identity Binding also ends the session.
 
 A self-acting chain ends with its agent session ({{Section 6.2 of ICA}}),
-which neither the gateway nor the CAI can keep active. Work that a
-gateway performs after the agent stops authenticating, such as queued
-work, therefore loses continuation at the idle timeout; work that must
-outlive the agent's authentication needs a durable anchor
-({{open-items}}). A working agent obtains a new WAG at least as often
-as its gateway access token expires, since WAG redemption yields no
-refresh token, so a deployment sets the idle timeout longer than that
-token's lifetime. If the token outlives the session, continuation fails
-and the gateway's response leads the agent's client to a new root grant
-({{gateway-reuse}}). IdP instances evaluate the idle timeout and the
-absolute expiration against shared session state. An instance that
+which neither the gateway nor the CAI can keep active
+({{implementation-idp}}). IdP instances evaluate the idle timeout and
+the absolute expiration against shared session state. An instance that
 cannot confirm the session's state MUST reject the request rather than
 issue, as {{Section 5.5.7 of ICA}} requires for replay reservations,
 with the temporary refusal of {{continuation-errors}}, and MUST NOT
@@ -798,10 +789,6 @@ deployment adds this configuration to that of {{FEDERATION}}:
 | Target RAS | A client registration for the gateway, one for each population where delegated and self-acting access are distinguished by registration; DPoP support |
 {: title="Configuration added by a gateway deployment"}
 
-A gateway that serves several Governance Tenants is configured in each,
-because {{ICA}} scopes actor identities and CAI trust to one tenant; how
-it selects among those registrations is an open item ({{open-items}}).
-
 ## Topologies {#gateway-topologies}
 
 | Topology | CAI | Use |
@@ -888,12 +875,10 @@ The IdP MUST treat a chain as ended once it has applied, since the
 chain's establishment, any change that the table lists as ending it,
 even if the relationship has since been restored. It applies such
 changes within the freshness limit of "Issuance Authorization" in
-{{FEDERATION}}, and it can determine the outcome when it applies the
-change or at the next continuation, for example by comparing a revision
-of each relationship, recorded at establishment and changed by every
-disablement or withdrawal. Grants and access tokens already issued
-follow "Authorization Changes and Revocation" in {{FEDERATION}}, which
-the grant-derived revocation of {{AGENT-LIFECYCLE}} can propagate.
+{{FEDERATION}} ({{implementation-idp}}). Grants and access tokens
+already issued follow "Authorization Changes and Revocation" in
+{{FEDERATION}}, which the grant-derived revocation of
+{{AGENT-LIFECYCLE}} can propagate.
 
 # Conformance and Capability Advertisement {#conformance}
 
@@ -956,6 +941,40 @@ continuation is established through trusted configuration ("Capability
 Discovery" in {{FEDERATION}}); no IdP metadata advertises it. The same
 holds for grant-anchored continuation ({{conformance-claims}}).
 Advertisement indicates capability and does not authorize continuation.
+
+# Implementation Considerations {#implementation}
+
+These considerations add no requirements. They describe deployment
+choices that decide whether continuation works as the sections cited
+intend.
+
+## Identity Provider {#implementation-idp}
+
+* **Continuation window:** A deployment whose gateway or client
+  continues from durable task state sets the window of
+  {{governed-chain-authorization}} to the task's needs, as in
+  {{walkthrough-scheduled}}.
+* **Agent sessions:** A working agent obtains a new WAG at least as
+  often as its gateway access token expires, since WAG redemption
+  yields no refresh token, so a deployment sets the idle timeout longer
+  than that token's lifetime. If the token outlives the session,
+  continuation fails, and the gateway's response leads the agent's
+  client to a new root grant ({{gateway-reuse}}). Work that a gateway
+  performs after the agent stops authenticating, such as queued work,
+  loses continuation at the idle timeout; work that must outlive the
+  agent's authentication needs a durable anchor ({{open-items}}).
+* **Restored relationships:** The IdP can determine whether a change
+  ended a chain when it applies the change or at the next continuation,
+  for example by comparing a revision of each relationship, recorded at
+  establishment and changed by every disablement or withdrawal
+  ({{chain-ending}}).
+
+## Continuing Client {#implementation-client}
+
+* **Several Governance Tenants:** A gateway that serves several
+  Governance Tenants is configured in each, because {{ICA}} scopes
+  actor identities and CAI trust to one tenant. How it selects among
+  those registrations is an open item ({{open-items}}).
 
 # Security Considerations {#security}
 

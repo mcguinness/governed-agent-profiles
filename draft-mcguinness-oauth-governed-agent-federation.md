@@ -888,11 +888,8 @@ Client authentication failures use the authentication method's error,
 including when the same credential supplies an agent-resolution input.
 
 Error descriptions SHOULD NOT reveal identity, binding, or policy
-details beyond those disclosed by the error category. Distinguishing
-`invalid_grant` from `actor_unauthorized` reveals that an actor was
-resolved but denied, but not which binding-resolution check failed.
-That disclosure reaches even a holder of stolen bearer evidence who
-passes the request's other authentication.
+details beyond those disclosed by the error category
+({{security-errors}}).
 
 ## Profile Applicability and Downgrade Prevention {#discovery}
 
@@ -1149,21 +1146,8 @@ needs a supported input that cryptographically binds the key, such as
 the Client Attestation or WIT-SVID input of {{INPUTS}}. DPoP
 co-presented with bearer JWT-SVID or unbound platform JWT evidence
 establishes possession only. DPoP MUST NOT substitute for a credential
-proof that the selected input requires.
-
-Bearer evidence establishes the credential authority's assertion of the
-workload identity. It does not cryptographically bind the current
-presenter to that workload. An attacker who holds acceptable bearer
-workload evidence can therefore impersonate the workload and obtain a
-grant, bound to a grant proof key of its choice, if it also passes:
-
-* client authentication;
-* Client Association; and
-* either the user-credential and delegation checks or the
-  agent-authorization check.
-
-Short evidence lifetimes limit this exposure; sender-constraining the
-output does not prevent it.
+proof that the selected input requires. {{security-bearer-evidence}}
+describes what bearer evidence still exposes.
 
 ### Agent Resolution Input Validation {#actor-inputs}
 
@@ -2307,6 +2291,30 @@ Both grants are JWTs redeemed with the same grant type, so the RAS tells
 them apart by explicit type: `oauth-id-jag+jwt` for an ID-JAG
 ({{Section 3.1 of ID-JAG}}) and `wag+jwt` for a WAG
 ({{wag-redemption}}).
+
+## Error Disclosure {#security-errors}
+
+Distinguishing `invalid_grant` from `actor_unauthorized`
+({{issuance-errors}}) reveals that an actor was resolved but denied, but
+not which binding-resolution check failed. That disclosure reaches even
+a holder of stolen bearer evidence who passes the request's other
+authentication.
+
+## Bearer Workload Evidence {#security-bearer-evidence}
+
+Bearer evidence establishes the credential authority's assertion of the
+workload identity. It does not cryptographically bind the current
+presenter to that workload. An attacker who holds acceptable bearer
+workload evidence can therefore impersonate the workload and obtain a
+grant, bound to a grant proof key of its choice, if it also passes:
+
+* client authentication;
+* Client Association; and
+* either the user-credential and delegation checks or the
+  agent-authorization check.
+
+Short evidence lifetimes limit this exposure; sender-constraining the
+output does not prevent it ({{credential-requirements}}).
 
 ## Dedicated-Client Key Compromise
 

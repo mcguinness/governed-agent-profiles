@@ -1048,9 +1048,11 @@ platform through signals, a risk change, disablement, and re-enablement
 under {{platform-hosted}}. The platform's connector registered the agent
 with the IdP under {{AGENT-MANAGEMENT}}, which returned the Agent
 Principal identifier, and streams in both directions are configured as
-{{platform-signals}} describes. {{GUIDE}} shows that setup, and the
-agent's later federation and retirement. Signatures, credentials, and
-tokens are omitted or shown as placeholders.
+{{platform-signals}} describes. This deployment sets no revalidation
+bound ({{recovery}}), so the platform keeps authorizing on locally
+applied state while the IdP is unreachable. {{GUIDE}} shows that setup,
+and the agent's later federation and retirement. Signatures,
+credentials, and tokens are omitted or shown as placeholders.
 
 | Party | Identifier |
 |---|---|

@@ -708,14 +708,20 @@ target here. A continuing client recovers as follows:
 * `invalid_continuation` means that the chain has ended. Only a new
   root grant, which the agent's client obtains, starts a new chain
   ({{gateway-reuse}}).
-* A limit failure (`invalid_grant`) other than a rate limit means that
-  the same continuation fails again while policy is unchanged, and that
-  recovery requires a different request ({{Section 5.5.6 of ICA}}). The
+* A limit failure (`invalid_grant`) means that a limit of
+  {{Section 6.3 of ICA}} or the continuation window
+  ({{governed-chain-authorization}}) refused this continuation. The
   limit can belong to the source hop (its fan-out or its continuation
   window), to the chain or a chain authorization's shared budget (hop
-  count), or to the branch as this client would extend it (actor-lineage
-  depth) ({{Section 6.3 of ICA}}, {{governed-chain-authorization}}).
-  The error does not say which.
+  count or rate), or to the branch as this client would extend it
+  (actor-lineage depth), and the error does not say which. A
+  rate-limited continuation can succeed after the limit's window; after
+  any other limit, the same continuation fails again while policy is
+  unchanged, and recovery requires a different request
+  ({{Section 5.5.6 of ICA}}). The error establishes neither that the
+  chain has ended nor that the incoming access token is invalid.
+  Without information identifying the limit, a continuing client treats
+  the failure as affecting only the request ({{gateway-reuse}}).
 * Any other code affects only the request.
 
 When the IdP cannot confirm shared state that a continuation depends
@@ -801,14 +807,19 @@ When continuation from a request's source hop fails with
 `invalid_continuation`, the gateway SHOULD reject the agent's request
 with HTTP 401 and the `invalid_token` error code of the access token's
 scheme ({{RFC6750}}, {{RFC9449}}), so that the agent's client obtains a
-new access token and, with it, a new root grant. A limit failure other
-than a rate limit does not end the chain, and a new access token can
-lead to a source hop that fails the same way, as when an upstream
-gateway continues again into the same chain and reaches the same hop
-count or depth. The gateway therefore fails the agent's request with an
-error of its own API, not by rejecting the access token. A temporary
-refusal is neither: the gateway retries as {{continuation-errors}}
-describes.
+new access token and, with it, a new root grant.
+
+A limit failure (`invalid_grant`) does not end the chain, and a new
+access token can lead to a source hop that fails the same way, as when
+an upstream gateway continues again into the same chain and reaches the
+same hop count or depth. The gateway MUST NOT reject the agent's
+request with `invalid_token` solely because continuation failed with
+`invalid_grant`; it fails the request with an error of its own API. An
+independent failure to validate the access token still leads to
+`invalid_token`. Where deployment-specific information identifies a
+rate limit, the gateway can retry under that limit's policy. A
+temporary refusal is not an error response: the gateway retries as
+{{continuation-errors}} describes.
 
 After the IdP rejects a governed continuation for a request, the
 continuing client MUST NOT serve that request with its own authority or

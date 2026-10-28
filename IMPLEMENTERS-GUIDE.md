@@ -18,6 +18,7 @@ profile that defines them.
 * [Federation configuration](#federation-configuration)
 * [Distributed platforms and key use](#distributed-platforms-and-key-use)
 * [Continuation through gateways](#continuation-through-gateways)
+* [AuthZEN evaluation examples](#authzen-evaluation-examples)
 * [Adoption tradeoffs](#adoption-tradeoffs)
 * [Intermediate adoption](#intermediate-adoption)
 * [Provisioning and linking](#provisioning-and-linking)
@@ -274,6 +275,147 @@ The CAI's placement gives these topologies:
 each request, and [Implementation Considerations][cont-implementation]
 covers continuation-window and agent-session sizing.
 
+## AuthZEN evaluation examples
+
+An API or MCP gateway that delegates authorization to a policy decision
+point keeps the user, the issuer-qualified Agent Principal, and the
+OAuth client distinct, and supplies the tenant and token constraints
+([Optional Policy Services][policy-services]). The profiles define no
+AuthZEN mapping. The requests below are illustrations of those rules in
+the [AuthZEN Authorization API 1.0][AUTHZEN] evaluation format, with
+action and resource shaped as a [COAZ-MCP][COAZ-MCP] declared mapping
+would shape them. Subject types and context member names are
+deployment vocabulary. The [architecture
+overview](ARCHITECTURE.md#authorization-decisions-with-authzen) explains
+where these decisions sit.
+
+### Delegated access at an MCP gateway
+
+The core profile's walkthrough issues this access token (excerpt):
+
+~~~ json
+{
+  "iss": "https://ras.example/",
+  "sub": "user-108",
+  "aud": "https://api.example/tenants/acme-data/",
+  "client_id": "analysis-api",
+  "scope": "files.read",
+  "act": {"iss": "https://idp.example/", "sub": "agent-42"}
+}
+~~~
+
+The agent calls a `read_file` tool with the argument
+`"path": "reports/q3.csv"`. The gateway asks:
+
+~~~ json
+{
+  "subject": {"type": "user", "id": "user-108"},
+  "action": {"name": "read_file"},
+  "resource": {"type": "file", "id": "reports/q3.csv"},
+  "context": {
+    "agent": {"iss": "https://idp.example/", "sub": "agent-42"},
+    "client": "analysis-api",
+    "tenant": "acme-data",
+    "scope": "files.read"
+  }
+}
+~~~
+
+The user is the subject, the agent comes from `act`, and the client is
+separate. The policy covers both the user's authority and the actor
+gate for `agent-42` acting for this user ([Delegated Actor
+Authorization][actor-authorization]). A permit cannot widen
+`files.read` or reach another tenant.
+
+### Self-acting access
+
+A token derived from a WAG names the agent's local principal and
+carries no `act` (excerpt):
+
+~~~ json
+{
+  "iss": "https://ras.example/",
+  "sub": "service-principal-42",
+  "client_id": "analysis-api",
+  "scope": "files.read"
+}
+~~~
+
+~~~ json
+{
+  "subject": {"type": "agent", "id": "service-principal-42"},
+  "action": {"name": "read_file"},
+  "resource": {"type": "file", "id": "reports/q3.csv"},
+  "context": {
+    "client": "analysis-api",
+    "tenant": "acme-data",
+    "scope": "files.read"
+  }
+}
+~~~
+
+The local principal stands for the Agent Principal, and the policy
+evaluates the agent's own authority. No actor gate applies.
+
+### Access through gateways
+
+In the continuation profile's [two-gateway variant][cont-two-gateways],
+the API in a further domain receives this token (excerpt):
+
+~~~ json
+{
+  "sub": "user-108",
+  "client_id": "data-files",
+  "act": {"iss": "https://idp.example/", "sub": "agent-42"},
+  "continuation_via": [
+    {"iss": "https://gateway.example/", "sub": "tool-gateway"},
+    {"iss": "https://data-gateway.example/", "sub": "data-gateway"}
+  ]
+}
+~~~
+
+~~~ json
+{
+  "subject": {"type": "user", "id": "user-108"},
+  "action": {"name": "read_file"},
+  "resource": {"type": "file", "id": "reports/q3.csv"},
+  "context": {
+    "agent": {"iss": "https://idp.example/", "sub": "agent-42"},
+    "client": "data-files",
+    "path": [
+      {"iss": "https://gateway.example/", "sub": "tool-gateway"},
+      {"iss": "https://data-gateway.example/", "sub": "data-gateway"}
+    ],
+    "tenant": "acme-data"
+  }
+}
+~~~
+
+The client is the last gateway's registration, and the agent is still
+`agent-42`. A policy that admits `agent-42` only through `tool-gateway`
+matches the first path entry. The path entries authorize nothing by
+themselves.
+
+### Counter-example: the client as the agent
+
+COAZ-MCP's default mapping puts `$token.?client_id` in `context.agent`.
+For the delegated token above, it would produce:
+
+~~~ json
+{
+  "subject": {"type": "identity", "id": "user-108"},
+  "action": {"name": "tools/call"},
+  "resource": {"type": "tool", "id": "read_file"},
+  "context": {"agent": "analysis-api"}
+}
+~~~
+
+Every agent behind `analysis-api`, or behind `data-files` in the
+gateway case, looks the same to the policy decision point, and the
+client identifier stands in for the actor, which the core profile
+forbids. Configure the mapping to take the agent from `act` and to keep
+`client_id` separate.
+
 ## Adoption tradeoffs
 
 The profile's security controls carry these deployment costs. The
@@ -516,6 +658,11 @@ resource domain provisioned for `agent-58` applies the deletion under
 [cont-scope]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#scope-boundaries
 [cont-gateway]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#gateway-reuse
 [cont-implementation]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#implementation
+[cont-two-gateways]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#walkthrough-two-gateways
+[policy-services]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#policy-services
+[actor-authorization]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#actor-authorization
+[AUTHZEN]: https://openid.net/specs/authorization-api-1_0.html
+[COAZ-MCP]: https://openid.github.io/authzen/authzen-coaz-mcp-binding-1_0.html
 [lc-platform-hosted]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#platform-hosted
 [lc-platform-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#platform-example
 [lc-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#example

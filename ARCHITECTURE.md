@@ -117,7 +117,7 @@ this user here?
 
 ### What is required, and what is optional
 
-Every deployment needs:
+Every deployment using governed federation needs:
 
 * identity resolution through an Identity Binding, and client authority
   through a Client Association;
@@ -132,6 +132,10 @@ dedicated client and the platform JWT, SCIM administration of the
 relationships, lifecycle propagation into resource domains, gateway
 continuation, an external policy decision point, and Transaction Tokens
 inside a resource domain.
+
+[Platform-hosted agents](#platform-hosted-agents) can use registration
+and lifecycle governance without federation; they need no Identity
+Binding, Client Association, or IdP-issued grant until they federate.
 
 ## Identity, authority, and responsibility
 

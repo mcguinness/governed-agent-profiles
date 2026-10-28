@@ -35,18 +35,6 @@ integration. Every agent behind it looks identical to the resource
 server, so actions cannot be attributed and revocation becomes all or
 nothing.
 
-The pieces needed to fix that exist separately and do not yet compose:
-
-* OAuth 2.0 Token Exchange defines `act` but leaves the actor's meaning
-  to profiles.
-* The Identity Assertion JWT Authorization Grant (ID-JAG) brokers
-  cross-application access through the identity provider (IdP) both
-  sides already trust for single sign-on, and leaves actor validation,
-  authorization, and representation to extensions.
-* Attestation-based and SPIFFE client authentication establish which
-  OAuth client is calling, not which agent a shared client is acting
-  for.
-
 ### Four identities
 
 | Identity | What it is | In the example |
@@ -111,16 +99,6 @@ the exact (IdP issuer, agent identifier) pair. For delegated access,
 the RAS and API also enforce the actor gate: may this agent act for
 this user here?
 
-### Parties
-
-| Party | Role |
-|---|---|
-| Agent platform | Runs agents. Implements the OAuth client that obtains access for them, and a SCIM connector that registers them at the IdP |
-| Credential authority | Issues the workload evidence the IdP can resolve: SPIFFE, a client attester, or the platform's own JWTs |
-| Governing IdP | Holds each Agent Principal and the relationships that govern it, and issues grants naming it |
-| Resource domain | Its RAS redeems grants and issues access tokens; its API enforces them |
-| Gateway | An API that continues an agent's request to a resource in another domain |
-
 ### What is required, and what is optional
 
 Every deployment using governed federation needs:
@@ -145,7 +123,18 @@ Binding, Client Association, or IdP-issued grant until they federate.
 
 ## Identity, authority, and responsibility
 
-Each relationship answers one question, and none implies another:
+Five parties take part, each owning its own decisions:
+
+| Party | Role |
+|---|---|
+| Agent platform | Runs agents. Implements the OAuth client that obtains access for them, and a SCIM connector that registers them at the IdP |
+| Credential authority | Issues the workload evidence the IdP can resolve: SPIFFE, a client attester, or the platform's own JWTs |
+| Governing IdP | Holds each Agent Principal and the relationships that govern it, and issues grants naming it |
+| Resource domain | Its RAS redeems grants and issues access tokens; its API enforces them |
+| Gateway | An API that continues an agent's request to a resource in another domain |
+
+The IdP holds the relationships. Each answers one question, and none
+implies another:
 
 | Relationship | Question | Defined in |
 |---|---|---|
@@ -497,6 +486,19 @@ through intermediaries other than governed continuation, and behavioral
 monitoring and anomaly detection.
 
 ## How the drafts fit
+
+The standards the drafts build on exist separately and do not yet
+compose:
+
+* OAuth 2.0 Token Exchange defines `act` but leaves the actor's meaning
+  to profiles.
+* The Identity Assertion JWT Authorization Grant (ID-JAG) brokers
+  cross-application access through the IdP both sides already trust for
+  single sign-on, and leaves actor validation, authorization, and
+  representation to extensions.
+* Attestation-based and SPIFFE client authentication establish which
+  OAuth client is calling, not which agent a shared client is acting
+  for.
 
 **Start with the core.** The [OAuth 2.0 Profile for Governed Agent
 Federation][core] is an OAuth deployment profile that standardizes the

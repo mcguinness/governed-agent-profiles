@@ -548,17 +548,29 @@ already issued from obtaining new authority.
 
 | Failure | Existing authorized operations | New authority | Recovery |
 |---|---|---|---|
-| The IdP is unavailable | Access tokens work until they expire. Where a RAS issued a refresh token under explicit policy, for delegated access only, refresh continues within its absolute expiration. Platform-hosted agents are unaffected | No new ID-JAG or WAG; a self-acting agent stops when its access token expires. A continuation the IdP cannot confirm gets HTTP 503, and the chain does not end | New grants once the IdP is reachable; a gateway retries the same continuation while its assertion is unexpired |
+| The IdP is unavailable | Access tokens work until they expire. Where a RAS issued a refresh token under explicit policy, for delegated access only, refresh continues within its absolute expiration. Platform-hosted agents are unaffected | No new ID-JAG, WAG, or onward grant; a self-acting agent stops when its access token expires. Where the IdP cannot confirm shared state a continuation depends on, it answers HTTP 503 and the chain does not end | New grants once the IdP is reachable; after a 503, a gateway can retry the same continuation while its assertion is unexpired |
 | Lifecycle delivery is delayed or lost | The resource domain keeps its last applied state, so a disablement not yet applied there stops neither redemption, refresh, nor sessions in that domain | Decided on the last applied state, unless a revalidation policy with a maximum stale-state interval denies new authorization and refresh once that interval expires | Reconciliation retrieves current state from the source; a delayed activation notice triggers retrieval, never activation. A missed disable-and-re-enable cycle cannot be recovered from current state |
-| The RAS has no record for the agent | Agents already correlated are unaffected | Redemption that depends on the missing record is denied; a WAG fails with `invalid_grant`. Where resource policy enables just-in-time correlation for that issuer and tenant, the RAS creates the record from the validated grant and applies local restrictions first | Provision the record, or enable just-in-time correlation. A record created just in time still needs lifecycle integration to learn of disablement |
+| The RAS has no record for the agent | Agents already correlated are unaffected | Redemption that depends on the missing record is denied; a WAG fails with `invalid_grant`. Where resource policy enables just-in-time correlation for that issuer and tenant, the RAS can create the record from the validated grant, applying local restrictions and policy before issuance | Provision the record, or enable just-in-time correlation. A record created just in time still needs lifecycle integration to learn of disablement |
 | Introspection is unavailable at the API | A failed or timed-out check cannot authorize the request. Cached active responses stay usable within the cache policy | The RAS can still issue tokens | Requests succeed once introspection returns |
 | A policy decision service is unavailable | The drafts define no behavior. The resource domain chooses to deny or to apply local policy, and neither can exceed the token's constraints | Not affected at the IdP or RAS | Decisions resume when the service returns |
-| A continuation is refused | The agent's access token at the gateway stays valid. The gateway fails the agent's request with an error of its own API, not HTTP 401 `invalid_token`, and never calls the tool with its own authority | `invalid_continuation` means the chain has ended; a limit or continuation-window failure (`invalid_grant`) affects only that continuation | A new root grant, which only the agent's client obtains, after `invalid_continuation`; a different request, or a retry after a rate limit's window, after `invalid_grant` |
+| A continuation is refused | After `invalid_continuation`, the chain has ended, and the gateway rejects the agent's request with HTTP 401 `invalid_token`. After a limit or continuation-window failure (`invalid_grant`), the chain continues: the gateway fails the request with an error of its own API, and the agent's access token stays valid. The gateway never calls the tool with its own authority | No onward grant for that request | After `invalid_continuation`, a new root grant, which only the agent's client obtains; after `invalid_grant`, a different request, or a retry under a rate limit's policy |
 
 ## Optional integrations and boundaries
 
 These integrations sit beside the required flow. None is needed to
-federate an agent.
+federate an agent, and each has a different standing in the drafts, so
+an example here is not a promise of interoperability:
+
+| Integration | Standing |
+|---|---|
+| The companion profiles: inputs, continuation, SCIM management, OAuth client management, and lifecycle | Defined protocol behavior ([specification map](#specification-map-and-glossary)) |
+| Grant-derived revocation of one ID-JAG | Optional capability with defined requirements, in the lifecycle profile |
+| An external policy decision service | Optional capability with defined requirements: "Optional Policy Services" in the core |
+| An AuthZEN or COAZ-MCP message mapping | Unresolved composition: the core names AuthZEN as one interface and defines no mapping ([below](#authorization-decisions-with-authzen)) |
+| Transaction Tokens inside a resource domain | Illustrative deployment composition, in the [implementer's guide](IMPLEMENTERS-GUIDE.md#transaction-tokens-inside-a-resource-domain) |
+| Credential brokers | Illustrative deployment composition ([below](#credential-brokers)) |
+| Asynchronous approval with ARAP and AROP | Unresolved composition: an excluded composition in the core |
+| Approved work, such as Mission-Bound Authorization | Outside these drafts ([below](#beyond-these-drafts)) |
 
 ### Authorization decisions with AuthZEN
 
@@ -635,16 +647,6 @@ context and per-action authorization belong to other specifications:
 | Identity | Which governed agent is acting? | The IdP resolves the Agent Principal; the resource domain correlates it locally | These drafts |
 | Authority | What may it do, and for whom? | The IdP authorizes the grant; the resource domain decides within its limits | These drafts; AuthZEN and COAZ for per-action decisions ([above](#authorization-decisions-with-authzen)); ARAP and AROP for requestable denials |
 | Work | Does approved work still justify this action? | A mission control point supplies and evaluates work context; ending a Mission denies actions at every boundary that checks work state | [Mission-Bound Authorization](https://github.com/mcguinness/mission-bound-authorization) |
-
-Two compositions remain undefined:
-
-* The core lets an API delegate evaluation to a policy decision service,
-  which must keep the user, the issuer-qualified Agent Principal, and
-  the OAuth client distinct. It names AuthZEN as an optional interface
-  but defines no AuthZEN message mapping.
-* The core lists asynchronous approval with AROP as an excluded
-  composition. Approval that completes as a token is not yet composed
-  with governed ID-JAG issuance.
 
 The AuthZEN profiles are developed in the OpenID AuthZEN working group:
 

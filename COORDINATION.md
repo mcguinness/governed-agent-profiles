@@ -263,6 +263,48 @@ comparison the RAS applies.
 The companion is not required for conformance to this federation profile;
 `agent-correlation` and `status-changes` state this document's guarantees.
 
+### Related Work
+
+#### Credential Broker for Agents (CB4A)
+
+`draft-hartman-credential-broker-4-agents-00` (Informational, March 2026,
+now expired) describes a credential broker that keeps long-lived
+credentials away from agents. No draft in this family cites it. The
+implementer's guide ("Credential brokers") gives the deployment
+patterns. This note compares CB4A element by element; a counterpart is
+the nearest mechanism here, not an equivalent.
+
+| CB4A element | Nearest counterpart here | Difference |
+|---|---|---|
+| Policy decision point before credential issuance | IdP issuance authorization (Delegation or Agent Authorization), optionally through an AuthZEN PDP | None in role; CB4A also scores behavior against baselines |
+| Human and MFA approval tiers | An additional issuance condition (`external-approval`) | Approval completing as a token through ARAP and AROP is an excluded composition (`excluded-compositions`) |
+| Credential delivery point minting, for a target that accepts governed grants | The IdP grant, redeemed at the target's RAS for an access token | No vaulted credential; the target sees the agent |
+| Proxy gateway, for a target that accepts governed grants | Continuation through a gateway | No credential injection; the onward grant names the same agent |
+| Envelope target: service, action, resource, scope | Token exchange `audience`, `resource`, `scope`, `authorization_details` | None |
+| Envelope justification and task reference | Mission-Bound Authorization; Transaction Tokens within one trust domain | Outside this family |
+| Native token (Section 4.11), validated directly by the target service | For self-acting access, the access token a target RAS issues after redeeming a governed WAG | Two steps instead of one: the WAG is addressed to the RAS. The access token's issuer is the target's RAS, not a broker; its subject is the RAS's local principal correlated with the Agent Principal, not a session SPIFFE ID; it carries no envelope provenance |
+| Lease revocation on an anomaly signal | Grant-derived revocation for an ID-JAG (lifecycle, optional); applied disablement or Local Suspension for the agent | No selective revocation of WAG-derived access is defined; it is deployment-specific |
+| Targets that accept only API keys or their own minting | None | Outside OAuth interoperability |
+
+Points for its author, not yet raised:
+
+* For a target with its own authorization server, WAG issuance followed
+  by RAS redemption is an alternative architecture to the native token
+  of Section 4.11 for self-acting access. The target then needs no
+  CB4A-specific validation, and the IdP it already trusts names the
+  agent.
+* The SPIFFE ID of Section 4.1 combines agent, user, and session. A
+  stable agent identifier, with the user and session conveyed
+  separately, would let a CB4A broker federate through these profiles:
+  `identity-binding` requires an exact identity and forbids an
+  execution identifier from selecting the Agent Principal.
+* Its approval tiers would compose with governed issuance through ARAP
+  and AROP, an excluded composition.
+* Its `envelope_hash` provenance claim has no counterpart here, and the
+  question stays open. Within one trust domain, Transaction Tokens
+  (draft-ietf-oauth-transaction-tokens-11, Section 9.2.3) carry
+  transaction context.
+
 ## Identity Continuation Companion
 
 `draft-mcguinness-oauth-governed-agent-continuation.md` (`CONTINUATION`)

@@ -74,9 +74,9 @@ that claims none of the optional inputs needs only the core.
 ## Where to start
 
 * **[Architecture overview](ARCHITECTURE.md):** the system in one page,
-  identity and responsibility, the delegated and self-acting flows and
-  their variants, revocation boundaries, optional integrations, and how
-  the drafts fit.
+  identity and responsibility, trust between parties, the delegated and
+  self-acting flows and their variants, changes and failures, optional
+  integrations, and a specification map with a glossary.
 * **[Playbook for identity teams](PLAYBOOK.md):** five operating steps
   with exit checks, recipes for delegated and self-acting deployments,
   vendor requirements, stop-and-restore runbooks, and audit evidence.

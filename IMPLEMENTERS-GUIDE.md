@@ -502,9 +502,9 @@ authorized to act for the user. A delegated token carries a single
 `act`, with no nesting, and every onward grant names the same Agent
 Principal ("Identity Preservation" in [CONTINUATION]). That collapses
 the "current actor" and the "originally authorized agent" into one
-identity, and leaves the client and the path as separate attributes. The table compares each
-profile with that model; it is a comparison of nearest counterparts,
-not a mapping these profiles define.
+identity, and leaves the client and the path as separate attributes.
+The table compares each profile with that model; it is a comparison of
+nearest counterparts, not a mapping these profiles define.
 
 | Source | Subject | Agent (actor) | Client | Chain or path |
 |---|---|---|---|---|

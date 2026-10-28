@@ -266,10 +266,13 @@ configuring its boundary at both ends.
 * **Validate:** the IdP selects exactly one configured class for
   presented evidence, validates the evidence under it, and resolves the
   exact identity through an enabled binding.
-* **On failure:** with no single configured class, `invalid_request`;
-  with evidence rejected under the selected class, or no enabled
-  binding, `invalid_grant`. Neither falls back to another class or to
-  the client's own authentication.
+* **On failure:** for presented evidence, such as a platform JWT, no
+  single configured class gives `invalid_request`, and evidence rejected
+  under the selected class, or no enabled binding, gives
+  `invalid_grant`. Neither falls back to another class or to the
+  client's own authentication. A rejected SVID or Client Attestation,
+  which resolves from client authentication, fails with that method's
+  error.
 
 ### IdP → RAS
 
@@ -293,9 +296,11 @@ configuring its boundary at both ends.
 
 * **Configure:** the resource's minimum profile; how each token's
   population, delegated or self-acting, is established (separate client
-  registrations, audiences, or issuers, or authenticated introspection
-  context); the tenant-specific audience; the access-token protection;
-  and whether the API introspects or validates offline.
+  registrations, audiences, or issuers; one registration and audience
+  for both needs an additional bilateral contract, such as an
+  introspection member the RAS and API agree on); how the token carries
+  the tenant, by default a tenant-specific audience; the access-token
+  protection; and whether the API introspects or validates offline.
 * **Validate:** the API validates the token and its proof, takes the
   population from that configuration and never from whether `act` is
   present, checks the tenant, and applies the actor gate or the agent's
@@ -442,9 +447,11 @@ tests the flow.
   shared-client problem again.
 * **Prerequisites:** the continuation profile at the IdP, the gateway,
   and the gateway's RAS; trust in that RAS as Continuation Assertion
-  Issuer; a Continuation Association for the gateway; a user delegation,
-  or the agent's own authorization, that permits continuation through
-  other clients; and DPoP at the target RAS's token endpoint.
+  Issuer; a Continuation Association for the gateway; tenant policy, and
+  the user's delegation or the agent's own authorization, that permit
+  continuation through other clients; a sender-constrained access token
+  at the gateway, unless resource policy permits continuation from
+  bearer tokens; and DPoP at the target RAS's token endpoint.
 * **What changes:** the gateway continues the agent's chain instead of
   calling as itself.
 
@@ -465,21 +472,26 @@ sequenceDiagram
 ```
 
 The onward grant names the same Agent Principal and, for delegated
-access, the same user. A RAS and API that implement the core accept it
-unchanged, because every onward grant is bound to the gateway's key.
+access, the same user. A RAS and API that implement the core, with DPoP
+at the RAS token endpoint, accept it unchanged; every onward grant is
+bound to the gateway's key.
 The gateway is the grant's client, never an added actor; a separate
 `continuation_via` claim lists the gateways on the path.
 
 * **Limitations:** the API sees `continuation_via` only where the
   target RAS supports path disclosure. A chain ends when its anchor
   ends, such as the user's IdP session, and on governance events:
-  disabling the agent or user, or withdrawing the root binding,
-  association, credential, or authorization. Self-acting chains anchor
+  disabling the agent or user, disabling the root binding or
+  association, revoking (not rotating) the root credential, or
+  withdrawing the root authorization as a whole. Narrowing an
+  authorization stops continuation only to what was removed.
+  Self-acting chains anchor
   to an agent session that only the agent's own authentication keeps
   active, so a gateway cannot keep a stopped agent's chains alive.
-  Continuation also stops once the source hop's continuation window
-  passes, even while the agent's access token at the gateway is still
-  accepted.
+  Where the IdP enforces a continuation window, as the continuation
+  profile recommends, continuation from a source hop stops once that
+  window passes, even while the agent's access token at the gateway is
+  still accepted.
 
 ### Scheduled work
 
@@ -488,9 +500,10 @@ The gateway is the grant's client, never an added actor; a separate
 * **Prerequisites:** an IdP that claims grant-anchored continuation and
   accepts refresh-token subjects from the agent's client; a refresh
   token for the user whose grant carries the user's Delegation
-  Authorization; a continuation-aware RAS at the agent's operator that
-  holds the task record; and a Continuation Association for the agent's
-  client.
+  Authorization, which permits continuation; tenant policy that permits
+  it; a continuation-aware RAS at the agent's operator, trusted as
+  Continuation Assertion Issuer, that holds the task record; and a
+  Continuation Association for the agent's client.
 * **What changes:** while the user is signed in, the client uses the
   refresh token once to root a chain anchored to its grant. Each run
   continues from the task record and obtains a new ID-JAG for the
@@ -518,19 +531,20 @@ The gateway is the grant's client, never an added actor; a separate
     obtain an IdP grant.
   * **Split authority.** The platform owns the agent's existence,
     description, and deletion. The IdP owns the governance decision,
-    `active`, and the connector cannot re-enable an agent the IdP
-    disabled.
-  * **Apply governance locally.** When the IdP disables an agent, the
-    platform denies new authorization and revokes the agent's existing
-    authorization in its own system. Its own suspension is a Local
+    `active`, and the connector's authority to register or describe an
+    agent does not include re-enabling one the IdP disabled.
+  * **Apply governance locally.** Once the platform applies the IdP's
+    disablement, it denies new authorization and revokes the agent's
+    existing authorization in its own system. Its own suspension is a Local
     Suspension the IdP cannot clear.
-  * **Signal both ways.** The platform sends WISE credential and posture
-    events and CAEP session events about its agents to the IdP, and the
+  * **Signal both ways.** The platform can send WISE credential and
+    posture events and CAEP session events about its agents to the IdP,
+    and the
     IdP can send CAEP risk changes back. Events inform policy; they do
     not change administrative state.
   * **One correlation key.** The issuer-qualified Agent Principal
-    identifier appears in SCIM, in events, and in the platform's audit
-    records next to the platform's own identifier.
+    identifier appears in SCIM and in any events, and the platform's
+    audit records should carry it next to the platform's own identifier.
 * **Limitations:** the platform authorizes from locally applied state,
   so an unreachable IdP neither disables nor re-enables its agents; a
   bound on stale state needs a revalidation policy. To reach a resource
@@ -597,8 +611,8 @@ sequenceDiagram
 6. **Govern.** Changes at the IdP or in a resource domain take effect
    as [Changes, failures, and recovery](#changes-failures-and-recovery)
    describes. Transaction Tokens inside the tool's domain end by their
-   own validation and expiry rules, and risk signals feed issuance and
-   per-action decisions.
+   own validation and expiry rules. As a deployment choice, risk signals
+   can inform issuance policy and per-action decisions.
 
 The implementer's guide covers
 [Transaction Tokens inside a resource domain](IMPLEMENTERS-GUIDE.md#transaction-tokens-inside-a-resource-domain)

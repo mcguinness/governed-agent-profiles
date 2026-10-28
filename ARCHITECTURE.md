@@ -10,7 +10,9 @@ configuration, see the [implementer's guide](IMPLEMENTERS-GUIDE.md).
 * [The problem](#the-problem)
 * [How it works](#how-it-works)
 * [Principles](#principles)
+* [Design choices](#design-choices)
 * [How the drafts fit](#how-the-drafts-fit)
+* [End to end](#end-to-end)
 * [Continuation through gateways](#continuation-through-gateways)
 * [Changes and revocation](#changes-and-revocation)
 * [Authorization decisions with AuthZEN](#authorization-decisions-with-authzen)
@@ -169,6 +171,31 @@ Each relationship answers one question, and none implies another:
 The treatment of each boundary follows
 [Continuity Is Not One Thing](https://notes.karlmcguinness.com/notes/continuity-is-not-one-thing/).
 
+## Design choices
+
+Like other agent identity architectures, these profiles assemble
+existing standards. Five choices set them apart:
+
+* **Authority stays out of identifiers.** Encoding a domain, an intent,
+  or a trust realm in a workload identifier makes every change of scope
+  a rename. Here an Identity Binding maps any execution identity to a
+  stable Agent Principal, and authority lives in separate
+  authorizations.
+* **Domains are crossed with grants, not internal tokens.** Transaction
+  Tokens are bound to one trust domain. Crossing into another domain
+  uses an ID-JAG or WAG, or continuation through a gateway, so the
+  target domain validates a grant from the IdP it already trusts.
+* **User and agent stay separate.** The user is the subject and the
+  agent the actor, each resolved on its own. The agent's identifier
+  never carries the user or a session.
+* **Resource domains decide.** No central broker mints access for
+  another domain. Each RAS issues its own access tokens under local
+  policy and can suspend an agent locally.
+* **Changes have defined effects.** Disabling a binding or a principal,
+  removing an association, withdrawing a delegation, revoking a grant,
+  and ending a chain each stop a defined set of authority, and the
+  drafts state what current state cannot recover.
+
 ## How the drafts fit
 
 **Start with the core.** The [OAuth 2.0 Profile for Governed Agent
@@ -224,6 +251,56 @@ authorization timestamp, and states what current state cannot recover.
 
 What each draft needs from the specifications it depends on is in
 [COORDINATION.md](COORDINATION.md).
+
+## End to end
+
+One delegated request, from registration to revocation, uses every
+part of the family:
+
+```mermaid
+sequenceDiagram
+  participant P as Agent platform
+  participant I as Governing IdP
+  participant G as Gateway domain
+  participant D as Policy decision point
+  participant T as Tool domain
+  participant S as Internal service
+  P->>I: Register the agent and its relationships
+  P->>I: Token exchange with workload evidence
+  I-->>P: ID-JAG naming the user and the agent
+  P->>G: Redeem the grant, then call a tool
+  G->>D: Evaluate the action
+  G->>I: Continuation exchange
+  I-->>G: Onward grant naming the same agent
+  G->>T: Redeem the onward grant, then call the tool
+  T->>S: Transaction Token with user, agent, client, and path
+  I-->>T: Provision, disable, or revoke
+```
+
+1. **Register.** The platform's connector registers the agent and its
+   relationships at the IdP (SCIM management).
+2. **Resolve and grant.** The agent's client authenticates and presents
+   workload evidence. The IdP resolves the Agent Principal, checks the
+   Client Association and the user's Delegation Authorization, and
+   issues an ID-JAG, DPoP-bound in the bound profile (the core).
+3. **Access.** The client redeems the grant at the gateway's RAS and
+   calls the gateway, which enforces the user's authority and the actor
+   gate and can ask a PDP about each action
+   ([AuthZEN](#authorization-decisions-with-authzen)).
+4. **Continue.** For a tool in another domain, the gateway continues the
+   agent's chain: its RAS attests the hop, and the IdP issues an onward
+   grant naming the same agent, with the gateway as client
+   ([continuation](#continuation-through-gateways)).
+5. **Propagate.** Inside the tool's domain, a Transaction Token carries
+   the user, agent, client, and path through the internal call chain;
+   it is never accepted outside that domain.
+6. **Govern.** Disablement, grant revocation, and chain ending stop new
+   access at each boundary, and risk signals feed issuance and
+   per-action decisions ([Changes and revocation](#changes-and-revocation)).
+
+The implementer's guide covers
+[Transaction Tokens inside a resource domain](IMPLEMENTERS-GUIDE.md#transaction-tokens-inside-a-resource-domain)
+and [risk signals](IMPLEMENTERS-GUIDE.md#risk-signals).
 
 ## Continuation through gateways
 

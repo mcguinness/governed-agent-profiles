@@ -232,7 +232,7 @@ credentials, and discovered metadata never create or widen one.
 
 | Boundary | What the parties agree | What goes wrong without it |
 |---|---|---|
-| Platform → IdP | The connector, its Governance Tenant, and its Provisioning Domain; the credential authorities, source identities, and OAuth clients it may use. Registering an agent, binding an identity to it, and authorizing a client to use it are separate permissions, and permission to disable never implies permission to enable | A connector that holds all three can bind any identity it controls to an enterprise agent, so the IdP checks the connector's authority over both ends of every binding and association |
+| Platform → IdP | The connector, its Governance Tenant, and its Provisioning Domain; the credential authorities, source identities, and OAuth clients it may use. Registering an agent, binding an identity to it, and authorizing a client to use it are separate permissions, and permission to disable never implies permission to enable | Binding and association writes can let an identity act as an enterprise agent. The IdP therefore limits each connector to approved credential authorities, source identities, clients, and agents, and checks its authority over both ends of every relationship |
 | Credential authority → IdP | Each trusted issuer or trust domain, with its approved keys, algorithms, and time limits, and the credential class that tells its workload credentials apart from its other tokens. Identity Bindings name an exact issuer and subject | Evidence from an unconfigured issuer or class fails with `invalid_grant`, with no retry under another class. Without a class rule, a user or management token from the same issuer could pass as workload evidence |
 | IdP → RAS | That the RAS accepts this IdP's ID-JAGs or WAGs and its assertion of the agent namespace; the client registration association that supplies each grant's `client_id`; the Target Tenant for each resource, and whether the IdP may assert local account identifiers there; and the minimum profile for each client, trust relationship, and resource | Without a client registration association, the IdP refuses with `invalid_target`. A grant from an untrusted issuer or namespace is rejected at redemption. Each server enforces its own minimum profile, and no failure is retried at a lower one |
 | RAS → API | The resource's minimum profile; how each token's population, delegated or self-acting, is established (separate client registrations, audiences, or issuers, or authenticated introspection context); the tenant-specific audience; the access-token protection; and whether the API introspects or validates offline | The API rejects a token whose applicability is ambiguous, and a delegated-population token without `act`, with HTTP 401 `invalid_token`. The validation mode decides how soon a revocation at the RAS reaches the API |
@@ -249,8 +249,9 @@ an agent acting for itself. Both use the running example, with the
 identifiers of the core's [walkthrough][core-walkthrough]. The
 implementer's guide's
 [primer](IMPLEMENTERS-GUIDE.md#primer-two-grants-one-identity-model)
-walks both message by message. The variants after them extend these
-flows. Domains are always crossed with grants: an ID-JAG or WAG, or
+walks both message by message. Four variants follow, each in the same
+shape: when to use it, its prerequisites, what changes, and its
+limitations. Domains are always crossed with grants: an ID-JAG or WAG, or
 continuation through a gateway, so the target domain validates a grant
 from the IdP it already trusts. Tokens bound to one trust domain, such
 as Transaction Tokens, stay inside it.
@@ -314,13 +315,44 @@ and the playbook's
 [self-acting recipe](PLAYBOOK.md#recipe-self-acting-access) deploys and
 tests the flow.
 
+### Shared platform clients
+
+* **When to use:** a platform runs many agents behind one OAuth client,
+  such as its single sign-on client, instead of registering a client per
+  agent.
+* **Prerequisites:** the IdP trusts the platform as a credential issuer
+  for that client, with its issuer, credential class, keys, algorithms,
+  time limits, and accepted audiences configured together with the
+  client. Each agent has an Identity Binding naming the exact issuer and
+  subject of its workload, and a Client Association for the shared
+  client.
+* **What changes:** the client authenticates as itself and presents the
+  platform's existing JWT for the agent's workload: as the actor token
+  for delegated access, or as the subject token for self-acting access.
+  The RAS and API see no difference; the grant names the agent, and
+  `client_id` is the shared client's registration.
+* **Limitations:** the client's authentication cannot tell its agents
+  apart, so a token it holds for one agent is never reused for another,
+  even with a matching scope. A platform JWT that fails validation is
+  rejected with `invalid_grant` and is not retried under another
+  credential class. The core's [AWS example][core-aws-example] shows the
+  input.
+
 ### Continuation through gateways
 
-An agent often reaches tools through a gateway, such as a Model Context
-Protocol (MCP) gateway, that selects a tool at request time and calls it
-in another resource domain. The gateway holds neither the user's
-credential nor the agent's, and calling the tool as itself would make
-every agent behind it look the same: the shared-client problem again.
+* **When to use:** an agent reaches tools through a gateway, such as a
+  Model Context Protocol (MCP) gateway, that selects a tool at request
+  time and calls it in another resource domain. The gateway holds
+  neither the user's credential nor the agent's, and calling the tool as
+  itself would make every agent behind it look the same: the
+  shared-client problem again.
+* **Prerequisites:** the continuation profile at the IdP, the gateway,
+  and the gateway's RAS; trust in that RAS as Continuation Assertion
+  Issuer; a Continuation Association for the gateway; a user delegation,
+  or the agent's own authorization, that permits continuation through
+  other clients; and DPoP at the target RAS's token endpoint.
+* **What changes:** the gateway continues the agent's chain instead of
+  calling as itself.
 
 ```mermaid
 sequenceDiagram
@@ -338,60 +370,79 @@ sequenceDiagram
   T-->>G: Access token for the tool
 ```
 
-* The onward grant names the same Agent Principal and, for delegated
-  access, the same user. A RAS and API that implement the core, with
-  DPoP support at the RAS token endpoint, accept it unchanged, because
-  every onward grant is bound to the gateway's key.
-* The gateway is the grant's client, never an added actor. A separate
-  `continuation_via` claim in the onward grant lists the gateways on the
-  path; the API sees it where the target RAS supports path disclosure.
-* A chain exists only when the user's delegation, or the agent's own
-  authorization, permits continuation through other clients, and the
-  gateway needs its own Continuation Association.
-* Self-acting chains anchor to an agent session that only the agent's
-  own authentication keeps active, so a gateway cannot keep a stopped
-  agent's chains alive.
-* A chain ends when its anchor ends, such as the user's IdP session,
-  and on governance events: disabling the agent or user, or withdrawing
-  the root binding, association, credential, or authorization.
+The onward grant names the same Agent Principal and, for delegated
+access, the same user. A RAS and API that implement the core accept it
+unchanged, because every onward grant is bound to the gateway's key.
+The gateway is the grant's client, never an added actor; a separate
+`continuation_via` claim lists the gateways on the path.
 
-The same mechanism lets the agent's own client continue a chain for
-scheduled work after the user signs out, where the IdP supports chains
-anchored to a refresh-token grant.
+* **Limitations:** the API sees `continuation_via` only where the
+  target RAS supports path disclosure. A chain ends when its anchor
+  ends, such as the user's IdP session, and on governance events:
+  disabling the agent or user, or withdrawing the root binding,
+  association, credential, or authorization. Self-acting chains anchor
+  to an agent session that only the agent's own authentication keeps
+  active, so a gateway cannot keep a stopped agent's chains alive.
+  Continuation also stops once the source hop's continuation window
+  passes, even while the agent's access token at the gateway is still
+  accepted.
+
+### Scheduled work
+
+* **When to use:** an agent works for a user after the user signs out,
+  such as preparing a daily report.
+* **Prerequisites:** an IdP that claims grant-anchored continuation and
+  accepts refresh-token subjects from the agent's client; a refresh
+  token for the user whose grant carries the user's Delegation
+  Authorization; a continuation-aware RAS at the agent's operator that
+  holds the task record; and a Continuation Association for the agent's
+  client.
+* **What changes:** while the user is signed in, the client uses the
+  refresh token once to root a chain anchored to its grant. Each run
+  continues from the task record and obtains a new ID-JAG for the
+  target, with no retained user credential. The target RAS processes
+  that grant as in the delegated flow.
+* **Limitations:** delegated access only. Withdrawing the user's
+  delegation, or revoking the refresh-token grant, ends the chain, and
+  the next run fails with `invalid_continuation`. The continuation
+  profile's [scheduled variant][continuation-scheduled] shows the
+  messages.
 
 ### Platform-hosted agents
 
-A platform such as a data or application platform can host agents for a
-customer that use only the platform's own tools and resources. The IdP
-issues those agents nothing, and the platform must keep running when the
-IdP is unavailable. The enterprise still wants them in one inventory,
-under one governance decision, and visible in its monitoring. The
-drafts support this without putting the IdP in the platform's runtime
-path:
-
-* **Register, don't federate.** The platform's connector registers each
-  hosted agent at the IdP as an Agent with no Identity Binding or Client
-  Association. The agent is visible and governed but cannot obtain an
-  IdP grant.
-* **Split authority.** The platform owns the agent's existence,
-  description, and deletion. The IdP owns the governance decision,
-  `active`, and the connector cannot re-enable an agent the IdP
-  disabled.
-* **Apply governance locally.** When the IdP disables an agent, the
-  platform denies new authorization and revokes the agent's existing
-  authorization in its own system. Its own suspension is a Local
-  Suspension the IdP cannot clear.
-* **Signal both ways.** The platform sends WISE credential and posture
-  events and CAEP session events about its agents to the IdP, and the
-  IdP can send CAEP risk changes back. Events inform policy; they do not
-  change administrative state.
-* **One correlation key.** The issuer-qualified Agent Principal
-  identifier appears in SCIM, in events, and in the platform's audit
-  records next to the platform's own identifier.
-* **Federate later, same principal.** When the agent needs a resource
-  beyond the platform, an administrator adds an Identity Binding and
-  Client Association to the same Agent. Its identifier and governance
-  history carry over.
+* **When to use:** a platform, such as a data or application platform,
+  hosts agents for a customer that use only the platform's own tools and
+  resources, and must keep running when the IdP is unavailable. The
+  enterprise still wants them in one inventory, under one governance
+  decision, and visible in its monitoring.
+* **Prerequisites:** the SCIM management profile for registration, and
+  the platform as the lifecycle Receiver for its own agents.
+* **What changes:** the IdP stays out of the platform's runtime path.
+  * **Register, don't federate.** The platform's connector registers
+    each hosted agent at the IdP as an Agent with no Identity Binding or
+    Client Association. The agent is visible and governed but cannot
+    obtain an IdP grant.
+  * **Split authority.** The platform owns the agent's existence,
+    description, and deletion. The IdP owns the governance decision,
+    `active`, and the connector cannot re-enable an agent the IdP
+    disabled.
+  * **Apply governance locally.** When the IdP disables an agent, the
+    platform denies new authorization and revokes the agent's existing
+    authorization in its own system. Its own suspension is a Local
+    Suspension the IdP cannot clear.
+  * **Signal both ways.** The platform sends WISE credential and posture
+    events and CAEP session events about its agents to the IdP, and the
+    IdP can send CAEP risk changes back. Events inform policy; they do
+    not change administrative state.
+  * **One correlation key.** The issuer-qualified Agent Principal
+    identifier appears in SCIM, in events, and in the platform's audit
+    records next to the platform's own identifier.
+* **Limitations:** the platform authorizes from locally applied state,
+  so an unreachable IdP neither disables nor re-enables its agents; a
+  bound on stale state needs a revalidation policy. To reach a resource
+  beyond the platform, an administrator adds an Identity Binding and,
+  where the input requires one, a Client Association to the same Agent.
+  Its identifier and governance history carry over.
 
 The implementer's guide
 [follows one agent](IMPLEMENTERS-GUIDE.md#platform-hosted-agents) from
@@ -712,8 +763,10 @@ What each draft needs from the specifications it depends on is in
 [core]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
 [core-walkthrough]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#walkthrough
 [core-wag-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#wag-example
+[core-aws-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#aws-example
 [inputs]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html
 [continuation]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
+[continuation-scheduled]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#walkthrough-scheduled
 [management]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html
 [lifecycle]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
 [lifecycle-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#platform-example

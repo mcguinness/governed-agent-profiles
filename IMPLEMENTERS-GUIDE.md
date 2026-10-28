@@ -19,6 +19,7 @@ profile that defines them.
 * [Distributed platforms and key use](#distributed-platforms-and-key-use)
 * [Continuation through gateways](#continuation-through-gateways)
 * [Transaction Tokens inside a resource domain](#transaction-tokens-inside-a-resource-domain)
+* [Sub-agents and orchestrators](#sub-agents-and-orchestrators)
 * [Authorization decisions with AuthZEN](#authorization-decisions-with-authzen)
 * [Risk signals](#risk-signals)
 * [Credential brokers](#credential-brokers)
@@ -337,6 +338,60 @@ narrower bounds.
 The continuation profile uses a Transaction Token differently in its
 [scheduled variant][cont-scheduled]: as the carrier that tells its
 Continuation Assertion Issuer which hop a scheduled run continues.
+
+## Sub-agents and orchestrators
+
+The core decides a sub-agent's identity by what needs to be governed
+separately ([Governance Boundary and Execution
+Independence][governance-boundary]). Differences in process, session,
+or worker alone do not call for a new identity; a need for separate
+authorization, delegation, attribution, resource correlation, or
+disablement does.
+
+### A sub-agent within its parent's authority
+
+The sub-agent runs as the parent's Agent Principal: an execution, like
+a replica or worker. To obtain grants itself, it presents a resolution
+input that an Identity Binding maps to that same principal. To use the
+parent's grants and tokens, it stays within the client's reuse context:
+the same agent, user, tenant, target, authority, and proof key ([Client
+Token Reuse][client-token-reuse]). A DPoP-bound token also needs the
+key, or request-specific proofs from its holder ([Distributed platforms
+and key use](#distributed-platforms-and-key-use)). Resource domains see
+the parent agent, which is accurate: the sub-agent's actions are the
+parent's.
+
+### A sub-agent that needs its own governance
+
+The sub-agent gets its own Agent Principal, Identity Binding, and
+Client Association, and its own authorizations. For delegated access,
+the user's Delegation Authorization names the sub-agent; the
+orchestrator's delegation does not extend to it, because a valid
+credential, a shared client, or another agent's authorization never
+implies one ([Delegation Authorization][delegation-authorization]).
+Resource domains see the sub-agent as the actor and can authorize,
+audit, and disable it separately.
+
+To cap a sub-agent at its orchestrator's authority, record the cap when
+the sub-agent's authorization is granted: the IdP then refuses any
+request outside it. The cap is not computed from the orchestrator at
+runtime, so withdrawing the orchestrator's authority does not by itself
+narrow the sub-agent's; withdraw or narrow both.
+
+### What to avoid
+
+* **Passing the orchestrator's tokens to a sub-agent with its own
+  principal.** A token names the orchestrator, so the resource domain
+  would attribute the sub-agent's actions to the wrong agent, and the
+  client reuse rules forbid it.
+* **Encoding the parent in the sub-agent's identifier.** A change of
+  parent or task would rename the sub-agent; record relationships in
+  authorizations and in the Agent resource's metadata instead.
+* **Treating the orchestrator as the sub-agent's actor.** One agent
+  acting for another is multi-agent delegation, which these profiles do
+  not define. A gateway that forwards an agent's request is different:
+  it is the onward grant's client, not an actor
+  ([Continuation through gateways](#continuation-through-gateways)).
 
 ## Authorization decisions with AuthZEN
 
@@ -974,6 +1029,9 @@ resource domain provisioned for `agent-58` applies the deletion under
 [inputs-jwt-svid]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html#jwt-svid-input
 [lc-grant-revocation]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#grant-revocation
 [CB4A]: https://www.ietf.org/archive/id/draft-hartman-credential-broker-4-agents-00.html
+[governance-boundary]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#governance-boundary
+[client-token-reuse]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#client-token-reuse
+[delegation-authorization]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#delegation-authorization
 [TXN-TOKENS]: https://www.ietf.org/archive/id/draft-ietf-oauth-transaction-tokens-11.html
 [cont-scheduled]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#walkthrough-scheduled
 [cont-chain-ending]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#chain-ending

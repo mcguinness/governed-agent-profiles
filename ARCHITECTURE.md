@@ -627,8 +627,9 @@ documents its expected and maximum delay.
 
 A component that cannot reach another keeps the decisions it has
 already applied, and makes no decision that needs the missing input.
-The table separates continuing an authorized operation with tokens
-already issued from obtaining new authority.
+The table separates continuing an authorized operation with tokens and
+grants already issued from obtaining new authority from the IdP; the
+details of each row follow it.
 
 | Failure | Existing operations | New authority | Recovery |
 |---|---|---|---|

@@ -427,13 +427,15 @@ Before issuing a grant in response to a poll, the IdP MUST re-evaluate
 the request under {{Section 10.7 of DTR}} and, in addition, MUST confirm
 that:
 
-* the Agent Principal is active, and the Identity Binding and Client
-  Association used still permit the request;
+* the Agent Principal is active;
+* for root issuance, the Identity Binding and Client Association used
+  still permit the request;
 * the Delegation or Agent Authorization still permits the approved
   authority;
 * for delegated access, the user is active and resolves as before;
-* for a continuation, the chain has not ended ({{deferred-continuation}});
-  and
+* for a continuation, the chain has not ended, and a Continuation
+  Association still permits the continuing client
+  ({{deferred-continuation}}); and
 * no change applied within the IdP's freshness limit ("Issuance
   Authorization" in {{FEDERATION}}) withdraws any of these.
 
@@ -477,7 +479,13 @@ reserves the assertion as {{Section 5.5.7 of ICA}} requires. The
 deferral code then stands for that reservation, and the assertion
 cannot be presented again.
 
-At resolution, the IdP re-checks that the chain has not ended. A chain
+A continuation exchange performs no agent resolution, so at resolution
+the IdP re-checks the chain and the continuing client's Continuation
+Association rather than an Identity Binding ({{resolution}}). The
+continuation window and the limits of {{ICA}} are evaluated when the
+request is received, not at resolution: the assertion is consumed at
+deferral, the maximum pending lifetime bounds how long after that the
+onward grant can issue, and an approver decides in between. A chain
 that ended while the request was pending resolves to `access_denied`;
 the continuing client learns of the ending from its next continuation,
 which fails with `invalid_continuation`. While the request is pending,

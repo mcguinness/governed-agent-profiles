@@ -372,11 +372,11 @@ implies one ([Delegation Authorization][delegation-authorization]).
 Resource domains see the sub-agent as the actor and can authorize,
 audit, and disable it separately.
 
-To cap a sub-agent at its orchestrator's authority, record the cap when
-the sub-agent's authorization is granted: the IdP then refuses any
-request outside it. The cap is not computed from the orchestrator at
-runtime, so withdrawing the orchestrator's authority does not by itself
-narrow the sub-agent's; withdraw or narrow both.
+A separate Agent Principal needs its own authorization. These profiles
+define no automatic inheritance or cascading withdrawal between agents.
+A deployment can explicitly constrain the sub-agent using the
+orchestrator's current authority; otherwise, narrow or withdraw each
+authorization separately.
 
 ### What to avoid
 

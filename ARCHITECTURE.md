@@ -356,9 +356,10 @@ core decides their identity by what they need governed separately
 | Needs its own authorization, delegation, attribution, correlation, or disablement | Its own Agent Principal | Its own Client Association and Delegation or Agent Authorization; the parent's authority does not pass to it |
 | Acts for the orchestrator, as one agent delegating to another | Out of scope: multi-agent delegation chains are not defined | |
 
-So a sub-agent's authority is never inherited at runtime. Where policy
-caps a sub-agent at its parent's authority, the IdP records that cap in
-the sub-agent's own authorization. The implementer's guide covers
+These profiles define no automatic inheritance or cascading withdrawal
+between agents. A deployment can explicitly constrain a sub-agent by its
+orchestrator's current authority; otherwise, each authorization is
+narrowed or withdrawn separately. The implementer's guide covers
 [the patterns](IMPLEMENTERS-GUIDE.md#sub-agents-and-orchestrators).
 
 ## Changes and revocation

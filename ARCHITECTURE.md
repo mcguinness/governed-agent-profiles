@@ -13,6 +13,7 @@ configuration, see the [implementer's guide](IMPLEMENTERS-GUIDE.md).
 * [How the drafts fit](#how-the-drafts-fit)
 * [Continuation through gateways](#continuation-through-gateways)
 * [Changes and revocation](#changes-and-revocation)
+* [Authorization decisions with AuthZEN](#authorization-decisions-with-authzen)
 * [Platform-hosted agents](#platform-hosted-agents)
 * [Beyond these drafts](#beyond-these-drafts)
 
@@ -288,6 +289,122 @@ revoked sessions. Current administrative state cannot reveal a missed
 disable-and-reenable cycle, and how quickly an API stops accepting
 tokens depends on introspection, caching, and token lifetimes.
 
+## Authorization decisions with AuthZEN
+
+These drafts decide which governed agent is acting and what authority
+its grant carries. Each resource domain still decides whether to permit
+a specific action. The OpenID AuthZEN specifications standardize that
+decision: a policy enforcement point (PEP) asks a policy decision point
+(PDP) about a subject, an action, a resource, and a context. The drafts
+define no AuthZEN mapping. This section shows where AuthZEN fits and
+what a mapping has to preserve; the implementer's guide has
+[worked requests](IMPLEMENTERS-GUIDE.md#authzen-evaluation-examples).
+
+### Integration points
+
+```mermaid
+flowchart LR
+  client["Agent client"]
+  idp["Governing IdP"]
+  ras["RAS"]
+  api["API or MCP gateway"]
+  pdp["Policy decision point<br/>AuthZEN"]
+  approval["Access request<br/>ARAP, AROP"]
+  client -->|"token exchange"| idp
+  client -->|"redeem grant"| ras
+  client -->|"call a tool"| api
+  api -->|"evaluate each action"| pdp
+  ras -.->|"evaluate local policy"| pdp
+  idp -.->|"semantics it cannot evaluate"| pdp
+  api -.->|"requestable denial"| approval
+```
+
+| Point | Enforcement point | What is decided | Hook in the drafts | AuthZEN fit |
+|---|---|---|---|---|
+| Each action | API or MCP gateway | Whether this user and agent may perform this operation on this object | Core "Optional Policy Services" and "Delegated Actor Authorization" | AuthZEN evaluation; COAZ-MCP for MCP tool calls |
+| Redemption | RAS | Whether to issue an access token under local user, actor, client, tenant, and resource policy | Core "Grant Redemption at the RAS"; the core states its policy-service rules for the API | AuthZEN evaluation |
+| Issuance | IdP | Decisions that depend on tool arguments or business objects, which the IdP need not interpret | Core "Authorization Relationships": resource-domain evaluation, locally or through a trusted policy service | A resource-domain PDP; no message mapping defined |
+| Requestable denial | API | Whether the agent can ask for more access | Core "External Approval"; AROP is an excluded composition | ARAP for the request; AROP for completion as a token |
+
+### Use cases
+
+1. **Per-tool decisions at an MCP gateway.** An agent calls tools
+   through an MCP gateway, which is the PEP for each `tools/call`.
+   COAZ-MCP maps the call to an AuthZEN request. With a governed token,
+   the user is the subject and the agent comes from `act`, not from
+   `client_id`.
+2. **Decisions on tool arguments.** The grant carries one resource and a
+   scope, such as `files.read` for one tenant; the IdP need not judge
+   which file or customer record a call touches. COAZ-MCP's declared
+   mapping carries a tool's arguments into the resource and context, so
+   the resource domain decides at that level, within the token's
+   authority.
+3. **Self-acting agents.** A token derived from a WAG has no user. The
+   agent's local principal is the subject.
+4. **Agents reached through gateways.** In a further resource domain,
+   `client_id` names the gateway's registration and `continuation_via`
+   lists the gateways on the path. A PDP can admit an agent only through
+   approved gateways, while the agent remains the actor in `act`.
+5. **Requestable denials.** A PDP can deny an action as requestable, and
+   ARAP lets the PEP submit an access request and re-evaluate after
+   approval. A resource-local approval can satisfy an additional
+   condition within the token's authority but cannot expand it. Approval
+   that completes as a new token through AROP is not yet composed with
+   governed ID-JAG issuance.
+6. **Risk as policy input.** The lifecycle profile lets an IdP send CAEP
+   `risk-level-change` about a platform-hosted agent. Platform policy can
+   then restrict the agent, for example to read-only operations, without
+   disabling it.
+7. **Approved work.** Whether approved work still justifies an action is
+   a further input, from [Mission-Bound
+   Authorization](#beyond-these-drafts).
+
+### What any mapping preserves
+
+The core's rules hold for any PDP, AuthZEN or not:
+
+* The user, the issuer-qualified Agent Principal, and the OAuth client
+  stay distinct. The client identifier never stands in for the agent.
+* The PEP supplies the tenant and the token constraints, such as scope
+  and resource, that the decision needs.
+* A permit does not override the token's constraints, validity, or
+  tenant.
+* For delegated access, every permitted operation is covered by the
+  actor gate: a permit for the user does not by itself authorize the
+  agent.
+
+**COAZ-MCP's default and governed tokens.** COAZ-MCP Draft 1 takes the
+subject from the token's `sub` and puts the agent in `context.agent`,
+"typically `$token.?client_id`". For a governed token, that default
+names the platform's shared client, or in a further domain the gateway,
+as the agent for every agent behind it: the shared-client problem
+again. A governed deployment configures the mapping so that the agent
+comes from `act`, by issuer and subject, and keeps `client_id` as a
+separate attribute. [COORDINATION.md](COORDINATION.md) records this as a
+point for the AuthZEN working group.
+
+### The AuthZEN specifications
+
+The OpenID AuthZEN working group develops these specifications:
+
+* [AuthZEN Authorization API 1.0](https://openid.net/specs/authorization-api-1_0.html):
+  a PEP asks a PDP for an access decision about a subject, action,
+  resource, and context. It defines no member for an actor acting on
+  behalf of a subject; a deployment can carry one in `context` or in the
+  subject's `properties`.
+* [COAZ](https://openid.github.io/authzen/authzen-coaz-framework-1_0.html)
+  (Compatible with OpenID AuthZEN): a protocol-neutral framework that
+  maps an operation's inputs into an AuthZEN request.
+  [COAZ-MCP](https://openid.github.io/authzen/authzen-coaz-mcp-binding-1_0.html)
+  is its binding for the Model Context Protocol.
+* [ARAP](https://openid.github.io/authzen/authzen-access-request-approval-profile-1_0.html)
+  (AuthZEN Access Request and Approval Profile): after a requestable
+  denial, the PEP submits an access request, tracks it as an
+  asynchronous task, and re-evaluates after approval.
+* [AROP](https://github.com/openid/authzen/blob/main/profiles/authzen-access-request-oauth/authzen-access-request-oauth-profile-1_0.md)
+  (AuthZEN Access Request OAuth Profile): binds ARAP to OAuth so that an
+  approved request completes as an issued access token.
+
 ## Platform-hosted agents
 
 A platform such as a data or application platform can host agents for a
@@ -338,36 +455,8 @@ context and per-action authorization belong to other specifications:
 | Concern | Question | Responsibility | Specifications |
 |---|---|---|---|
 | Identity | Which governed agent is acting? | The IdP resolves the Agent Principal; the resource domain correlates it locally | These drafts |
-| Authority | What may it do, and for whom? | The IdP authorizes the grant; the resource domain decides within its limits | These drafts; AuthZEN and COAZ for per-action decisions; ARAP and AROP for requestable denials |
+| Authority | What may it do, and for whom? | The IdP authorizes the grant; the resource domain decides within its limits | These drafts; AuthZEN and COAZ for per-action decisions; ARAP and AROP for requestable denials ([Authorization decisions with AuthZEN](#authorization-decisions-with-authzen)) |
 | Work | Does approved work still justify this action? | A mission control point supplies and evaluates work context; ending a Mission denies actions at every boundary that checks work state | [Mission-Bound Authorization](https://github.com/mcguinness/mission-bound-authorization) |
-
-Two compositions remain undefined:
-
-* The core lets an API delegate evaluation to a policy decision service,
-  which must keep the user, the issuer-qualified Agent Principal, and
-  the OAuth client distinct. It names AuthZEN as an optional interface
-  but defines no AuthZEN message mapping.
-* The core lists asynchronous approval with AROP as an excluded
-  composition. Approval that completes as a token is not yet composed
-  with governed ID-JAG issuance.
-
-The AuthZEN profiles are developed in the OpenID AuthZEN working group:
-
-* [AuthZEN Authorization API 1.0](https://openid.net/specs/authorization-api-1_0.html):
-  a policy enforcement point asks a policy decision point for an access
-  decision about a subject, action, resource, and context.
-* [COAZ](https://openid.github.io/authzen/authzen-coaz-framework-1_0.html)
-  (Compatible with OpenID AuthZEN): a protocol-neutral framework that
-  maps an operation's inputs into an AuthZEN request.
-  [COAZ-MCP](https://openid.github.io/authzen/authzen-coaz-mcp-binding-1_0.html)
-  is its binding for the Model Context Protocol.
-* [ARAP](https://openid.github.io/authzen/authzen-access-request-approval-profile-1_0.html)
-  (AuthZEN Access Request and Approval Profile): after a requestable
-  denial, the enforcement point submits an access request, tracks it as
-  an asynchronous task, and re-evaluates after approval.
-* [AROP](https://github.com/openid/authzen/blob/main/profiles/authzen-access-request-oauth/authzen-access-request-oauth-profile-1_0.md)
-  (AuthZEN Access Request OAuth Profile): binds ARAP to OAuth so that an
-  approved request completes as an issued access token.
 
 Also outside these drafts: identity continuity across a chain of IdPs,
 multi-agent delegation chains, authorization of individual client

@@ -497,12 +497,12 @@ apart:
 - a delegation chain, which governed tokens never carry;
 - the gateways on the path.
 
-In a governed chain, the actor is also the agent a user approved. The
-token carries a single `act`, with no nesting, and every onward grant
-names the same Agent Principal ("Identity Preservation" in
-[CONTINUATION]). That collapses the "current actor" and
-the "originally approved agent" into one identity, and leaves the
-client and the path as separate attributes. The table compares each
+In a governed delegated chain, the actor is also the agent the IdP
+authorized to act for the user. A delegated token carries a single
+`act`, with no nesting, and every onward grant names the same Agent
+Principal ("Identity Preservation" in [CONTINUATION]). That collapses
+the "current actor" and the "originally authorized agent" into one
+identity, and leaves the client and the path as separate attributes. The table compares each
 profile with that model; it is a comparison of nearest counterparts,
 not a mapping these profiles define.
 
@@ -513,7 +513,7 @@ not a mapping these profiles define.
 | [ARAP][ARAP] with the [Actor Delegation Profile][AUTHZEN-ACTOR] | The principal on whose behalf the operation is performed | `client.actor`, identified by the (`iss`, `sub`) pair of [Actor Profile][ACTOR-PROFILE] | ARAP's `client.id` | Nested `act`, from the immediate actor outward |
 | [AROP][AROP] Draft 1 | The principal the token will act as, per grant | `subject.properties.act` | `context.client_id` | Not modeled |
 | [Token Issuance][AUTHZEN-ISSUANCE] Draft 1 | `subject.id`: the subject the authorization server intends to issue | No member; `act` is built by the authorization server | `context.client_id` | Not modeled |
-| Mission-Bound Runtime Enforcement, [AuthZEN profile][MISSION-AUTHZEN] | The credential's `sub` | The leaf of `context.actor.act`; with no `act`, the client | `context.actor.client_id` | `context.actor.act`, root to leaf |
+| Mission-Bound Runtime Enforcement, [AuthZEN profile][MISSION-AUTHZEN] | The credential's `sub`; for an agent acting for its own workload principal, that principal | Delegated: the leaf of `context.actor.act`. Self-acting: the workload principal in `subject`; the profile calls the client in `context.actor` the immediate actor | `context.actor.client_id` | `context.actor.act`, root to leaf |
 
 Four differences matter for governed deployments:
 
@@ -521,10 +521,15 @@ Four differences matter for governed deployments:
   which for a shared client or a gateway is the same for every agent
   behind it. The enforcement point supplies the agent from the validated
   token (see [the table above](#inputs-the-enforcement-point-supplies)).
-* **A self-acting agent is the subject.** A governed self-acting token
-  has no `act`. Profiles that fall back to the client as the actor when
-  `act` is absent, as the Mission runtime does, treat the client as the
-  agent. For these tokens, the subject is the agent.
+* **A self-acting agent is the subject.** For a token that trusted
+  context establishes as governed self-acting access, the subject
+  represents the agent; the absence of `act` alone does not establish
+  that. COAZ-MCP's default still names the client as the agent. The
+  Mission profile already places the workload principal in `subject`
+  and the client in `context.actor`, and calls that client the
+  immediate actor: a difference of terminology, not of model. Policy
+  takes the governed Agent Principal from `subject` for these tokens
+  and keeps the client separate.
 * **Gateways are clients, not actors.** Profiles that model a chain
   record in `act` who acted through whom. Governed continuation keeps
   one actor and lists continuing clients in `continuation_via`, which

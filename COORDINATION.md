@@ -222,10 +222,14 @@ on its own. These profiles need the same identity model:
   validated token or a verified chain, never from a declared mapping or
   request input. The Actor Delegation Profile already requires this for
   `client.actor`, and COAZ-MCP should do the same (above).
-* **A self-acting agent is the subject.** With no `act`, the subject is
-  the agent. The Mission runtime's fallback to the client as the
-  immediate actor, and COAZ-MCP's default, both name the client
-  instead.
+* **A self-acting agent is the subject.** For a token established
+  through trusted context as governed self-acting access, the subject
+  represents the agent. The absence of `act` alone does not establish
+  that interpretation. COAZ-MCP's default names the client as the agent
+  instead. The Mission profile already keeps the workload principal in
+  `subject` and the client in `context.actor`; it calls that client the
+  immediate actor, so policy written for it needs to take the agent
+  from `subject` for these tokens.
 * **Gateways are not actors.** Governed continuation keeps one actor
   and lists continuing clients in `continuation_via`. A profile that
   needs the path reads that claim, or an introspection equivalent;

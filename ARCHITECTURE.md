@@ -767,10 +767,11 @@ token's authority distinct, and a permit never widens the token
   and trusted configuration; a declared mapping cannot override them.
 * **One identity model across profiles.** COAZ-MCP, ARAP, AROP, Token
   Issuance, and the Mission AuthZEN profile each place the agent
-  somewhere different. A governed token gives them one model: a single
-  actor that is also the agent the user approved, the client kept
-  separate, a self-acting agent as the subject, and gateways in
-  `continuation_via` rather than `act`.
+  somewhere different. A governed token gives them one model: in a
+  delegated chain, a single actor that is also the agent the IdP
+  authorized to act for the user; the client kept separate; for a token
+  that trusted context establishes as self-acting, the agent as the
+  subject; and gateways in `continuation_via` rather than `act`.
 
 The implementer's guide has the [integration points, use cases, and
 worked requests](IMPLEMENTERS-GUIDE.md#authorization-decisions-with-authzen),

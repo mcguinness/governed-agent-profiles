@@ -422,7 +422,7 @@ protection choices.
 |---|---|
 | The self-acting Client Association is disabled; the delegated one remains | The IdP returns HTTP 400 `unauthorized_client`, not `actor_unauthorized`, since no actor is asserted |
 | The client requests a resource the Agent Authorization does not cover | The IdP returns HTTP 400 `invalid_target` |
-| A WAG names an agent with no authorized correlation at the RAS | The RAS returns HTTP 400 `invalid_grant` |
+| The RAS has no authorized correlation for `agent-42` in `acme-data` | The RAS rejects `wag-1` with HTTP 400 `invalid_grant` |
 
 **Containment and restoration.**
 
@@ -477,8 +477,10 @@ gateway is still accepted.
 Alice is signed in, the client uses her refresh token once to establish
 a chain anchored to that refresh token's grant; each run continues from
 server-held task state with no retained user credential. This needs an
-IdP that claims grant-anchored continuation. The continuation profile's
-[scheduled variant][continuation-scheduled] shows the messages.
+IdP that claims grant-anchored continuation, and a continuation-aware
+authorization server at the agent's operator that holds the task
+record. The continuation profile's [scheduled
+variant][continuation-scheduled] shows the messages.
 
 * **Extra test:** when Alice withdraws her Delegation Authorization for
   `agent-42`, the next run fails with `invalid_continuation`, and her

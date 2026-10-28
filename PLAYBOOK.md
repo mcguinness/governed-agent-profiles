@@ -137,10 +137,10 @@ their token endpoints.
 ### 6. Add an external policy decision point
 
 Resource authorization already applies at every RAS and API from stage
-2. Where a resource domain needs decisions finer than a grant's
-resource and scope, add an external policy decision point or a
-finer-grained policy interface, for example through AuthZEN
-([guide][guide-authzen]), and feed it risk signals
+2. A resource domain that needs decisions finer than a grant's resource
+and scope can evaluate that policy locally or delegate it. This stage
+covers delegation: an external policy decision point, for example
+through AuthZEN ([guide][guide-authzen]), fed with risk signals
 ([guide][guide-risk]). The enforcement point supplies the user, agent,
 client, tenant, and token constraints itself, from the validated token.
 

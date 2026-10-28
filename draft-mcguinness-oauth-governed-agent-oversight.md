@@ -367,13 +367,18 @@ MUST reject a poll or cancellation that does not prove that key
 ({{Section 10.1 of DTR}}). The IdP MUST set `expires_in` no greater than
 a configured maximum pending lifetime for the applicable policy.
 
-The IdP validates the subject token when it receives the request. At
-resolution it re-checks the user's current state ({{resolution}}), not
-the subject token's lifetime, because the pending governed request is
-not a credential and the deferral code is single-use and
-sender-constrained. A deployment that needs a current user credential
-at resolution sets a maximum pending lifetime no longer than the
-subject token's remaining lifetime.
+The client does not present the subject token or the agent-resolution
+input again; the IdP validates them when it receives the request. The
+lifetime limits of {{FEDERATION}} still bound the grant issued at
+resolution: an ID-JAG does not outlive its subject credential ("Grant
+Issuance" in {{FEDERATION}}), and no grant outlives an agent-resolution
+input that bounds it, such as a platform JWT ("Common Grant Claims,
+Lifetime, and Response" in {{FEDERATION}}). For root issuance, the IdP
+MUST set `expires_in` so that the pending governed request ends no
+later than the earliest of those expirations. An approval late in the
+window therefore yields a shorter grant. A deployment that needs a
+longer window uses a subject credential that expires later, such as a
+refresh token.
 
 ## Approval {#approval}
 
@@ -451,7 +456,8 @@ would have produced without deferral, with the approved authority:
   resource;
 * `cnf.jkt` equal to the thumbprint of the request's proof key; and
 * `iat` and `exp` set when the grant issues, so that the grant's
-  redemption window begins at resolution.
+  redemption window begins at resolution, within the lifetime limits of
+  {{FEDERATION}} ({{deferring}}).
 
 The successful polling response carries the `issued_token_type` of the
 originating request ({{Section 5.5.2 of DTR}}). No claim in the grant
@@ -643,8 +649,9 @@ it as such ({{modes}}).
 A decision can come long after the request. The IdP re-checks the agent,
 its bindings and associations, its authorization, the user, and the
 chain at resolution ({{resolution}}), and the grant's lifetime starts
-then. The maximum pending lifetime bounds how old a request can be when
-it is approved.
+then. The maximum pending lifetime, and for root issuance the
+expiration of the credentials the request presented ({{deferring}}),
+bound how old a request can be when it is approved.
 
 ## Deferral Codes {#security-codes}
 
@@ -699,7 +706,10 @@ walkthrough with `scope=files.write`, `completion_mode=deferred`, and a
 DPoP proof of key K. The IdP authenticates `analysis-client`, resolves
 `agent-42`, checks the Client Association and Alice's Delegation
 Authorization, and finds that policy requires Alice's approval for
-`files.write`. It records the pending governed request and responds:
+`files.write`. Alice's ID Token expires in 65 minutes, so a one-hour
+pending lifetime leaves a grant issued at any point in it its full
+300-second lifetime. The IdP records the pending governed request and
+responds:
 
 ~~~ http-message
 HTTP/1.1 400 Bad Request

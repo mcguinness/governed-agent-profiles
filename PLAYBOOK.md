@@ -829,7 +829,8 @@ stay revoked, and ended continuation chains stay ended.
         invalidated the agent's existing authorization.
      3. Re-enable the agent only after every confirmation. Keep any
         domain that has not confirmed pending, and contain it with a
-        Local Suspension.
+        Local Suspension that its resource owner lifts once the domain
+        confirms.
 * **Verification:** each agent's applied state matches the source; no
   reconciliation remains pending; each resent revocation is recorded by
   the receiver; and where step 4 ran, each domain confirmed its

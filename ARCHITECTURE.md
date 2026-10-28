@@ -56,6 +56,12 @@ The pieces needed to fix that exist separately and do not yet compose:
 | OAuth client | The software that requests grants and tokens. Its identifier never stands in for the agent | `analysis-client` at the IdP; `analysis-api` at the RAS |
 | User | The person a delegated agent acts for, resolved from the user's own sign-in | Alice, `alice-ras` in the grant, `user-108` at the resource |
 
+`analysis-client` and `analysis-api` are the same client's registrations
+at the IdP and at the RAS. The IdP derives the grant's `client_id` from
+a configured association between the two, never from the client's
+request. A client that uses one identifier at both servers, such as a
+Client ID Metadata Document URL, needs no mapping.
+
 ### How it works
 
 The agent's OAuth client authenticates to the enterprise IdP and

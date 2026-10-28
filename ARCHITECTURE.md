@@ -622,7 +622,8 @@ and [risk signals](IMPLEMENTERS-GUIDE.md#risk-signals).
 
 Identity and authority have separate owners, checks, and lifetimes, so
 each change ends something different. A change stops new authorization
-at once at the component that makes the decision. Anywhere else, it
+at the component that makes the decision once that component applies
+it, the IdP within its configured freshness limit. Anywhere else, it
 takes effect only when that component applies it, and authority already
 issued runs until its own revocation or expiry.
 
@@ -630,24 +631,25 @@ issued runs until its own revocation or expiry.
 |---|---|---|---|
 | Disable an Identity Binding | At the IdP, through that binding; other bindings continue. Chains rooted through it end | Grants and RAS tokens, until revoked or expired | Re-enabling it; ended chains stay ended |
 | Remove a Client Association | At the IdP, for that client's use of the binding. Chains rooted through it end | Grants and RAS tokens, until revoked or expired | Restoring it; ended chains stay ended |
-| Withdraw a user's delegation, or an Agent Authorization, as a whole | At the IdP, for that authorization; chains rooted under it end | RAS authorization, until revoked or its absolute expiration | Restoring it; a new root grant for ended chains |
-| Narrow an authorization by removing targets or authority | New grants for what was removed are refused, and continuation to it fails with `invalid_target` or `invalid_scope`; chains continue to other targets | Tokens already issued for the removed targets, until revoked or expired | Restoring the targets or authority |
+| Withdraw a user's delegation, or an Agent Authorization, as a whole | At the IdP, for that authorization; chains rooted under it end | Delegated: RAS authorization, until revoked or its absolute expiration. Self-acting: access tokens and any still-redeemable WAG, until they expire | Restoring it; a new root grant for ended chains |
+| Narrow an authorization by removing targets or authority | New grants for what was removed are refused, and continuation to it fails with `invalid_target`, `invalid_scope`, or `invalid_authorization_details`; chains continue to other targets | Tokens already issued for the removed targets, until revoked or expired | Restoring the targets or authority |
 | Disable the Agent Principal | At the IdP, for every binding and client; every chain for the agent ends | Once a resource domain applies the change, redemption and refresh are denied there and the agent's sessions are revoked | Re-enabling it permits new decisions; revoked sessions and ended chains stay ended |
 | Revoke one ID-JAG through the optional grant-derived revocation capability | Its redemption, at participating receivers in the target tenant | The authorization derived from it there is revoked; the agent stays enabled | A new grant; the revoked one stays unusable |
-| Apply a Local Suspension | In that resource domain, regardless of upstream state | API access stops when its policy observes the change, introspection reports the token inactive, or the token expires | Only the resource owner lifting it |
-| Remove a Continuation Association | That client's continuation of the agent's chains; the chains continue through other clients | Tokens already obtained, until they expire | Restoring it |
+| Apply a Local Suspension | In that resource domain, regardless of upstream state | API access stops when its policy observes the change, introspection reports the token inactive, or the token expires | Only the resource domain lifting it; upstream activation cannot. A provisional suspension caused by a deactivation event can also be cleared by successful reconciliation |
+| Remove a Continuation Association | That client's continuation of the agent's chains; the chains continue through other clients | Tokens already obtained, until revoked or expired; a target's refresh token extends access further | Restoring it |
 
 Re-enabling never restores revoked sessions. Current administrative
 state cannot reveal a missed disable-and-re-enable cycle, and how
 quickly an API stops accepting tokens depends on introspection, caching,
 and token lifetimes. Without a bound on propagation and enforcement,
-the drafts claim no finite end-to-end denial time; a deployment
-documents its expected and maximum delay.
+the drafts claim no finite end-to-end denial time; a deployment should
+document its expected and maximum delay.
 
 ### Failures
 
 A component that cannot reach another keeps the decisions it has
-already applied, and makes no decision that needs the missing input.
+already applied, unless a configured stale-state bound expires, and
+makes no decision that needs the missing input.
 The table separates continuing an authorized operation with tokens and
 grants already issued from obtaining new authority from the IdP; the
 details of each row follow it.
@@ -658,8 +660,8 @@ details of each row follow it.
 | Lifecycle delivery is delayed or lost | Continue on the last applied state | Decided on the last applied state | Reconciliation with the source |
 | The RAS has no record for the agent | Unaffected for agents already correlated | Denied, unless just-in-time correlation applies | Provisioning, or just-in-time correlation |
 | Introspection is unavailable at the API | Requests that need a check fail | Unaffected at the RAS | Requests succeed once it returns |
-| A policy decision service is unavailable | Not defined by the drafts | Unaffected at the IdP and RAS | Decisions resume once it returns |
-| A continuation is refused | End after `invalid_continuation`; continue after `invalid_grant` | No onward grant for that request | A new root grant, or a different request |
+| A policy decision service is unavailable | Not defined by the drafts | Not defined; an IdP issuance decision that depends on the service cannot be made | Decisions resume once it returns |
+| A continuation is refused | Issued tokens keep their lifetimes | No onward grant; after `invalid_continuation`, no further continuation of that chain | A new root grant, or a different request |
 
 **The IdP is unavailable.** The outage prevents new IdP-issued grants:
 no new ID-JAG, WAG, or onward grant. Grants already issued stay
@@ -669,10 +671,13 @@ permits. Access tokens work until they expire, and where a RAS issued a
 refresh token under explicit policy, delegated access can refresh
 within its absolute expiration. Self-acting access ends only when the
 client has neither an acceptable access token nor a redeemable WAG.
-Platform-hosted agents continue until any configured stale-state bound
-expires. An IdP that is reachable but cannot confirm shared state a
-continuation depends on answers HTTP 503; the chain does not end, and
-the gateway can retry with the same assertion while it is unexpired.
+Platform-hosted agents keep authorizing on applied state until any
+configured stale-state bound expires and denies new authorization. An
+IdP that is reachable but cannot confirm shared state a continuation
+depends on answers HTTP 503; the chain does not end, and the gateway
+can retry the same request with the same assertion while it is
+unexpired, after any `Retry-After` interval, with a fresh client
+assertion and DPoP proof.
 
 **Lifecycle delivery is delayed or lost.** A disablement not yet
 applied in a resource domain stops neither redemption, refresh, nor
@@ -697,17 +702,20 @@ within the cache policy.
 
 **A policy decision service is unavailable.** The drafts define no
 behavior. The resource domain chooses to deny or to apply local policy,
-and neither can exceed the token's constraints.
+and neither can exceed the token's constraints. Where an IdP issuance
+decision depends on resource-domain evaluation through that service,
+the IdP cannot make it.
 
-**A continuation is refused.** After `invalid_continuation`, the chain
-has ended: the gateway rejects the agent's request with HTTP 401
-`invalid_token`, and only a new root grant, which the agent's client
-obtains, starts a new chain. After a limit or continuation-window
-failure (`invalid_grant`), the chain continues: the gateway fails the
-request with an error of its own API, the agent's access token stays
-valid, and recovery takes a different request or a retry under a rate
-limit's policy. In either case, the gateway never calls the tool with
-its own authority.
+**A continuation is refused.** Ending a chain stops new continuations
+only; grants and tokens already issued keep their own lifetimes. After
+`invalid_continuation`, the chain has ended: the gateway should reject
+the agent's request with HTTP 401 `invalid_token`, and only a new root
+grant, which the agent's client obtains, starts a new chain. After a
+limit or continuation-window failure (`invalid_grant`), the chain
+continues: the gateway fails the request with an error of its own API,
+the failure does not invalidate the agent's access token, and recovery
+takes a different request or a retry under a rate limit's policy. In
+either case, the gateway never calls the tool with its own authority.
 
 ## Optional integrations and boundaries
 
@@ -769,8 +777,9 @@ change what a broker needs for targets that accept governed grants:
 
 * **No vaulted credential.** The IdP issues a grant naming the agent,
   and the target's RAS issues the access token, so the broker holds no
-  long-lived credential for that target, and the target sees the agent
-  rather than the broker. A gateway that would otherwise inject a shared
+  vaulted API or user credential for that target, and the target sees
+  the agent as the acting principal, with the broker only as its
+  client. A gateway that would otherwise inject a shared
   credential continues the agent's grant instead
   ([Continuation through gateways](#continuation-through-gateways)).
 * **The broker's decisions map onto existing points.** Its policy
@@ -804,9 +813,10 @@ context and per-action authorization belong to other specifications:
 
 Also outside these drafts: identity continuity across a chain of IdPs,
 multi-agent delegation chains, authorization of individual client
-instances, enrollment and key-replacement protocols, request provenance
-through intermediaries other than governed continuation, and behavioral
-monitoring and anomaly detection.
+instances, and enrollment and key-replacement protocols. This overview
+also leaves out request provenance through intermediaries other than
+governed continuation, and behavioral monitoring and anomaly detection;
+the lifecycle profile carries anomaly signals but detects nothing.
 
 ## Specification map and glossary
 
@@ -903,7 +913,7 @@ What each draft needs from the specifications it depends on is in
 | AuthZEN Authorization API | [The API](https://openid.net/specs/authorization-api-1_0.html) through which an enforcement point asks a policy decision point for a decision about a subject, action, resource, and context | OpenID AuthZEN |
 | Bound governed agent access | The adoption profile that requires DPoP at grant issuance and redemption | The core |
 | Chain, hop | The IdP's record of grants continued from one root grant; each grant in it is a hop | ICA, as the continuation profile uses it |
-| Client Association | Permission for an OAuth client to use an agent through one Identity Binding, acting relationship, and credential class | The core |
+| Client Association | Permission for an OAuth client to use an agent through the selected Identity Binding, in one acting relationship and credential class | The core |
 | Client registration association | The IdP's mapping from an authenticated client to its registration at a target RAS, which supplies the grant's `client_id`; not a Client Association | The core ("Issuance Prerequisites") |
 | COAZ, COAZ-MCP | [COAZ](https://openid.github.io/authzen/authzen-coaz-framework-1_0.html) (Compatible with OpenID AuthZEN) maps an operation's inputs into an AuthZEN request; [COAZ-MCP](https://openid.github.io/authzen/authzen-coaz-mcp-binding-1_0.html) is its binding for the Model Context Protocol | OpenID AuthZEN |
 | Continuation Assertion Issuer (CAI) | The issuer that attests, for a continuation exchange, that a RAS accepted a hop, that its authorization is active, and that the continuing client is associated with it | ICA |
@@ -921,7 +931,7 @@ What each draft needs from the specifications it depends on is in
 | Identity Binding | An approved association from an exact client or workload identity to one agent; it resolves the agent and grants no permission | The core |
 | Local Suspension | A resource-domain restriction independent of the IdP's state; upstream activation cannot clear it | Lifecycle |
 | Onward grant | An ID-JAG or WAG issued on a continuation exchange | Continuation |
-| Provisioning Domain | Configuration naming one governing IdP issuer, one Target Tenant, and the connectors authorized to manage them | Lifecycle; SCIM management for the IdP side |
+| Provisioning Domain | In a resource domain, configuration naming one governing IdP issuer, one Target Tenant, and the connectors authorized to manage them. At the IdP, one connector's management authority within one Governance Tenant | Lifecycle; SCIM management |
 | RAS | The resource domain's authorization server, which redeems grants and issues access tokens | The core |
 | Resource domain | A RAS and the APIs it issues access tokens for | This overview |
 | Target Tenant | The tenant at the RAS in which the agent or user exercises authority | The core |

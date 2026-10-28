@@ -667,7 +667,8 @@ OAuthClient queries follow {{OAUTH-CLIENT}}. Collection reads MUST
 return only resources within the caller's read permission. For a
 platform connector, an `externalId` lookup is scoped to its Provisioning
 Domain and resource type; another connector's correlation value cannot
-select its resource ({{implementation-client}}).
+select its resource. An administrative reader spanning several domains
+cannot assume that externalId alone is unique.
 
 {{example-queries}} shows these filters in use.
 
@@ -811,12 +812,9 @@ sections cited.
   ({{deletion}}). To prevent an old connector from recreating deleted
   records, administrators withdraw that connector's create authority;
   DELETE alone does not revoke its management credentials.
-* **Readers across domains:** An administrative reader spanning several
-  Provisioning Domains cannot assume that `externalId` alone is unique
-  ({{query}}).
 * **Credential classes:** The connector and the IdP agree on usable
-  input classes during trust setup; `/Schemas` describes syntax only
-  ({{discovery}}).
+  input classes during trust setup. Schema discovery advertises
+  supported classes; it does not authorize their use ({{discovery}}).
 
 ## Service Provider {#implementation-sp}
 

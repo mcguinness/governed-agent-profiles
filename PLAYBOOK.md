@@ -1,20 +1,20 @@
 # Governing Agents: A Playbook for Identity Teams
 
 This playbook is non-normative. It turns the governed agent profiles
-into the work an enterprise identity team does: what to stand up, in
-what order, what to require from vendors, how to stop and restore an
-agent, and what to show an auditor. The drafts define every
+into the work an enterprise identity team does: choosing a pilot,
+assigning owners, configuring and validating an integration, requiring
+evidence from vendors, stopping and restoring an agent, and showing an
+auditor what happened. The drafts define every
 requirement and govern wherever this playbook differs. The
 [architecture overview](ARCHITECTURE.md) explains the model, and the
 [implementer's guide](IMPLEMENTERS-GUIDE.md) explains what each role
 builds.
 
 * [The decisions an identity team owns](#the-decisions-an-identity-team-owns)
-* [Adoption stages](#adoption-stages)
-* [Enterprise patterns](#enterprise-patterns)
+* [Operating steps](#operating-steps)
+* [Recipes](#recipes)
 * [Vendor requirements](#vendor-requirements)
 * [Runbooks: stop and restore](#runbooks-stop-and-restore)
-* [Ownership and reviews](#ownership-and-reviews)
 * [Audit evidence](#audit-evidence)
 * [Where security tooling plugs in](#where-security-tooling-plugs-in)
 
@@ -38,67 +38,105 @@ use of the agent, owning an agent does not make the owner its
 delegator, and a user's sign-in does not authorize an agent to act for
 that user.
 
-## Adoption stages
+## Operating steps
 
-The stages build on each other, but delegated and self-acting access
-can be adopted in either order. Each stage ends with checks that can be
-run, most of them from the drafts' negative tests.
+Five steps take a deployment from a pilot to operation. Delegated and
+self-acting access are independent: a pilot can start with either, and
+adding the other later repeats steps 2 and 3 for it. Grant protection is
+chosen in step 1 and configured in step 3, with the rest of the
+integration.
 
-### 1. Register
+### 1. Choose a pilot and its operating model
 
-Create an Agent Principal for each agent, with an owner, and an Identity
-Binding for each execution identity that runs it. Register the OAuth
-clients agents use. Platforms can do this through the [SCIM management
-profile][management], whose Service Provider keeps registering an agent,
-binding it, and authorizing a client as separate permissions.
+Pick one agent, one OAuth client, one resource domain and tenant, and,
+for delegated access, a small set of users. Then record the choices
+that the later steps test:
 
-*Exit checks:*
-* Every production agent has an Agent Principal, with its owner recorded
-  in the Agent resource's `owners` attribute.
+| Choice | Options | What it determines |
+|---|---|---|
+| Acting relationship | Delegated (ID-JAG), self-acting (WAG), or both | Which authorization the IdP checks, and whether the RAS and API apply the actor gate |
+| Resolution input | A dedicated client authenticating with `private_key_jwt`, or a shared client presenting its existing platform JWT | Whether the client's own authentication identifies the agent, or a platform JWT does |
+| Grant protection | Bound governed agent access, with DPoP at grant issuance and redemption; or governed agent access, with unbound grants only where policy explicitly permits them | Whether a stolen grant can be redeemed |
+| Access-token protection, per resource | DPoP, mutual TLS, or bearer where the resource explicitly permits it | What a stolen access token allows |
+| Token validation at the API | Introspection on each request, cached introspection, or offline JWT validation | How soon a revocation at the RAS reaches the API: at the next check, when the cache entry ends, or at token expiry ("Resource Enforcement and Delay" in the [lifecycle profile][lifecycle]) |
+| Agent records at the RAS | Provisioned in advance, or created from a validated grant where resource policy enables just-in-time correlation | Whether the RAS learns of the agent's disablement through provisioning; a record created just in time learns of it only through local action or another signal |
+| Federation | Federated, or registration only, for a platform-hosted agent that uses only its platform's own resources | Registration-only agents follow the [registration-only branch](#registration-only-branch) |
+
+The [recipes](#recipes) fill in these choices for a complete pilot.
+Acceptance in steps 2 and 3 covers the pilot population; coverage of
+every production agent is a rollout measure in step 5.
+
+### 2. Assign owners and record the decisions
+
+Assign each decision in [the table above](#the-decisions-an-identity-team-owns)
+to a team:
+
+| Team | Owns |
+|---|---|
+| Identity (IAM) | Agent Principals and owners; Identity Bindings; Client Associations; Delegation and Agent Authorizations; Continuation Associations; IdP issuance policy; the authority of SCIM connectors |
+| Resource and application owners | Local agent principals and their eligibility; actor-gate policy; access-token protection per client and resource; Local Suspension; per-action policy |
+| Platform engineering | Agent OAuth clients and their keys; workload credentials; the SCIM connector |
+| Security operations | Signals into the IdP and policy decision points; running the containment runbooks; incident records |
+
+Then create an Agent Principal for each pilot agent, with an
+accountable owner, an Identity Binding for each execution identity that
+runs it, and the OAuth client registrations it uses. Platforms can do
+this through the [SCIM management profile][management], whose Service
+Provider keeps registering an agent, binding it, and authorizing a
+client as separate permissions.
+
+*Exit checks, for the pilot population:*
+* Each pilot agent has an Agent Principal with a recorded owner; in SCIM
+  management, the Agent resource's `owners` attribute.
 * Permission to register agents does not let a connector bind them or
   authorize clients.
 * An execution identifier, such as a session or replica ID, never
   selects an Agent Principal; bindings name exact identities.
 
-### 2. Federate
+### 3. Configure and validate the first integration
 
-Configure Client Associations and Delegation or Agent Authorizations,
-and have resource domains accept governed grants: an ID-JAG for
-delegated access and a WAG for self-acting access ([core][core]). Start
-with dedicated-client resolution, one OAuth client per agent
-authenticating with `private_key_jwt`, which every conforming
-implementation supports. Shared platforms add the existing platform JWT
-input. Self-acting Client Associations are configured at the IdP
-directly; the SCIM management profile administers associations for
-delegated issuance only.
+Configure the choices from step 1 together, including grant and
+access-token protection:
 
-*Exit checks:*
+* **At the IdP:** the Client Association for the acting relationship;
+  the Delegation Authorization (agent, user, client, tenant, target, and
+  authority) or the Agent Authorization; the target RAS and tenant; and
+  the client registration association that supplies the grant's
+  `client_id` at the RAS. Self-acting Client Associations are
+  configured at the IdP directly; the SCIM management profile
+  administers associations for delegated issuance only.
+* **At the RAS:** the agent's local record, keyed by the exact (IdP
+  issuer, agent identifier) pair; user links and the actor-gate policy
+  for delegated access; DPoP at the token endpoint for bound grants; and
+  the access-token protection for each resource.
+* **At the API:** tenant checks, and either the user's authority and the
+  actor gate for delegated tokens, or the agent's own authority for
+  self-acting tokens.
+* **At the client:** its registrations and keys at the IdP and the RAS,
+  and a DPoP key for bound grants.
+
+The implementer's guide lists each item under [Federation
+configuration](IMPLEMENTERS-GUIDE.md#federation-configuration).
+
+*Exit checks:* run the matching recipe's transaction and rejection
+tests, and these common checks:
 * Resource-domain records show the user, the issuer-qualified Agent
   Principal, and the client separately.
 * With the Identity Binding disabled, issuance fails with
   `invalid_grant`.
-* With the Client Association disabled, delegated issuance fails with
-  `actor_unauthorized`, and self-acting issuance fails with
-  `unauthorized_client`, since no actor is asserted.
-* A delegated access token without `act`, presented to an API configured
-  for delegated tokens, is rejected with HTTP 401 `invalid_token`.
-* An access token presented in another tenant, even with a valid proof,
-  is rejected with HTTP 401 `invalid_token`.
-
-### 3. Bind
-
-Move to bound governed agent access: DPoP at grant issuance and
-redemption, so a stolen grant cannot be redeemed. Choose access-token
-protection separately, per client and resource: DPoP, mutual TLS, or
-bearer where explicitly permitted.
-
-*Exit checks:*
 * Where the bound profile is required, a grant without `cnf` is rejected
   with `invalid_grant`, with no fallback.
 * A bound grant redeemed without its proof is rejected with
   `invalid_grant`.
+* An access token presented in another tenant, even with a valid proof,
+  is rejected with HTTP 401 `invalid_token`.
 
-### 4. Propagate
+### 4. Add capabilities when needed
+
+Each capability is independent of the others. Add one when the
+deployment needs what it addresses, and run its checks.
+
+#### Lifecycle propagation
 
 Provision Agent Principals into resource domains and apply disablement
 there ([lifecycle][lifecycle]). The resource domain's authorization
@@ -116,7 +154,7 @@ one ID-JAG's authority can be revoked without disabling the agent.
   including propagation, token lifetime, and caching, as the lifecycle
   profile recommends ("Resource Enforcement and Delay").
 
-### 5. Continue
+#### Continuation through gateways
 
 Where agents reach tools through gateways, deploy continuation
 ([continuation][continuation]): the gateway's authorization server
@@ -134,13 +172,13 @@ their token endpoints.
 * An agent disabled and re-enabled between continuations has its chain
   ended (`invalid_continuation`); a new root grant is needed.
 
-### 6. Add an external policy decision point
+#### An external policy decision point
 
-Resource authorization already applies at every RAS and API from stage
-2. A resource domain that needs decisions finer than a grant's resource
-and scope can evaluate that policy locally or delegate it. This stage
-covers delegation: an external policy decision point, for example
-through AuthZEN ([guide][guide-authzen]), fed with risk signals
+Resource authorization already applies at every RAS and API from step
+3. A resource domain that needs decisions finer than a grant's resource
+and scope can evaluate that policy locally or delegate it. This
+capability covers delegation: an external policy decision point, for
+example through AuthZEN ([guide][guide-authzen]), fed with risk signals
 ([guide][guide-risk]). The enforcement point supplies the user, agent,
 client, tenant, and token constraints itself, from the validated token.
 
@@ -149,7 +187,67 @@ client, tenant, and token constraints itself, from the validated token.
   decision point sees.
 * A permit never widens the token's scope or tenant.
 
-## Enterprise patterns
+### 5. Operate, review, and retire
+
+* **Roll out.** Extend from the pilot until every production agent has
+  an Agent Principal with an owner, and an exact Identity Binding for
+  each execution identity that runs it.
+* **Review.** Certify on the same cadence as human access:
+  * Delegation Authorizations, by user and by agent.
+  * Agent Authorizations, by agent, since they govern self-acting
+    access.
+  * Client Associations and dedicated-client bindings, by client.
+  * Continuation Associations, by gateway.
+  * Agent Principals without an owner, or with no grant issued for a
+    defined period.
+* **Respond.** Stop and restore access with the
+  [runbooks](#runbooks-stop-and-restore).
+* **Retire.** [Disable the agent everywhere](#disable-an-agent-everywhere)
+  first, so resource domains revoke its sessions, and then withdraw its
+  bindings, associations, and authorizations.
+
+### Registration-only branch
+
+A platform-hosted agent that uses only its platform's own tools and
+resources needs no federation. Steps 1, 2, and 5 apply to it, and
+registration replaces step 3:
+
+* The platform's connector registers the agent at the IdP through the
+  SCIM management profile, with no Identity Binding or Client
+  Association, so no client can obtain an IdP grant naming it.
+* The platform is the resource domain and the lifecycle Receiver for
+  the agent. It correlates its agent with the qualified Agent Principal
+  identifier the registration returned; just-in-time correlation does
+  not apply.
+* The platform obtains the agent's `active` value from IdP provisioning,
+  or by retrieving the registered Agent when a change notice or periodic
+  reconciliation indicates a change.
+
+*Exit checks:*
+* With the agent set to `active: false` at the IdP, the platform denies
+  new authorization for it and revokes its existing authorization in its
+  own system. An agent the IdP registered inactive pending approval is
+  denied the same way.
+* Re-enabling the agent permits new decisions but restores no revoked
+  authorization.
+* The connector's authority to register and describe agents does not
+  let it set `active: true` on an agent the IdP disabled, and the
+  platform's own suspension is a Local Suspension that IdP activation
+  does not clear.
+* An unreachable IdP neither disables nor re-enables the agent. Where
+  the deployment bounds how long the platform relies on unrefreshed
+  state, new authorization is denied when that bound expires.
+* The platform's audit records carry the qualified Agent Principal
+  identifier next to its own identifier for the agent.
+
+To federate later, add an Identity Binding and, where the input
+requires one, a Client Association to the same Agent, and continue with
+step 3. The Agent Principal identifier and its governance history carry
+over. The implementer's guide [follows one platform-hosted
+agent](IMPLEMENTERS-GUIDE.md#platform-hosted-agents) from registration
+to retirement.
+
+## Recipes
 
 | Pattern | What it needs | Notes |
 |---|---|---|
@@ -271,24 +369,6 @@ deployment-specific.
   accountable for an agent but are not its delegators, so the change
   alters no authorization. Disable the agent if policy requires an
   owner and none is assigned.
-
-## Ownership and reviews
-
-| Team | Owns |
-|---|---|
-| Identity (IAM) | Agent Principals and owners; Identity Bindings; Client Associations; Delegation and Agent Authorizations; Continuation Associations; IdP issuance policy; the authority of SCIM connectors |
-| Resource and application owners | Local agent principals and their eligibility; actor-gate policy; access-token protection per client and resource; Local Suspension; per-action policy |
-| Platform engineering | Agent OAuth clients and their keys; workload credentials; the SCIM connector |
-| Security operations | Signals into the IdP and policy decision points; running the containment runbooks; incident records |
-
-Certify on the same cadence as human access:
-
-* Delegation Authorizations, by user and by agent.
-* Agent Authorizations, by agent, since they govern self-acting access.
-* Client Associations and dedicated-client bindings, by client.
-* Continuation Associations, by gateway.
-* Agent Principals without an owner, or with no grant issued for a
-  defined period.
 
 ## Audit evidence
 

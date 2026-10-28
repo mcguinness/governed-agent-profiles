@@ -549,90 +549,199 @@ continuation profile ("Negative Tests"), and the lifecycle profile
 
 Each change stops a defined set of authority. What it does not stop
 continues until its own revocation, validation, or expiry rule ends it.
+Every runbook uses the same fields:
+
+| Field | Records |
+|---|---|
+| Trigger | What starts the runbook |
+| Scope | Which agents, relationships, and resource domains it covers |
+| Prerequisites | Authority, configuration, and information needed before acting |
+| Owner | The team that acts, from [step 2](#2-assign-owners-and-record-the-decisions) |
+| Action | The steps |
+| Verification | How each step is shown to have taken effect |
+| Residual access | What still works afterward, and until when |
+| Recovery | How to restore what the action stopped |
+| Completion evidence | What to keep as proof that the runbook finished |
+
+Three rules apply to every runbook. A successful administrative write
+or event acknowledgment is one checkpoint, not completion; completion
+is verified where the access is enforced. Tokens that an API accepts
+offline or from a cache stay usable until they expire or the cache
+entry ends. Recovery undoes only the action taken: revoked sessions
+stay revoked, and ended continuation chains stay ended.
 
 ### Disable an agent everywhere
 
-1. Set the Agent to `active: false` at the IdP. No new grant issues for
-   it through any binding or client, and its governed continuation
-   chains end.
-2. Propagate to resource domains through lifecycle provisioning, or let a
-   change notice trigger reconciliation. Each resource domain's
-   authorization server denies redemption and refresh and revokes the
-   agent's sessions. A platform that hosts the agent denies new
-   authorization and revokes the agent's existing authorization.
-3. **Still running:** access tokens an API accepts offline or from a
-   cache, until they expire or the cache entry ends.
+* **Trigger:** the agent is compromised or misbehaving, and must stop
+  everywhere at once.
+* **Scope:** every binding, client, and resource domain of the agent;
+  delegated and self-acting access; its continuation chains.
+* **Prerequisites:** authority to change the Agent's `active` at the
+  IdP; the resource domains provisioned with the agent, and each one's
+  documented maximum disablement delay.
+* **Owner:** identity team; each resource owner for their domain.
+* **Action:**
+  1. Set the Agent to `active: false` at the IdP. No new grant issues
+     for it through any binding or client, and its continuation chains
+     end.
+  2. Confirm propagation to each resource domain, through lifecycle
+     provisioning or a change notice that triggers reconciliation. Each
+     resource domain's authorization server denies redemption and
+     refresh and revokes the agent's sessions. A platform that hosts the
+     agent denies new authorization and revokes its existing
+     authorization.
+  3. Where a domain has not applied the change within its agreed delay,
+     apply a Local Suspension there as containment.
+* **Verification:**
 
-*Restore:* set `active: true`. New decisions are permitted, but revoked
-sessions stay revoked and ended chains stay ended; the agent's clients
-obtain new grants.
+  | Checkpoint | Evidence |
+  |---|---|
+  | The IdP applied the disablement | A fresh exchange for the agent fails with `invalid_grant` |
+  | Each participating RAS applied it | Redemption and refresh for the agent fail there |
+  | API enforcement caught up | A previously accepted token is rejected within the agreed delay |
+  | A domain has not applied it | Recorded as pending, with its owner and the containment applied |
+  | Restoration is complete | Fresh authorization succeeds; revoked sessions and ended chains remain unusable |
+
+* **Residual access:** grants already issued, at a domain that has not
+  yet applied the change; tokens accepted offline or from a cache.
+* **Recovery:** set `active: true` and confirm propagation. Clients
+  obtain new grants.
+* **Completion evidence:** the IdP's change record; each domain's
+  applied status and time; the failed test exchange and redemption; any
+  pending domain, with its containment.
 
 ### Cut one agent off from one application
 
-* **In that resource domain:** apply a Local Suspension. No new access
-  token or refresh issues there, and upstream activation cannot clear
-  it. Other domains are unaffected.
-* **At the IdP, by narrowing:** when the agent's Delegation or Agent
-  Authorization no longer covers that target, however the IdP records
-  the change, new grants for that target are refused, and continuation
-  to it fails with `invalid_target`, while the agent's chains continue to
-  other targets.
-* **At the IdP, by withdrawal:** withdrawing the authorization as a
-  whole, or its permission to continue, ends every chain rooted under
-  it, for all targets. Narrow instead when the agent keeps its other
-  access.
-* **Still running:** tokens already issued for that application, until
-  revocation or expiry.
-
-*Restore:* lift the Local Suspension or restore the authorization.
-Sessions revoked in the meantime stay revoked, and chains ended by a
-withdrawal stay ended.
+* **Trigger:** the agent must stop in one resource domain, or for one
+  target, and keep its other access.
+* **Scope:** one resource domain through a Local Suspension, or one
+  target through the agent's authorization at the IdP.
+* **Prerequisites:** the resource owner's authority to suspend, or the
+  identity team's authority to change the authorization.
+* **Owner:** the resource owner for a Local Suspension; the identity
+  team for the authorization.
+* **Action:** either apply a Local Suspension at the RAS, or narrow the
+  agent's Delegation or Agent Authorization so that it no longer covers
+  that target. Withdraw the authorization as a whole only when the
+  agent should lose all of it: withdrawal ends every chain rooted under
+  it, for all targets.
+* **Verification:** with a Local Suspension, the RAS issues no new
+  access token or refresh for the agent, and activation at the IdP does
+  not clear it. With narrowing, a new grant for that target is refused,
+  continuation to it fails with `invalid_target`, and access to other
+  targets still works.
+* **Residual access:** tokens already issued for that application,
+  until revocation or expiry.
+* **Recovery:** the resource owner lifts the Local Suspension, or the
+  identity team restores the authorization.
+* **Completion evidence:** the suspension or authorization change; the
+  refused request; a successful request to another target.
 
 ### Revoke one suspicious grant
 
-Where the resource domain supports the lifecycle profile's optional
-grant-derived revocation, send a CAEP `session-revoked` event naming the
-ID-JAG by issuer and `jti`. Every authorization derived from that grant
-in the tenant is revoked, later redemption is rejected, and the agent
-stays enabled. For access derived from a WAG, revocation of one grant is
-deployment-specific.
+* **Trigger:** one ID-JAG is suspected stolen or misused, and the agent
+  should stay enabled.
+* **Scope:** all authorization derived from that grant in one Target
+  Tenant.
+* **Prerequisites:** the RAS supports the lifecycle profile's optional
+  grant-derived revocation, and the stream authorizes the IdP's issuer
+  for it; the grant's issuer and `jti`.
+* **Owner:** security operations, through the IdP's event transmitter.
+* **Action:** send a CAEP `session-revoked` event naming the ID-JAG by
+  issuer and `jti`.
+* **Verification:** redemption of the grant is rejected, and sessions
+  derived from it are invalidated. An event that arrives before
+  redemption still makes later redemption fail. The agent stays
+  enabled.
+* **Residual access:** tokens accepted offline or from a cache. For
+  access derived from a WAG, revoking one grant is deployment-specific.
+* **Recovery:** none for that grant; the client obtains a new one.
+* **Completion evidence:** the event and its delivery acknowledgment,
+  and the RAS's record of the revoked grant by issuer, `jti`, and
+  tenant.
 
 ### Respond to a compromised credential or key
 
-* **A dedicated client's key:**
-  1. Disable the OAuthClient. This blocks resolution through it and its
-     use of every association.
-  2. Retire the compromised key: remove it from the client's
-     registration, so it cannot authenticate once the client is enabled
-     again.
-  3. Register a new key and re-enable the OAuthClient. Re-enabling does
-     not re-enable an association or binding that was disabled
-     separately; restore those explicitly.
-  4. Revoking the credential ended the continuation chains rooted
-     through it. The agent's clients obtain new grants with the new
-     key.
-* **A platform's signing key or credential authority:**
-  1. Retire the compromised key: remove it from the IdP's trust
-     configuration for that issuer, or disable the Identity Bindings
-     that rely on it.
-  2. Configure the replacement key, and restore any bindings disabled in
-     step 1. The platform's new JWTs then resolve again.
-  3. Revoking a credential does not retire the Agent Principal; an agent
-     with other valid bindings keeps them.
-* **Still running:** grants already issued, until their short lifetimes
-  end, and resource-domain tokens until revoked or expired. Disable
-  affected agents or associations if the exposure is broad.
+* **Trigger:** a dedicated client's key, or a platform's signing key or
+  credential authority, is exposed.
+* **Scope:** resolution through that credential, for every agent bound
+  to it; continuation chains rooted through it.
+* **Prerequisites:** a replacement key; the bindings and clients that
+  depend on the compromised one.
+* **Owner:** platform engineering for the key; identity team for the
+  IdP configuration.
+* **Action:**
+  * **A dedicated client's key:**
+    1. Disable the OAuthClient. This blocks resolution through it and
+       its use of every association.
+    2. Retire the compromised key: remove it from the client's
+       registration, so it cannot authenticate once the client is
+       enabled again.
+    3. Register a new key and re-enable the OAuthClient. Re-enabling
+       does not re-enable an association or binding that was disabled
+       separately; restore those explicitly.
+  * **A platform's signing key or credential authority:**
+    1. Retire the compromised key: remove it from the IdP's trust
+       configuration for that issuer, or disable the Identity Bindings
+       that rely on it.
+    2. Configure the replacement key, and restore any bindings disabled
+       in step 1.
+* **Verification:** authentication with the retired client key fails
+  with `invalid_client`, and a platform JWT signed with the retired key
+  fails with `invalid_grant`; the new key resolves the agent again.
+  Revoking the credential does not retire the Agent Principal, and an
+  agent with other valid bindings keeps them.
+* **Residual access:** grants already issued, until their short
+  lifetimes end, and resource-domain tokens, until revoked or expired.
+  If the exposure is broad, disable the affected agents or associations
+  as well.
+* **Recovery:** the replacement key is the recovery. Chains rooted
+  through the revoked credential stay ended; clients obtain new grants
+  with the new key.
+* **Completion evidence:** the key retirement and replacement records;
+  the failed attempt with the old key and the successful one with the
+  new key.
 
-### Offboard a user or an agent owner
+### Offboard a user
 
-* **A user leaves:** disable the user through the IdP's own user
-  lifecycle. What follows from it here: no new delegated grant issues
-  for that user, and the user's delegated chains end. Agents'
-  self-acting authority is unaffected.
-* **An agent's owner leaves:** reassign the owner. Owners are
-  accountable for an agent but are not its delegators, so the change
-  alters no authorization. Disable the agent if policy requires an
-  owner and none is assigned.
+* **Trigger:** a user leaves.
+* **Scope:** that user's delegations; agents' self-acting authority is
+  unaffected.
+* **Prerequisites:** the IdP's own user lifecycle.
+* **Owner:** identity team.
+* **Action:** disable the user through the IdP's user lifecycle.
+* **Verification:** a new delegated exchange for that user fails with
+  `invalid_grant`, and the user's delegated chains end; agents still
+  obtain grants for their own access.
+* **Residual access:** delegated tokens already issued for the user,
+  until revoked or expired. Where a resource domain is configured for
+  CAEP user-and-tenant revocation, an event can revoke those sessions.
+* **Recovery:** re-enabling the user permits new delegations; ended
+  chains stay ended.
+* **Completion evidence:** the user's disablement record and the
+  refused exchange.
+
+### Handle an ownerless agent
+
+* **Trigger:** an agent's owner leaves, or a review finds an Agent
+  Principal with no owner.
+* **Scope:** accountability for one agent. Owners are accountable for
+  an agent but are not its delegators, so no authorization changes.
+* **Prerequisites:** a policy stating whether an agent may operate
+  without an owner, and for how long.
+* **Owner:** identity team, with the agent's platform team.
+* **Action:** assign a new owner; in SCIM management, the Agent's
+  `owners` attribute. If no owner is assigned within the policy's
+  period, [disable the agent everywhere](#disable-an-agent-everywhere).
+* **Verification:** the new owner is recorded, and the agent's bindings,
+  associations, and authorizations are unchanged.
+* **Residual access:** none from this runbook; ownership confers no
+  authority.
+* **Recovery:** reassign the owner, and re-enable the agent if policy
+  disabled it.
+* **Completion evidence:** the management audit record of the change:
+  the administrative actor, Provisioning Domain, affected resource, and
+  changed attribute.
 
 ## Audit evidence
 

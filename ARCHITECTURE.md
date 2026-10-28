@@ -14,6 +14,7 @@ configuration, see the [implementer's guide](IMPLEMENTERS-GUIDE.md).
 * [Continuation through gateways](#continuation-through-gateways)
 * [Changes and revocation](#changes-and-revocation)
 * [Authorization decisions with AuthZEN](#authorization-decisions-with-authzen)
+* [Credential brokers](#credential-brokers)
 * [Platform-hosted agents](#platform-hosted-agents)
 * [Beyond these drafts](#beyond-these-drafts)
 
@@ -320,6 +321,37 @@ The implementer's guide has the [integration points, use cases, and
 worked requests](IMPLEMENTERS-GUIDE.md#authorization-decisions-with-authzen),
 and [COORDINATION.md](COORDINATION.md) records the change proposed for
 COAZ-MCP.
+
+## Credential brokers
+
+A credential broker, such as the Credential Broker for Agents (CB4A)
+described in an individual Internet-Draft, keeps long-lived credentials
+away from agents. A policy decision point approves each request, and a
+separate credential delivery point mints a short-lived,
+sender-constrained token from a vaulted credential. These profiles
+change what a broker needs for targets that accept governed grants:
+
+* **No vaulted credential.** The IdP issues a grant naming the agent,
+  and the target's RAS issues the access token, so the broker holds no
+  long-lived credential for that target, and the target sees the agent
+  rather than the broker. A gateway that would otherwise inject a shared
+  credential continues the agent's grant instead
+  ([Continuation through gateways](#continuation-through-gateways)).
+* **The broker's decisions map onto existing points.** Its policy
+  decision is the IdP's issuance authorization, which can use an
+  AuthZEN PDP. Its human approval tiers correspond to ARAP and AROP,
+  whose composition with governed issuance the core leaves undefined.
+* **Identity stays separate.** CB4A names each agent session
+  `spiffe://trust-domain/agent/{user-id}/{session-id}`. A governed Agent
+  Principal is stable and excludes the user and the session: the user
+  travels as the subject of an ID-JAG, and a session is a chain anchor.
+  A broker that federates therefore presents a stable per-agent
+  identity.
+
+Targets that accept only API keys or their own minting interfaces stay
+outside these profiles. For those, the governed identity applies where
+the broker decides. The implementer's guide has the
+[mapping and two deployment patterns](IMPLEMENTERS-GUIDE.md#credential-brokers).
 
 ## Platform-hosted agents
 

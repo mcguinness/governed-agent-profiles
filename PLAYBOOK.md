@@ -583,6 +583,16 @@ Checklist") supply further cases.
 
 ## Runbooks: stop and restore
 
+* [Disable an agent everywhere](#disable-an-agent-everywhere)
+* [Cut one agent off from one application](#cut-one-agent-off-from-one-application)
+* [Revoke one suspicious grant](#revoke-one-suspicious-grant)
+* [Respond to a compromised credential or key](#respond-to-a-compromised-credential-or-key)
+* [Offboard a user](#offboard-a-user)
+* [Handle an ownerless agent](#handle-an-ownerless-agent)
+* [Recover from lost event delivery](#recover-from-lost-event-delivery)
+* [Retire an agent](#retire-an-agent)
+* [Roll back an onboarding](#roll-back-an-onboarding)
+
 Each change stops a defined set of authority. What it does not stop
 continues until its own revocation, validation, or expiry rule ends it.
 Every runbook uses the same fields:

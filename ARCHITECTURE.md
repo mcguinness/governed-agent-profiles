@@ -118,8 +118,8 @@ The rest are optional mechanisms, adopted as needed: inputs other than
 the dedicated client (the existing platform JWT is needed only to claim
 generic shared-client interoperability), SCIM administration of the
 relationships, lifecycle propagation into resource domains, gateway
-continuation, an external policy decision point, and Transaction Tokens
-inside a resource domain.
+continuation, human oversight of grants and actions, an external policy
+decision point, and Transaction Tokens inside a resource domain.
 
 [Platform-hosted agents](#platform-hosted-agents) can use registration
 and lifecycle governance without federation; they need no Identity
@@ -736,7 +736,8 @@ an example here is not a promise of interoperability:
 | AuthZEN Token Issuance or Token Exchange profiles at the IdP | Unresolved composition: compatible with the core's issuance authorization, which a decision can narrow but not broaden, but the profiles carry no resolved Agent Principal |
 | Transaction Tokens inside a resource domain | Illustrative deployment composition, in the [implementer's guide](IMPLEMENTERS-GUIDE.md#transaction-tokens-inside-a-resource-domain) |
 | Credential brokers | Illustrative deployment composition ([below](#credential-brokers)) |
-| Asynchronous approval with ARAP and AROP | Unresolved composition: an excluded composition in the core |
+| Human oversight: approval before issuance, supervised issuance, and per-action approval | Defined protocol behavior in the [oversight profile][oversight], which profiles Deferred Token Response for governed issuance |
+| Approved access requests through ARAP and AROP | Optional capability with defined requirements: AROP's deferred binding with a governed origin, in the oversight profile; its CIBA and transaction-challenge bindings remain unresolved |
 | Approved work, such as Mission-Bound Authorization | Outside these drafts ([below](#beyond-these-drafts)) |
 
 ### Authorization decisions with AuthZEN
@@ -798,8 +799,9 @@ change what a broker needs for targets that accept governed grants:
   ([Continuation through gateways](#continuation-through-gateways)).
 * **The broker's decisions map onto existing points.** Its policy
   decision is the IdP's issuance authorization, which can use an
-  AuthZEN PDP. Its human approval tiers correspond to ARAP and AROP,
-  whose composition with governed issuance the core leaves undefined.
+  AuthZEN PDP. Its human approval tiers correspond to approval before
+  issuance under the [oversight profile][oversight], which defines
+  AROP's deferred binding for governed issuance.
 * **Identity stays separate.** CB4A names each agent session
   `spiffe://trust-domain/agent/{user-id}/{session-id}`. A governed Agent
   Principal is stable and excludes the user and the session: the user
@@ -868,6 +870,7 @@ at issuance and redemption.
 | Platforms that register agents and their relationships at the IdP | [SCIM Profile for Governed Agent Federation Management][management] | SCIM | Keeps registering, binding, and authorizing client use as separate permissions ([trust](#trust-between-parties)) |
 | OAuth client registrations managed through SCIM | [SCIM Profile for OAuth 2.0 Client Management][oauth-client] | SCIM | Develops the approach first proposed by Phil Hunt, Morteza Ansari, and Anthony Nadalin. It can share a registration with OAuth dynamic registration, and admits Client ID Metadata Document clients without copying their metadata |
 | Resource domains provisioned with agents and their disablement | [Governed Agent Lifecycle Profile][lifecycle] | SCIM | Applies administrative disablement to OAuth authorization, with an optional CAEP composition that revokes what one grant authorized. It defines no new schema, event type, or authorization timestamp |
+| A person to approve, or to observe and end, an agent's grants and actions | [Human Oversight Profile][oversight] | OAuth | Defines human-in-the-loop, on-the-loop, and out-of-the-loop modes; profiles Deferred Token Response so the IdP holds a governed grant until an approver decides, and optionally AROP. It defines no new claim, error, or grant type |
 
 ### How they connect
 
@@ -945,6 +948,7 @@ What each draft needs from the specifications it depends on is in
 | Identity Binding | An approved association from an exact client or workload identity to one agent; it resolves the agent and grants no permission | The core |
 | Local Suspension | A resource-domain restriction independent of the IdP's state; upstream activation cannot clear it | Lifecycle |
 | Onward grant | An ID-JAG or WAG issued on a continuation exchange | Continuation |
+| Oversight mode | Whether a person decides before a grant issues or an action executes (human in the loop), can observe and end what issued (human on the loop), or is not involved per request (human out of the loop) | Oversight |
 | Provisioning Domain | In a resource domain, configuration naming one governing IdP issuer, one Target Tenant, and the connectors authorized to manage them. At the IdP, one connector's management authority within one Governance Tenant | Lifecycle; SCIM management |
 | RAS | The resource domain's authorization server, which redeems grants and issues access tokens | The core |
 | Resource domain | A RAS and the APIs it issues access tokens for | This overview |
@@ -961,5 +965,6 @@ What each draft needs from the specifications it depends on is in
 [continuation-scheduled]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#walkthrough-scheduled
 [management]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html
 [lifecycle]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
+[oversight]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html
 [lifecycle-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#platform-example
 [oauth-client]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-oauth-client-management.html

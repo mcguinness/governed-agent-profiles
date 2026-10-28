@@ -26,6 +26,7 @@ Identification-00, Client Attester Endorsement-00, and WISE draft 03.
 | ID-JAG | Bound-grant example aligned with the normative `jwt-bearer` grant type, and grant-confirmation errors separated from RFC 9449 proof errors (below) | Confirmation checks are applied to `jwt-bearer` here |
 | Actor Profile | A reusable principal-resolution extension point separating credential validation, identity mapping, and actor construction | The mapping is defined locally in `actor-construction` |
 | COAZ-MCP | A trusted agent identity: from `act` for delegated tokens and the subject for self-acting tokens, supplied or verified by the enforcement point, never from a declared mapping or `client_id` (below) | Governed deployments configure their enforcement points themselves; this profile defines no AuthZEN mapping |
+| Deferred Token Response | A statement that the token returned after a deferral keeps the originating request's subject, actor, and client; deferral of `jwt-bearer` redemption | The oversight profile requires this for governed issuance; deferred redemption at the RAS stays an open item there |
 | AuthZEN profiles (ARAP and its Actor Delegation Profile, AROP, Token Issuance, Token Exchange) | One identity model: the (`iss`, `sub`) actor supplied by the enforcement point, the client kept separate, a self-acting agent as the subject, gateways outside `act`, and the resolved agent available to issuance and approval (below) | Each enforcement point maps each profile into the governed model |
 
 #### WAG
@@ -243,6 +244,9 @@ on its own. These profiles need the same identity model:
   The Token Exchange binding's requesting-party evaluation also uses the
   actor token or the client. Both profiles need a way for the
   authorization server to supply the resolved actor.
+* **Cite the working-group DTR.** AROP still cites
+  `draft-gerber-oauth-deferred-token-response`, which
+  `draft-ietf-oauth-deferred-token-response` replaced.
 * **Approval keeps the subject and actor.** AROP completes an approved
   request as an access token and allows Token Exchange as the
   originating grant, but does not say that the token keeps the
@@ -291,7 +295,7 @@ exclusion does not prevent the independently supported uses listed here.
 
 | Composition | Boundary in this document |
 |---|---|
-| Asynchronous approval with `AROP` | No approval transport or completion flow; external approval remains subject to `external-approval` and the lifetime limits in `authorization-lifetime` |
+| Asynchronous approval with `AROP` | Defined for governed issuance in the oversight companion (`OVERSIGHT`), which profiles Deferred Token Response and AROP's deferred binding; otherwise, external approval remains subject to `external-approval` and the lifetime limits in `authorization-lifetime` |
 | Continuation with `ICA` | Defined for governed grants in the continuation companion (`CONTINUATION`, below); renewal without continuation follows `continuing-access` |
 | General WIMSE WIT/WIC inputs | WIT-SVID and X.509-SVID resolution is defined in `spiffe-input` of `INPUTS`; non-SPIFFE credentials need an explicit OAuth presentation and proof composition |
 | Instance context carried in an ID-JAG or WAG, or preserved across domains, under `INSTANCE` | The RAS conveys only an instance it validated (`access-token-response`); instances resolve the agent only through a managed-installation binding (`agent-evidence` of `INPUTS`). Preservation would need this profile to define provenance and association under Section 7.4 of `INSTANCE` |
@@ -333,7 +337,7 @@ the nearest mechanism here, not an equivalent.
 | CB4A element | Nearest counterpart here | Difference |
 |---|---|---|
 | Policy decision point before credential issuance | IdP issuance authorization (Delegation or Agent Authorization), optionally through an AuthZEN PDP | None in role; CB4A also scores behavior against baselines |
-| Human and MFA approval tiers | An additional issuance condition (`external-approval`) | Approval completing as a token through ARAP and AROP is an excluded composition (`excluded-compositions`) |
+| Human and MFA approval tiers | An additional issuance condition (`external-approval`), or approval before issuance under the oversight profile | Approval completes as a governed grant through Deferred Token Response, optionally through AROP's deferred binding |
 | Credential delivery point minting, for a target that accepts governed grants | The IdP grant, redeemed at the target's RAS for an access token | No vaulted credential; the target sees the agent |
 | Proxy gateway, for a target that accepts governed grants | Continuation through a gateway | No credential injection; the onward grant names the same agent |
 | Envelope target: service, action, resource, scope | Token exchange `audience`, `resource`, `scope`, `authorization_details` | None |
@@ -354,8 +358,8 @@ Points for its author, not yet raised:
   separately, would let a CB4A broker federate through these profiles:
   `identity-binding` requires an exact identity and forbids an
   execution identifier from selecting the Agent Principal.
-* Its approval tiers would compose with governed issuance through ARAP
-  and AROP, an excluded composition.
+* Its approval tiers would compose with governed issuance as approval
+  before issuance under the oversight profile.
 * Its `envelope_hash` provenance claim has no counterpart here, and the
   question stays open. Within one trust domain, Transaction Tokens
   (draft-ietf-oauth-transaction-tokens-11, Section 9.2.3) carry
@@ -509,6 +513,54 @@ The companion references the core and ICA normatively. The core
 references the companion informatively, from its "Continuation with
 ICA" row of Excluded Compositions, because the core does not depend on
 it. No publication cluster forms.
+
+## Human Oversight Companion
+
+These notes apply to the oversight companion
+(`draft-mcguinness-oauth-governed-agent-oversight.md`), whose anchors
+the backquoted names below refer to.
+
+### Deferred Token Response
+
+The companion profiles `draft-ietf-oauth-deferred-token-response-00`
+for governed token exchange. It narrows DTR in two places. A deferred
+governed request always carries a DPoP proof (`opt-in`), where DTR
+Section 10.1 lets a confidential client using `private_key_jwt` omit
+one. Every governed check runs before deferral and again at resolution
+(`deferring`, `resolution`), where DTR Section 10.7 re-checks consent
+and client authorization only.
+
+DTR says nothing about whether the token returned after a deferral
+keeps the originating request's subject, actor, or client; the
+companion requires it for governed grants. DTR names the authorization
+code, client credentials, and Token Exchange grants, but not
+`jwt-bearer`, so deferred redemption at the RAS stays an open item.
+
+### AROP
+
+The companion profiles AROP's deferred binding with a governed token
+exchange as the originating grant (`arop`). It requires what AROP does
+not state: the completed grant keeps the originating agent, user,
+client, and key. AROP still cites `draft-gerber-oauth-deferred-token-response`;
+the "Convergence across AuthZEN profiles" note above records both
+requests. AROP's CIBA and transaction-challenge bindings are outside
+the companion.
+
+### MCP
+
+The companion's MCP section is informative and relies only on merged
+MCP features: tasks, URL-mode elicitation, and scope step-up in
+revision 2026-07-28. SEP-2848 (asynchronous approval for tool calls)
+and SEP-2643 (structured authorization denials) are cited as
+proposals. If SEP-2848 is accepted, its task held in `working` is the
+per-action realization the companion describes.
+
+### Open Items
+
+The companion's open items (`open-items`) are deferred redemption at
+the RAS, an attribute for the oversight mode in the SCIM management
+profile, a Shared Signals event for supervised-issuance notices, and
+duplicate pending requests.
 
 ## Family Structure
 

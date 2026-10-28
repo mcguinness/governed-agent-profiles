@@ -149,7 +149,9 @@ Four rules follow:
 
 * **Resolving an identity does not authorize its use.** An Identity
   Binding says which agent a credential represents. A separate Client
-  Association says whether a client may exercise that agent.
+  Association says whether a client may exercise that agent. In the
+  [delegated flow](#delegated-access), disabling the association leaves
+  `agent-42` resolvable but refuses the grant.
 * **Attribution is not delegation authority.** In delegated access, the
   user is the subject and the agent the actor, each resolved on its own,
   and the agent's identifier never carries the user or a session. An
@@ -171,11 +173,40 @@ preserved, what is translated, and what is decided anew. The treatment
 of each boundary follows
 [Continuity Is Not One Thing](https://notes.karlmcguinness.com/notes/continuity-is-not-one-thing/).
 
+### Issuers, tenants, and executions
+
+An Agent Principal is the pair of its IdP's issuer and its identifier,
+such as (`https://idp.example/`, `agent-42`). The pair keeps identities
+from colliding:
+
+* **Equal identifiers from different IdPs are different agents.** The
+  RAS interprets an agent identifier only in its issuer's context and
+  never keys authorization on a bare subject. A resource domain served
+  by several IdPs keeps the issuer with each record and never merges
+  records on equal identifiers.
+* **Tenants scope authority, not identity.** The Governance Tenant is
+  where the IdP administers the agent; the Target Tenant, such as
+  `acme-data`, is where it exercises authority. Neither is part of the
+  agent's identity. The RAS correlates the pair within the Target
+  Tenant, and a token for one tenant is rejected in another.
+* **A new governing authority means a new agent.** Moving an agent to a
+  Governance Tenant under a different administrative authority gives it
+  a new identifier. Its delegations do not carry forward, and resource
+  domains do not re-key their links to the new identifier.
+
+Executions share a principal by default. Replicas, restarts, sessions,
+migrations, and rotated credentials run as the same Agent Principal
+through its Identity Bindings, and none of them creates or increases
+its authority. An execution needs its own Agent Principal only when it
+needs separate authorization, delegation, attribution, resource
+correlation, or disablement, even if it shares a runtime, client, or
+credential with another agent.
+
 ### Sub-agents and orchestrators
 
 An orchestrator agent often starts sub-agents for parts of a task. The
-core decides their identity by what they need governed separately
-("Governance Boundary and Execution Independence"):
+same rule decides their identity ("Governance Boundary and Execution
+Independence" in the core):
 
 | The sub-agent | Identity | Authority |
 |---|---|---|

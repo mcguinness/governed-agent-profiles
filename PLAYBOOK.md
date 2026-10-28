@@ -548,7 +548,8 @@ are for the evaluator.
 | RAS: redemption for each realization served, with correlation by the exact (issuer, agent identifier) pair | Always | The recipes' redemption steps; the self-acting correlation test | | | |
 | API: resource processing, including tenant checks, the actor gate, and the agent's own authority | Always | Step 3's other-tenant test; the delegated recipe's missing-`act` test | | | |
 | RAS and API: telling the delegated and self-acting populations apart | Both acting relationships | The self-acting recipe's combined-deployment test | | | |
-| Client: one grant per agent, user, tenant, and authority; DPoP | Always | The shared-client variation's token reuse test | | | |
+| Client: one grant or token per agent, user, tenant, and authority | Always | The shared-client variation's token reuse test | | | |
+| Client: DPoP | Bound grant protection, or DPoP access tokens | The delegated recipe's redemption and API call with proofs | | | |
 | IdP: SCIM management Service Provider; platform: Provisioning Client | Platforms register agents | Step 2's exit checks | | | |
 | RAS: lifecycle Receiver | Keeping agent records current through lifecycle | Step 4's lifecycle checks, and the lifecycle profile's acceptance checklist | | | |
 | RAS: grant-derived revocation | Revoking one grant | [Revoke one suspicious grant](#revoke-one-suspicious-grant), including a revocation that arrives before redemption | | | |

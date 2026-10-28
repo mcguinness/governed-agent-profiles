@@ -9,7 +9,7 @@ Those documents define every requirement, and they govern wherever this
 guide differs
 from them. Nothing here is needed to implement them; the guide explains
 the flows, collects the configuration a deployment needs, and records
-deployment tradeoffs. The [architecture overview](overview.md) explains
+deployment tradeoffs. The [architecture overview](ARCHITECTURE.md) explains
 the problem, the principles, and how the drafts fit together. Section names link to the editor's copy of the
 profile that defines them.
 

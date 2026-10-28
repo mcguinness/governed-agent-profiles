@@ -35,7 +35,7 @@ flowchart LR
   api -->|"Continuation: onward grant"| principal
 ```
 
-The [architecture overview](docs/overview.md) explains each connection,
+The [architecture overview](ARCHITECTURE.md) explains each connection,
 the principles behind it, and how revocation works across it.
 
 ## The drafts
@@ -56,10 +56,10 @@ build on the federation profile.
 
 ## Where to start
 
-* **[Architecture overview](docs/overview.md):** the problem, principles,
+* **[Architecture overview](ARCHITECTURE.md):** the problem, principles,
   parties, how the drafts fit, revocation boundaries, platform-hosted
   agents, and related work.
-* **[Implementer's guide](docs/implementers-guide.md):** message flows for
+* **[Implementer's guide](IMPLEMENTERS-GUIDE.md):** message flows for
   both grants, what each role builds, configuration, and deployment
   tradeoffs.
 * **[Coordination notes](COORDINATION.md):** what the drafts need from the

@@ -5,7 +5,7 @@ agent profiles address, the principles behind them, and how the six
 drafts fit together. The drafts define every requirement, and they
 govern wherever this overview differs from them. For message-level
 flows, what each role builds, and deployment configuration, see the
-[implementer's guide](implementers-guide.md).
+[implementer's guide](IMPLEMENTERS-GUIDE.md).
 
 * [The problem](#the-problem)
 * [Principles](#principles)
@@ -214,7 +214,7 @@ OAuth dynamic registration, and manages local admission of Client ID
 Metadata Document clients without copying their metadata.
 
 What each draft needs from the specifications it depends on is in
-[COORDINATION.md](../COORDINATION.md).
+[COORDINATION.md](COORDINATION.md).
 
 ## Continuation through gateways
 
@@ -316,7 +316,7 @@ path:
   history carry over.
 
 The implementer's guide
-[follows one agent](implementers-guide.md#platform-hosted-agents) from
+[follows one agent](IMPLEMENTERS-GUIDE.md#platform-hosted-agents) from
 registration through third-party access and retirement, and the
 lifecycle draft's [platform-hosted example][lifecycle-example] shows its
 risk signals, disablement, and re-enablement.

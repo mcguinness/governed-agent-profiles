@@ -9,7 +9,7 @@ anchors and references
 in `draft-mcguinness-oauth-governed-agent-federation.md`, except where a
 note names the input profiles companion
 (`draft-mcguinness-oauth-governed-agent-inputs.md`, `INPUTS`) or the
-implementer's guide (`docs/implementers-guide.md`).
+implementer's guide (`IMPLEMENTERS-GUIDE.md`).
 
 ## Dependencies and Deferred Work
 

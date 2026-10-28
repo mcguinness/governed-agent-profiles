@@ -85,7 +85,7 @@ informative:
     author:
       - name: Karl McGuinness
     date: false
-    target: https://github.com/mcguinness/governed-agent-profiles/blob/main/docs/implementers-guide.md
+    target: https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md
   RFC7009:
   WAG: I-D.carleton-workload-authz-grant
 --- abstract

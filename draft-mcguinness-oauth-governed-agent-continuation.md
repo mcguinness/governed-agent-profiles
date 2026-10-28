@@ -69,7 +69,7 @@ informative:
     author:
       - name: Karl McGuinness
     date: false
-    target: https://github.com/mcguinness/governed-agent-profiles/blob/main/docs/implementers-guide.md
+    target: https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md
   RFC6755:
   RFC7519:
   RFC7662:

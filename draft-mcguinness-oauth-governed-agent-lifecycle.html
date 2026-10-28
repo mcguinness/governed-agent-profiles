@@ -2113,9 +2113,10 @@ remain separate. Receivers <span class="bcp14">MUST</span> constrain source retr
 credential forwarding to authorized endpoints. A signed subject does not
 authorize arbitrary URL retrieval or cross-tenant revocation.<a href="#section-11.2-1" class="pilcrow">¶</a></p>
 <p id="section-11.2-2">Event loss and reordering can delay enforcement. Receivers <span class="bcp14">SHOULD</span> retry
-reconciliation, monitor failures, and retain revoked-session state across
-restarts. Recovery from lost revocation state <span class="bcp14">MUST NOT</span> silently restore
-sessions represented as revoked. The explicit limit in
+reconciliation and monitor failures. Revocation state is retained,
+including across restarts, as <a href="#application" class="auto internal xref">Section 5.2</a> requires. Recovery from
+lost revocation state <span class="bcp14">MUST NOT</span> silently restore sessions represented as
+revoked. The explicit limit in
 <a href="#missed-transitions" class="auto internal xref">Section 11.3</a> is particularly relevant to unattended refresh.<a href="#section-11.2-2" class="pilcrow">¶</a></p>
 </section>
 </div>

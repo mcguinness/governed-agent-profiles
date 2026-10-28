@@ -249,13 +249,258 @@ to retirement.
 
 ## Recipes
 
-| Pattern | What it needs | Notes |
+| Pattern | What it needs | Recipe |
 |---|---|---|
-| A SaaS agent works for employees across SaaS apps | Core delegated access (ID-JAG) at each target app; lifecycle where apps are provisioned | Each app sees the employee and the agent, not the vendor's shared client |
-| An internal agent acts for itself | Core self-acting access (WAG); an Agent Authorization per target | A WAG redemption yields no refresh token; the agent obtains a new WAG |
-| An agent reaches tools through an MCP gateway | Continuation, with the gateway as continuing client; per-tool policy optional | The tool sees the same agent, with the gateway as client; its API also sees the gateway in `continuation_via` where the tool's RAS supports path disclosure |
-| Scheduled work runs after the user signs out | Continuation from a chain anchored to a refresh-token grant, where the IdP claims grant-anchored continuation | Runs need no retained user credential; withdrawing the delegation ends the chain |
-| A platform hosts agents that use only its own resources | Registration through SCIM management, with no binding or association; the platform applies the IdP's decisions under lifecycle | The IdP is not on the platform's runtime path; federating later keeps the same Agent Principal |
+| A SaaS agent works for employees across SaaS apps | Core delegated access (ID-JAG) at each target app; lifecycle where apps are provisioned | [Delegated access to a SaaS application](#recipe-delegated-access-to-a-saas-application) |
+| An internal agent acts for itself | Core self-acting access (WAG); an Agent Authorization per target | [Self-acting access](#recipe-self-acting-access) |
+| An agent reaches tools through an MCP gateway | Continuation, with the gateway as continuing client; per-tool policy optional | [Through a gateway](#through-a-gateway) |
+| Scheduled work runs after the user signs out | Continuation from a chain anchored to a refresh-token grant, where the IdP claims grant-anchored continuation | [Scheduled work](#scheduled-work) |
+| A platform runs many agents behind one client | The existing platform JWT input | [A shared platform client](#a-shared-platform-client) |
+| A platform hosts agents that use only its own resources | Registration through SCIM management, with no binding or association; the platform applies the IdP's decisions under lifecycle | [Registration-only branch](#registration-only-branch) |
+
+Both recipes use the architecture's example and the identifiers of the
+core's [walkthrough][core-walkthrough], so each test can be compared
+with the messages there. The [architecture](ARCHITECTURE.md#access-flows-and-deployment-variants)
+explains why each check holds.
+
+### Recipe: delegated access to a SaaS application
+
+**Outcome.** `agent-42` reads files for Alice in the data application
+`https://api.example/`, a SaaS application in which the enterprise's
+tenant is `acme-data`. The application sees Alice as the user and
+`agent-42` as the actor, separately from the client, and the enterprise
+IdP can stop the agent without affecting Alice or other agents.
+
+**Parties and owners.**
+
+| Party | In the example | Owner |
+|---|---|---|
+| Agent platform and client | `analysis-client`, a dedicated client that runs `agent-42` | Platform engineering |
+| Governing IdP | `https://idp.example/` | Identity (IAM) |
+| Resource domain | RAS `https://ras.example/`, API `https://api.example/`, tenant `acme-data` | The application owner |
+| User | Alice: `alice-ras` in the grant, `user-108` at the API | Not applicable; her delegations are certified by user in step 5 |
+| Agent | (`https://idp.example/`, `agent-42`) | Its accountable owner, from step 2 |
+
+**Operating model.** Delegated; a dedicated client with
+`private_key_jwt`; bound governed agent access; DPoP access tokens;
+introspection at the API; and the agent provisioned at the RAS through
+the lifecycle profile, which also propagates its disablement
+([step 4](#lifecycle-propagation)).
+
+**Configuration.**
+
+* At the IdP: an Identity Binding that maps (`analysis-client`,
+  `analysis-client`) to `agent-42`; a Client Association that permits
+  `analysis-client` to use it for delegated issuance; Alice's Delegation
+  Authorization for `agent-42`, with `files.read` at
+  `https://api.example/tenants/acme-data/`; and the client registration
+  association from `analysis-client` to `analysis-api` at
+  `https://ras.example/`.
+* At the RAS: the local agent principal for (`https://idp.example/`,
+  `agent-42`), Alice's link to `user-108`, an actor-gate policy that
+  permits `agent-42` to act for Alice in `acme-data`, the client
+  registration `analysis-api`, and DPoP at the token endpoint.
+* At the API: DPoP access tokens, tenant checks, Alice's permissions,
+  and the actor gate.
+
+**One successful transaction.**
+
+1. Alice signs in to the client through the IdP. The client holds her
+   ID Token, whose audience is `analysis-client`.
+2. The client exchanges the ID Token at the IdP, authenticating as
+   `analysis-client` and proving its DPoP key, for audience
+   `https://ras.example/`, resource
+   `https://api.example/tenants/acme-data/`, and scope `files.read`.
+3. The IdP resolves `agent-42`, checks the Client Association and
+   Alice's Delegation Authorization, and issues ID-JAG `grant-1`, valid
+   for 300 seconds.
+4. The client redeems `grant-1` at the RAS as `analysis-api`, with a
+   fresh proof of the same key. The RAS correlates `agent-42`, resolves
+   Alice to `user-108`, applies the actor gate, and issues the DPoP
+   access token `access-1`, valid for 600 seconds, with no refresh
+   token.
+5. The client reads `/tenants/acme-data/files/report-7` with `access-1`
+   and a new proof. The API checks the proof, the tenant, Alice's
+   permissions, and the actor gate.
+6. When `access-1` expires, the client obtains a new ID-JAG.
+
+**Rejection tests.**
+
+| Change | Expected result |
+|---|---|
+| The Client Association for `analysis-client` is disabled; the binding still resolves `agent-42` | The IdP returns HTTP 400 `actor_unauthorized` and issues no ID-JAG. Resolution succeeded; authorization to use it did not |
+| Alice's Delegation Authorization for `agent-42` is withdrawn | The IdP returns HTTP 400 `actor_unauthorized` for Alice; the agent's grants for other users it may act for are unaffected |
+| A delegated access token without `act` is presented to the API | HTTP 401 `invalid_token`; a missing `act` does not make the token self-acting |
+
+**Containment and restoration.**
+
+* **Stop the agent everywhere:** follow [Disable an agent
+  everywhere](#disable-an-agent-everywhere). A fresh exchange for Alice
+  then fails at the IdP with `invalid_grant`. Once lifecycle
+  propagation reaches the RAS, redemption is denied and introspection
+  reports `access-1` inactive. An API that validated `access-1` offline
+  instead would accept it until its 600 seconds end.
+* **Stop it in this application only:** apply a Local Suspension at the
+  RAS. Activation at the IdP cannot clear it.
+* **Stop one grant:** where the RAS supports grant-derived revocation,
+  revoke `grant-1` by issuer and `jti`
+  ([Revoke one suspicious grant](#revoke-one-suspicious-grant)).
+* **Restore:** set the agent active again. A new exchange succeeds, but
+  sessions revoked in the meantime stay revoked, and the client obtains
+  a new grant.
+
+**Evidence to retain.** The drafts define no log format; as a
+deployment convention, retain:
+
+* the IdP's issuance record for `grant-1`: time, `alice-ras`,
+  `agent-42`, `analysis-client` and its `client_id` `analysis-api`,
+  resource, scope, and the Delegation Authorization it relied on;
+* the RAS's record linking `grant-1` to `access-1`, `user-108`, and
+  `agent-42`; and
+* the API's record of the operation on `report-7`, with `access-1`.
+
+The grant's `jti` joins the IdP's record to the RAS's, and the access
+token's `jti` joins the RAS's to the API's.
+
+**Limitations.**
+
+* Tokens that an API validates offline or caches stay usable until they
+  expire or the cache entry ends. Document the expected and maximum
+  disablement delay.
+* Current administrative state cannot reveal a missed
+  disable-and-re-enable cycle.
+* Each SaaS application is its own resource domain. Repeat the RAS and
+  API configuration, the client registration association, and these
+  tests for each one.
+
+### Recipe: self-acting access
+
+**Outcome.** `agent-42` runs a nightly data-quality job in `acme-data`
+on its own authority, with no user. The recipe uses the same agent,
+client, and resource domain as the delegated recipe, so the two differ
+only in the acting relationship. An internal API changes who owns the
+resource domain, not any step.
+
+**Parties and owners.** As in the delegated recipe, without a user. The
+identity team records the Agent Authorization; the application owner
+decides what the local principal `service-principal-42` may do.
+
+**Operating model.** Self-acting; the same dedicated client and
+protection choices.
+
+**Configuration.**
+
+* At the IdP: the same Identity Binding; a Client Association that
+  permits `analysis-client` to use it for self-acting issuance,
+  configured at the IdP directly; an Agent Authorization for `agent-42`
+  with `files.read` at `https://api.example/tenants/acme-data/`; and
+  the same client registration association.
+* At the RAS: the local principal `service-principal-42`, correlated
+  with (`https://idp.example/`, `agent-42`), and its permissions in
+  `acme-data`.
+* At the API: the agent's own permissions and tenant checks; no actor
+  gate.
+
+**One successful transaction.**
+
+1. The client authenticates to the IdP with a fresh assertion, repeats
+   it as the subject token, and requests a WAG for the same audience,
+   resource, and scope, with a DPoP proof. It sends no user token and
+   no actor token.
+2. The IdP resolves `agent-42`, checks the self-acting Client
+   Association and the Agent Authorization, and issues WAG `wag-1`.
+3. The client redeems `wag-1` at the RAS. The RAS checks the grant's
+   type, correlates `agent-42` to `service-principal-42`, and issues an
+   access token with `sub` `service-principal-42`, no `act`, and no
+   refresh token.
+4. The API enforces `service-principal-42`'s permissions in `acme-data`.
+5. When the access token expires, the client obtains a new WAG.
+
+**Rejection tests.**
+
+| Change | Expected result |
+|---|---|
+| The self-acting Client Association is disabled; the delegated one remains | The IdP returns HTTP 400 `unauthorized_client`, not `actor_unauthorized`, since no actor is asserted |
+| The client requests a resource the Agent Authorization does not cover | The IdP returns HTTP 400 `invalid_target` |
+| A WAG names an agent with no authorized correlation at the RAS | The RAS returns HTTP 400 `invalid_grant` |
+
+**Containment and restoration.**
+
+* **Stop the agent everywhere:** as in the delegated recipe; disabling
+  the agent stops its self-acting and delegated access together.
+* **Stop only its own access:** withdraw or narrow the Agent
+  Authorization. New WAGs for that target are refused, and tokens
+  already issued run until they expire; Alice's delegation is
+  unaffected.
+* **Stop one grant:** revoking a single WAG is deployment-specific;
+  grant-derived revocation covers ID-JAGs only.
+* **Restore:** re-enable the agent or restore the authorization; the
+  client obtains a new WAG.
+
+**Evidence to retain.** As a deployment convention: the IdP's issuance
+record for `wag-1` and the Agent Authorization it relied on; the RAS's
+record linking `wag-1` to the access token and to
+`service-principal-42`; and the API's records for
+`service-principal-42`. The RAS's correlation joins the local principal
+to (`https://idp.example/`, `agent-42`).
+
+**Limitations.**
+
+* A WAG yields no refresh token, so the IdP must be reachable whenever
+  the agent needs a new access token.
+* The resource domain sees only the agent: no user is attributed, so
+  review the Agent Authorization by agent.
+
+### Variations
+
+Each variation changes one of the recipes as stated; the rest holds.
+
+#### Through a gateway
+
+`agent-42` reaches a tool in another domain through an MCP gateway. Add
+[continuation](#continuation-through-gateways): the gateway's
+authorization server attests the agent's grant, and the IdP issues an
+onward grant naming the same agent and user, with the gateway as
+client. The tool sees the same agent; its API also sees the gateway in
+`continuation_via` where the tool's RAS supports path disclosure.
+
+* **Extra test:** a gateway without a Continuation Association is
+  refused with `unauthorized_client` and does not call the tool with its
+  own authority.
+* **Containment:** disabling the agent ends its chains, and re-enabling
+  it does not revive them; continuation fails with
+  `invalid_continuation` until a new root grant.
+* **Limitation:** once the gateway's source hop passes its continuation
+  window, continuation fails with `invalid_grant`, even while the
+  agent's access token at the gateway is still accepted.
+
+#### Scheduled work
+
+`agent-42` prepares a daily report for Alice after she signs out. While
+Alice is signed in, the client uses her refresh token once to establish
+a chain anchored to that refresh token's grant; each run continues from
+server-held task state with no retained user credential. This needs an
+IdP that claims grant-anchored continuation. The continuation profile's
+[scheduled variant][continuation-scheduled] shows the messages.
+
+* **Extra test:** when Alice withdraws her Delegation Authorization for
+  `agent-42`, the next run fails with `invalid_continuation`, and her
+  delegations to other agents continue.
+* **Containment:** revoking the refresh-token grant that anchors the
+  chain also ends it.
+
+#### A shared platform client
+
+A platform runs many agents behind one OAuth client and presents its
+existing platform JWT, which names the agent's workload. The IdP
+resolves the agent from the JWT through an exact Identity Binding, and
+a Client Association permits the shared client to use that binding. The
+core's [AWS example][core-aws-example] shows the input.
+
+* **Extra tests:** a platform JWT that fails validation is rejected
+  with `invalid_grant`, with no retry from the client's authentication
+  or another credential class; and a token the client holds for
+  `agent-42` is not reused for another agent with the same scope.
 
 ## Vendor requirements
 
@@ -403,7 +648,10 @@ profile's events and through risk inputs to policy decision points
 defined effect that response tooling can rely on.
 
 [core]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
+[core-walkthrough]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#walkthrough
+[core-aws-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#aws-example
 [continuation]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
+[continuation-scheduled]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#walkthrough-scheduled
 [lifecycle]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
 [management]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html
 [guide-authzen]: IMPLEMENTERS-GUIDE.md#authorization-decisions-with-authzen

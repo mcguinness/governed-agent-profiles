@@ -794,9 +794,8 @@ before any governed grant. For delegated ID-JAG issuance, a
 dedicated-client binding carries it, and an external-identity binding
 needs a Client Association ({{association-schema}}); this profile
 manages no client-use permission for self-acting issuance.
-{{FEDERATION}} then applies, and the Agent
-Principal identifier
-and its governance history do not change.
+{{FEDERATION}} then applies, and the Agent Principal identifier and its
+governance history do not change.
 
 This profile defines registration by the platform. An IdP can also
 discover hosted agents by reading a platform's agent inventory; that

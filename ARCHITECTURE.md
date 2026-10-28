@@ -1,15 +1,15 @@
 # Governed Agent Profiles: Architecture Overview
 
 This overview is non-normative. It explains the problem the governed
-agent profiles address, the principles behind them, and how the six
-drafts fit together. The drafts define every requirement, and they
-govern wherever this overview differs from them. For message-level
-flows, what each role builds, and deployment configuration, see the
-[implementer's guide](IMPLEMENTERS-GUIDE.md).
+agent profiles address, how they work, the principles behind them, and
+how the six drafts fit together. The drafts define every requirement,
+and they govern wherever this overview differs from them. For
+message-level flows, what each role builds, and deployment
+configuration, see the [implementer's guide](IMPLEMENTERS-GUIDE.md).
 
 * [The problem](#the-problem)
+* [How it works](#how-it-works)
 * [Principles](#principles)
-* [Architecture](#architecture)
 * [How the drafts fit](#how-the-drafts-fit)
 * [Continuation through gateways](#continuation-through-gateways)
 * [Changes and revocation](#changes-and-revocation)
@@ -41,36 +41,41 @@ The pieces needed to fix that exist separately and do not yet compose:
   OAuth client is calling, not which agent a shared client is acting
   for.
 
-## Principles
+## How it works
 
-* **Execution identity is evidence; governed identity is the
-  principal.** Platforms mint execution identities. The enterprise
-  governs an Agent Principal in the IdP's namespace, and an Identity
-  Binding connects the two, so an agent keeps its identity when it
-  moves between platforms or rotates credentials. The principal's
-  identifier may reuse the execution identity's; what matters is which
-  identity is authoritative for governance.
-* **Resolving an identity does not authorize its use.** An Identity
-  Binding says which agent a credential represents. A separate Client
-  Association says whether a client may exercise that agent.
-* **Attribution is not delegation authority.** An agent named in `act`
-  acts for a user only under the IdP's delegation decision and the
-  resource domain's actor gate.
-* **Every concern has an owner, and none stands in for another.** The
-  IdP owns identity, the resource domain owns resource authority, and a
-  mission control point owns approved work. Being known is not being
-  authorized, and being authorized is not being approved for this work.
-* **Owners, not a single control plane.** Each boundary keeps its own
-  decision: the resource authorization server (RAS) decides anew within
-  the grant, and a Local Suspension in a resource domain cannot be
-  cleared from upstream.
-* **Facts cross boundaries only by contract.** A contract states what is
-  preserved, what is translated, and what is decided anew.
+The agent's OAuth client authenticates to the enterprise IdP and
+receives a grant naming the governed agent. It exchanges that grant at
+the resource domain's authorization server (RAS) for an access token,
+which it presents to the API.
 
-The treatment of each boundary follows
-[Continuity Is Not One Thing](https://notes.karlmcguinness.com/notes/continuity-is-not-one-thing/).
+The IdP resolves the client or workload identity to an Agent Principal
+in its own namespace and carries that principal in one of two peer
+grants, chosen by the acting relationship. An implementation claims one
+or both.
 
-## Architecture
+| The agent acts | Grant | The resource domain sees |
+|---|---|---|
+| For a user | ID-JAG | The user as subject and the agent as actor in `act` |
+| For itself | Workload Authorization Grant (WAG) | The agent as subject |
+
+```
+Platform identity:  https://platform.example/  workload-7
+                            |  Identity Binding at the IdP
+                            v
+Agent Principal:    https://idp.example/       agent-42
+
+Delegated ID-JAG (excerpt):
+  "sub": "alice",
+  "act": {"iss": "https://idp.example/", "sub": "agent-42"}
+
+Self-acting WAG (excerpt):
+  "iss": "https://idp.example/", "sub": "agent-42"
+```
+
+The resource domain correlates the agent with its local principal by
+the exact (IdP issuer, agent identifier) pair. For delegated access,
+the RAS and API also enforce the actor gate: may this agent act for
+this user here?
 
 ### Parties
 
@@ -79,7 +84,7 @@ The treatment of each boundary follows
 | Agent platform | Runs agents. Implements the OAuth client that obtains access for them, and a SCIM connector that registers them at the IdP |
 | Credential authority | Issues the workload evidence the IdP can resolve: SPIFFE, a client attester, or the platform's own JWTs |
 | Governing IdP | Holds each Agent Principal and the relationships that govern it, and issues grants naming it |
-| Resource domain | Its RAS redeems grants and issues access tokens; its API enforces them. It correlates the agent with a local principal |
+| Resource domain | Its RAS redeems grants and issues access tokens; its API enforces them |
 | Gateway | An API that continues an agent's request to a resource in another domain |
 
 ### How they connect
@@ -110,42 +115,18 @@ flowchart LR
   client -->|"call with access token"| gateway
   principal -->|"provision, disable, revoke"| rasA
   gateway -->|"continuation exchange"| principal
+  principal -->|"onward grant"| gateway
   gateway -->|"redeem onward grant"| rasB
   gateway -->|"call"| apiB
 ```
 
 | Connection | Defined in |
 |---|---|
+| Token exchange, grant, redemption, call | OAuth 2.0 Profile for Governed Agent Federation (the core) |
+| Workload evidence | The core (dedicated client, platform JWT); Agent Resolution Input Profiles (SPIFFE, Client Attestation) |
 | Register agents and relationships | SCIM Profile for Governed Agent Federation Management, with OAuth clients from the SCIM Profile for OAuth 2.0 Client Management |
-| Workload evidence | OAuth 2.0 Profile for Governed Agent Federation (dedicated client, platform JWT); Agent Resolution Input Profiles (SPIFFE, Client Attestation) |
-| Token exchange, grant, redemption, call | OAuth 2.0 Profile for Governed Agent Federation |
 | Provision, disable, revoke | Governed Agent Lifecycle Profile for SCIM and OAuth |
 | Continuation exchange, onward grant | Identity Continuation Profile for Governed Agent Federation |
-
-### One identity, two acting relationships
-
-The IdP resolves the client or workload identity to the Agent Principal
-and carries that principal in one of two peer grants. An implementation
-claims one or both.
-
-| Acting relationship | Grant | Representation |
-|---|---|---|
-| The agent acts for a user | ID-JAG | User as subject; agent as actor in `act` |
-| The agent acts for itself | Workload Authorization Grant (WAG) | Agent as subject |
-
-```
-Platform identity:  https://platform.example/  workload-7
-                            |  Identity Binding at the IdP
-                            v
-Agent Principal:    https://idp.example/       agent-42
-
-Delegated ID-JAG (excerpt):
-  "sub": "alice",
-  "act": {"iss": "https://idp.example/", "sub": "agent-42"}
-
-Self-acting WAG (excerpt):
-  "iss": "https://idp.example/", "sub": "agent-42"
-```
 
 ### The relationships the IdP holds
 
@@ -153,43 +134,69 @@ Each relationship answers one question, and none implies another:
 
 | Relationship | Question | Defined in |
 |---|---|---|
-| Identity Binding | Which governed agent does this credential identify? | Federation profile; administered with SCIM management |
-| Client Association | May this OAuth client use that agent's identity? | Federation profile; administered with SCIM management |
-| Delegation Authorization | May the agent act for this user, with what authority? | Federation profile |
-| Agent Authorization | What may the agent access on its own behalf? | Federation profile |
+| Identity Binding | Which governed agent does this credential identify? | The core; administered with SCIM management |
+| Client Association | May this OAuth client use that agent's identity? | The core; administered with SCIM management |
+| Delegation Authorization | May the agent act for this user, with what authority? | The core |
+| Agent Authorization | What may the agent access on its own behalf? | The core |
 | Continuation Association | May this gateway continue the agent's chains? | Continuation profile |
 
-In the resource domain, the RAS correlates the agent with its local
-principal by the exact (IdP issuer, agent identifier) pair. For
-delegated access, the RAS and API also enforce the actor gate: may this
-agent act for this user here?
+## Principles
+
+* **Execution identity is evidence; governed identity is the
+  principal.** Platforms mint execution identities. The enterprise
+  governs an Agent Principal in the IdP's namespace, and an Identity
+  Binding connects the two, so an agent keeps its identity when it
+  moves between platforms or rotates credentials. The principal's
+  identifier may reuse the execution identity's; what matters is which
+  identity is authoritative for governance.
+* **Resolving an identity does not authorize its use.** An Identity
+  Binding says which agent a credential represents. A separate Client
+  Association says whether a client may exercise that agent.
+* **Attribution is not delegation authority.** An agent named in `act`
+  acts for a user only under the IdP's delegation decision and the
+  resource domain's actor gate.
+* **Each concern has an owner, and none stands in for another.** The
+  IdP owns identity and the grant decision; the resource domain owns
+  resource authority. Being known is not being authorized.
+* **Owners, not a single control plane.** Each boundary keeps its own
+  decision: the RAS decides anew within the grant, and a Local
+  Suspension in a resource domain cannot be cleared from upstream.
+* **Facts cross boundaries only by contract.** A contract states what is
+  preserved, what is translated, and what is decided anew.
+
+The treatment of each boundary follows
+[Continuity Is Not One Thing](https://notes.karlmcguinness.com/notes/continuity-is-not-one-thing/).
 
 ## How the drafts fit
 
-| Draft | Working group | What it defines |
-|---|---|---|
-| [OAuth 2.0 Profile for Governed Agent Federation][core] | OAuth | Resolution of client and workload identities to an Agent Principal, and the two grants that carry it into a resource domain |
-| [Agent Resolution Input Profiles][inputs] | OAuth | Optional SPIFFE and Client Attestation inputs, including managed installations behind a shared client |
-| [Identity Continuation Profile][continuation] | OAuth | Carrying the same Agent Principal through gateways into further resource domains |
-| [SCIM Profile for Governed Agent Federation Management][management] | SCIM | Platform-to-IdP management of Agent Principals, Identity Bindings, and Client Associations |
-| [Governed Agent Lifecycle Profile][lifecycle] | SCIM | IdP-to-resource-domain provisioning, administrative disablement, and session revocation |
-| [SCIM Profile for OAuth 2.0 Client Management][oauth-client] | SCIM | SCIM management of OAuth client registrations, including Client ID Metadata Document clients |
+**Start with the core.** The [OAuth 2.0 Profile for Governed Agent
+Federation][core] is an OAuth deployment profile that standardizes the
+boundary between execution identity and governed identity. A client,
+IdP, RAS, and API can implement dedicated-client federation, one OAuth
+client per agent, from the core alone. Shared platforms use their
+existing platform JWT, also defined in the core, to distinguish the
+agents behind one client. Identity resolution, client authority, user
+delegation, and resource authorization remain separate decisions, and
+no new workload credential format is defined. Two adoption profiles
+differ in grant protection: bound governed agent access requires DPoP
+at issuance and redemption.
 
-**Federation (the core).** An OAuth deployment profile that standardizes
-the boundary between execution identity and governed identity. Identity
-resolution, client authority, user delegation, and resource
-authorization remain separate decisions. Every implementation supports
-dedicated-client resolution, one OAuth client per agent; shared
-platforms use their existing platform JWT to distinguish the agents
-behind one client. No new workload credential format is defined. Two
-adoption profiles differ in grant protection: bound governed agent
-access requires DPoP at issuance and redemption.
+**Add a companion when you need what it addresses:**
+
+| When you need | Add | Working group |
+|---|---|---|
+| SPIFFE or Client Attestation evidence, including several managed installations behind one client | [Agent Resolution Input Profiles][inputs] | OAuth |
+| A gateway that calls further resource domains for the agent | [Identity Continuation Profile][continuation] | OAuth |
+| Platforms that register agents and their relationships at the IdP | [SCIM Profile for Governed Agent Federation Management][management] | SCIM |
+| OAuth client registrations managed through SCIM | [SCIM Profile for OAuth 2.0 Client Management][oauth-client] | SCIM |
+| Resource domains provisioned with agents and their disablement | [Governed Agent Lifecycle Profile][lifecycle] | SCIM |
 
 **Inputs.** Further agent-resolution inputs that satisfy the core's
 input contract, each claimed separately. The core requires an
 implementation that uses JWT-SVID client authentication to follow this
 companion, so the two drafts reference each other and are published
-together.
+together. An implementation that claims none of these inputs needs only
+the core.
 
 **Continuation.** Profiles the Identity Continuation Assertion (ICA) for
 governed agents, with gateways as the primary deployment. See
@@ -200,18 +207,18 @@ above. Administering them is authorization management: permission to
 create an agent does not imply permission to bind it, and permission to
 disable a relationship does not imply permission to enable it.
 
-**Lifecycle.** Provisions issuer-qualified Agent Principals into a
-resource domain and applies administrative disablement to OAuth
-authorization. Existing SCIM Events trigger reconciliation, and
-existing CAEP session-revocation events can revoke what one grant
-authorized. It defines no new schema, event type, or authorization
-timestamp, and states what current state cannot recover.
-
 **OAuth client management.** A generic SCIM resource for OAuth client
 registrations, developing the approach first proposed by Phil Hunt,
 Morteza Ansari, and Anthony Nadalin. It can share a registration with
 OAuth dynamic registration, and manages local admission of Client ID
 Metadata Document clients without copying their metadata.
+
+**Lifecycle.** Provisions issuer-qualified Agent Principals into a
+resource domain and applies administrative disablement to OAuth
+authorization. Existing SCIM Events trigger reconciliation, and an
+optional composition with CAEP session-revocation events can revoke
+what one grant authorized. It defines no new schema, event type, or
+authorization timestamp, and states what current state cannot recover.
 
 What each draft needs from the specifications it depends on is in
 [COORDINATION.md](COORDINATION.md).
@@ -241,8 +248,9 @@ sequenceDiagram
 ```
 
 * The onward grant names the same Agent Principal and, for delegated
-  access, the same user. A RAS and API that implement the core accept
-  it unchanged.
+  access, the same user. A RAS and API that implement the core, with
+  DPoP support at the RAS token endpoint, accept it unchanged, because
+  every onward grant is bound to the gateway's key.
 * The gateway is the grant's client, never an added actor. A separate
   `continuation_via` claim lists the gateways on the path.
 * A chain exists only when the user's delegation, or the agent's own
@@ -261,8 +269,8 @@ anchored to a refresh-token grant.
 
 ## Changes and revocation
 
-Identity, authority, and approved work have separate owners, checks,
-and lifetimes, so each change ends something different:
+Identity and authority have separate owners, checks, and lifetimes, so
+each change ends something different:
 
 | Change | What it stops |
 |---|---|
@@ -270,10 +278,9 @@ and lifetimes, so each change ends something different:
 | Remove a Client Association | That client's use of the binding; the binding can remain valid |
 | Withdraw a user's delegation | New delegated grants for that delegation |
 | Disable the Agent Principal | New grants for the agent; once the resource domain applies it, the agent's sessions there are revoked |
-| Revoke one grant | All authorization derived from that ID-JAG; the principal is unchanged |
+| Revoke one ID-JAG through the optional grant-derived revocation capability | Its redemption, and the authorization derived from it, at participating receivers in the target tenant; the principal is unchanged |
 | Apply a Local Suspension | The agent in one resource domain, regardless of upstream state |
 | Withdraw what a governed continuation chain rests on | Further continuation of that chain |
-| End a Mission | Actions at every boundary that checks work state |
 
 Otherwise, tokens already issued end only by revocation or expiry.
 Re-enabling a principal permits new decisions; it does not restore
@@ -324,14 +331,15 @@ risk signals, disablement, and re-enablement.
 ## Beyond these drafts
 
 These drafts define agent identity and authority up to the allow or deny
-decision at an action. Work context and per-action authorization belong
-to other specifications:
+decision at an action. Approved work is a third concern with its own
+owner: being authorized is not being approved for this work. Work
+context and per-action authorization belong to other specifications:
 
 | Concern | Question | Responsibility | Specifications |
 |---|---|---|---|
 | Identity | Which governed agent is acting? | The IdP resolves the Agent Principal; the resource domain correlates it locally | These drafts |
 | Authority | What may it do, and for whom? | The IdP authorizes the grant; the resource domain decides within its limits | These drafts; AuthZEN and COAZ for per-action decisions; ARAP and AROP for requestable denials |
-| Work | Does approved work still justify this action? | Mission-bound authorization supplies and evaluates work context | [Mission-Bound Authorization](https://github.com/mcguinness/mission-bound-authorization) |
+| Work | Does approved work still justify this action? | A mission control point supplies and evaluates work context; ending a Mission denies actions at every boundary that checks work state | [Mission-Bound Authorization](https://github.com/mcguinness/mission-bound-authorization) |
 
 Two compositions remain undefined:
 

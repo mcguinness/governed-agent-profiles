@@ -11,6 +11,18 @@ platform. Today's common alternative, one shared OAuth client per
 platform, makes every agent behind it look the same: attribution is lost
 and revocation is all or nothing.
 
+## How it works
+
+The agent's OAuth client authenticates to the IdP and receives a grant
+naming the governed agent. It exchanges that grant at the resource
+domain's authorization server (RAS) for an access token. The grant
+depends on whom the agent acts for:
+
+| The agent acts | Grant | The resource domain sees |
+|---|---|---|
+| For a user | Identity Assertion JWT Authorization Grant (ID-JAG) | The user as subject and the agent as actor |
+| For itself | Workload Authorization Grant (WAG) | The agent as subject |
+
 ```mermaid
 flowchart LR
   authority["Credential authority<br/>SPIFFE, attester, platform"]
@@ -25,14 +37,14 @@ flowchart LR
     ras["RAS"]
     api["API or gateway"]
   end
-  connector -->|"Management: SCIM"| principal
-  authority -->|"Inputs: workload evidence"| client
   client -->|"Federation: token exchange"| principal
   principal -->|"ID-JAG or WAG"| client
   client -->|"redeem grant"| ras
   client -->|"access token"| api
+  authority -->|"Inputs: workload evidence"| client
+  connector -->|"Management: SCIM"| principal
   principal -->|"Lifecycle: SCIM, signals"| ras
-  api -->|"Continuation: onward grant"| principal
+  api -->|"Continuation exchange"| principal
 ```
 
 The [architecture overview](ARCHITECTURE.md) explains each connection,
@@ -40,25 +52,30 @@ the principles behind it, and how revocation works across it.
 
 ## The drafts
 
-| Draft | Defines | Working group |
+Start with the [OAuth 2.0 Profile for Governed Agent Federation][core]
+([source](draft-mcguinness-oauth-governed-agent-federation.md), OAuth
+working group). A client, IdP, RAS, and API can implement
+dedicated-client federation, one OAuth client per agent, from it alone.
+Add a companion when you need what it addresses:
+
+| When you need | Add | Working group |
 |---|---|---|
-| [OAuth 2.0 Profile for Governed Agent Federation][core] ([source](draft-mcguinness-oauth-governed-agent-federation.md)) | Resolving client and workload identities to an Agent Principal, carried as the actor of an ID-JAG or the subject of a WAG | OAuth |
-| [Agent Resolution Input Profiles][inputs] ([source](draft-mcguinness-oauth-governed-agent-inputs.md)) | Optional SPIFFE and Client Attestation inputs, including managed installations | OAuth |
-| [Identity Continuation Profile][continuation] ([source](draft-mcguinness-oauth-governed-agent-continuation.md)) | The same Agent Principal through gateways into further resource domains | OAuth |
-| [SCIM Profile for Governed Agent Federation Management][management] ([source](draft-mcguinness-scim-agent-federation.md)) | Platform-to-IdP management of Agent Principals, Identity Bindings, and Client Associations | SCIM |
-| [Governed Agent Lifecycle Profile][lifecycle] ([source](draft-mcguinness-oauth-governed-agent-lifecycle.md)) | IdP-to-resource-domain provisioning, disablement, and session revocation | SCIM |
-| [SCIM Profile for OAuth 2.0 Client Management][oauth-client] ([source](draft-mcguinness-scim-oauth-client-management.md)) | SCIM management of OAuth client registrations, including Client ID Metadata Document clients | SCIM |
+| SPIFFE or Client Attestation evidence, including several managed installations behind one client | [Agent Resolution Input Profiles][inputs] ([source](draft-mcguinness-oauth-governed-agent-inputs.md)) | OAuth |
+| A gateway that calls further resource domains for the agent | [Identity Continuation Profile][continuation] ([source](draft-mcguinness-oauth-governed-agent-continuation.md)) | OAuth |
+| Platforms that register agents and their relationships at the IdP | [SCIM Profile for Governed Agent Federation Management][management] ([source](draft-mcguinness-scim-agent-federation.md)) | SCIM |
+| OAuth client registrations managed through SCIM | [SCIM Profile for OAuth 2.0 Client Management][oauth-client] ([source](draft-mcguinness-scim-oauth-client-management.md)) | SCIM |
+| Resource domains provisioned with agents and their disablement | [Governed Agent Lifecycle Profile][lifecycle] ([source](draft-mcguinness-oauth-governed-agent-lifecycle.md)) | SCIM |
 
 The draft names link to the editor's copies. All six are individual
-drafts under development. The federation profile and the input profiles
-reference each other normatively and are published together; the others
-build on the federation profile.
+drafts under development. The core and the input profiles reference
+each other normatively and are published together; an implementation
+that claims none of the optional inputs needs only the core.
 
 ## Where to start
 
-* **[Architecture overview](ARCHITECTURE.md):** the problem, principles,
-  parties, how the drafts fit, revocation boundaries, platform-hosted
-  agents, and related work.
+* **[Architecture overview](ARCHITECTURE.md):** the problem, how the
+  drafts work and fit together, principles, revocation boundaries,
+  platform-hosted agents, and related work.
 * **[Implementer's guide](IMPLEMENTERS-GUIDE.md):** message flows for
   both grants, what each role builds, configuration, and deployment
   tradeoffs.
@@ -69,10 +86,10 @@ By role:
 
 | If you build | Read |
 |---|---|
-| An identity provider | Federation (issuance), the input profiles you support, SCIM management, and continuation if gateways continue requests |
-| A resource authorization server or API | Federation (redemption and resource access), and lifecycle if the domain accepts provisioning and disablement |
-| An agent platform | Federation (client requests), SCIM management, and lifecycle for agents the platform hosts |
-| A gateway | Continuation, and Federation for the access it receives |
+| An identity provider | The core (issuance), the input profiles you support, SCIM management, and continuation if gateways continue requests |
+| A resource authorization server or API | The core (redemption and resource access), and lifecycle if the domain accepts provisioning and disablement |
+| An agent platform | The core (client requests), SCIM management, and lifecycle for agents the platform hosts |
+| A gateway | Continuation, and the core for the access it receives |
 | A SCIM service for OAuth clients | SCIM OAuth client management |
 
 ## Contributing

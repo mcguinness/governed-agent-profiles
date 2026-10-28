@@ -209,9 +209,9 @@ client, tenant, and token constraints itself, from the validated token.
     defined period.
 * **Respond.** Stop and restore access with the
   [runbooks](#runbooks-stop-and-restore).
-* **Retire.** [Disable the agent everywhere](#disable-an-agent-everywhere)
-  first, so resource domains revoke its sessions, and then withdraw its
-  bindings, associations, and authorizations.
+* **Retire.** Follow [Retire an agent](#retire-an-agent): disable it
+  everywhere first, so resource domains revoke its sessions, and then
+  delete it and its relationships.
 
 ### Registration-only branch
 
@@ -742,6 +742,109 @@ stay revoked, and ended continuation chains stay ended.
 * **Completion evidence:** the management audit record of the change:
   the administrative actor, Provisioning Domain, affected resource, and
   changed attribute.
+
+### Recover from lost event delivery
+
+* **Trigger:** a lifecycle event stream reports delivery failures,
+  falls behind, or is reconfigured, or periodic reconciliation finds
+  state that differs from the source.
+* **Scope:** the resource domains on that stream, the applied state of
+  their agents, and any grant revocations sent while delivery failed.
+* **Prerequisites:** the source SCIM service and retrieval authority
+  configured for reconciliation; the deployment's documented reliance
+  on local state during a source outage.
+* **Owner:** each resource domain's operator for reconciliation; the
+  identity team for the transmitter.
+* **Action:**
+  1. Reconcile every managed agent by retrieving its current state from
+     the source. A change notice triggers retrieval, never activation.
+     A failed or partial retrieval leaves reconciliation incomplete; it
+     is never a deletion.
+  2. Keep each failed reconciliation pending and retry it; an
+     acknowledgment does not discard pending work. An authenticated
+     deactivation or deletion event may have caused a provisional Local
+     Suspension, which successful reconciliation can clear under local
+     policy. It never clears an independent Local Suspension.
+  3. Resend any grant revocation whose delivery is unconfirmed, under
+     the transport's acknowledgment rules. Revocations are not SCIM
+     state, so reconciliation cannot recover them. If the grant's
+     derived authorization must stop before delivery is confirmed,
+     disable the agent or apply a Local Suspension instead.
+  4. Where a disable-and-re-enable cycle may have been missed, current
+     state cannot show it. If sessions from before the gap must not
+     survive, disable and re-enable the agent so that each domain
+     revokes them.
+* **Verification:** each agent's applied state matches the source; no
+  reconciliation remains pending; each resent revocation is recorded by
+  the receiver.
+* **Residual access:** during the gap, a disablement not yet applied in
+  a domain did not stop redemption, refresh, or sessions there.
+* **Recovery:** this runbook is the recovery. Review access during the
+  gap with the [audit trace](#audit-evidence).
+* **Completion evidence:** the reconciliation report (agents checked,
+  changes applied, items still pending), the resend records, and the
+  start and end of the gap.
+
+### Retire an agent
+
+* **Trigger:** the agent is no longer needed.
+* **Scope:** the Agent Principal everywhere: its bindings, associations,
+  authorizations, OAuth clients used only by it, and local records.
+* **Prerequisites:** the owner's approval; the resource domains and
+  platforms that hold the agent.
+* **Owner:** identity team, with the agent's owner.
+* **Action:**
+  1. [Disable the agent everywhere](#disable-an-agent-everywhere), and
+     confirm that each domain applied it. Deletion prevents new grants
+     but revokes nothing, so disablement comes first.
+  2. Delete the Agent at the IdP. In SCIM management, its bindings and
+     associations then become unusable; delete them as well, or let an
+     authorized cascade remove them, along with any OAuth client that
+     only this agent used.
+  3. Remove its local records in each resource domain.
+* **Verification:** no grant issues for the agent. A later registration
+  with the same platform identifier is a new creation, with a new SCIM
+  `id` and a new Agent Principal; the IdP never reuses either.
+* **Residual access:** tokens accepted offline or from a cache.
+* **Recovery:** none. A replacement agent is a new principal, with new
+  relationships and authorizations.
+* **Completion evidence:** each domain's applied disablement, the
+  deletion records, and the agent's absence from the next
+  certification. Deleting a local record alone does not show that the
+  IdP retired the agent.
+
+### Roll back an onboarding
+
+* **Trigger:** onboarding fails partway, or acceptance tests fail and
+  the integration must be undone.
+* **Scope:** what was created for the agent: the Agent, its bindings and
+  associations, client registrations, authorizations, local records,
+  and any tokens issued.
+* **Prerequisites:** the onboarding record of what was created, with
+  each resource's SCIM `id` or `externalId`.
+* **Owner:** platform engineering for the connector's writes; identity
+  team for authorizations.
+* **Action:**
+  1. If the agent was enabled and any grant was issued, [disable it
+     everywhere](#disable-an-agent-everywhere) first. An onboarding
+     staged inactive, as the SCIM management profile allows, needs only
+     deletion.
+  2. If a creation response was lost, find the resource by its
+     `externalId` before retrying or deleting. A repeated create is not
+     idempotent, and a `409` `uniqueness` conflict is not success until
+     the existing resource is retrieved and compared.
+  3. Delete what was created. Dependents remain as unusable references
+     unless their deletion is authorized; remove them too.
+  4. Withdraw the authorizations, and remove client registrations and
+     local records created only for this agent.
+* **Verification:** queries by `externalId`, and filtered reads for
+  references, find nothing left; no grant issues for the agent.
+* **Residual access:** tokens issued during the attempt, until
+  disablement is applied or they expire.
+* **Recovery:** onboarding again is a new creation, with new SCIM `id`s
+  and a new Agent Principal.
+* **Completion evidence:** the deletion records and the empty query
+  results.
 
 ## Audit evidence
 

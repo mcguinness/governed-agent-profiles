@@ -789,8 +789,8 @@ For a registered Agent:
 The platform applies the IdP's administrative state to its own
 authorization under {{LIFECYCLE}}. To give the agent access beyond the
 platform later, an authorized administrator adds an Identity Binding
-and, where the input requires one, a Client Association to the same
-Agent. {{FEDERATION}} then applies, and the Agent Principal identifier
+and a Client Association for the selected acting relationship to the
+same Agent. {{FEDERATION}} then applies, and the Agent Principal identifier
 and its governance history do not change.
 
 This profile defines registration by the platform. An IdP can also

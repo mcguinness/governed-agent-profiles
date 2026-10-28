@@ -535,8 +535,8 @@ The gateway is the grant's client, never an added actor; a separate
     agent does not include re-enabling one the IdP disabled.
   * **Apply governance locally.** Once the platform applies the IdP's
     disablement, it denies new authorization and revokes the agent's
-    existing authorization in its own system. Its own suspension is a Local
-    Suspension the IdP cannot clear.
+    existing authorization in its own system. Its own suspension is a
+    Local Suspension the IdP cannot clear.
   * **Signal both ways.** The platform can send WISE credential and
     posture events and CAEP session events about its agents to the IdP,
     and the
@@ -551,7 +551,8 @@ The gateway is the grant's client, never an added actor; a separate
   beyond the platform, an administrator adds an Identity Binding and a
   Client Association for the selected acting relationship to the same
   Agent; in SCIM management, a dedicated-client binding carries the
-  association for delegated access. Its identifier and governance history carry over.
+  association for delegated access. Its identifier and governance
+  history carry over.
 
 The implementer's guide
 [follows one agent](IMPLEMENTERS-GUIDE.md#platform-hosted-agents) from

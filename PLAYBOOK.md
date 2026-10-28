@@ -501,8 +501,9 @@ Each variation changes one of the recipes as stated; the rest holds.
 authorization server, or an issuer trusted as Continuation Assertion
 Issuer for it, attests the agent's grant, and the IdP issues an onward
 grant naming the same agent (and, for delegated access, the same user),
-with the gateway as client. The tool sees the same agent; its API also sees the gateway in
-`continuation_via` where the tool's RAS supports path disclosure.
+with the gateway as client. The tool sees the same agent; its API also
+sees the gateway in `continuation_via` where the tool's RAS supports
+path disclosure.
 
 Run the continuation checks in [step 4](#continuation-through-gateways),
 which include containment: disabling the agent ends its chains, and
@@ -524,8 +525,9 @@ Delegation Authorization that permit continuation; a refresh token
 whose grant has that Delegation Authorization explicitly associated; a
 continuation-aware authorization server at the agent's operator,
 trusted as Continuation Assertion Issuer, that holds the task record;
-and a Continuation Association for the client. The continuation profile's [scheduled
-variant][continuation-scheduled] shows the messages.
+and a Continuation Association for the client. The continuation
+profile's [scheduled variant][continuation-scheduled] shows the
+messages.
 
 * **Extra test:** when Alice withdraws her Delegation Authorization for
   `agent-42`, the next run fails with `invalid_continuation`, and her
@@ -707,9 +709,9 @@ stay revoked, and ended continuation chains stay ended.
   team for the authorization.
 * **Action:** either apply a Local Suspension at the RAS, or narrow
   every Delegation Authorization and the Agent Authorization that cover
-  that target, so that none does. Withdraw the authorization as a whole only when the
-  agent should lose all of it: withdrawal ends every chain rooted under
-  it, for all targets.
+  that target, so that none does. Withdraw the authorization as a whole
+  only when the agent should lose all of it: withdrawal ends every
+  chain rooted under it, for all targets.
 * **Verification:** with a Local Suspension, the RAS issues no new
   access token or refresh for the agent, and activation at the IdP does
   not clear it. With narrowing, a new grant for that target is refused,
@@ -1026,8 +1028,9 @@ Agent Principal as the key that correlates their findings, and
 relationships that can be withdrawn precisely when they detect a
 problem. A hosting platform's lifecycle events can inform IdP policy,
 and other signals can reach policy decision points as
-deployment-specific risk inputs ([guide][guide-risk]). In return, a disablement or revocation here has a
-defined effect that response tooling can rely on.
+deployment-specific risk inputs ([guide][guide-risk]). In return, a
+disablement or revocation here has a defined effect that response
+tooling can rely on.
 
 [core]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
 [core-walkthrough]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#walkthrough

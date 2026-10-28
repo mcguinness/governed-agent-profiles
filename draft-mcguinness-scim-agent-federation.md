@@ -642,11 +642,8 @@ disablement or deletion of a dependent resource. Creation or activation
 with a missing target MUST be rejected.
 
 A later POST with a previously used `externalId` is a new creation,
-requiring current authorization and receiving a new `id`. Clients that
-need reversible disablement use `active: false`, not
-DELETE. To prevent an old connector from recreating deleted records,
-administrators withdraw that connector's create authority; DELETE alone
-does not revoke its management credentials.
+requiring current authorization and receiving a new `id`
+({{implementation-client}}).
 
 ## Query and Reconciliation {#query}
 
@@ -664,8 +661,7 @@ OAuthClient queries follow {{OAUTH-CLIENT}}. Collection reads MUST
 return only resources within the caller's read permission. For a
 platform connector, an `externalId` lookup is scoped to its Provisioning
 Domain and resource type; another connector's correlation value cannot
-select its resource. An administrative reader spanning several domains
-cannot assume that externalId alone is unique.
+select its resource ({{implementation-client}}).
 
 A binding lookup can use `agent.value eq "a17" and active eq true`. To
 find dependencies of OAuthClient `oc7`, query both relationship
@@ -695,8 +691,8 @@ The `/Schemas` representations MUST describe the characteristics in
 {{common}}, {{agent-schema}}, {{binding-schema}}, and
 {{association-schema}}. Discovery advertises syntax and capabilities;
 it does not approve a connector, credential authority, or relationship.
-Unsupported credential classes remain subject to {{classes}}. The
-connector and IdP agree on usable input classes during trust setup.
+Unsupported credential classes remain subject to {{classes}}
+({{implementation-client}}).
 
 ## Errors
 
@@ -714,9 +710,8 @@ the profile's failures predictable:
 
 Standard SCIM request syntax, filter, authentication, and not-found
 errors retain their meanings. Responses MUST NOT reveal cross-tenant
-resource existence. Authorized administrators need sufficient
-diagnostics to distinguish configuration and permission failures without
-exposing credentials or key material.
+resource existence. {{implementation-sp}} covers diagnostics for
+authorized administrators.
 
 # Effect on Grant Issuance {#issuance}
 
@@ -803,6 +798,32 @@ This profile defines registration by the platform. An IdP can also
 discover hosted agents by reading a platform's agent inventory; that
 interface is outside this profile. {{LIFECYCLE}} walks one
 platform-hosted agent from registration to retirement.
+
+# Implementation Considerations {#implementation}
+
+These considerations add no requirements. They describe how a
+Provisioning Client and a Service Provider meet the requirements of the
+sections cited.
+
+## Provisioning Client {#implementation-client}
+
+* **Reversible disablement:** Clients that need reversible disablement
+  use `active: false`, not DELETE; a later POST receives a new `id`
+  ({{deletion}}). To prevent an old connector from recreating deleted
+  records, administrators withdraw that connector's create authority;
+  DELETE alone does not revoke its management credentials.
+* **Readers across domains:** An administrative reader spanning several
+  Provisioning Domains cannot assume that `externalId` alone is unique
+  ({{query}}).
+* **Credential classes:** The connector and the IdP agree on usable
+  input classes during trust setup; `/Schemas` describes syntax only
+  ({{discovery}}).
+
+## Service Provider {#implementation-sp}
+
+* **Diagnostics:** Authorized administrators need sufficient
+  diagnostics to distinguish configuration and permission failures
+  without exposing credentials or key material.
 
 # Security Considerations
 

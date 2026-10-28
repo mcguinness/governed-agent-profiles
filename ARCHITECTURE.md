@@ -12,6 +12,7 @@ configuration, see the [implementer's guide](IMPLEMENTERS-GUIDE.md).
 * [Principles](#principles)
 * [How the drafts fit](#how-the-drafts-fit)
 * [Continuation through gateways](#continuation-through-gateways)
+* [Sub-agents and orchestrators](#sub-agents-and-orchestrators)
 * [Changes and revocation](#changes-and-revocation)
 * [Authorization decisions with AuthZEN](#authorization-decisions-with-authzen)
 * [Credential brokers](#credential-brokers)
@@ -342,6 +343,24 @@ sequenceDiagram
 The same mechanism lets the agent's own client continue a chain for
 scheduled work after the user signs out, where the IdP supports chains
 anchored to a refresh-token grant.
+
+## Sub-agents and orchestrators
+
+An orchestrator agent often starts sub-agents for parts of a task. The
+core decides their identity by what they need governed separately
+("Governance Boundary and Execution Independence"):
+
+| The sub-agent | Identity | Authority |
+|---|---|---|
+| Works entirely within its parent's authority and is attributed to it | The parent's Agent Principal; the sub-agent is one more execution of it | The parent's grants, reused only within the same agent, user, tenant, and authority |
+| Needs its own authorization, delegation, attribution, correlation, or disablement | Its own Agent Principal | Its own Client Association and Delegation or Agent Authorization; the parent's authority does not pass to it |
+| Acts for the orchestrator, as one agent delegating to another | Out of scope: multi-agent delegation chains are not defined | |
+
+These profiles define no automatic inheritance or cascading withdrawal
+between agents. A deployment can explicitly constrain a sub-agent by its
+orchestrator's current authority; otherwise, each authorization is
+narrowed or withdrawn separately. The implementer's guide covers
+[the patterns](IMPLEMENTERS-GUIDE.md#sub-agents-and-orchestrators).
 
 ## Changes and revocation
 

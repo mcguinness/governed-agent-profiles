@@ -123,9 +123,9 @@ Every deployment needs:
   through a Client Association;
 * a Delegation or Agent Authorization at the IdP;
 * the grant, and its redemption at the resource domain's RAS, which
-  correlates the agent and applies its own policy; and
-* enforcement at the API, including the actor gate for delegated
-  access.
+  correlates the agent with a local principal; and
+* resource authorization at the RAS and the API, including the actor
+  gate for delegated access.
 
 The rest are optional mechanisms, adopted as needed: inputs beyond the
 dedicated client and the platform JWT, SCIM administration of the

@@ -645,7 +645,8 @@ Three rules apply to every runbook. A successful administrative write
 or event acknowledgment is one checkpoint, not completion; completion
 is verified where the access is enforced. Tokens that an API accepts
 offline or from a cache stay usable until they expire or the cache
-entry ends. Recovery undoes only the action taken: revoked sessions
+entry ends, unless an independent local restriction stops them
+earlier. Recovery undoes only the action taken: revoked sessions
 stay revoked, and ended continuation chains stay ended.
 
 ### Disable an agent everywhere
@@ -681,8 +682,9 @@ stay revoked, and ended continuation chains stay ended.
   | A domain has not applied it | Recorded as pending, with its owner and the containment applied |
   | Restoration is complete | Fresh authorization succeeds; revoked sessions and ended chains remain unusable |
 
-* **Residual access:** grants already issued, at a domain that has not
-  yet applied the change; tokens accepted offline or from a cache.
+* **Residual access:** grants, refresh authorizations, and access
+  tokens at a domain that has not applied the change or was never
+  provisioned; tokens accepted offline or from a cache.
 * **Recovery:** set `active: true` and confirm propagation. Activation
   at the IdP cannot clear a Local Suspension, so each resource owner
   explicitly lifts the suspensions recorded for this incident, leaving
@@ -703,9 +705,9 @@ stay revoked, and ended continuation chains stay ended.
   identity team's authority to change the authorization.
 * **Owner:** the resource owner for a Local Suspension; the identity
   team for the authorization.
-* **Action:** either apply a Local Suspension at the RAS, or narrow the
-  agent's Delegation or Agent Authorization so that it no longer covers
-  that target. Withdraw the authorization as a whole only when the
+* **Action:** either apply a Local Suspension at the RAS, or narrow
+  every Delegation Authorization and the Agent Authorization that cover
+  that target, so that none does. Withdraw the authorization as a whole only when the
   agent should lose all of it: withdrawal ends every chain rooted under
   it, for all targets.
 * **Verification:** with a Local Suspension, the RAS issues no new
@@ -736,8 +738,10 @@ stay revoked, and ended continuation chains stay ended.
   derived from it are invalidated. An event that arrives before
   redemption still makes later redemption fail. The agent stays
   enabled.
-* **Residual access:** tokens accepted offline or from a cache. For
-  access derived from a WAG, revoking one grant is deployment-specific.
+* **Residual access:** tokens accepted offline or from a cache; onward
+  grants already continued from the revoked grant, and their tokens,
+  until they expire or are revoked. For access derived from a WAG,
+  revoking one grant is deployment-specific.
 * **Recovery:** none for that grant; the client obtains a new one.
 * **Completion evidence:** the event and its delivery acknowledgment,
   and the RAS's record of the revoked grant by issuer, `jti`, and
@@ -758,8 +762,8 @@ stay revoked, and ended continuation chains stay ended.
     1. Disable the OAuthClient. This blocks resolution through it and
        its use of every association.
     2. Retire the compromised key: remove it from the client's
-       registration, so it cannot authenticate once the client is
-       enabled again.
+       registration at the IdP and at each RAS that accepts it, so it
+       cannot authenticate once the client is enabled again.
     3. Register a new key and re-enable the OAuthClient. Re-enabling
        does not re-enable an association or binding that was disabled
        separately; restore those explicitly.
@@ -774,8 +778,8 @@ stay revoked, and ended continuation chains stay ended.
   fails with `invalid_grant`; the new key resolves the agent again.
   Revoking the credential does not retire the Agent Principal, and an
   agent with other valid bindings keeps them.
-* **Residual access:** grants already issued, until their short
-  lifetimes end, and resource-domain tokens, until revoked or expired.
+* **Residual access:** grants already issued, until they expire, and
+  resource-domain tokens, until revoked or expired.
   If the exposure is broad, disable the affected agents or associations
   as well.
 * **Recovery:** the replacement key is the recovery. Chains rooted
@@ -809,7 +813,8 @@ stay revoked, and ended continuation chains stay ended.
 * **Trigger:** an agent's owner leaves, or a review finds an Agent
   Principal with no owner.
 * **Scope:** accountability for one agent. Owners are accountable for
-  an agent but are not its delegators, so no authorization changes.
+  an agent but are not, as owners, its delegators, so changing the owner
+  changes no authorization.
 * **Prerequisites:** a policy stating whether an agent may operate
   without an owner, and for how long.
 * **Owner:** identity team, with the agent's platform team.
@@ -820,9 +825,11 @@ stay revoked, and ended continuation chains stay ended.
   associations, and authorizations are unchanged.
 * **Residual access:** none from this runbook; ownership confers no
   authority.
-* **Recovery:** reassign the owner, and re-enable the agent if policy
-  disabled it.
-* **Completion evidence:** the management audit record of the change:
+* **Recovery:** reassign the owner. If policy disabled the agent,
+  follow the disable runbook's recovery, including lifting its Local
+  Suspensions.
+* **Completion evidence:** where the IdP keeps one, as SCIM management
+  recommends, the management audit record of the change:
   the administrative actor, Provisioning Domain, affected resource, and
   changed attribute.
 
@@ -869,7 +876,9 @@ stay revoked, and ended continuation chains stay ended.
   disablement before re-enablement. Matching current state alone does
   not show that a missed revocation was recovered.
 * **Residual access:** during the gap, a disablement not yet applied in
-  a domain did not stop redemption, refresh, or sessions there.
+  a domain did not stop redemption, refresh, or sessions there. Unless
+  step 4 ran, sessions and unredeemed grants that a missed cycle should
+  have stopped remain usable until they expire.
 * **Recovery:** this runbook is the recovery. Review access during the
   gap with the [audit trace](#audit-evidence).
 * **Completion evidence:** the reconciliation report (agents checked,
@@ -886,8 +895,9 @@ stay revoked, and ended continuation chains stay ended.
 * **Owner:** identity team, with the agent's owner.
 * **Action:**
   1. [Disable the agent everywhere](#disable-an-agent-everywhere), and
-     confirm that each domain applied it. Deletion prevents new grants
-     but revokes nothing, so disablement comes first.
+     confirm that each domain applied it. Deleting the Agent at the IdP
+     prevents new grants but does not itself revoke issued tokens, so
+     disablement comes first.
   2. Delete the Agent at the IdP. In SCIM management, its bindings and
      associations then become unusable; delete them as well, or let an
      authorized cascade remove them, along with any OAuth client that
@@ -931,7 +941,8 @@ stay revoked, and ended continuation chains stay ended.
 * **Verification:** queries by `externalId`, and filtered reads for
   references, find nothing left; no grant issues for the agent.
 * **Residual access:** tokens issued during the attempt, until
-  disablement is applied or they expire.
+  disablement is applied or they expire; tokens accepted offline or
+  from a cache, until they expire.
 * **Recovery:** onboarding again is a new creation, with new SCIM `id`s
   and a new Agent Principal.
 * **Completion evidence:** the deletion records and the empty query
@@ -950,7 +961,7 @@ Each action an API performs for an agent can be traced to:
   hop records hold the complete path.
 * **The authorization,** as the IdP's issuance decision under the
   Delegation or Agent Authorization, and the resource domain's own
-  decision.
+  decision, where the IdP and the resource domain keep decision records.
 
 The Agent Principal groups an agent's activity, but it does not show
 which grant or decision authorized a particular action. That takes a
@@ -968,7 +979,7 @@ The delegated recipe's read of `report-7` traces back as follows:
 | API action | The read of `/tenants/acme-data/files/report-7`, its time, and its result | The access token's identifier, `access-1` | The API |
 | Token record | `access-1`: subject `user-108`, actor `agent-42`, client `analysis-api`, scope, tenant, and expiry | The issuer and `jti` of the grant it was redeemed from: `https://idp.example/` and `grant-1` | The RAS |
 | Redeemed grant | `grant-1`: subject `alice-ras`, actor `agent-42`, client `analysis-api`, resource, scope, and key binding | The same issuer and `jti` | The RAS and the IdP |
-| IdP issuance decision | The exchange that issued `grant-1`: its time, the authenticated client `analysis-client`, the Identity Binding and Client Association used, and Alice's ID Token | The authorization the decision relied on | The IdP |
+| IdP issuance decision | The exchange that issued `grant-1`: its time, the authenticated client `analysis-client`, the Identity Binding and Client Association used, and identifiers from Alice's ID Token, not the token itself | The authorization the decision relied on | The IdP |
 | Applicable authorization | Alice's Delegation Authorization for `agent-42`: client, tenant, target, `files.read`, and who approved it, and when | (end of trace) | The IdP |
 
 Three joins need deliberate retention:
@@ -997,10 +1008,10 @@ For self-acting access, the trace runs from the API's records for
 `service-principal-42`, through the access token and `wag-1`, to the
 agent's Agent Authorization; the RAS's correlation joins
 `service-principal-42` to (`https://idp.example/`, `agent-42`). Where a
-gateway continued the request, the onward grant replaces `grant-1`, its
-`continuation_via` names the gateway where the target supports path
-disclosure, and the IdP's hop records lead back to the root grant and
-its authorization.
+gateway continued the request, the onward grant replaces `grant-1`; its
+`continuation_via` names the gateway, which the target's access tokens
+carry where the target supports path disclosure, and the IdP's hop
+records lead back to the root grant and its authorization.
 
 Record these identifiers in the IdP's issuance records and in each
 resource domain's access records, and use the Agent Principal as the
@@ -1013,9 +1024,9 @@ prevention, sandboxing, and endpoint controls belong to other teams and
 tools. The identity team supplies what they need from identity: the
 Agent Principal as the key that correlates their findings, and
 relationships that can be withdrawn precisely when they detect a
-problem. Their signals reach identity decisions through the lifecycle
-profile's events and through risk inputs to policy decision points
-([guide][guide-risk]). In return, a disablement or revocation here has a
+problem. A hosting platform's lifecycle events can inform IdP policy,
+and other signals can reach policy decision points as
+deployment-specific risk inputs ([guide][guide-risk]). In return, a disablement or revocation here has a
 defined effect that response tooling can rely on.
 
 [core]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html

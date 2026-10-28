@@ -208,10 +208,13 @@ token, the local principal stands for the agent.
   delegated token and the subject for a self-acting one, never
   `client_id`. Treating the mapping this way is a deployment rule.
 * A permit never widens the token's scope or tenant.
-* With the policy decision point unreachable, each class of action
-  behaves as configured, denying or applying local policy. The drafts
-  define no behavior here; the playbook requires the choice to be made
-  per class and tested.
+* With the policy decision point unreachable, requests fail as the
+  selected integration requires. A COAZ-MCP enforcement point fails
+  closed and returns JSON-RPC error `-32603`. Only where the selected
+  integration permits a fallback does each class of action behave as
+  configured, denying or applying local policy; the drafts define no
+  behavior, so the playbook requires that choice to be made per class
+  and tested.
 * A decision cached before the agent was disabled, or before its grant
   was revoked, is not reused once the enforcement point has applied the
   change. The drafts define no cache rule; this is a deployment
@@ -602,7 +605,7 @@ are for the evaluator.
 | IdP, gateway, and the gateway's RAS: continuation, with the gateway's RAS, or an issuer trusted for it, as Continuation Assertion Issuer; the target RAS, with DPoP at its token endpoint and, where policy requires it, path disclosure | Gateways | Step 4's continuation checks, and the continuation profile's negative tests | | | |
 | IdP: grant-anchored continuation | Scheduled work | The scheduled-work variation's test | | | |
 | API or gateway: an external policy decision point, with the agent identity taken from the validated token and never from `client_id` or a tool's declared mapping | Delegated per-action policy | Step 4's policy checks | | | |
-| API or gateway: configured behavior per action class when the policy decision point is unreachable (a deployment requirement) | Delegated per-action policy | Step 4's unreachable-PDP check | | | |
+| API or gateway: behavior when the policy decision point is unreachable: failing closed with `-32603` under COAZ-MCP, and otherwise a configured choice per action class (a deployment requirement) | Delegated per-action policy | Step 4's unreachable-PDP check | | | |
 | API or gateway: decision cache lifetime, and invalidation when a disablement or revocation is applied (a deployment requirement) | Delegated per-action policy | Step 4's cached-decision check | | | |
 | RAS and API: a shared token identifier, not itself a credential, retained at both | Opaque access tokens | Trace one opaque-token action back to its exact grant ([audit evidence](#audit-evidence)) | | | |
 

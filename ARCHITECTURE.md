@@ -703,8 +703,10 @@ check cannot authorize a request. Cached active responses stay usable
 within the cache policy.
 
 **A policy decision service is unavailable.** The drafts define no
-behavior. The resource domain chooses to deny or to apply local policy,
-and neither can exceed the token's constraints. Where an IdP issuance
+behavior, but the selected integration may: a COAZ-MCP enforcement
+point fails closed and returns an error. Where the integration allows
+a choice, the resource domain denies or applies local policy, and
+neither can exceed the token's constraints. Where an IdP issuance
 decision depends on resource-domain evaluation through that service,
 the IdP cannot make it.
 

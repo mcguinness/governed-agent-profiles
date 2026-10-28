@@ -1230,7 +1230,7 @@ Table of Contents
 
    [GUIDE]    McGuinness, K., "Implementer's Guide for Governed Agent
               Federation", <https://github.com/mcguinness/governed-
-              agent-profiles/blob/main/docs/implementers-guide.md>.
+              agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md>.
 
 Appendix A.  Example: Platform Onboarding
 

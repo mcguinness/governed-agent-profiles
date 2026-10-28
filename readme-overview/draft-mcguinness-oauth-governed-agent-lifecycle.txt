@@ -924,7 +924,7 @@ Table of Contents
 
    [GUIDE]    McGuinness, K., "Implementer's Guide for Governed Agent
               Federation", <https://github.com/mcguinness/governed-
-              agent-profiles/blob/main/docs/implementers-guide.md>.
+              agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md>.
 
    [RFC7009]  Lodderstedt, T., Ed., Dronia, S., and M. Scurtescu, "OAuth
               2.0 Token Revocation", RFC 7009, DOI 10.17487/RFC7009,

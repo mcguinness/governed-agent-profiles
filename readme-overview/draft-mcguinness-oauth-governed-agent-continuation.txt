@@ -1460,7 +1460,7 @@ Table of Contents
 
    [GUIDE]    McGuinness, K., "Implementer's Guide for Governed Agent
               Federation", <https://github.com/mcguinness/governed-
-              agent-profiles/blob/main/docs/implementers-guide.md>.
+              agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md>.
 
    [RFC6755]  Campbell, B. and H. Tschofenig, "An IETF URN Sub-Namespace
               for OAuth", RFC 6755, DOI 10.17487/RFC6755, October 2012,

@@ -263,6 +263,32 @@ comparison the RAS applies.
 The companion is not required for conformance to this federation profile;
 `agent-correlation` and `status-changes` state this document's guarantees.
 
+### Related Work
+
+#### Credential Broker for Agents (CB4A)
+
+`draft-hartman-credential-broker-4-agents-00` (Informational, March 2026,
+now expired) describes a credential broker that keeps long-lived
+credentials away from agents. No draft in this family cites it; the
+implementer's guide ("Credential brokers") maps it onto these profiles.
+Points for its author, not yet raised:
+
+* Section 4.11 describes, as future work, a native token naming the
+  agent as `sub`, with `aud`, `scope`, `exp`, `jti`, and `cnf`. A
+  governed WAG defines that token now, issued by the IdP the target
+  already trusts, with the governed Agent Principal as `sub`.
+* The SPIFFE ID of Section 4.1 combines agent, user, and session. A
+  stable agent identifier, with the user and session conveyed
+  separately, would let a CB4A broker federate through these profiles:
+  `identity-binding` requires an exact identity and forbids an
+  execution identifier from selecting the Agent Principal.
+* Its approval tiers would compose with governed issuance through ARAP
+  and AROP, an excluded composition (`excluded-compositions`).
+* Its `envelope_hash` provenance claim has no counterpart here. Within
+  one trust domain, Transaction Tokens
+  (draft-ietf-oauth-transaction-tokens-11, Section 9.2.3) carry
+  transaction context.
+
 ## Identity Continuation Companion
 
 `draft-mcguinness-oauth-governed-agent-continuation.md` (`CONTINUATION`)

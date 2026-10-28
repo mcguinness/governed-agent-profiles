@@ -113,6 +113,14 @@ informative:
     author:
       - org: Amazon Web Services
   ICA: I-D.mcguinness-oauth-id-continuation-assertion
+  OVERSIGHT:
+    title: "Human Oversight Profile for Governed Agent Federation"
+    author:
+      - name: Karl McGuinness
+    date: false
+    seriesinfo:
+      Internet-Draft: draft-mcguinness-oauth-governed-agent-oversight
+    target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html
   CONTINUATION:
     title: "Identity Continuation Profile for Governed Agent Federation"
     author:
@@ -2413,8 +2421,8 @@ resource-local approval can satisfy an additional policy condition
 within the presented token's authority. It MUST NOT expand that
 authority or override token validity or tenant restrictions. Access
 beyond that authority requires new authorization through an applicable
-protocol. Asynchronous approval composition is deferred under
-{{excluded-compositions}}.
+protocol. Asynchronous approval follows {{OVERSIGHT}}
+({{excluded-compositions}}).
 
 # Privacy Considerations {#privacy}
 
@@ -2944,7 +2952,7 @@ This document does not define the following compositions:
 
 | Composition | Boundary in this document |
 |---|---|
-| Asynchronous approval with {{AROP}} | External approval follows {{external-approval}}, {{authorization-lifetime}}, and {{issuance-authorization}} |
+| Asynchronous approval, including with {{AROP}} | Defined for governed issuance, including continuation, in {{OVERSIGHT}}; otherwise, external approval follows {{external-approval}}, {{authorization-lifetime}}, and {{issuance-authorization}} |
 | Continuation with {{ICA}} | Defined for governed grants, including through gateways, in {{CONTINUATION}}; renewal without continuation follows {{continuing-access}} |
 | General WIMSE WIT/WIC inputs | Only the SPIFFE forms in {{INPUTS}} are defined |
 | Instance context in an ID-JAG or WAG, or preserved across domains, under {{INSTANCE}} | The RAS conveys only an instance it validated ({{access-token-response}}); workload evidence resolves the agent, and a shared workload identity does not distinguish replicas {{SPIFFE-CONCEPTS}} |

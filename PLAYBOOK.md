@@ -247,9 +247,9 @@ registration replaces step 3:
 * The platform's audit records carry the qualified Agent Principal
   identifier next to its own identifier for the agent.
 
-To federate later, add an Identity Binding and, where the input
-requires one, a Client Association to the same Agent, and continue with
-step 3. The Agent Principal identifier and its governance history carry
+To federate later, add an Identity Binding and a Client Association
+for the selected acting relationship to the same Agent, and continue
+with step 3. The Agent Principal identifier and its governance history carry
 over. The implementer's guide [follows one platform-hosted
 agent](IMPLEMENTERS-GUIDE.md#platform-hosted-agents) from registration
 to retirement.

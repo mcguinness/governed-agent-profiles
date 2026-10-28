@@ -440,9 +440,9 @@ The gateway is the grant's client, never an added actor; a separate
 * **Limitations:** the platform authorizes from locally applied state,
   so an unreachable IdP neither disables nor re-enables its agents; a
   bound on stale state needs a revalidation policy. To reach a resource
-  beyond the platform, an administrator adds an Identity Binding and,
-  where the input requires one, a Client Association to the same Agent.
-  Its identifier and governance history carry over.
+  beyond the platform, an administrator adds an Identity Binding and a
+  Client Association for the selected acting relationship to the same
+  Agent. Its identifier and governance history carry over.
 
 The implementer's guide
 [follows one agent](IMPLEMENTERS-GUIDE.md#platform-hosted-agents) from

@@ -323,7 +323,23 @@ define how such acts are recorded.
 
 This section profiles {{DTR}} for governed token exchange requests at
 the IdP: ID-JAG and WAG requests under {{FEDERATION}}, and continuation
-requests under {{CONTINUATION}}.
+requests under {{CONTINUATION}}. A pending governed request moves
+through these steps, which the subsections define:
+
+| Event | IdP action | Result |
+|---|---|---|
+| Request with the opt-in | Completes every check except the approver's decision; for a continuation, reserves the assertion ({{deferring}}, {{deferred-continuation}}) | Pending; deferred response |
+| Poll before a decision | Verifies the client and its key | `authorization_pending` or `slow_down` |
+| Approver decides | Records the decision for this request only ({{approval}}) | Pending until the next poll |
+| Poll after approval | Re-checks the request; for a continuation, counts the grant against the limits as it issues ({{resolution}}) | Grant; reservation ISSUED |
+| Poll after denial, or a re-check fails | Issues nothing | `access_denied`; reservation FAILED |
+| Client revokes the deferral code ({{Section 7 of DTR}}) | Ends the request | `access_denied`; reservation FAILED |
+| `expires_in` elapses | Issues nothing | `expired_token`; reservation FAILED |
+{: title="Steps of a pending governed request"}
+
+Reservation states apply to a deferred continuation at an IdP that
+offers idempotent retry ({{deferred-continuation}}). A pending request
+holds no limit capacity and no grant, so its end releases nothing else.
 
 ## Client Opt-In {#opt-in}
 

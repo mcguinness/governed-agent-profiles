@@ -552,6 +552,18 @@ an open item in the companion. AROP still cites
 `draft-gerber-oauth-deferred-token-response`; the "Convergence across
 AuthZEN profiles" note above records both requests.
 
+### ICA
+
+A deferred continuation holds ICA's replay reservation while a person
+decides (`deferred-continuation`). Where the IdP offers idempotent
+retry, ICA Section 5.5.7.1 makes an unissued reservation FAILED at the
+assertion's `exp` plus skew; the companion keeps it RESERVED until the
+pending request ends and excludes recovery of a grant issued at
+resolution. A later ICA revision could define this deferred state
+itself. The companion also counts ICA's Section 6.3 limits when the
+onward grant issues, which follows from ICA counting issued
+continuations.
+
 ### MCP
 
 The companion's MCP section is informative and relies only on merged

@@ -478,8 +478,22 @@ section, with the continuing client as the client. Before deferring, the
 IdP performs every validation step of the continuation exchange,
 including the Continuation Association and the limits of {{ICA}}, and
 reserves the assertion as {{Section 5.5.7 of ICA}} requires. The
-deferral code then stands for that reservation, and the assertion
-cannot be presented again.
+pending governed request holds that reservation:
+
+* **Retention.** The IdP MUST retain the reservation until the later of
+  the request's end and the time {{Section 5.5.7 of ICA}} requires.
+* **States.** Where the IdP offers idempotent retry, this document
+  replaces one transition of {{Section 5.5.7.1 of ICA}} for a deferred
+  continuation: the reservation stays RESERVED while the request is
+  pending, rather than becoming FAILED at the assertion's `exp` plus
+  the permitted clock skew. It becomes ISSUED when the onward grant
+  issues and FAILED when the request ends otherwise, on denial,
+  cancellation, expiry, or a failed re-check.
+* **Retries.** The IdP MUST reject a second presentation of the
+  assertion, both while the request is pending and after it ends.
+  Recovery ({{Section 5.5.7.1 of ICA}}) does not apply to an onward
+  grant issued at resolution, which only the polling response delivers
+  ({{Section 5.5.2 of DTR}}).
 
 A continuation exchange performs no agent resolution, so at resolution
 the IdP re-checks the chain and the continuing client's Continuation
@@ -784,6 +798,7 @@ Each case changes the walkthrough as stated; all other checks succeed.
 | {{DTR}} | Profiled for governed token exchange. Narrowed: DPoP on every deferred request; all governed checks before deferring and again at resolution; the grant keeps the request's agent, user, client, and key |
 | {{AROP}} | Not profiled. Its `approved_until` bounds every token issued under an approval, including those the RAS issues, which deferral at the IdP cannot enforce ({{open-items}}) |
 | {{ARAP}} | One way to route an approval; not required |
+| {{ICA}} | A deferred continuation holds the assertion's replay reservation while pending, replacing one transition of {{Section 5.5.7.1 of ICA}}, and counts the limits of {{Section 6.3 of ICA}} when the onward grant issues ({{deferred-continuation}}) |
 | {{CIBA}} | One way to reach a user for a decision; not profiled |
 | {{MCP}} | Informative realization of per-action oversight ({{mcp}}) |
 | {{MISSION-APPROVAL}} | Approves a task, where this document approves a governed request. A Mission approval can be the basis of standing authorization under which requests are human out of the loop |

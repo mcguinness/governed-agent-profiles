@@ -305,6 +305,51 @@ Points for its author, not yet raised:
   (draft-ietf-oauth-transaction-tokens-11, Section 9.2.3) carry
   transaction context.
 
+#### Agentic Identity Reference Architecture (The Identity Underground)
+
+Sean O'Dell's post ["You Already Have the Pieces. Now Build
+It."](https://www.theidentityunderground.com/post/you-already-have-the-pieces-now-build-it)
+(June 4, 2026) argues that agent identity is "an assembly gap" and
+proposes a reference architecture. It has five parts: a SPIFFE identity
+whose namespace encodes operating bounds, an agentic gateway as the
+single enforcement point, a trust broker that mints tokens and never
+hands credentials to the agent, Transaction Tokens for call-chain
+integrity, and Shared Signals for continuous risk. Each counterpart
+below is the nearest mechanism here, not an equivalent.
+
+| The post | Nearest counterpart here | Difference |
+|---|---|---|
+| A SPIFFE ID whose namespace encodes domain, intent, and trust realm | An Identity Binding to a stable Agent Principal, with authority in separate authorizations | A change of scope does not rename the agent |
+| An agentic gateway as the single enforcement point | A gateway as API and continuing client, with per-action decisions through AuthZEN | The gateway does not become an actor or mint access for other domains |
+| A trust broker that mints tokens for downstream tools | The IdP issues grants, and each RAS issues its own access tokens | No broker mints access across domains |
+| A Transaction Token with the user as `sub` and the agent's SPIFFE ID in `act` | An ID-JAG across domains (user as `sub`, Agent Principal in `act`); inside one domain, a Transaction Token carrying the governed context in `tctx` | Transaction Tokens are bound to one trust domain, and draft-ietf-oauth-transaction-tokens-11 defines no `act` claim |
+| The user's identity carried in a claim of the agent's JWT-SVID | The user's own ID Token as the subject token | The agent's credential never carries the user |
+| `act_chain` for agent-to-agent delegation | Out of scope (multi-agent delegation) | Gateways forward without becoming actors (`continuation_via`) |
+| Shared Signals for continuous risk | Lifecycle signals: SCIM events, CAEP grant-derived revocation, platform signals | Response to risk remains local policy |
+| No sender constraint named | DPoP-bound grants in the bound profile; separately configured access-token protection | |
+
+The post lists five unresolved questions:
+
+* **Gateway-broker relationship (inline per request or a session):**
+  answered. Grants are per resource, clients reuse tokens within the
+  same authorized context (`client-token-reuse`), and a continuing
+  gateway reuses downstream tokens within the same context and source
+  hop.
+* **Client metadata ownership (the tool endpoint registry):** answered
+  in part. The IdP holds Agent Principals and their relationships, and
+  resource domains hold local principals; a tool endpoint registry is
+  outside these profiles.
+* **Multi-hop token chaining:** answered for gateways. Continuation
+  holds the chain at the IdP and needs one exchange per source hop and
+  target. It ends on governance events and discloses the path.
+  Agent-to-agent delegation stays out of scope. ID-JAG itself profiles
+  the identity-chaining work the post cites.
+* **SPIFFE namespace governance:** avoided. Identifiers carry no
+  authority, so no namespace schema has to encode it.
+* **Shared Signals receiver response policy:** answered in part. The
+  lifecycle profile defines receiver actions for provisioning events and
+  grant-derived revocation; the response to risk remains local policy.
+
 ## Identity Continuation Companion
 
 `draft-mcguinness-oauth-governed-agent-continuation.md` (`CONTINUATION`)

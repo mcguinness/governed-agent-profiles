@@ -18,7 +18,9 @@ profile that defines them.
 * [Federation configuration](#federation-configuration)
 * [Distributed platforms and key use](#distributed-platforms-and-key-use)
 * [Continuation through gateways](#continuation-through-gateways)
+* [Transaction Tokens inside a resource domain](#transaction-tokens-inside-a-resource-domain)
 * [Authorization decisions with AuthZEN](#authorization-decisions-with-authzen)
+* [Risk signals](#risk-signals)
 * [Credential brokers](#credential-brokers)
 * [Adoption tradeoffs](#adoption-tradeoffs)
 * [Intermediate adoption](#intermediate-adoption)
@@ -276,6 +278,66 @@ The CAI's placement gives these topologies:
 each request, and [Implementation Considerations][cont-implementation]
 covers continuation-window and agent-session sizing.
 
+## Transaction Tokens inside a resource domain
+
+A resource domain often calls internal services to serve one request.
+Transaction Tokens ([TXN-TOKENS]) carry identity and authorization
+context through that internal call chain. They are bound to one trust
+domain: a Txn-Token "MUST NOT be accepted outside the Trust Domain
+identified by the aud claim" (Section 9.2 of [TXN-TOKENS]). Crossing
+into another domain therefore uses a governed grant or
+[continuation](#continuation-through-gateways), not a Txn-Token.
+
+After the API validates a governed access token, the domain's
+Transaction Token Service (TTS) can mint a Txn-Token for the call
+chain. [TXN-TOKENS] defines no `act` claim, and recipients ignore
+claims they do not understand, so the governed context belongs in
+`tctx`, whose contents the TTS determines. An illustrative mapping:
+
+| Txn-Token claim | Delegated access | Self-acting access |
+|---|---|---|
+| `sub` | The access token's `sub`, the local user | The access token's `sub`, the correlated local agent principal |
+| `tctx` | The agent from the validated `act`, the client, the tenant, `continuation_via` where present, and the authorized operation and object | The client, the tenant, `continuation_via` where present, and the authorized operation and object |
+| `scope` | As narrow as the transaction allows, and no broader than the access token's authority | The same |
+| `req_wl` | The workload that requested the Txn-Token, such as the API | The same |
+| `aud` | The resource domain's trust domain | The same |
+
+For the delegated token in the [AuthZEN
+examples](#delegated-access-at-an-mcp-gateway), the TTS might issue:
+
+~~~ json
+{
+  "iat": 1789646470,
+  "exp": 1789646530,
+  "aud": "api.example",
+  "txn": "97053963-771d-49cc-a4e3-20aad399c312",
+  "sub": "user-108",
+  "scope": "files.read",
+  "req_wl": "files-api",
+  "tctx": {
+    "agent": {"iss": "https://idp.example/", "sub": "agent-42"},
+    "client": "analysis-api",
+    "tenant": "acme-data",
+    "action": "read_file",
+    "resource": {"type": "file", "id": "reports/q3.csv"}
+  }
+}
+~~~
+
+The `tctx` member names are illustrations, as in the AuthZEN examples;
+the TTS defines them for its domain and takes them from the validated
+access token and the entry point's decision. An internal service
+evaluates its requested activity against them (Section 12.2 of
+[TXN-TOKENS]). The entry point's decision, including the actor gate,
+covers downstream work only within the bounds it authorized: here, one
+read of `reports/q3.csv`, not every operation within `files.read`.
+Where the entry point narrowed the authority, the Txn-Token carries the
+narrower bounds.
+
+The continuation profile uses a Transaction Token differently in its
+[scheduled variant][cont-scheduled]: as the carrier that tells its
+Continuation Assertion Issuer which hop a scheduled run continues.
+
 ## Authorization decisions with AuthZEN
 
 An API or MCP gateway that delegates authorization to a policy decision
@@ -511,6 +573,37 @@ stands in for the actor, which the core profile forbids. Configure the
 enforcement point to supply the agent itself: the validated `act` for a
 delegated token population, or the correlated local subject for a
 self-acting one, with `client_id` kept as a separate attribute.
+
+## Risk signals
+
+The profiles separate signals that change authority from signals that
+inform decisions:
+
+| Signal | Effect | Defined in |
+|---|---|---|
+| SCIM provisioning and feed events to a resource domain | Trigger retrieval of current state; never activate an agent | [Lifecycle][lc-scim-events] |
+| CAEP `session-revoked` naming an ID-JAG | Revokes what that grant authorized at participating receivers | [Lifecycle][lc-grant-revocation], optional |
+| WISE credential and posture events from a platform to the IdP | Inform IdP policy and monitoring; change no administrative state | [Lifecycle][lc-platform-signals] |
+| CAEP `risk-level-change` from the IdP to a platform | Applied under the platform's own policy; not a disablement | [Lifecycle][lc-platform-signals] |
+
+Risk feeds decisions at three points:
+
+* **At issuance.** The IdP authorizes each grant under current policy
+  ([Issuance Authorization][issuance-authorization]), so risk can deny
+  a grant or narrow its scope.
+* **Per action.** A PDP can take risk as context, for example to permit
+  only read operations, as the lifecycle profile's [platform-hosted
+  example][lc-platform-example] shows
+  ([Authorization decisions with AuthZEN](#authorization-decisions-with-authzen)).
+* **For continuing work.** A signal that leads to disabling the agent or
+  the user, revoking the root credential, or withdrawing the root
+  authorization ends governed continuation chains ([Chain
+  Ending][cont-chain-ending]). A risk signal alone does not.
+
+How strongly a receiver responds to a medium-confidence signal remains
+local policy. These profiles define no risk event for federated
+resource domains: `risk-level-change` is profiled only between an IdP
+and a platform that hosts agents.
 
 ## Credential brokers
 
@@ -881,6 +974,12 @@ resource domain provisioned for `agent-58` applies the deletion under
 [inputs-jwt-svid]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html#jwt-svid-input
 [lc-grant-revocation]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#grant-revocation
 [CB4A]: https://www.ietf.org/archive/id/draft-hartman-credential-broker-4-agents-00.html
+[TXN-TOKENS]: https://www.ietf.org/archive/id/draft-ietf-oauth-transaction-tokens-11.html
+[cont-scheduled]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#walkthrough-scheduled
+[cont-chain-ending]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#chain-ending
+[lc-scim-events]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#scim-events
+[lc-platform-signals]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#platform-signals
+[issuance-authorization]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#issuance-authorization
 [AUTHZEN]: https://openid.net/specs/authorization-api-1_0.html
 [COAZ-MCP]: https://openid.github.io/authzen/authzen-coaz-mcp-binding-1_0.html
 [lc-platform-hosted]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#platform-hosted

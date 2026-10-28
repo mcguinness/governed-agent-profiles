@@ -872,15 +872,23 @@ stay revoked, and ended continuation chains stay ended.
         domain that has not confirmed pending, and contain it with a
         Local Suspension that its resource owner lifts once the domain
         confirms.
+
+     This revokes existing authorization; it does not invalidate grants
+     issued before the gap and not yet redeemed. If the recovery must
+     exclude those too, revoke the known ID-JAGs through grant-derived
+     revocation, or keep the containment until their acceptance window
+     closes.
 * **Verification:** each agent's applied state matches the source; no
   reconciliation remains pending; each resent revocation is recorded by
   the receiver; and where step 4 ran, each domain confirmed its
   disablement before re-enablement. Matching current state alone does
   not show that a missed revocation was recovered.
 * **Residual access:** during the gap, a disablement not yet applied in
-  a domain did not stop redemption, refresh, or sessions there. Unless
-  step 4 ran, sessions and unredeemed grants that a missed cycle should
-  have stopped remain usable until they expire.
+  a domain did not stop redemption, refresh, or sessions there. Step 4,
+  where it ran, revokes existing authorization at each confirmed
+  receiver. Previously issued, unredeemed grants may still be accepted
+  after reactivation under their validity, replay, and proof rules,
+  unless separately revoked.
 * **Recovery:** this runbook is the recovery. Review access during the
   gap with the [audit trace](#audit-evidence).
 * **Completion evidence:** the reconciliation report (agents checked,

@@ -339,22 +339,20 @@ the lifecycle profile, which also propagates its disablement
 | Alice's Delegation Authorization for `agent-42` is withdrawn | The IdP returns HTTP 400 `actor_unauthorized` for Alice; the agent's grants for other users it may act for are unaffected |
 | A delegated access token without `act` is presented to the API | HTTP 401 `invalid_token`; a missing `act` does not make the token self-acting |
 
-**Containment and restoration.**
+**Containment and restoration.** Restore by undoing the action taken;
+no other action clears it.
 
-* **Stop the agent everywhere:** follow [Disable an agent
-  everywhere](#disable-an-agent-everywhere). A fresh exchange for Alice
-  then fails at the IdP with `invalid_grant`. Once lifecycle
-  propagation reaches the RAS, redemption is denied and introspection
-  reports `access-1` inactive. An API that validated `access-1` offline
-  instead would accept it until its 600 seconds end.
-* **Stop it in this application only:** apply a Local Suspension at the
-  RAS. Activation at the IdP cannot clear it.
-* **Stop one grant:** where the RAS supports grant-derived revocation,
-  revoke `grant-1` by issuer and `jti`
-  ([Revoke one suspicious grant](#revoke-one-suspicious-grant)).
-* **Restore:** set the agent active again. A new exchange succeeds, but
-  sessions revoked in the meantime stay revoked, and the client obtains
-  a new grant.
+| Containment | Effect | Restore by |
+|---|---|---|
+| [Disable the agent everywhere](#disable-an-agent-everywhere) at the IdP | A fresh exchange for Alice fails with `invalid_grant`. Once lifecycle propagation reaches the RAS, redemption is denied and introspection reports `access-1` inactive | Setting the agent `active: true` at the IdP, and confirming the change has propagated to the RAS |
+| [Local Suspension](#cut-one-agent-off-from-one-application) at the RAS | The RAS issues no new access token or refresh for `agent-42`. Activation at the IdP and new grants do not clear it | The resource owner lifting the suspension at the RAS |
+| [Revoke `grant-1`](#revoke-one-suspicious-grant), where the RAS supports grant-derived revocation | Later redemption of `grant-1` is rejected and access derived from it is revoked; the agent stays enabled | The client obtaining a new grant; `grant-1` stays unusable |
+
+Restoration is complete when a new grant is redeemed and the client
+reads `report-7` again, not when the IdP accepts an exchange. Sessions
+revoked in the meantime stay revoked. An API that validated `access-1`
+offline, instead of introspecting it, would accept it until its 600
+seconds end, whichever action was taken.
 
 **Evidence to retain.** The drafts define no log format; as a
 deployment convention, retain:
@@ -443,16 +441,17 @@ tokens instead.
 
 **Containment and restoration.**
 
-* **Stop the agent everywhere:** as in the delegated recipe; disabling
-  the agent stops its self-acting and delegated access together.
+* **Disablement and Local Suspension:** as in the delegated recipe,
+  each restored only by undoing it. Disabling the agent stops its
+  self-acting and delegated access together.
 * **Stop only its own access:** withdraw or narrow the Agent
   Authorization. New WAGs for that target are refused, and tokens
   already issued run until they expire; Alice's delegation is
-  unaffected.
+  unaffected. Restore the authorization to restore access.
 * **Stop one grant:** revoking a single WAG is deployment-specific;
   grant-derived revocation covers ID-JAGs only.
-* **Restore:** re-enable the agent or restore the authorization; the
-  client obtains a new WAG.
+* **Verify:** restoration is complete when a new WAG is redeemed and
+  the job's API call succeeds.
 
 **Evidence to retain.** As a deployment convention: the IdP's issuance
 record for `wag-1` and the Agent Authorization it relied on; the RAS's

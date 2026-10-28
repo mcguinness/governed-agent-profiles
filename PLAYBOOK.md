@@ -77,8 +77,9 @@ delegated issuance only.
   Principal, and the client separately.
 * With the Identity Binding disabled, issuance fails with
   `invalid_grant`.
-* With the Client Association disabled, issuance fails with
-  `actor_unauthorized`.
+* With the Client Association disabled, delegated issuance fails with
+  `actor_unauthorized`, and self-acting issuance fails with
+  `unauthorized_client`, since no actor is asserted.
 * A delegated access token without `act`, presented to an API configured
   for delegated tokens, is rejected with HTTP 401 `invalid_token`.
 * An access token presented in another tenant, even with a valid proof,
@@ -168,7 +169,7 @@ the realization, and the inputs. Requirements to include:
 | API | The core's resource processing: tenant checks, the user's authority and the actor gate for delegated tokens, and the agent's own authority for self-acting tokens |
 | Agent platform | A client per agent with `private_key_jwt`, or the existing platform JWT input for a shared client; DPoP; reuse of tokens only within the same agent, user, tenant, and authority; the SCIM management Provisioning Client role |
 | Gateway | Continuation as continuing client; no fallback to the gateway's own authority after a refused continuation |
-| Authorization server that accepts the gateway's tokens | Continuation as continuation-aware RAS, and as Continuation Assertion Issuer with assertion issuance at its token endpoint; often the gateway operator's own, but possibly a separate one |
+| The gateway's source authorization server: the RAS that redeems the agent's grant and issues the access token the gateway receives | Continuation as continuation-aware RAS; and, for it or a separate issuer trusted for it, Continuation Assertion Issuer with assertion issuance at the token endpoint. Often the gateway operator's own, but possibly a separate one |
 
 The profile identifiers to name are
 `urn:ietf:params:oauth:grant-profile:id-jag-agent-federation` (bound,
@@ -207,15 +208,21 @@ obtain new grants.
 * **In that resource domain:** apply a Local Suspension. No new access
   token or refresh issues there, and upstream activation cannot clear
   it. Other domains are unaffected.
-* **At the IdP:** when the agent's Delegation or Agent Authorization no
-  longer covers that target, however the IdP records the change, new
-  grants for that target are refused, and continuation to it fails with
-  `invalid_target`, while the agent's chains continue to other targets.
+* **At the IdP, by narrowing:** when the agent's Delegation or Agent
+  Authorization no longer covers that target, however the IdP records
+  the change, new grants for that target are refused, and continuation
+  to it fails with `invalid_target`, while the agent's chains continue to
+  other targets.
+* **At the IdP, by withdrawal:** withdrawing the authorization as a
+  whole, or its permission to continue, ends every chain rooted under
+  it, for all targets. Narrow instead when the agent keeps its other
+  access.
 * **Still running:** tokens already issued for that application, until
   revocation or expiry.
 
 *Restore:* lift the Local Suspension or restore the authorization.
-Sessions revoked in the meantime stay revoked.
+Sessions revoked in the meantime stay revoked, and chains ended by a
+withdrawal stay ended.
 
 ### Revoke one suspicious grant
 
@@ -228,14 +235,26 @@ deployment-specific.
 
 ### Respond to a compromised credential or key
 
-* **A dedicated client's key:** disable the OAuthClient, which blocks
-  resolution through it and every association that uses it, then
-  register a new key. Revoking that credential ends the continuation
-  chains rooted through it.
-* **A platform's signing key or credential authority:** remove it from
-  trust configuration, or disable the Identity Bindings that rely on it.
-  Revoking a credential does not retire the Agent Principal; an agent
-  with other valid bindings keeps them.
+* **A dedicated client's key:**
+  1. Disable the OAuthClient. This blocks resolution through it and its
+     use of every association.
+  2. Retire the compromised key: remove it from the client's
+     registration, so it cannot authenticate once the client is enabled
+     again.
+  3. Register a new key and re-enable the OAuthClient. Re-enabling does
+     not re-enable an association or binding that was disabled
+     separately; restore those explicitly.
+  4. Revoking the credential ended the continuation chains rooted
+     through it. The agent's clients obtain new grants with the new
+     key.
+* **A platform's signing key or credential authority:**
+  1. Retire the compromised key: remove it from the IdP's trust
+     configuration for that issuer, or disable the Identity Bindings
+     that rely on it.
+  2. Configure the replacement key, and restore any bindings disabled in
+     step 1. The platform's new JWTs then resolve again.
+  3. Revoking a credential does not retire the Agent Principal; an agent
+     with other valid bindings keeps them.
 * **Still running:** grants already issued, until their short lifetimes
   end, and resource-domain tokens until revoked or expired. Disable
   affected agents or associations if the exposure is broad.

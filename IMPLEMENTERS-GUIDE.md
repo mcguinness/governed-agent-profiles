@@ -18,7 +18,7 @@ profile that defines them.
 * [Federation configuration](#federation-configuration)
 * [Distributed platforms and key use](#distributed-platforms-and-key-use)
 * [Continuation through gateways](#continuation-through-gateways)
-* [AuthZEN evaluation examples](#authzen-evaluation-examples)
+* [Authorization decisions with AuthZEN](#authorization-decisions-with-authzen)
 * [Adoption tradeoffs](#adoption-tradeoffs)
 * [Intermediate adoption](#intermediate-adoption)
 * [Provisioning and linking](#provisioning-and-linking)
@@ -275,21 +275,110 @@ The CAI's placement gives these topologies:
 each request, and [Implementation Considerations][cont-implementation]
 covers continuation-window and agent-session sizing.
 
-## AuthZEN evaluation examples
+## Authorization decisions with AuthZEN
 
 An API or MCP gateway that delegates authorization to a policy decision
-point keeps the user, the issuer-qualified Agent Principal, and the
-OAuth client distinct, and supplies the tenant and token constraints
+point (PDP) keeps the user, the issuer-qualified Agent Principal, and
+the OAuth client distinct, and supplies the tenant and token constraints
 ([Optional Policy Services][policy-services]). The profiles define no
-AuthZEN mapping. The requests below are illustrations of those rules in
-the [AuthZEN Authorization API 1.0][AUTHZEN] evaluation format, with
-action and resource shaped as a [COAZ-MCP][COAZ-MCP] declared mapping
-would shape them. Subject types and context member names are
-deployment vocabulary. The [architecture
-overview](ARCHITECTURE.md#authorization-decisions-with-authzen) explains
-where these decisions sit.
+AuthZEN mapping. This chapter shows where a PDP fits, the use cases, the
+inputs an enforcement point must supply itself, and illustrative
+requests in the [AuthZEN Authorization API 1.0][AUTHZEN] format. The
+[architecture overview](ARCHITECTURE.md#authorization-decisions-with-authzen)
+summarizes the points that need care.
 
-### Delegated access at an MCP gateway
+### Integration points
+
+```mermaid
+flowchart LR
+  client["Agent client"]
+  idp["Governing IdP"]
+  ras["RAS"]
+  api["API or MCP gateway"]
+  pdp["Policy decision point<br/>AuthZEN"]
+  approval["Access request<br/>ARAP, AROP"]
+  client -->|"token exchange"| idp
+  client -->|"redeem grant"| ras
+  client -->|"call a tool"| api
+  api -->|"evaluate each action"| pdp
+  ras -.->|"evaluate local policy"| pdp
+  idp -.->|"semantics it cannot evaluate"| pdp
+  api -.->|"requestable denial"| approval
+```
+
+| Point | Enforcement point | What is decided | Hook in the profiles | AuthZEN fit |
+|---|---|---|---|---|
+| Each action | API or MCP gateway | Whether this user and agent may perform this operation on this object | [Optional Policy Services][policy-services] and [Delegated Actor Authorization][actor-authorization] | AuthZEN evaluation; [COAZ-MCP][COAZ-MCP] for MCP tool calls |
+| Redemption | RAS | Whether to issue an access token under local user, actor, client, tenant, and resource policy | Grant Redemption at the RAS; the core states its policy-service rules for the API | AuthZEN evaluation |
+| Issuance | IdP | Decisions that depend on tool arguments or business objects, which the IdP need not interpret | Authorization Relationships: resource-domain evaluation, locally or through a trusted policy service | A resource-domain PDP |
+| Requestable denial | API | Whether the agent can ask for more access | External Approval; asynchronous approval with AROP is an excluded composition | ARAP for the request; AROP for completion as a token |
+
+### Use cases
+
+1. **Per-tool decisions at an MCP gateway.** The gateway is the
+   enforcement point for each `tools/call`, and COAZ-MCP maps the call
+   to an AuthZEN request. With a delegated token, the user is the
+   subject and the agent comes from the validated `act`.
+2. **Decisions on tool arguments.** The grant carries one resource and a
+   scope, such as `files.read` for one tenant; the IdP need not judge
+   which file a call touches. A tool's declared mapping carries
+   arguments into the action and resource, so the resource domain
+   decides at that level, within the token's authority.
+3. **Self-acting agents.** A token derived from a WAG has no user. The
+   correlated local agent principal is the subject.
+4. **Agents reached through gateways.** In a further resource domain,
+   `client_id` names the last gateway's registration, and
+   `continuation_via`, where the RAS supports path disclosure, lists the
+   gateways on the path. A PDP can admit an agent only through approved
+   gateways, while the agent remains the actor in `act`.
+5. **Requestable denials.** A PDP can deny an action as requestable, and
+   ARAP lets the enforcement point submit an access request and
+   re-evaluate after approval. A resource-local approval can satisfy an
+   additional condition within the token's authority but cannot expand
+   it. Approval that completes as a new token through AROP is not yet
+   composed with governed ID-JAG issuance.
+
+Risk signals and approved work are further inputs; see [Platform-hosted
+agents](ARCHITECTURE.md#platform-hosted-agents) and [Beyond these
+drafts](ARCHITECTURE.md#beyond-these-drafts).
+
+### Inputs the enforcement point supplies
+
+The enforcement point builds the protected part of each request from the
+validated access token and trusted configuration:
+
+| Attribute | Delegated access | Self-acting access | Source |
+|---|---|---|---|
+| Subject | The token's `sub`, the local user | The token's `sub`, the correlated local agent principal | Validated token |
+| Agent | The validated `act` (`iss` and `sub`) | The subject | Validated token |
+| Client | `client_id` | `client_id` | Validated token |
+| Tenant | The resource's Target Tenant | The resource's Target Tenant | Trusted configuration |
+| Token constraints | `scope`, and the token's resource | `scope`, and the token's resource | Validated token |
+| Path | `continuation_via`, where present | `continuation_via`, where present | Validated token |
+
+The enforcement point selects delegated or self-acting processing by the
+token population configured for the resource ([Profile
+Applicability][api-applicability]), not by whether `act` is present: a
+delegated token that lacks `act` is not self-acting. A tool's declared
+mapping (Section 8 of COAZ-MCP) can add action, resource, and context
+attributes derived from the call. COAZ-MCP treats every attribute a
+declared mapping produces, other than the verified subject identifier,
+as untrusted input (Section 11.4 of COAZ-MCP). A declared mapping
+therefore must not supply or override the attributes in the table, and
+policy must not grant identity or privilege on the strength of
+attributes it supplies.
+
+### Illustrative requests
+
+The requests below illustrate those rules. Subject types and context
+member names are illustrations, not a convention; the profiles leave a
+reusable convention to COAZ-MCP ([coordination
+notes](COORDINATION.md)). In each request, the enforcement point
+supplies the subject and every `context` member from the validated token
+and trusted configuration; the tool's declared mapping supplies only
+`action` and `resource` from the call.
+
+#### Delegated access at an MCP gateway
 
 The core profile's walkthrough issues this access token (excerpt):
 
@@ -321,16 +410,15 @@ The agent calls a `read_file` tool with the argument
 }
 ~~~
 
-The user is the subject, the agent comes from `act`, and the client is
-separate. The policy covers both the user's authority and the actor
-gate for `agent-42` acting for this user ([Delegated Actor
+The policy covers both the user's authority and the actor gate for
+`agent-42` acting for this user ([Delegated Actor
 Authorization][actor-authorization]). A permit cannot widen
 `files.read` or reach another tenant.
 
-### Self-acting access
+#### Self-acting access
 
-A token derived from a WAG names the agent's local principal and
-carries no `act` (excerpt):
+A token derived from a WAG names the correlated local agent principal
+and carries no `act` (excerpt):
 
 ~~~ json
 {
@@ -354,18 +442,21 @@ carries no `act` (excerpt):
 }
 ~~~
 
-The local principal stands for the Agent Principal, and the policy
-evaluates the agent's own authority. No actor gate applies.
+The resource is configured for self-acting access, so the local
+principal stands for the Agent Principal and the policy evaluates the
+agent's own authority. No actor gate applies.
 
-### Access through gateways
+#### Access through gateways
 
 In the continuation profile's [two-gateway variant][cont-two-gateways],
-the API in a further domain receives this token (excerpt):
+the API in a further domain receives this token, whose RAS supports
+path disclosure (excerpt):
 
 ~~~ json
 {
   "sub": "user-108",
   "client_id": "data-files",
+  "scope": "files.read",
   "act": {"iss": "https://idp.example/", "sub": "agent-42"},
   "continuation_via": [
     {"iss": "https://gateway.example/", "sub": "tool-gateway"},
@@ -386,17 +477,20 @@ the API in a further domain receives this token (excerpt):
       {"iss": "https://gateway.example/", "sub": "tool-gateway"},
       {"iss": "https://data-gateway.example/", "sub": "data-gateway"}
     ],
-    "tenant": "acme-data"
+    "tenant": "acme-data",
+    "scope": "files.read"
   }
 }
 ~~~
 
 The client is the last gateway's registration, and the agent is still
 `agent-42`. A policy that admits `agent-42` only through `tool-gateway`
-matches the first path entry. The path entries authorize nothing by
-themselves.
+matches the first path entry. Admitting the path does not by itself
+permit reading the file: the policy still needs the user's authority,
+the actor gate for `agent-42`, and `files.read`. Path entries authorize
+nothing on their own.
 
-### Counter-example: the client as the agent
+#### Counter-example: the client as the agent
 
 COAZ-MCP's default mapping puts `$token.?client_id` in `context.agent`.
 For the delegated token above, it would produce:
@@ -411,10 +505,11 @@ For the delegated token above, it would produce:
 ~~~
 
 Every agent behind `analysis-api`, or behind `data-files` in the
-gateway case, looks the same to the policy decision point, and the
-client identifier stands in for the actor, which the core profile
-forbids. Configure the mapping to take the agent from `act` and to keep
-`client_id` separate.
+gateway case, looks the same to the PDP, and the client identifier
+stands in for the actor, which the core profile forbids. Configure the
+enforcement point to supply the agent itself: the validated `act` for a
+delegated token population, or the correlated local subject for a
+self-acting one, with `client_id` kept as a separate attribute.
 
 ## Adoption tradeoffs
 
@@ -661,6 +756,7 @@ resource domain provisioned for `agent-58` applies the deletion under
 [cont-two-gateways]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#walkthrough-two-gateways
 [policy-services]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#policy-services
 [actor-authorization]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#actor-authorization
+[api-applicability]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#api-applicability
 [AUTHZEN]: https://openid.net/specs/authorization-api-1_0.html
 [COAZ-MCP]: https://openid.github.io/authzen/authzen-coaz-mcp-binding-1_0.html
 [lc-platform-hosted]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#platform-hosted

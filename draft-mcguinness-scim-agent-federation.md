@@ -62,6 +62,12 @@ informative:
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-lifecycle
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
+  GUIDE:
+    title: "Implementer's Guide for Governed Agent Federation"
+    author:
+      - name: Karl McGuinness
+    date: false
+    target: https://github.com/mcguinness/governed-agent-profiles/blob/main/docs/implementers-guide.md
 --- abstract
 
 This document profiles the System for Cross-domain Identity Management
@@ -642,11 +648,8 @@ disablement or deletion of a dependent resource. Creation or activation
 with a missing target MUST be rejected.
 
 A later POST with a previously used `externalId` is a new creation,
-requiring current authorization and receiving a new `id`. Clients that
-need reversible disablement use `active: false`, not
-DELETE. To prevent an old connector from recreating deleted records,
-administrators withdraw that connector's create authority; DELETE alone
-does not revoke its management credentials.
+requiring current authorization and receiving a new `id`
+({{implementation-client}}).
 
 ## Query and Reconciliation {#query}
 
@@ -667,15 +670,7 @@ Domain and resource type; another connector's correlation value cannot
 select its resource. An administrative reader spanning several domains
 cannot assume that externalId alone is unique.
 
-A binding lookup can use `agent.value eq "a17" and active eq true`. To
-find dependencies of OAuthClient `oc7`, query both relationship
-collections with `client.value eq "oc7"`. This finds dedicated-client
-bindings and all associations naming that client. External-identity
-bindings have no `client` attribute; their client permissions are found
-through associations. For an Agent subject lookup, the attribute name is
-the extension schema URI followed by `:subject`, with the expression `eq
-"agent-42"`. The connector URI-encodes the complete filter under SCIM's
-query rules.
+{{example-queries}} shows these filters in use.
 
 Incremental reads on `meta.lastModified` follow the common provisioning
 conventions of {{OAUTH-CLIENT}}. A connector MUST NOT delete records
@@ -695,8 +690,8 @@ The `/Schemas` representations MUST describe the characteristics in
 {{common}}, {{agent-schema}}, {{binding-schema}}, and
 {{association-schema}}. Discovery advertises syntax and capabilities;
 it does not approve a connector, credential authority, or relationship.
-Unsupported credential classes remain subject to {{classes}}. The
-connector and IdP agree on usable input classes during trust setup.
+Unsupported credential classes remain subject to {{classes}}
+({{implementation-client}}).
 
 ## Errors
 
@@ -714,9 +709,8 @@ the profile's failures predictable:
 
 Standard SCIM request syntax, filter, authentication, and not-found
 errors retain their meanings. Responses MUST NOT reveal cross-tenant
-resource existence. Authorized administrators need sufficient
-diagnostics to distinguish configuration and permission failures without
-exposing credentials or key material.
+resource existence. {{implementation-sp}} covers diagnostics for
+authorized administrators.
 
 # Effect on Grant Issuance {#issuance}
 
@@ -801,8 +795,32 @@ and its governance history do not change.
 
 This profile defines registration by the platform. An IdP can also
 discover hosted agents by reading a platform's agent inventory; that
-interface is outside this profile. {{LIFECYCLE}} walks one
-platform-hosted agent from registration to retirement.
+interface is outside this profile. {{GUIDE}} follows one
+platform-hosted agent from registration to retirement, and
+{{LIFECYCLE}} shows its signals, disablement, and re-enablement.
+
+# Implementation Considerations {#implementation}
+
+These considerations add no requirements. They describe how a
+Provisioning Client and a Service Provider meet the requirements of the
+sections cited.
+
+## Provisioning Client {#implementation-client}
+
+* **Reversible disablement:** Clients that need reversible disablement
+  use `active: false`, not DELETE; a later POST receives a new `id`
+  ({{deletion}}). To prevent an old connector from recreating deleted
+  records, administrators withdraw that connector's create authority;
+  DELETE alone does not revoke its management credentials.
+* **Credential classes:** The connector and the IdP agree on usable
+  input classes during trust setup. Schema discovery advertises
+  supported classes; it does not authorize their use ({{discovery}}).
+
+## Service Provider {#implementation-sp}
+
+* **Diagnostics:** Authorized administrators need sufficient
+  diagnostics to distinguish configuration and permission failures
+  without exposing credentials or key material.
 
 # Security Considerations
 
@@ -1088,6 +1106,18 @@ Accept: application/scim+json
 An authorized query returns a SCIM ListResponse containing `a17`. The
 connector verifies the record before continuing. A racing duplicate POST
 receives `409` with `scimType: uniqueness`, not another principal.
+
+## Find Bindings and Dependencies {#example-queries}
+
+A binding lookup can use `agent.value eq "a17" and active eq true`. To
+find dependencies of OAuthClient `oc7`, query both relationship
+collections with `client.value eq "oc7"`. This finds dedicated-client
+bindings and all associations naming that client. External-identity
+bindings have no `client` attribute; their client permissions are found
+through associations. For an Agent subject lookup, the attribute name is
+the extension schema URI followed by `:subject`, with the expression `eq
+"agent-42"`. The connector URI-encodes the complete filter under SCIM's
+query rules.
 
 ## Disable One Binding
 

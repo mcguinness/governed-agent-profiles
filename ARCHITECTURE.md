@@ -191,15 +191,66 @@ narrowed or withdrawn separately. The implementer's guide covers
 
 ## Access flows and deployment variants
 
-The two base flows are the delegated flow above and its self-acting
-counterpart, in which the client obtains a WAG under the agent's own
-Agent Authorization; the implementer's guide's
+Every deployment starts from two flows: an agent acting for a user, and
+an agent acting for itself. Both use the running example, with the
+identifiers of the core's [walkthrough][core-walkthrough]. The
+implementer's guide's
 [primer](IMPLEMENTERS-GUIDE.md#primer-two-grants-one-identity-model)
-walks both message by message. The variants below extend them. Domains
-are always crossed with grants: an ID-JAG or WAG, or continuation
-through a gateway, so the target domain validates a grant from the IdP
-it already trusts. Tokens bound to one trust domain, such as
-Transaction Tokens, stay inside it.
+walks both message by message. The variants after them extend these
+flows. Domains are always crossed with grants: an ID-JAG or WAG, or
+continuation through a gateway, so the target domain validates a grant
+from the IdP it already trusts. Tokens bound to one trust domain, such
+as Transaction Tokens, stay inside it.
+
+### Delegated access
+
+`agent-42` reads the file `report-7` in `acme-data` for Alice. Each
+party decides one question, from facts it can verify itself:
+
+| Step | Party | Decides | From |
+|---|---|---|---|
+| Sign-in | IdP | Who the user is | Alice's sign-in, and an ID Token whose audience is `analysis-client` |
+| Resolution | IdP | Which agent the client is | `analysis-client`'s `private_key_jwt` authentication, which the Identity Binding maps to `agent-42` |
+| Client authority | IdP | Whether this client may use that agent for delegated access | The Client Association |
+| Delegation | IdP | Whether `agent-42` may act for Alice at this resource, with `files.read` | Alice's Delegation Authorization |
+| Grant | IdP | What the RAS receives | ID-JAG `grant-1`: `sub` `alice-ras`, `act` (`https://idp.example/`, `agent-42`), `client_id` `analysis-api`, bound to the client's DPoP key |
+| Redemption | RAS | Whether to issue access, and how much | The IdP's signature and its trust for the `act` namespace; the client's RAS authentication and key proof; its own records for `agent-42` and Alice; the actor gate and its own policy. The grant sets a ceiling; it does not oblige the RAS to issue |
+| Access | API | Whether this operation is allowed | Access token `access-1` and its proof; the tenant in its audience; Alice's permissions; the actor gate |
+
+Three properties follow from that division:
+
+* **The agent is named once and checked three times.** The IdP resolves
+  it, the RAS correlates the exact (issuer, agent) pair with its own
+  record, and the API applies the actor gate.
+* **Resolution and authorization fail separately.** With the Client
+  Association disabled, the Identity Binding still resolves `agent-42`,
+  but the IdP refuses the grant with `actor_unauthorized`, and nothing
+  reaches the RAS.
+* **The client never stands in for the agent.** `analysis-api` is the
+  client at the RAS, and the access token keeps `agent-42` in `act`, so
+  agents that share a client remain distinct actors.
+
+The walkthrough's RAS issues no refresh token. When `access-1` expires,
+the client obtains a new ID-JAG, and the IdP decides again.
+
+### Self-acting access
+
+`agent-42` runs a job on its own authority, with no user. Resolution is
+the same: one binding, one Agent Principal. The authority is different:
+
+| Step | Delegated | Self-acting |
+|---|---|---|
+| The client presents | Alice's ID Token as the subject token | Its own authentication JWT, repeated as the subject token |
+| The IdP checks | The Client Association for delegated issuance, and Alice's Delegation Authorization | The Client Association for self-acting issuance, and the agent's Agent Authorization |
+| The grant | ID-JAG: the user as `sub`, the agent in `act` | WAG `wag-1`: `agent-42` as `sub`, no `act` |
+| The RAS | Resolves Alice and the agent, and applies the actor gate | Correlates `agent-42` to its local principal `service-principal-42`, and applies that principal's policy |
+| The access token | `sub` `user-108`, `act` `agent-42` | `sub` `service-principal-42`, no `act`, and never a refresh token |
+| The API | Alice's permissions and the actor gate | The agent's own permissions, with no actor gate |
+
+Neither authorization implies the other. Withdrawing Alice's delegation
+leaves the agent's own access unchanged, and withdrawing the Agent
+Authorization leaves Alice's delegation in place. The core's
+[self-acting variant][core-wag-example] shows the messages.
 
 ### Continuation through gateways
 
@@ -597,6 +648,8 @@ What each draft needs from the specifications it depends on is in
 [COORDINATION.md](COORDINATION.md).
 
 [core]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
+[core-walkthrough]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#walkthrough
+[core-wag-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#wag-example
 [inputs]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html
 [continuation]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
 [management]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html

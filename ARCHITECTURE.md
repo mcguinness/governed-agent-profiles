@@ -49,8 +49,9 @@ nothing.
 `analysis-client` and `analysis-api` are the same client's registrations
 at the IdP and at the RAS. The IdP derives the grant's `client_id` from
 a configured association between the two, never from the client's
-request. A client that uses one identifier at both servers, such as a
-Client ID Metadata Document URL, needs no mapping.
+request. For a client that uses one identifier at both servers, such as
+a Client ID Metadata Document URL, that association is the identity
+mapping.
 
 ### How it works
 
@@ -113,8 +114,9 @@ Every deployment using governed federation needs:
 * resource authorization at the RAS and the API, including the actor
   gate for delegated access.
 
-The rest are optional mechanisms, adopted as needed: inputs beyond the
-dedicated client and the platform JWT, SCIM administration of the
+The rest are optional mechanisms, adopted as needed: inputs other than
+the dedicated client (the existing platform JWT is needed only to claim
+generic shared-client interoperability), SCIM administration of the
 relationships, lifecycle propagation into resource domains, gateway
 continuation, an external policy decision point, and Transaction Tokens
 inside a resource domain.
@@ -129,7 +131,7 @@ Five parties take part, each owning its own decisions:
 
 | Party | Role |
 |---|---|
-| Agent platform | Runs agents. Implements the OAuth client that obtains access for them, and a SCIM connector that registers them at the IdP |
+| Agent platform | Runs agents. Can implement the OAuth client that obtains access for them and, with SCIM management, a connector that registers them at the IdP |
 | Credential authority | Issues the workload evidence the IdP can resolve: SPIFFE, a client attester, or the platform's own JWTs |
 | Governing IdP | Holds each Agent Principal and the relationships that govern it, and issues grants naming it |
 | Resource domain | Its RAS redeems grants and issues access tokens; its API enforces them |
@@ -141,10 +143,10 @@ implies another:
 | Relationship | Question | Defined in |
 |---|---|---|
 | Identity Binding | Which governed agent does this credential identify? | The core; administered with SCIM management |
-| Client Association | May this OAuth client use that agent's identity? | The core; administered with SCIM management |
+| Client Association | May this OAuth client use that agent's identity? | The core; for delegated issuance, administered with SCIM management |
 | Delegation Authorization | May the agent act for this user, with what authority? | The core |
 | Agent Authorization | What may the agent access on its own behalf? | The core |
-| Continuation Association | May this gateway continue the agent's chains? | Continuation profile |
+| Continuation Association | May this client, typically a gateway, continue the agent's chains in one acting relationship? | Continuation profile |
 
 Four rules follow:
 
@@ -152,22 +154,26 @@ Four rules follow:
   Binding says which agent a credential represents. A separate Client
   Association says whether a client may exercise that agent. In the
   [delegated flow](#delegated-access), disabling the association leaves
-  `agent-42` resolvable but refuses the grant.
+  `agent-42` resolvable but refuses the grant. (SCIM management records
+  a dedicated client's binding and association in one resource, so
+  withdrawing client use there deactivates the binding as well.)
 * **Attribution is not delegation authority.** In delegated access, the
   user is the subject and the agent the actor, each resolved on its own,
-  and the agent's identifier never carries the user or a session. An
+  and user and agent context stay separate in the grant. An
   agent named in `act` acts for the user only under the IdP's delegation
   decision and the resource domain's actor gate. Self-acting access has
   no user: the agent is the subject.
-* **Authority stays out of identifiers.** Encoding a domain, an intent,
-  or a trust realm in a workload identifier would make every change of
-  scope a rename. Authority lives in separate authorizations, so the
-  Agent Principal stays the same as its authority changes.
+* **Identity confers no authority.** A validated identity does not
+  grant authority; authority lives in separate authorizations, so the
+  Agent Principal stays the same as its authority changes. Keeping
+  domains, intents, and trust realms out of identifiers follows as a
+  design choice; the drafts do not require it.
 * **Each boundary keeps its own decision.** The IdP owns identity and
   the grant decision; the resource domain owns resource authority. The
   RAS decides anew within the grant, a Local Suspension in a resource
-  domain cannot be cleared from upstream, and no central broker mints
-  access for another domain. Being known is not being authorized.
+  domain cannot be cleared from upstream, and each resource domain's
+  RAS, not the IdP, issues access to its resources. Being known is not
+  being authorized.
 
 Facts cross each boundary only by contract, which states what is
 preserved, what is translated, and what is decided anew. The treatment
@@ -192,12 +198,13 @@ from colliding:
   Tenant, and a token for one tenant is rejected in another.
 * **A new governing authority means a new agent.** Moving an agent to a
   Governance Tenant under a different administrative authority gives it
-  a new identifier. Its delegations do not carry forward, and resource
-  domains do not re-key their links to the new identifier.
+  a new identifier. Its delegations do not carry forward automatically,
+  and resource domains do not re-key their links to the new identifier.
 
-Executions share a principal by default. Replicas, restarts, sessions,
-migrations, and rotated credentials run as the same Agent Principal
-through its Identity Bindings, and none of them creates or increases
+Executions need not have separate principals. Replicas, restarts,
+sessions, migrations, and rotated credentials can run as the same Agent
+Principal through its Identity Bindings, and none of them creates or
+increases
 its authority. An execution needs its own Agent Principal only when it
 needs separate authorization, delegation, attribution, resource
 correlation, or disablement, even if it shares a runtime, client, or
@@ -211,7 +218,7 @@ Independence" in the core):
 
 | The sub-agent | Identity | Authority |
 |---|---|---|
-| Works entirely within its parent's authority and is attributed to it | The parent's Agent Principal; the sub-agent is one more execution of it | The parent's grants, reused only within the same agent, user, tenant, and authority |
+| Works entirely within its parent's authority and is attributed to it | The parent's Agent Principal; the sub-agent is one more execution of it | The parent's tokens, reused only where their full context (agent, user, tenants, client registrations, RAS, resource, authority, profile, and proof binding) authorizes the operation |
 | Needs its own authorization, delegation, attribution, correlation, or disablement | Its own Agent Principal | Its own Client Association and Delegation or Agent Authorization; the parent's authority does not pass to it |
 | Acts for the orchestrator, as one agent delegating to another | Out of scope: multi-agent delegation chains are not defined | |
 

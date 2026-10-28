@@ -2628,7 +2628,7 @@ If-Match: W/"a1"
 </pre><a href="#appendix-B.2-2" class="pilcrow">¶</a>
 </div>
 <p id="appendix-B.2-3">The placeholder connector token is not a test credential. The Receiver
-returns a new ETag. At 12:01:03, the IdP issues ID-JAG <code>grant-7</code> for
+returns a new ETag. At 12:01:03, the IdP issues ID-JAG <code>grant-1</code> for
 Alice with <code>act.iss</code> <code>https://idp.example/</code> and <code>act.sub</code> <code>agent-42</code>. No
 lifecycle timestamp is added to the grant or compared with its <code>iat</code>.<a href="#appendix-B.2-3" class="pilcrow">¶</a></p>
 <p id="appendix-B.2-4">At redemption, the RAS correlates that pair in <code>acme-data</code>, checks local
@@ -2791,7 +2791,7 @@ later change, retrieval obtains current state instead.<a href="#appendix-C.1-3" 
 <a href="#appendix-C.2" class="section-number selfRef">C.2. </a><a href="#name-revoke-authorization-derive" class="section-name selfRef">Revoke Authorization Derived from an ID-JAG</a>
         </h3>
 <p id="appendix-C.2-1">Separately, an authorized Transmitter can report revocation of the
-ID-JAG <code>grant-7</code> issued in <a href="#example" class="auto internal xref">Appendix B</a> while the principal remains
+ID-JAG <code>grant-1</code> issued in <a href="#example" class="auto internal xref">Appendix B</a> while the principal remains
 active:<a href="#appendix-C.2-1" class="pilcrow">¶</a></p>
 <div class="lang-json sourcecode" id="appendix-C.2-2">
 <pre>
@@ -2801,11 +2801,11 @@ active:<a href="#appendix-C.2-1" class="pilcrow">¶</a></p>
   "https://ras.example/signals/acme-data"
  ],
  "iat": 1789646520,
- "jti": "revoke-grant-7",
+ "jti": "revoke-grant-1",
  "sub_id": {
   "format": "jwt_id",
   "iss": "https://idp.example/",
-  "jti": "grant-7"
+  "jti": "grant-1"
  },
  "events": {
 "https://schemas.openid.net/secevent/caep/event-type/session-revoked"
@@ -2821,7 +2821,7 @@ active:<a href="#appendix-C.2-1" class="pilcrow">¶</a></p>
 </pre><a href="#appendix-C.2-2" class="pilcrow">¶</a>
 </div>
 <p id="appendix-C.2-3">No principal-state update is implied. Revocation covers every session
-derived from <code>grant-7</code>, not another grant's sessions or every session
+derived from <code>grant-1</code>, not another grant's sessions or every session
 involving the same agent.<a href="#appendix-C.2-3" class="pilcrow">¶</a></p>
 </section>
 </div>

@@ -238,8 +238,8 @@ type, or request parameter.
 Agent Principal, Identity Binding, Client Association, acting
 relationship, Delegation Authorization, Agent Authorization, Governance
 Tenant, Target Tenant, actor gate, and resource authorization server
-(RAS) follow {{FEDERATION}}. ID-JAG and WAG {{WAG}} refer to the
-grants as {{FEDERATION}} profiles them. Deferral code, deferred response,
+(RAS) follow {{FEDERATION}}. ID-JAG and WAG {{WAG}} refer to the grants
+as {{FEDERATION}} profiles them. Deferral code, deferred response,
 completion mode, and originating grant follow {{DTR}}. Local Suspension
 and grant-derived revocation follow {{AGENT-LIFECYCLE}}.
 
@@ -660,15 +660,15 @@ is needed; this document makes the request accurate, not the reason.
 
 ## Self-Approval {#security-self}
 
-An agent that could approve its own requests would remove the person
-the mode requires. An approver is a person designated by policy, and
-neither the requesting agent, its client, nor another agent can approve
+An agent that could approve its own requests would remove the person the
+mode requires. An approver is a person designated by policy, and neither
+the requesting agent, its client, nor another agent can approve
 ({{approval}}, {{per-action}}). How an IdP or API tells a person's
 decision from an automated one depends on the approval channel, which
 this document does not define; the channel's authentication of the
-approver is what makes the rule enforceable. A deployment that routes decisions to an
-automated approver is human out of the loop and records it as such
-({{modes}}).
+approver is what makes the rule enforceable. A deployment that routes
+decisions to an automated approver is human out of the loop and records
+it as such ({{modes}}).
 
 ## Stale Approvals {#security-stale}
 

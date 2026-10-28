@@ -62,6 +62,12 @@ informative:
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-lifecycle
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
+  GUIDE:
+    title: "Implementer's Guide for Governed Agent Federation"
+    author:
+      - name: Karl McGuinness
+    date: false
+    target: https://github.com/mcguinness/governed-agent-profiles/blob/main/docs/implementers-guide.md
 --- abstract
 
 This document profiles the System for Cross-domain Identity Management
@@ -788,8 +794,9 @@ and its governance history do not change.
 
 This profile defines registration by the platform. An IdP can also
 discover hosted agents by reading a platform's agent inventory; that
-interface is outside this profile. {{LIFECYCLE}} walks one
-platform-hosted agent from registration to retirement.
+interface is outside this profile. {{GUIDE}} follows one
+platform-hosted agent from registration to retirement, and
+{{LIFECYCLE}} shows its signals, disablement, and re-enablement.
 
 # Implementation Considerations {#implementation}
 

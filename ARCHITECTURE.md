@@ -500,15 +500,11 @@ sequenceDiagram
    the user, the agent, the client, the path, and the authorized
    operation through the internal call chain. Internal services enforce
    those bounds, and the token is never accepted outside that domain.
-6. **Govern.** These mechanisms have different effects:
-   * Chain ending stops further continuation.
-   * Applied disablement and supported revocation invalidate the
-     authorization they define ([Changes, failures, and
-     recovery](#changes-failures-and-recovery)).
-   * Grants and tokens already issued, including Transaction Tokens
-     inside the domain, end by their own revocation, validation, and
-     expiry rules.
-   * Risk signals feed issuance and per-action decisions.
+6. **Govern.** Changes at the IdP or in a resource domain take effect
+   as [Changes, failures, and recovery](#changes-failures-and-recovery)
+   describes. Transaction Tokens inside the tool's domain end by their
+   own validation and expiry rules, and risk signals feed issuance and
+   per-action decisions.
 
 The implementer's guide covers
 [Transaction Tokens inside a resource domain](IMPLEMENTERS-GUIDE.md#transaction-tokens-inside-a-resource-domain)
@@ -526,7 +522,8 @@ issued runs until its own revocation or expiry.
 |---|---|---|---|
 | Disable an Identity Binding | At the IdP, through that binding; other bindings continue. Chains rooted through it end | Grants and RAS tokens, until revoked or expired | Re-enabling it; ended chains stay ended |
 | Remove a Client Association | At the IdP, for that client's use of the binding. Chains rooted through it end | Grants and RAS tokens, until revoked or expired | Restoring it; ended chains stay ended |
-| Withdraw a user's delegation | At the IdP, for that delegation; chains rooted under it end | RAS authorization, until revoked or its absolute expiration | Restoring it; a new root grant for ended chains |
+| Withdraw a user's delegation, or an Agent Authorization, as a whole | At the IdP, for that authorization; chains rooted under it end | RAS authorization, until revoked or its absolute expiration | Restoring it; a new root grant for ended chains |
+| Narrow an authorization by removing targets or authority | New grants and continuation for what was removed are refused (`invalid_target`); chains continue to other targets | Tokens already issued for the removed targets, until revoked or expired | Restoring the targets or authority |
 | Disable the Agent Principal | At the IdP, for every binding and client; every chain for the agent ends | Once a resource domain applies the change, redemption and refresh are denied there and the agent's sessions are revoked | Re-enabling it permits new decisions; revoked sessions and ended chains stay ended |
 | Revoke one ID-JAG through the optional grant-derived revocation capability | Its redemption, at participating receivers in the target tenant | The authorization derived from it there is revoked; the agent stays enabled | A new grant; the revoked one stays unusable |
 | Apply a Local Suspension | In that resource domain, regardless of upstream state | API access stops when its policy observes the change, introspection reports the token inactive, or the token expires | Only the resource owner lifting it |
@@ -548,7 +545,7 @@ already issued from obtaining new authority.
 
 | Failure | Existing authorized operations | New authority | Recovery |
 |---|---|---|---|
-| The IdP is unavailable | Access tokens work until they expire. Where a RAS issued a refresh token under explicit policy, for delegated access only, refresh continues within its absolute expiration. Platform-hosted agents are unaffected | No new ID-JAG, WAG, or onward grant; a self-acting agent stops when its access token expires. Where the IdP cannot confirm shared state a continuation depends on, it answers HTTP 503 and the chain does not end | New grants once the IdP is reachable; after a 503, a gateway can retry the same continuation while its assertion is unexpired |
+| The IdP is unavailable | Access tokens work until they expire. Where a RAS issued a refresh token under explicit policy, for delegated access only, refresh continues within its absolute expiration. Platform-hosted agents are unaffected, until any configured stale-state bound expires and new authorization is denied | No new ID-JAG, WAG, or onward grant; a self-acting agent stops when its access token expires. Where the IdP cannot confirm shared state a continuation depends on, it answers HTTP 503 and the chain does not end | New grants once the IdP is reachable; after a 503, a gateway can retry the same continuation while its assertion is unexpired |
 | Lifecycle delivery is delayed or lost | The resource domain keeps its last applied state, so a disablement not yet applied there stops neither redemption, refresh, nor sessions in that domain | Decided on the last applied state, unless a revalidation policy with a maximum stale-state interval denies new authorization and refresh once that interval expires | Reconciliation retrieves current state from the source; a delayed activation notice triggers retrieval, never activation. A missed disable-and-re-enable cycle cannot be recovered from current state |
 | The RAS has no record for the agent | Agents already correlated are unaffected | Redemption that depends on the missing record is denied; a WAG fails with `invalid_grant`. Where resource policy enables just-in-time correlation for that issuer and tenant, the RAS can create the record from the validated grant, applying local restrictions and policy before issuance | Provision the record, or enable just-in-time correlation. A record created just in time still needs lifecycle integration to learn of disablement |
 | Introspection is unavailable at the API | A failed or timed-out check cannot authorize the request. Cached active responses stay usable within the cache policy | The RAS can still issue tokens | Requests succeed once introspection returns |

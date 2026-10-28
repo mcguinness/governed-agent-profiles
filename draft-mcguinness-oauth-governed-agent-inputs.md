@@ -208,14 +208,8 @@ distinct workload evidence, such as a JWT-SVID or platform JWT.
   match the attestation's confirmation key. This narrows the allowance
   in {{Section 5.2 of ATTEST}} for a separate DPoP key. With
   `attest_jwt_client_auth_dpop`, one DPoP proof serves both roles. Key
-  retention follows {{resolution-key-lifecycle}}.
-
-With {{INSTANCE}}, instance keys differ per receiver scope
-({{Section 4.1 of INSTANCE}}). A bound grant carries the IdP-scoped key.
-A client that also authenticates to the RAS with a Client Attestation
-therefore uses `attest_jwt_client_auth` there and proves the grant key
-with a separate DPoP proof, unless the IdP and RAS share a receiver
-scope.
+  retention follows {{resolution-key-lifecycle}}, and
+  {{implementation-instance}} covers instance keys at the RAS.
 
 # SPIFFE WIT-SVID and X.509-SVID Resolution {#spiffe-input}
 
@@ -272,7 +266,12 @@ identity granularity. {{svid-context-example}} illustrates both inputs.
   authenticated request associates it with this issuance, and the grant
   uses `cnf.jkt`, not certificate confirmation.
 
-# Resolution-Key Lifecycle {#resolution-key-lifecycle}
+# Implementation Considerations {#implementation}
+
+These considerations add no requirements. They describe key handling
+that decides whether bound grants and tokens remain usable.
+
+## Resolution-Key Lifecycle {#resolution-key-lifecycle}
 
 When the resolution key is also the grant proof key, replacing it does
 not rebind an outstanding grant, access token, or refresh token. This
@@ -282,6 +281,15 @@ Otherwise, the client obtains a new grant with the replacement key and
 new RAS authorization. Any subject-credential binding still applies and
 may require a new subject credential. Grant key transition is not
 defined ("Excluded Compositions" in {{FEDERATION}}).
+
+## Instance Keys at the RAS {#implementation-instance}
+
+With {{INSTANCE}}, instance keys differ per receiver scope
+({{Section 4.1 of INSTANCE}}). A bound grant carries the IdP-scoped key.
+A client that also authenticates to the RAS with a Client Attestation
+therefore uses `attest_jwt_client_auth` there and proves the grant key
+with a separate DPoP proof, unless the IdP and RAS share a receiver
+scope.
 
 # Security Considerations
 

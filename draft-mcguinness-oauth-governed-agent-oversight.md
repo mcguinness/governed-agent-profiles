@@ -786,7 +786,7 @@ Each case changes the walkthrough as stated; all other checks succeed.
 | The request omits `completion_mode=deferred` | IdP | HTTP 400, `actor_unauthorized`; no grant and no deferred response |
 | The poll proves a key other than K | IdP | HTTP 400, `invalid_dpop_proof` |
 | `agent-42` is disabled while the request is pending, and Alice then approves | IdP | HTTP 400, `access_denied` at the next poll; no grant |
-| Alice approves `files.read` instead of `files.write` | IdP | A grant with `scope` `files.read` |
+| The request asks for `files.read files.write`, and Alice approves only `files.read` | IdP | A grant with `scope` `files.read` |
 | Alice denies | IdP | HTTP 400, `access_denied` at the next poll; no grant |
 | The client polls again after receiving the grant | IdP | HTTP 400, `invalid_grant` |
 {: title="Negative test cases"}

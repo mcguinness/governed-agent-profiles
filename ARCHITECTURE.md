@@ -703,8 +703,10 @@ check cannot authorize a request. Cached active responses stay usable
 within the cache policy.
 
 **A policy decision service is unavailable.** The drafts define no
-behavior. The resource domain chooses to deny or to apply local policy,
-and neither can exceed the token's constraints. Where an IdP issuance
+behavior, but the selected integration may: a COAZ-MCP enforcement
+point fails closed and returns an error. Where the integration allows
+a choice, the resource domain denies or applies local policy, and
+neither can exceed the token's constraints. Where an IdP issuance
 decision depends on resource-domain evaluation through that service,
 the IdP cannot make it.
 
@@ -731,6 +733,7 @@ an example here is not a promise of interoperability:
 | Grant-derived revocation of one ID-JAG | Optional capability with defined requirements, in the lifecycle profile |
 | An external policy decision service | Optional capability with defined requirements: "Optional Policy Services" in the core |
 | An AuthZEN or COAZ-MCP message mapping | Unresolved composition: the core names AuthZEN as one interface and defines no mapping ([below](#authorization-decisions-with-authzen)) |
+| AuthZEN Token Issuance or Token Exchange profiles at the IdP | Unresolved composition: compatible with the core's issuance authorization, which a decision can narrow but not broaden, but the profiles carry no resolved Agent Principal |
 | Transaction Tokens inside a resource domain | Illustrative deployment composition, in the [implementer's guide](IMPLEMENTERS-GUIDE.md#transaction-tokens-inside-a-resource-domain) |
 | Credential brokers | Illustrative deployment composition ([below](#credential-brokers)) |
 | Asynchronous approval with ARAP and AROP | Unresolved composition: an excluded composition in the core |
@@ -762,11 +765,20 @@ token's authority distinct, and a permit never widens the token
   the token. The enforcement point therefore supplies or verifies the
   agent, client, tenant, and token constraints from the validated token
   and trusted configuration; a declared mapping cannot override them.
+* **One identity model across profiles.** COAZ-MCP, ARAP, AROP, Token
+  Issuance, and the Mission AuthZEN profile each place the agent
+  somewhere different. A governed token gives them one model: in a
+  delegated chain, a single actor that is also the agent the IdP
+  authorized to act for the user; the client kept separate; for a token
+  that trusted context establishes as self-acting, the agent as the
+  subject; and gateways in `continuation_via` rather than `act`.
 
 The implementer's guide has the [integration points, use cases, and
 worked requests](IMPLEMENTERS-GUIDE.md#authorization-decisions-with-authzen),
-and [COORDINATION.md](COORDINATION.md) records the change proposed for
-COAZ-MCP.
+and compares the profiles in [one identity
+model](IMPLEMENTERS-GUIDE.md#one-identity-model-across-authzen-profiles).
+[COORDINATION.md](COORDINATION.md) records the changes proposed to the
+profiles.
 
 ### Credential brokers
 

@@ -26,6 +26,7 @@ Identification-00, Client Attester Endorsement-00, and WISE draft 03.
 | ID-JAG | Bound-grant example aligned with the normative `jwt-bearer` grant type, and grant-confirmation errors separated from RFC 9449 proof errors (below) | Confirmation checks are applied to `jwt-bearer` here |
 | Actor Profile | A reusable principal-resolution extension point separating credential validation, identity mapping, and actor construction | The mapping is defined locally in `actor-construction` |
 | COAZ-MCP | A trusted agent identity: from `act` for delegated tokens and the subject for self-acting tokens, supplied or verified by the enforcement point, never from a declared mapping or `client_id` (below) | Governed deployments configure their enforcement points themselves; this profile defines no AuthZEN mapping |
+| AuthZEN profiles (ARAP and its Actor Delegation Profile, AROP, Token Issuance, Token Exchange) | One identity model: the (`iss`, `sub`) actor supplied by the enforcement point, the client kept separate, a self-acting agent as the subject, gateways outside `act`, and the resolved agent available to issuance and approval (below) | Each enforcement point maps each profile into the governed model |
 
 #### WAG
 
@@ -197,6 +198,61 @@ not in these profiles, whose examples are illustrations only. Not yet
 filed. The implementer's guide ("Authorization decisions with AuthZEN")
 shows the enforcement point's inputs and the default mapping as a
 counter-example.
+
+#### Convergence across AuthZEN profiles
+
+COAZ-MCP is one of several AuthZEN profiles that take identity from an
+OAuth token, and each places the agent differently:
+- ARAP, with the Actor Delegation Profile, in `client.actor`;
+- AROP Draft 1 in `subject.properties.act`, with `context.client_id`;
+- Token Issuance Draft 1 in no member, because the authorization server
+  builds `act`;
+- the Mission-Bound Runtime Enforcement AuthZEN profile in
+  `context.actor`.
+
+The implementer's guide compares them with the governed model ("One
+identity model across AuthZEN profiles"). A shared field is not enough
+on its own. These profiles need the same identity model:
+
+* **One actor identifier.** Each profile identifies the agent by the
+  (`iss`, `sub`) pair of Actor Profile, as the Actor Delegation Profile
+  already does, and keeps the client identifier as a separate
+  attribute.
+* **Supplied by the enforcement point.** The agent comes from the
+  validated token or a verified chain, never from a declared mapping or
+  request input. The Actor Delegation Profile already requires this for
+  `client.actor`, and COAZ-MCP should do the same (above).
+* **A self-acting agent is the subject.** For a token established
+  through trusted context as governed self-acting access, the subject
+  represents the agent. The absence of `act` alone does not establish
+  that interpretation. COAZ-MCP's default names the client as the agent
+  instead. The Mission profile already keeps the workload principal in
+  `subject` and the client in `context.actor`; it calls that client the
+  immediate actor, so policy written for it needs to take the agent
+  from `subject` for these tokens.
+* **Gateways are not actors.** Governed continuation keeps one actor
+  and lists continuing clients in `continuation_via`. A profile that
+  needs the path reads that claim, or an introspection equivalent;
+  it does not expect gateways in `act`.
+* **Issuance decides on the resolved agent.** Token Issuance's rule
+  that a decision "may narrow what is issued; it may not broaden it,
+  re-subject it, or re-target it" matches `issuance-authorization`. A
+  governed IdP decides on the Agent Principal resolved through an
+  Identity Binding. For a dedicated client, that agent is not the
+  requesting client, and Token Issuance has no member that carries it.
+  The Token Exchange binding's requesting-party evaluation also uses the
+  actor token or the client. Both profiles need a way for the
+  authorization server to supply the resolved actor.
+* **Approval keeps the subject and actor.** AROP completes an approved
+  request as an access token and allows Token Exchange as the
+  originating grant, but does not say that the token keeps the
+  originating grant's subject and actor. Under `external-approval`,
+  approval satisfies a condition and never replaces identity
+  resolution, the Client Association, or the delegation. AROP should
+  require the completed token to preserve both.
+
+Requests to the OpenID AuthZEN working group and to the Mission
+profile's editors. Not yet filed.
 
 ### Deferred Compositions
 

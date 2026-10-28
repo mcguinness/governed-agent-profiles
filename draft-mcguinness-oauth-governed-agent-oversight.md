@@ -299,8 +299,8 @@ These rules apply to every mode:
   governed request from trusted policy for the resolved agent, acting
   relationship, user, client, target, and requested authority, usually
   as a condition of the Delegation or Agent Authorization. A request
-  parameter, the client's opt-in to deferral, or a tool's declared hint
-  MUST NOT select a mode or lower one that policy requires.
+  parameter or the client's opt-in to deferral MUST NOT select a mode or
+  lower one that policy requires.
 * **Each decision point applies its own mode.** IdP issuance, IdP
   continuation, and the API's decision on an action each apply the mode
   their policy requires. Oversight at one point does not satisfy
@@ -538,6 +538,9 @@ oversight applies within the access token's authority:
   delegated token, and the subject for a token that trusted context
   establishes as self-acting ("Profile Applicability" in
   {{FEDERATION}}). A changed action needs a new decision.
+* **Policy selects the mode.** A tool's declared hint, such as an MCP
+  tool annotation, MUST NOT select or lower the mode that resource
+  policy requires for an action ({{mcp}}).
 * **The approver is a person.** Resource policy designates approvers as
   in {{approval}}, and the API MUST NOT accept a decision from the
   client, the agent, or another agent as an approval.
@@ -660,7 +663,10 @@ is needed; this document makes the request accurate, not the reason.
 An agent that could approve its own requests would remove the person
 the mode requires. An approver is a person designated by policy, and
 neither the requesting agent, its client, nor another agent can approve
-({{approval}}, {{per-action}}). A deployment that routes decisions to an
+({{approval}}, {{per-action}}). How an IdP or API tells a person's
+decision from an automated one depends on the approval channel, which
+this document does not define; the channel's authentication of the
+approver is what makes the rule enforceable. A deployment that routes decisions to an
 automated approver is human out of the loop and records it as such
 ({{modes}}).
 
@@ -791,7 +797,6 @@ Each case changes the walkthrough as stated; all other checks succeed.
 | Alice approves `files.read` instead of `files.write` | IdP | A grant with `scope` `files.read` |
 | Alice denies | IdP | HTTP 400, `access_denied` at the next poll; no grant |
 | The client polls again after receiving the grant | IdP | HTTP 400, `invalid_grant` |
-| The agent's client submits a decision on the pending request | IdP | Not accepted as an approval |
 {: title="Negative test cases"}
 
 # Relationship to Other Specifications {#relationships}

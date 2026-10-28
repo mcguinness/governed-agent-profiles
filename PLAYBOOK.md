@@ -4,8 +4,11 @@ This playbook is non-normative. It turns the governed agent profiles
 into the work an enterprise identity team does: choosing a pilot,
 assigning owners, configuring and validating an integration, requiring
 evidence from vendors, stopping and restoring an agent, and showing an
-auditor what happened. The drafts define every
-requirement and govern wherever this playbook differs. The
+auditor what happened. The drafts define every protocol requirement
+and govern wherever this playbook differs. Where the playbook asks for
+more than the drafts require, such as keeping a record the drafts only
+recommend, it says so: those are deployment requirements, not
+conformance requirements. The
 [architecture overview](ARCHITECTURE.md) explains the model, and the
 [implementer's guide](IMPLEMENTERS-GUIDE.md) explains what each role
 builds.
@@ -130,8 +133,8 @@ configuration](IMPLEMENTERS-GUIDE.md#federation-configuration).
 *Exit checks:* run the matching recipe's transaction and rejection
 tests, and these common checks:
 * Resource-domain records show the issuer-qualified Agent Principal and
-  the client separately, and for delegated access the user, as the
-  core's implementation considerations recommend.
+  the client separately, and for delegated access the user. The core
+  recommends this; the playbook requires it.
 * With the Identity Binding disabled, issuance fails with
   `invalid_grant`.
 * Where the bound profile is required, a grant without `cnf` is rejected
@@ -256,8 +259,8 @@ registration replaces step 3:
   the deployment bounds how long the platform relies on unrefreshed
   state, new authorization is denied when that bound expires.
 * The platform's audit records carry the qualified Agent Principal
-  identifier next to its own identifier for the agent, as the lifecycle
-  profile recommends.
+  identifier next to its own identifier for the agent. The lifecycle
+  profile recommends this; the playbook requires it.
 
 To federate later, add an Identity Binding to the same Agent, with the
 client-use permission the core requires before any grant, and continue
@@ -830,10 +833,10 @@ stay revoked, and ended continuation chains stay ended.
 * **Recovery:** reassign the owner. If policy disabled the agent,
   follow the disable runbook's recovery, including lifting its Local
   Suspensions.
-* **Completion evidence:** where the IdP keeps one, as SCIM management
-  recommends, the management audit record of the change:
+* **Completion evidence:** the management audit record of the change:
   the administrative actor, Provisioning Domain, affected resource, and
-  changed attribute.
+  changed attribute. SCIM management recommends this record; the
+  playbook requires it.
 
 ### Recover from lost event delivery
 
@@ -971,7 +974,8 @@ Each action an API performs for an agent can be traced to:
   hop records hold the complete path.
 * **The authorization,** as the IdP's issuance decision under the
   Delegation or Agent Authorization, and the resource domain's own
-  decision, where the IdP and the resource domain keep decision records.
+  decision. The drafts leave decision records outside their scope; the
+  playbook requires the IdP and each resource domain to keep them.
 
 The Agent Principal groups an agent's activity, but it does not show
 which grant or decision authorized a particular action. That takes a

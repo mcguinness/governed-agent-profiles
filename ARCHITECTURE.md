@@ -230,7 +230,9 @@ format for it; the implementer's guide lists the items under
 None of them comes from a request: request parameters, presented
 credentials, and discovered metadata never create or widen one.
 Each boundary below states what is configured, what is checked on each
-request, and what happens when the check fails.
+request or administrative write, and what happens when the check fails.
+Adding a resource domain, a credential issuer, or a gateway means
+configuring its boundary at both ends.
 
 ### Platform → IdP
 
@@ -326,9 +328,6 @@ request, and what happens when the check fails.
 * **On failure:** without a Continuation Association, the IdP returns
   `unauthorized_client`, and the gateway does not fall back to its own
   authority.
-
-Adding a resource domain, a credential issuer, or a gateway therefore
-means configuring its boundary at both ends.
 
 ## Access flows and deployment variants
 
@@ -631,14 +630,62 @@ already applied, and makes no decision that needs the missing input.
 The table separates continuing an authorized operation with tokens
 already issued from obtaining new authority.
 
-| Failure | Existing authorized operations | New authority | Recovery |
+| Failure | Existing operations | New authority | Recovery |
 |---|---|---|---|
-| The IdP is unavailable | Access tokens work until they expire. Where a RAS issued a refresh token under explicit policy, for delegated access only, refresh continues within its absolute expiration. Platform-hosted agents are unaffected, until any configured stale-state bound expires and new authorization is denied | No new ID-JAG, WAG, or onward grant. Grants already issued stay redeemable under their validity, replay, proof, and local-policy rules, so self-acting access ends only when the client has neither an acceptable access token nor a redeemable WAG. Where the IdP cannot confirm shared state a continuation depends on, it answers HTTP 503 and the chain does not end | New grants once the IdP is reachable; after a 503, a gateway can retry the same continuation while its assertion is unexpired |
-| Lifecycle delivery is delayed or lost | The resource domain keeps its last applied state, so a disablement not yet applied there stops neither redemption, refresh, nor sessions in that domain | Decided on the last applied state, unless a revalidation policy with a maximum stale-state interval denies new authorization and refresh once that interval expires | Reconciliation retrieves current state from the source; a delayed activation notice triggers retrieval, never activation. A missed disable-and-re-enable cycle cannot be recovered from current state |
-| The RAS has no record for the agent | Agents already correlated are unaffected | Redemption that depends on the missing record is denied; a WAG fails with `invalid_grant`. Where resource policy enables just-in-time correlation for that issuer and tenant, the RAS can create the record from the validated grant, applying local restrictions and policy before issuance | Provision the record, or enable just-in-time correlation. A record created just in time still needs lifecycle integration to learn of disablement |
-| Introspection is unavailable at the API | A failed or timed-out check cannot authorize the request. Cached active responses stay usable within the cache policy | The RAS can still issue tokens | Requests succeed once introspection returns |
-| A policy decision service is unavailable | The drafts define no behavior. The resource domain chooses to deny or to apply local policy, and neither can exceed the token's constraints | Not affected at the IdP or RAS | Decisions resume when the service returns |
-| A continuation is refused | After `invalid_continuation`, the chain has ended, and the gateway rejects the agent's request with HTTP 401 `invalid_token`. After a limit or continuation-window failure (`invalid_grant`), the chain continues: the gateway fails the request with an error of its own API, and the agent's access token stays valid. The gateway never calls the tool with its own authority | No onward grant for that request | After `invalid_continuation`, a new root grant, which only the agent's client obtains; after `invalid_grant`, a different request, or a retry under a rate limit's policy |
+| The IdP is unavailable | Continue with valid tokens and redeemable grants | No new grant from the IdP | New grants once it returns |
+| Lifecycle delivery is delayed or lost | Continue on the last applied state | Decided on the last applied state | Reconciliation with the source |
+| The RAS has no record for the agent | Unaffected for agents already correlated | Denied, unless just-in-time correlation applies | Provisioning, or just-in-time correlation |
+| Introspection is unavailable at the API | Requests that need a check fail | Unaffected at the RAS | Requests succeed once it returns |
+| A policy decision service is unavailable | Not defined by the drafts | Unaffected at the IdP and RAS | Decisions resume once it returns |
+| A continuation is refused | End after `invalid_continuation`; continue after `invalid_grant` | No onward grant for that request | A new root grant, or a different request |
+
+**The IdP is unavailable.** The outage prevents new IdP-issued grants:
+no new ID-JAG, WAG, or onward grant. Grants already issued stay
+redeemable under their validity, replay, proof, and local-policy rules:
+an unbound grant once, and a bound grant again only where RAS policy
+permits. Access tokens work until they expire, and where a RAS issued a
+refresh token under explicit policy, delegated access can refresh
+within its absolute expiration. Self-acting access ends only when the
+client has neither an acceptable access token nor a redeemable WAG.
+Platform-hosted agents continue until any configured stale-state bound
+expires. An IdP that is reachable but cannot confirm shared state a
+continuation depends on answers HTTP 503; the chain does not end, and
+the gateway can retry with the same assertion while it is unexpired.
+
+**Lifecycle delivery is delayed or lost.** A disablement not yet
+applied in a resource domain stops neither redemption, refresh, nor
+sessions there. A revalidation policy with a maximum stale-state
+interval denies new authorization and refresh once that interval
+expires. Reconciliation retrieves current state from the source, and a
+delayed activation notice triggers that retrieval, never an activation.
+A missed disable-and-re-enable cycle cannot be recovered from current
+state.
+
+**The RAS has no record for the agent.** Redemption that depends on the
+missing record is denied, and a WAG fails with `invalid_grant`. Where
+resource policy enables just-in-time correlation for that issuer and
+tenant, the RAS can create the record from the validated grant,
+applying local restrictions and policy before issuance. A record
+created just in time still needs lifecycle integration to learn of
+disablement.
+
+**Introspection is unavailable at the API.** A failed or timed-out
+check cannot authorize a request. Cached active responses stay usable
+within the cache policy.
+
+**A policy decision service is unavailable.** The drafts define no
+behavior. The resource domain chooses to deny or to apply local policy,
+and neither can exceed the token's constraints.
+
+**A continuation is refused.** After `invalid_continuation`, the chain
+has ended: the gateway rejects the agent's request with HTTP 401
+`invalid_token`, and only a new root grant, which the agent's client
+obtains, starts a new chain. After a limit or continuation-window
+failure (`invalid_grant`), the chain continues: the gateway fails the
+request with an error of its own API, the agent's access token stays
+valid, and recovery takes a different request or a retry under a rate
+limit's policy. In either case, the gateway never calls the tool with
+its own authority.
 
 ## Optional integrations and boundaries
 

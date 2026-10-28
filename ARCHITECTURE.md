@@ -349,7 +349,7 @@ continuation, Transaction Tokens inside the tool's domain, and lifecycle
 propagation. The required parts are the ones listed under [What is
 required](#what-is-required-and-what-is-optional): identity resolution,
 client authority, authorization, the grant and its redemption, and
-enforcement at the API.
+resource authorization at the RAS and the API.
 
 ```mermaid
 sequenceDiagram

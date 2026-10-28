@@ -2788,6 +2788,13 @@ with `sub` `service-principal-42`, no `act`, the same audience, scope,
 and `cnf`, and no refresh token. The API enforces the agent's own
 permissions and the tenant; it applies no actor gate.
 
+Because this access token shares the walkthrough's client registration
+and audience, the RAS and API need the additional bilateral contract of
+{{implementation-resource}} to tell the two populations apart, such as
+authenticated introspection context; the absence of `act` alone does
+not ({{api-applicability}}). A separate client registration or audience
+for self-acting tokens avoids that contract.
+
 ## Input Variants {#input-variants}
 
 This non-normative variant changes only the agent-resolution input of

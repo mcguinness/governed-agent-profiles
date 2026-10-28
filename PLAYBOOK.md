@@ -806,11 +806,18 @@ stay revoked, and ended continuation chains stay ended.
      disable the agent or apply a Local Suspension instead.
   4. Where a disable-and-re-enable cycle may have been missed, current
      state cannot show it. If sessions from before the gap must not
-     survive, disable and re-enable the agent so that each domain
-     revokes them.
+     survive:
+     1. Disable the agent at the IdP.
+     2. Confirm that each affected domain applied the disablement and
+        invalidated the agent's existing authorization.
+     3. Re-enable the agent only after every confirmation. Keep any
+        domain that has not confirmed pending, and contain it with a
+        Local Suspension.
 * **Verification:** each agent's applied state matches the source; no
   reconciliation remains pending; each resent revocation is recorded by
-  the receiver.
+  the receiver; and where step 4 ran, each domain confirmed its
+  disablement before re-enablement. Matching current state alone does
+  not show that a missed revocation was recovered.
 * **Residual access:** during the gap, a disablement not yet applied in
   a domain did not stop redemption, refresh, or sessions there.
 * **Recovery:** this runbook is the recovery. Review access during the

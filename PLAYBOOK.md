@@ -625,7 +625,8 @@ stay revoked, and ended continuation chains stay ended.
      agent denies new authorization and revokes its existing
      authorization.
   3. Where a domain has not applied the change within its agreed delay,
-     apply a Local Suspension there as containment.
+     apply a Local Suspension there as containment, and record it as
+     part of this incident.
 * **Verification:**
 
   | Checkpoint | Evidence |
@@ -638,11 +639,15 @@ stay revoked, and ended continuation chains stay ended.
 
 * **Residual access:** grants already issued, at a domain that has not
   yet applied the change; tokens accepted offline or from a cache.
-* **Recovery:** set `active: true` and confirm propagation. Clients
-  obtain new grants.
+* **Recovery:** set `active: true` and confirm propagation. Activation
+  at the IdP cannot clear a Local Suspension, so each resource owner
+  explicitly lifts the suspensions recorded for this incident, leaving
+  in place any that predated it. Clients obtain new grants, and
+  restoration is verified by fresh access in each domain.
 * **Completion evidence:** the IdP's change record; each domain's
   applied status and time; the failed test exchange and redemption; any
-  pending domain, with its containment.
+  pending domain, with its containment; and, on recovery, each
+  incident suspension lifted and the fresh access that followed.
 
 ### Cut one agent off from one application
 

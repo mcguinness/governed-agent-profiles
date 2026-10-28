@@ -231,7 +231,9 @@ Three properties follow from that division:
   agents that share a client remain distinct actors.
 
 The walkthrough's RAS issues no refresh token. When `access-1` expires,
-the client obtains a new ID-JAG, and the IdP decides again.
+the client obtains a new ID-JAG, and the IdP decides again. The
+playbook's [delegated recipe](PLAYBOOK.md#recipe-delegated-access-to-a-saas-application)
+deploys this flow, tests it, and stops and restores it.
 
 ### Self-acting access
 
@@ -250,7 +252,9 @@ the same: one binding, one Agent Principal. The authority is different:
 Neither authorization implies the other. Withdrawing Alice's delegation
 leaves the agent's own access unchanged, and withdrawing the Agent
 Authorization leaves Alice's delegation in place. The core's
-[self-acting variant][core-wag-example] shows the messages.
+[self-acting variant][core-wag-example] shows the messages, and the
+playbook's [self-acting recipe](PLAYBOOK.md#recipe-self-acting-access)
+deploys and tests the flow.
 
 ### Continuation through gateways
 

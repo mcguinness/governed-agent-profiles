@@ -464,15 +464,12 @@ onward grant naming the same agent and user, with the gateway as
 client. The tool sees the same agent; its API also sees the gateway in
 `continuation_via` where the tool's RAS supports path disclosure.
 
-* **Extra test:** a gateway without a Continuation Association is
-  refused with `unauthorized_client` and does not call the tool with its
-  own authority.
-* **Containment:** disabling the agent ends its chains, and re-enabling
-  it does not revive them; continuation fails with
-  `invalid_continuation` until a new root grant.
-* **Limitation:** once the gateway's source hop passes its continuation
-  window, continuation fails with `invalid_grant`, even while the
-  agent's access token at the gateway is still accepted.
+Run the continuation checks in [step 4](#continuation-through-gateways),
+which include containment: disabling the agent ends its chains, and
+re-enabling it does not revive them. One limitation remains: once the
+gateway's source hop passes its continuation window, continuation fails
+with `invalid_grant`, even while the agent's access token at the
+gateway is still accepted.
 
 #### Scheduled work
 

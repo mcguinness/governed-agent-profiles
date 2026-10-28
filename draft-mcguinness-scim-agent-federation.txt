@@ -102,17 +102,20 @@ Table of Contents
      5.6.  Errors
    6.  Effect on Grant Issuance
    7.  Platform-Hosted Agents
-   8.  Security Considerations
-     8.1.  Administrative Privilege and Confused Deputies
-     8.2.  Independent Controls and Stale State
-   9.  Privacy Considerations
-   10. IANA Considerations
-     10.1.  Agent Federation Extension
-     10.2.  Agent Identity Binding
-     10.3.  Agent Client Association
-   11. References
-     11.1.  Normative References
-     11.2.  Informative References
+   8.  Implementation Considerations
+     8.1.  Provisioning Client
+     8.2.  Service Provider
+   9.  Security Considerations
+     9.1.  Administrative Privilege and Confused Deputies
+     9.2.  Independent Controls and Stale State
+   10. Privacy Considerations
+   11. IANA Considerations
+     11.1.  Agent Federation Extension
+     11.2.  Agent Identity Binding
+     11.3.  Agent Client Association
+   12. References
+     12.1.  Normative References
+     12.2.  Informative References
    Appendix A.  Example: Platform Onboarding
      A.1.  Obtain the OAuthClient Reference
      A.2.  Create an Inactive Agent
@@ -120,8 +123,9 @@ Table of Contents
      A.4.  Authorize Client Use
      A.5.  Enable the Agent
      A.6.  Recover a Lost Creation Response
-     A.7.  Disable One Binding
-     A.8.  Rejection and Boundary Examples
+     A.7.  Find Bindings and Dependencies
+     A.8.  Disable One Binding
+     A.9.  Rejection and Boundary Examples
    Appendix B.  Example: Dedicated Client
    Appendix C.  Schema and ResourceType Representations
      C.1.  AgentFederation Schema
@@ -814,11 +818,7 @@ Table of Contents
    or activation with a missing target MUST be rejected.
 
    A later POST with a previously used externalId is a new creation,
-   requiring current authorization and receiving a new id.  Clients that
-   need reversible disablement use active: false, not DELETE.  To
-   prevent an old connector from recreating deleted records,
-   administrators withdraw that connector's create authority; DELETE
-   alone does not revoke its management credentials.
+   requiring current authorization and receiving a new id (Section 8.1).
 
 5.4.  Query and Reconciliation
 
@@ -850,15 +850,7 @@ Table of Contents
    reader spanning several domains cannot assume that externalId alone
    is unique.
 
-   A binding lookup can use agent.value eq "a17" and active eq true.  To
-   find dependencies of OAuthClient oc7, query both relationship
-   collections with client.value eq "oc7".  This finds dedicated-client
-   bindings and all associations naming that client.  External-identity
-   bindings have no client attribute; their client permissions are found
-   through associations.  For an Agent subject lookup, the attribute
-   name is the extension schema URI followed by :subject, with the
-   expression eq "agent-42".  The connector URI-encodes the complete
-   filter under SCIM's query rules.
+   Appendix A.7 shows these filters in use.
 
    Incremental reads on meta.lastModified follow the common provisioning
    conventions of [OAUTH-CLIENT].  A connector MUST NOT delete records
@@ -878,8 +870,7 @@ Table of Contents
    Section 4.1, Section 4.2, Section 4.3, and Section 4.4.  Discovery
    advertises syntax and capabilities; it does not approve a connector,
    credential authority, or relationship.  Unsupported credential
-   classes remain subject to Section 4.3.1.  The connector and IdP agree
-   on usable input classes during trust setup.
+   classes remain subject to Section 4.3.1 (Section 8.1).
 
 5.6.  Errors
 
@@ -915,9 +906,8 @@ Table of Contents
 
    Standard SCIM request syntax, filter, authentication, and not-found
    errors retain their meanings.  Responses MUST NOT reveal cross-tenant
-   resource existence.  Authorized administrators need sufficient
-   diagnostics to distinguish configuration and permission failures
-   without exposing credentials or key material.
+   resource existence.  Section 8.2 covers diagnostics for authorized
+   administrators.
 
 6.  Effect on Grant Issuance
 
@@ -1012,12 +1002,38 @@ Table of Contents
 
    This profile defines registration by the platform.  An IdP can also
    discover hosted agents by reading a platform's agent inventory; that
-   interface is outside this profile.  [LIFECYCLE] walks one platform-
-   hosted agent from registration to retirement.
+   interface is outside this profile.  [GUIDE] follows one platform-
+   hosted agent from registration to retirement, and [LIFECYCLE] shows
+   its signals, disablement, and re-enablement.
 
-8.  Security Considerations
+8.  Implementation Considerations
 
-8.1.  Administrative Privilege and Confused Deputies
+   These considerations add no requirements.  They describe how a
+   Provisioning Client and a Service Provider meet the requirements of
+   the sections cited.
+
+8.1.  Provisioning Client
+
+   *  *Reversible disablement:* Clients that need reversible disablement
+      use active: false, not DELETE; a later POST receives a new id
+      (Section 5.3).  To prevent an old connector from recreating
+      deleted records, administrators withdraw that connector's create
+      authority; DELETE alone does not revoke its management
+      credentials.
+
+   *  *Credential classes:* The connector and the IdP agree on usable
+      input classes during trust setup.  Schema discovery advertises
+      supported classes; it does not authorize their use (Section 5.5).
+
+8.2.  Service Provider
+
+   *  *Diagnostics:* Authorized administrators need sufficient
+      diagnostics to distinguish configuration and permission failures
+      without exposing credentials or key material.
+
+9.  Security Considerations
+
+9.1.  Administrative Privilege and Confused Deputies
 
    Binding and association writes can enable impersonation of an Agent
    Principal.  The Service Provider MUST check the connector's authority
@@ -1032,7 +1048,7 @@ Table of Contents
    client key cannot authorize an administrative write by itself.
    References do not permit cross-tenant attachment or SSRF.
 
-8.2.  Independent Controls and Stale State
+9.2.  Independent Controls and Stale State
 
    OAuthClient, Agent, binding, and association enablement have distinct
    effects.  An owner, group, or display-name update MUST NOT implicitly
@@ -1060,7 +1076,7 @@ Table of Contents
    Audit records SHOULD identify principals and configuration changes
    without retaining reusable workload credentials.
 
-9.  Privacy Considerations
+10.  Privacy Considerations
 
    The profile correlates platform records, workload identities,
    enterprise principals, and OAuth clients.  SCIM readers SHOULD
@@ -1070,14 +1086,14 @@ Table of Contents
    authorization is independent of permission to exercise the agent at a
    token endpoint.
 
-10.  IANA Considerations
+11.  IANA Considerations
 
    This document requests the following entries in the SCIM Schema URIs
    registry using Section 10.3.2 of [RFC7643].  The proposed core:2.0
    namespace registrations require Expert Review and RFC publication
    under Section 10.3.1 of [RFC7643].
 
-10.1.  Agent Federation Extension
+11.1.  Agent Federation Extension
 
    *  Schema URI: urn:ietf:params:scim:schemas:extension:agent-
       federation:2.0:Agent
@@ -1093,7 +1109,7 @@ Table of Contents
 
    *  Multi-valued Attributes: None.
 
-10.2.  Agent Identity Binding
+11.2.  Agent Identity Binding
 
    *  Schema URI:
       urn:ietf:params:scim:schemas:core:2.0:AgentIdentityBinding
@@ -1111,7 +1127,7 @@ Table of Contents
 
    *  Multi-valued Attributes: selectors, defined in Section 4.3.
 
-10.3.  Agent Client Association
+11.3.  Agent Client Association
 
    *  Schema URI:
       urn:ietf:params:scim:schemas:core:2.0:AgentClientAssociation
@@ -1132,9 +1148,9 @@ Table of Contents
    is registered.  Credential-class names are local to this profile's
    schema.
 
-11.  References
+12.  References
 
-11.1.  Normative References
+12.1.  Normative References
 
    [OAUTH-CLIENT]
               McGuinness, K., "SCIM Profile for OAuth 2.0 Client
@@ -1202,7 +1218,7 @@ Table of Contents
               2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
               May 2017, <https://www.rfc-editor.org/info/rfc8174>.
 
-11.2.  Informative References
+12.2.  Informative References
 
    [LIFECYCLE]
               McGuinness, K., "Governed Agent Lifecycle Profile for SCIM
@@ -1211,6 +1227,10 @@ Table of Contents
               2026, <https://mcguinness.github.io/governed-agent-
               profiles/draft-mcguinness-oauth-governed-agent-
               lifecycle.html>.
+
+   [GUIDE]    McGuinness, K., "Implementer's Guide for Governed Agent
+              Federation", <https://github.com/mcguinness/governed-
+              agent-profiles/blob/main/docs/implementers-guide.md>.
 
 Appendix A.  Example: Platform Onboarding
 
@@ -1389,7 +1409,19 @@ A.6.  Recover a Lost Creation Response
    connector verifies the record before continuing.  A racing duplicate
    POST receives 409 with scimType: uniqueness, not another principal.
 
-A.7.  Disable One Binding
+A.7.  Find Bindings and Dependencies
+
+   A binding lookup can use agent.value eq "a17" and active eq true.  To
+   find dependencies of OAuthClient oc7, query both relationship
+   collections with client.value eq "oc7".  This finds dedicated-client
+   bindings and all associations naming that client.  External-identity
+   bindings have no client attribute; their client permissions are found
+   through associations.  For an Agent subject lookup, the attribute
+   name is the extension schema URI followed by :subject, with the
+   expression eq "agent-42".  The connector URI-encodes the complete
+   filter under SCIM's query rules.
+
+A.8.  Disable One Binding
 
    PATCH /scim/acme/AgentIdentityBindings/b9 HTTP/1.1
    Host: idp.example
@@ -1409,7 +1441,7 @@ A.7.  Disable One Binding
    resolve agent-42.  Previously issued tokens are not revoked by this
    SCIM operation.
 
-A.8.  Rejection and Boundary Examples
+A.9.  Rejection and Boundary Examples
 
          +===========================+===========================+
          | Operation                 | Result                    |

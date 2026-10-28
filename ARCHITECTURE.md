@@ -16,6 +16,7 @@ resource domain whose authorization server (RAS) is
 
 * [The system in one page](#the-system-in-one-page)
 * [Identity, authority, and responsibility](#identity-authority-and-responsibility)
+* [Trust between parties](#trust-between-parties)
 * [Access flows and deployment variants](#access-flows-and-deployment-variants)
 * [Changes and revocation](#changes-and-revocation)
 * [Optional integrations and boundaries](#optional-integrations-and-boundaries)
@@ -219,6 +220,27 @@ between agents. A deployment can explicitly constrain a sub-agent by its
 orchestrator's current authority; otherwise, each authorization is
 narrowed or withdrawn separately. The implementer's guide covers
 [the patterns](IMPLEMENTERS-GUIDE.md#sub-agents-and-orchestrators).
+
+## Trust between parties
+
+Every arrow in the flows rests on an agreement configured at both ends
+before the first request. The drafts require each agreement, not a
+format for it; the implementer's guide lists the items under
+[Federation configuration](IMPLEMENTERS-GUIDE.md#federation-configuration).
+None of them comes from a request: request parameters, presented
+credentials, and discovered metadata never create or widen one.
+
+| Boundary | What the parties agree | What goes wrong without it |
+|---|---|---|
+| Platform → IdP | The connector, its Governance Tenant, and its Provisioning Domain; the credential authorities, source identities, and OAuth clients it may use. Registering an agent, binding an identity to it, and authorizing a client to use it are separate permissions, and permission to disable never implies permission to enable | A connector that holds all three can bind any identity it controls to an enterprise agent, so the IdP checks the connector's authority over both ends of every binding and association |
+| Credential authority → IdP | Each trusted issuer or trust domain, with its approved keys, algorithms, and time limits, and the credential class that tells its workload credentials apart from its other tokens. Identity Bindings name an exact issuer and subject | Evidence from an unconfigured issuer or class fails with `invalid_grant`, with no retry under another class. Without a class rule, a user or management token from the same issuer could pass as workload evidence |
+| IdP → RAS | That the RAS accepts this IdP's ID-JAGs or WAGs and its assertion of the agent namespace; the client registration association that supplies each grant's `client_id`; the Target Tenant for each resource, and whether the IdP may assert local account identifiers there; and the minimum profile for each client, trust relationship, and resource | Without a client registration association, the IdP refuses with `invalid_target`. A grant from an untrusted issuer or namespace is rejected at redemption. Each server enforces its own minimum profile, and no failure is retried at a lower one |
+| RAS → API | The resource's minimum profile; how each token's population, delegated or self-acting, is established (separate client registrations, audiences, or issuers, or authenticated introspection context); the tenant-specific audience; the access-token protection; and whether the API introspects or validates offline | The API rejects a token whose applicability is ambiguous, and a delegated-population token without `act`, with HTTP 401 `invalid_token`. The validation mode decides how soon a revocation at the RAS reaches the API |
+| Lifecycle sender → receiver | A Provisioning Domain naming one governing IdP issuer and one Target Tenant, with the connectors authorized for it. For events: the stream's transmitter, audience, and source service, and the ID-JAG issuer whose grants it may revoke. The issuer comes from this configuration, never from a provisioned attribute | A revocation naming another issuer's grant is rejected, and a transport failure or partial result is never read as a deletion. The receiver's Local Suspensions and resource permissions stay its own: upstream activation cannot clear them |
+| Gateway's RAS → IdP | The IdP trusts the gateway's RAS, or an issuer trusted for it, as Continuation Assertion Issuer for its hops, with the same canonical identity for the gateway configured at both. A Continuation Association permits the gateway to continue the agent's chains in one acting relationship | A gateway without a Continuation Association is refused with `unauthorized_client` and does not fall back to its own authority. The assertion shows only that the RAS accepted the hop; the IdP's governance checks still decide |
+
+Adding a resource domain, a credential issuer, or a gateway therefore
+means adding its row at both ends.
 
 ## Access flows and deployment variants
 

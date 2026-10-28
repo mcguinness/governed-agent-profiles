@@ -428,7 +428,7 @@ flowchart LR
 |---|---|---|---|---|
 | Each action | API or MCP gateway | Whether this user and agent may perform this operation on this object | [Optional Policy Services][policy-services] and [Delegated Actor Authorization][actor-authorization] | AuthZEN evaluation; [COAZ-MCP][COAZ-MCP] for MCP tool calls |
 | Redemption | RAS | Whether to issue an access token under local user, actor, client, tenant, and resource policy | Grant Redemption at the RAS; the core states its policy-service rules for the API | AuthZEN evaluation |
-| Issuance | IdP | Decisions that depend on tool arguments or business objects, which the IdP need not interpret | Authorization Relationships: resource-domain evaluation, locally or through a trusted policy service | A resource-domain PDP |
+| Issuance | IdP | Decisions that depend on tool arguments or business objects, which the IdP need not interpret | Authorization Relationships: resource-domain evaluation, locally or through a trusted policy service | A resource-domain PDP; the AuthZEN Token Issuance profile is not yet composed with governed issuance ([below](#one-identity-model-across-authzen-profiles)) |
 | Requestable denial | API | Whether the agent can ask for more access | External Approval; asynchronous approval with AROP is an excluded composition | ARAP for the request; AROP for completion as a token |
 
 ### Use cases
@@ -485,6 +485,73 @@ as untrusted input (Section 11.4 of COAZ-MCP). A declared mapping
 therefore must not supply or override the attributes in the table, and
 policy must not grant identity or privilege on the strength of
 attributes it supplies.
+
+### One identity model across AuthZEN profiles
+
+Several AuthZEN profiles take identity from an OAuth token, and each
+places the agent somewhere different. A governed token keeps five roles
+apart:
+- the subject;
+- the OAuth client;
+- the actor;
+- a delegation chain, which governed tokens never carry;
+- the gateways on the path.
+
+In a governed chain, the actor is also the agent a user approved. The
+token carries a single `act`, with no nesting, and every onward grant
+names the same Agent Principal ("Identity Preservation" in
+[CONTINUATION]). That collapses the "current actor" and
+the "originally approved agent" into one identity, and leaves the
+client and the path as separate attributes. The table compares each
+profile with that model; it is a comparison of nearest counterparts,
+not a mapping these profiles define.
+
+| Source | Subject | Agent (actor) | Client | Chain or path |
+|---|---|---|---|---|
+| Governed token | The user (delegated); the correlated local agent principal (self-acting) | Delegated: `act` (`iss`, `sub`). Self-acting: the subject | `client_id` | No chain; continuing clients in `continuation_via` |
+| [COAZ-MCP][COAZ-MCP] Draft 1 | `$token.sub`, or an agreed on-behalf-of claim | `context.agent`, by default `$token.?client_id` | The same default | Not modeled |
+| [ARAP][ARAP] with the [Actor Delegation Profile][AUTHZEN-ACTOR] | The principal on whose behalf the operation is performed | `client.actor`, identified by the (`iss`, `sub`) pair of [Actor Profile][ACTOR-PROFILE] | ARAP's `client.id` | Nested `act`, from the immediate actor outward |
+| [AROP][AROP] Draft 1 | The principal the token will act as, per grant | `subject.properties.act` | `context.client_id` | Not modeled |
+| [Token Issuance][AUTHZEN-ISSUANCE] Draft 1 | `subject.id`: the subject the authorization server intends to issue | No member; `act` is built by the authorization server | `context.client_id` | Not modeled |
+| Mission-Bound Runtime Enforcement, [AuthZEN profile][MISSION-AUTHZEN] | The credential's `sub` | The leaf of `context.actor.act`; with no `act`, the client | `context.actor.client_id` | `context.actor.act`, root to leaf |
+
+Four differences matter for governed deployments:
+
+* **The agent is not the client.** COAZ-MCP's default names the client,
+  which for a shared client or a gateway is the same for every agent
+  behind it. The enforcement point supplies the agent from the validated
+  token (see [the table above](#inputs-the-enforcement-point-supplies)).
+* **A self-acting agent is the subject.** A governed self-acting token
+  has no `act`. Profiles that fall back to the client as the actor when
+  `act` is absent, as the Mission runtime does, treat the client as the
+  agent. For these tokens, the subject is the agent.
+* **Gateways are clients, not actors.** Profiles that model a chain
+  record in `act` who acted through whom. Governed continuation keeps
+  one actor and lists continuing clients in `continuation_via`, which
+  none of these profiles reads yet.
+* **Issuance and approval need the resolved agent.** Token Issuance
+  casts the authorization server as an enforcement point; a decision
+  "may narrow what is issued; it may not broaden it, re-subject it, or
+  re-target it." That matches the core's [Issuance
+  Authorization][issuance-authorization], but the request has no member
+  for the actor. A governed IdP decides on the Agent Principal it
+  resolved, which, for a dedicated client, is not the requesting
+  client. Likewise, AROP completes an approved request as an access
+  token, but says nothing about keeping the originating grant's
+  subject and actor. Under the core's [External
+  Approval][external-approval], such a token is still issued under
+  governed issuance.
+
+Until the profiles converge, an enforcement point maps each one into
+this model, and policy is written against the model rather than any
+one profile's members. [COORDINATION.md](COORDINATION.md) records the
+changes proposed to the profiles.
+
+A client that holds tokens for several tools or resources keeps each
+under the context of [Client Token Reuse][client-token-reuse]: agent,
+user, tenants, client registration and RAS, resource and authority,
+profile, and proof binding. No scope-to-tool mapping replaces that
+context.
 
 ### Illustrative requests
 
@@ -1040,6 +1107,12 @@ resource domain provisioned for `agent-58` applies the deletion under
 [issuance-authorization]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#issuance-authorization
 [AUTHZEN]: https://openid.net/specs/authorization-api-1_0.html
 [COAZ-MCP]: https://openid.github.io/authzen/authzen-coaz-mcp-binding-1_0.html
+[ARAP]: https://openid.github.io/authzen/authzen-access-request-approval-profile-1_0.html
+[AROP]: https://github.com/openid/authzen/blob/main/profiles/authzen-access-request-oauth/authzen-access-request-oauth-profile-1_0.md
+[AUTHZEN-ACTOR]: https://openid.github.io/authzen/authzen-access-request-actor-profile-1_0.html
+[AUTHZEN-ISSUANCE]: https://openid.github.io/authzen/authzen-oauth-token-issuance-1_0.html
+[ACTOR-PROFILE]: https://datatracker.ietf.org/doc/draft-mcguinness-oauth-actor-profile/
+[MISSION-AUTHZEN]: https://github.com/mcguinness/mission-bound-authorization/blob/main/draft-mcguinness-mission-authzen.md
 [lc-platform-hosted]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#platform-hosted
 [lc-platform-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#platform-example
 [lc-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#example

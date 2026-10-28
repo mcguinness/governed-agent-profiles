@@ -76,6 +76,9 @@ that claims none of the optional inputs needs only the core.
 * **[Architecture overview](ARCHITECTURE.md):** the problem, how the
   drafts work and fit together, principles, revocation boundaries,
   platform-hosted agents, and related work.
+* **[Playbook for identity teams](PLAYBOOK.md):** adoption stages with
+  exit checks, enterprise patterns, vendor requirements, stop-and-restore
+  runbooks, ownership, and audit evidence.
 * **[Implementer's guide](IMPLEMENTERS-GUIDE.md):** message flows for
   both grants, what each role builds, configuration, and deployment
   tradeoffs.
@@ -86,6 +89,7 @@ By role:
 
 | If you build | Read |
 |---|---|
+| An enterprise identity program | The playbook, then the architecture overview |
 | An identity provider | The core (issuance), the input profiles you support, SCIM management, and continuation if gateways continue requests |
 | A resource authorization server or API | The core (redemption and resource access), and lifecycle if the domain accepts provisioning and disablement |
 | An agent platform | The core (client requests), SCIM management, and lifecycle for agents the platform hosts |

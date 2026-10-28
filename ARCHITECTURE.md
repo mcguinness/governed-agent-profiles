@@ -5,7 +5,9 @@ agent profiles address, how they work, the principles behind them, and
 how the six drafts fit together. The drafts define every requirement,
 and they govern wherever this overview differs from them. For
 message-level flows, what each role builds, and deployment
-configuration, see the [implementer's guide](IMPLEMENTERS-GUIDE.md).
+configuration, see the [implementer's guide](IMPLEMENTERS-GUIDE.md); for
+adoption stages, vendor requirements, and runbooks, see the
+[playbook for identity teams](PLAYBOOK.md).
 
 * [The problem](#the-problem)
 * [How it works](#how-it-works)

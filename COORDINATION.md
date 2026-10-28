@@ -25,6 +25,7 @@ Identification-00, Client Attester Endorsement-00, and WISE draft 03.
 | WAG | Registration of the WAG token type and JWT type, and alignment on protection, linking, and subject presentation (`wag-gaps`) | The WAG token type and JWT type remain provisional values |
 | ID-JAG | Bound-grant example aligned with the normative `jwt-bearer` grant type, and grant-confirmation errors separated from RFC 9449 proof errors (below) | Confirmation checks are applied to `jwt-bearer` here |
 | Actor Profile | A reusable principal-resolution extension point separating credential validation, identity mapping, and actor construction | The mapping is defined locally in `actor-construction` |
+| COAZ-MCP | An agent identity taken from `act`, not `client_id`, for tokens that carry an actor (below) | Governed deployments configure that mapping themselves; this profile defines no AuthZEN mapping |
 
 #### WAG
 
@@ -154,6 +155,31 @@ extension: trusted configuration selects the resolution input,
 separate mapping and authorization checks establish the governed actor,
 and the issued ID-JAG contains `act`. Generic Token Exchange or Actor
 Profile support does not advertise support for this composition.
+
+#### AuthZEN and COAZ-MCP
+
+`policy-services` lets an API delegate evaluation to a policy decision
+service, names AuthZEN as one optional interface, and defines no
+mapping. The service must keep the user, the issuer-qualified Agent
+Principal, and the OAuth client distinct, and the client identifier
+must not stand in for the actor (`actor-authorization`).
+
+AuthZEN Authorization API 1.0 defines a subject with `type`, `id`, and
+`properties`, and no member for an actor acting on behalf of a subject.
+COAZ-MCP Draft 1 (February 2026) takes the subject from the token's
+`sub` (Section 3.1) and, in its default `tools/call` mapping (Section
+7.1), puts the agent in `context.agent`, "typically `$token.?client_id`".
+It does not read `act` or mention token exchange. For a governed
+delegated token, that default names the platform's shared client, or
+in a further domain the continuing gateway, as the agent for every agent
+behind it.
+
+Suggested change for the OpenID AuthZEN working group: when the access
+token carries `act`, COAZ-MCP takes `context.agent` from `act` (`iss`
+and `sub`) and keeps `client_id` as a separate attribute. For a token
+with no user, such as one derived from a WAG, the agent is the subject.
+Not yet filed. The implementer's guide ("AuthZEN evaluation examples")
+shows the configured mapping and the default as a counter-example.
 
 ### Deferred Compositions
 

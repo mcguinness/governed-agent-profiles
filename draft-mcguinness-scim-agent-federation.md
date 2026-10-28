@@ -790,9 +790,11 @@ The platform applies the IdP's administrative state to its own
 authorization under {{LIFECYCLE}}. To give the agent access beyond the
 platform later, an authorized administrator adds an Identity Binding to
 the same Agent, with the client-use permission {{FEDERATION}} requires
-before any governed grant: a dedicated-client binding carries it, and
-an external-identity binding needs a Client Association
-({{association-schema}}). {{FEDERATION}} then applies, and the Agent
+before any governed grant. For delegated ID-JAG issuance, a
+dedicated-client binding carries it, and an external-identity binding
+needs a Client Association ({{association-schema}}); this profile
+manages no client-use permission for self-acting issuance.
+{{FEDERATION}} then applies, and the Agent
 Principal identifier
 and its governance history do not change.
 

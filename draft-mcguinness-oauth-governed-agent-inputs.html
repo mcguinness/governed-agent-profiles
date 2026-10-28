@@ -1199,7 +1199,15 @@ agent-resolution input contract and is claimed separately.<a href="#section-abst
             </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
-            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-resolution-key-lifecycle" class="internal xref">Resolution-Key Lifecycle</a></p>
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-implementation-consideratio" class="internal xref">Implementation Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.1">
+                <p id="section-toc.1-1.7.2.1.1"><a href="#section-7.1" class="auto internal xref">7.1</a>.  <a href="#name-resolution-key-lifecycle" class="internal xref">Resolution-Key Lifecycle</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.2">
+                <p id="section-toc.1-1.7.2.2.1"><a href="#section-7.2" class="auto internal xref">7.2</a>.  <a href="#name-instance-keys-at-the-ras" class="internal xref">Instance Keys at the RAS</a></p>
+</li>
+            </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
             <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
@@ -1517,15 +1525,10 @@ across identifiers or attesters.<a href="#section-5-2.5.1" class="pilcrow">¶</a
 match the attestation's confirmation key. This narrows the allowance
 in <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-12#section-5.2" class="relref">Section 5.2</a> of [<a href="#ATTEST" class="cite xref">ATTEST</a>]</span> for a separate DPoP key. With
 <code>attest_jwt_client_auth_dpop</code>, one DPoP proof serves both roles. Key
-retention follows <a href="#resolution-key-lifecycle" class="auto internal xref">Section 7</a>.<a href="#section-5-2.6.1" class="pilcrow">¶</a></p>
+retention follows <a href="#resolution-key-lifecycle" class="auto internal xref">Section 7.1</a>, and
+<a href="#implementation-instance" class="auto internal xref">Section 7.2</a> covers instance keys at the RAS.<a href="#section-5-2.6.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
-<p id="section-5-3">With <span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>, instance keys differ per receiver scope
-(<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-00#section-4.1" class="relref">Section 4.1</a> of [<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>). A bound grant carries the IdP-scoped key.
-A client that also authenticates to the RAS with a Client Attestation
-therefore uses <code>attest_jwt_client_auth</code> there and proves the grant key
-with a separate DPoP proof, unless the IdP and RAS share a receiver
-scope.<a href="#section-5-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="spiffe-input">
@@ -1573,7 +1576,7 @@ DPoP key and <code>cnf.jwk</code> as used in <span>[<a href="#RFC9449" class="ci
 mismatch with <code>invalid_grant</code>.
 This carries the WIT-endorsed key into the grant binding; the Client
 Attestation PoP JWT remains required. Key retention follows
-<a href="#resolution-key-lifecycle" class="auto internal xref">Section 7</a>.<a href="#section-6.1-1.4.1" class="pilcrow">¶</a></p>
+<a href="#resolution-key-lifecycle" class="auto internal xref">Section 7.1</a>.<a href="#section-6.1-1.4.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 </section>
@@ -1615,19 +1618,41 @@ uses <code>cnf.jkt</code>, not certificate confirmation.<a href="#section-6.2-1.
 </div>
 </section>
 </div>
-<div id="resolution-key-lifecycle">
+<div id="implementation">
 <section id="section-7">
-      <h2 id="name-resolution-key-lifecycle">
-<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-resolution-key-lifecycle" class="section-name selfRef">Resolution-Key Lifecycle</a>
+      <h2 id="name-implementation-consideratio">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-implementation-consideratio" class="section-name selfRef">Implementation Considerations</a>
       </h2>
-<p id="section-7-1">When the resolution key is also the grant proof key, replacing it does
+<p id="section-7-1">These considerations add no requirements. They describe key handling
+that decides whether bound grants and tokens remain usable.<a href="#section-7-1" class="pilcrow">¶</a></p>
+<div id="resolution-key-lifecycle">
+<section id="section-7.1">
+        <h3 id="name-resolution-key-lifecycle">
+<a href="#section-7.1" class="section-number selfRef">7.1. </a><a href="#name-resolution-key-lifecycle" class="section-name selfRef">Resolution-Key Lifecycle</a>
+        </h3>
+<p id="section-7.1-1">When the resolution key is also the grant proof key, replacing it does
 not rebind an outstanding grant, access token, or refresh token. This
 is the case for WIT-SVID or Client Attestation when DPoP is used.
 Continued use requires retaining the corresponding proof key.
 Otherwise, the client obtains a new grant with the replacement key and
 new RAS authorization. Any subject-credential binding still applies and
 may require a new subject credential. Grant key transition is not
-defined ("Excluded Compositions" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>).<a href="#section-7-1" class="pilcrow">¶</a></p>
+defined ("Excluded Compositions" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>).<a href="#section-7.1-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="implementation-instance">
+<section id="section-7.2">
+        <h3 id="name-instance-keys-at-the-ras">
+<a href="#section-7.2" class="section-number selfRef">7.2. </a><a href="#name-instance-keys-at-the-ras" class="section-name selfRef">Instance Keys at the RAS</a>
+        </h3>
+<p id="section-7.2-1">With <span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>, instance keys differ per receiver scope
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-id-00#section-4.1" class="relref">Section 4.1</a> of [<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>). A bound grant carries the IdP-scoped key.
+A client that also authenticates to the RAS with a Client Attestation
+therefore uses <code>attest_jwt_client_auth</code> there and proves the grant key
+with a separate DPoP proof, unless the IdP and RAS share a receiver
+scope.<a href="#section-7.2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
 </section>
 </div>
 <div id="security-considerations">

@@ -297,7 +297,7 @@ claims they do not understand, so the governed context belongs in
 | Txn-Token claim | Delegated access | Self-acting access |
 |---|---|---|
 | `sub` | The access token's `sub`, the local user | The access token's `sub`, the correlated local agent principal |
-| `tctx` | The agent from the validated `act`, the client, the tenant, and `continuation_via` where present | The client, the tenant, and `continuation_via` where present |
+| `tctx` | The agent from the validated `act`, the client, the tenant, `continuation_via` where present, and the authorized operation and object | The client, the tenant, `continuation_via` where present, and the authorized operation and object |
 | `scope` | As narrow as the transaction allows, and no broader than the access token's authority | The same |
 | `req_wl` | The workload that requested the Txn-Token, such as the API | The same |
 | `aud` | The resource domain's trust domain | The same |
@@ -317,15 +317,22 @@ examples](#delegated-access-at-an-mcp-gateway), the TTS might issue:
   "tctx": {
     "agent": {"iss": "https://idp.example/", "sub": "agent-42"},
     "client": "analysis-api",
-    "tenant": "acme-data"
+    "tenant": "acme-data",
+    "action": "read_file",
+    "resource": {"type": "file", "id": "reports/q3.csv"}
   }
 }
 ~~~
 
 The `tctx` member names are illustrations, as in the AuthZEN examples;
-the TTS defines them for its domain. Internal services rely on the TTS
-to have taken them from the validated access token. The actor gate is
-enforced where that access token is validated, before the TTS mints.
+the TTS defines them for its domain and takes them from the validated
+access token and the entry point's decision. An internal service
+evaluates its requested activity against them (Section 12.2 of
+[TXN-TOKENS]). The entry point's decision, including the actor gate,
+covers downstream work only within the bounds it authorized: here, one
+read of `reports/q3.csv`, not every operation within `files.read`.
+Where the entry point narrowed the authority, the Txn-Token carries the
+narrower bounds.
 
 The continuation profile uses a Transaction Token differently in its
 [scheduled variant][cont-scheduled]: as the carrier that tells its

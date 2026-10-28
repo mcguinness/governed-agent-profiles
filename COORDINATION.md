@@ -326,7 +326,7 @@ below is the nearest mechanism here, not an equivalent.
 | The user's identity carried in a claim of the agent's JWT-SVID | The user's own ID Token as the subject token | The agent's credential never carries the user |
 | `act_chain` for agent-to-agent delegation | Out of scope (multi-agent delegation) | Gateways forward without becoming actors (`continuation_via`) |
 | Shared Signals for continuous risk | Lifecycle signals: SCIM events, CAEP grant-derived revocation, platform signals | Response to risk remains local policy |
-| No sender constraint named | DPoP-bound grants and access tokens in the bound profile | |
+| No sender constraint named | DPoP-bound grants in the bound profile; separately configured access-token protection | |
 
 The post lists five unresolved questions:
 

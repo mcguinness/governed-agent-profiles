@@ -638,9 +638,10 @@ credential forwarding to authorized endpoints. A signed subject does not
 authorize arbitrary URL retrieval or cross-tenant revocation.
 
 Event loss and reordering can delay enforcement. Receivers SHOULD retry
-reconciliation, monitor failures, and retain revoked-session state across
-restarts. Recovery from lost revocation state MUST NOT silently restore
-sessions represented as revoked. The explicit limit in
+reconciliation and monitor failures. Revocation state is retained,
+including across restarts, as {{application}} requires. Recovery from
+lost revocation state MUST NOT silently restore sessions represented as
+revoked. The explicit limit in
 {{missed-transitions}} is particularly relevant to unattended refresh.
 
 ## Missed Transitions and Reactivation {#missed-transitions}

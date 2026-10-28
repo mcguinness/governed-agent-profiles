@@ -2452,11 +2452,12 @@ approval state.<a href="#section-7-3.4.1" class="pilcrow">¶</a></p>
 authorization under <span>[<a href="#LIFECYCLE" class="cite xref">LIFECYCLE</a>]</span>. To give the agent access beyond the
 platform later, an authorized administrator adds an Identity Binding to
 the same Agent, with the client-use permission <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> requires
-before any governed grant: a dedicated-client binding carries it, and
-an external-identity binding needs a Client Association
-(<a href="#association-schema" class="auto internal xref">Section 4.4</a>). <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> then applies, and the Agent
-Principal identifier
-and its governance history do not change.<a href="#section-7-4" class="pilcrow">¶</a></p>
+before any governed grant. For delegated ID-JAG issuance, a
+dedicated-client binding carries it, and an external-identity binding
+needs a Client Association (<a href="#association-schema" class="auto internal xref">Section 4.4</a>); this profile
+manages no client-use permission for self-acting issuance.
+<span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> then applies, and the Agent Principal identifier and its
+governance history do not change.<a href="#section-7-4" class="pilcrow">¶</a></p>
 <p id="section-7-5">This profile defines registration by the platform. An IdP can also
 discover hosted agents by reading a platform's agent inventory; that
 interface is outside this profile. <span>[<a href="#GUIDE" class="cite xref">GUIDE</a>]</span> follows one

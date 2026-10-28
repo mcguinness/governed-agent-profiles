@@ -550,7 +550,8 @@ The gateway is the grant's client, never an added actor; a separate
   bound on stale state needs a revalidation policy. To reach a resource
   beyond the platform, an administrator adds an Identity Binding and a
   Client Association for the selected acting relationship to the same
-  Agent. Its identifier and governance history carry over.
+  Agent; in SCIM management, a dedicated-client binding carries the
+  association for delegated access. Its identifier and governance history carry over.
 
 The implementer's guide
 [follows one agent](IMPLEMENTERS-GUIDE.md#platform-hosted-agents) from

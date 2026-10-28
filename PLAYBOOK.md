@@ -350,7 +350,7 @@ the lifecycle profile, which also propagates its disablement
 
 | Change | Expected result |
 |---|---|
-| The Client Association for `analysis-client` is disabled; the binding still resolves `agent-42` | The IdP returns HTTP 400 `actor_unauthorized` and issues no ID-JAG. Resolution succeeded; authorization to use it did not |
+| The Client Association for `analysis-client` is disabled; the binding still resolves `agent-42` | The IdP returns HTTP 400 `actor_unauthorized` and issues no ID-JAG. Resolution succeeded; authorization to use it did not. (Where SCIM management records the dedicated client's binding and association together, disabling client use deactivates the binding, and the IdP returns `invalid_grant`.) |
 | Alice's Delegation Authorization for `agent-42` is withdrawn | The IdP returns HTTP 400 `actor_unauthorized` for Alice; the agent's grants for other users it may act for are unaffected |
 | A delegated access token without `act` is presented to the API | HTTP 401 `invalid_token`; a missing `act` does not make the token self-acting |
 

@@ -8,10 +8,11 @@ guide](IMPLEMENTERS-GUIDE.md) covers configuring and implementing it,
 and the drafts define every requirement and govern wherever this
 overview differs from them.
 
-One example runs throughout: the agent `agent-42`, acting for the user
-Alice through the OAuth client `analysis-client`, against the resource
-domain whose authorization server is `https://ras.example/` and whose
-tenant is `acme-data`.
+One example runs throughout: the enterprise identity provider (IdP)
+`https://idp.example/` governs the agent `agent-42`, which acts for the
+user Alice through the OAuth client `analysis-client` against the
+resource domain whose authorization server (RAS) is
+`https://ras.example/` and whose tenant is `acme-data`.
 
 * [The system in one page](#the-system-in-one-page)
 * [Identity, authority, and responsibility](#identity-authority-and-responsibility)
@@ -54,7 +55,7 @@ Client ID Metadata Document URL, needs no mapping.
 
 The agent's OAuth client authenticates to the enterprise IdP and
 receives a grant naming the governed agent. It exchanges that grant at
-the resource domain's authorization server (RAS) for an access token,
+the resource domain's RAS for an access token,
 which it presents to the API:
 
 ```mermaid

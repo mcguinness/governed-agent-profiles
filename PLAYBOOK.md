@@ -277,7 +277,7 @@ to retirement.
 | An internal agent acts for itself | Core self-acting access (WAG); an Agent Authorization per target | [Self-acting access](#recipe-self-acting-access) |
 | An agent reaches tools through an MCP gateway | Continuation, with the gateway as continuing client; per-tool policy optional | [Through a gateway](#through-a-gateway) |
 | Scheduled work runs after the user signs out | Continuation from a chain anchored to a refresh-token grant, where the IdP claims grant-anchored continuation | [Scheduled work](#scheduled-work) |
-| A platform runs many agents behind one client | The existing platform JWT input | [A shared platform client](#a-shared-platform-client) |
+| A platform runs many agents behind one client | A workload-identity input that distinguishes its agents; the existing platform JWT for generic shared-client interoperability | [A shared platform client](#a-shared-platform-client) |
 | A platform hosts agents that use only its own resources | Registration through SCIM management, with no binding or association; the platform applies the IdP's decisions under lifecycle | [Registration-only branch](#registration-only-branch) |
 
 Both recipes use the architecture's example and the identifiers of the
@@ -354,20 +354,22 @@ the lifecycle profile, which also propagates its disablement
 | Alice's Delegation Authorization for `agent-42` is withdrawn | The IdP returns HTTP 400 `actor_unauthorized` for Alice; the agent's grants for other users it may act for are unaffected |
 | A delegated access token without `act` is presented to the API | HTTP 401 `invalid_token`; a missing `act` does not make the token self-acting |
 
-**Containment and restoration.** Restore by undoing the action taken;
-no other action clears it.
+**Containment and restoration.** Restore disablement or a Local
+Suspension by undoing it; no other action clears it. A revoked grant
+stays revoked; access returns only through a new grant.
 
 | Containment | Effect | Restore by |
 |---|---|---|
-| [Disable the agent everywhere](#disable-an-agent-everywhere) at the IdP | A fresh exchange for Alice fails with `invalid_grant`. Once lifecycle propagation reaches the RAS, redemption is denied and introspection reports `access-1` inactive | Setting the agent `active: true` at the IdP, and confirming the change has propagated to the RAS |
+| [Disable the agent everywhere](#disable-an-agent-everywhere) at the IdP | A fresh exchange for Alice fails with `invalid_grant`. Once lifecycle propagation reaches the RAS, redemption is denied and introspection reports `access-1` inactive | Setting the agent `active: true` at the IdP, confirming the change has propagated to the RAS, and the resource owner lifting any Local Suspension applied during the incident |
 | [Local Suspension](#cut-one-agent-off-from-one-application) at the RAS | The RAS issues no new access token or refresh for `agent-42`. Activation at the IdP and new grants do not clear it | The resource owner lifting the suspension at the RAS |
-| [Revoke `grant-1`](#revoke-one-suspicious-grant), where the RAS supports grant-derived revocation | Later redemption of `grant-1` is rejected and access derived from it is revoked; the agent stays enabled | The client obtaining a new grant; `grant-1` stays unusable |
+| [Revoke `grant-1`](#revoke-one-suspicious-grant), where the IdP and the RAS support grant-derived revocation | Later redemption of `grant-1` is rejected and access derived from it is revoked; the agent stays enabled | The client obtaining a new grant; `grant-1` stays unusable |
 
 Restoration is complete when a new grant is redeemed and the client
 reads `report-7` again, not when the IdP accepts an exchange. Sessions
 revoked in the meantime stay revoked. An API that validated `access-1`
 offline, instead of introspecting it, would accept it until its 600
-seconds end, whichever action was taken.
+seconds end, whichever action was taken, unless an independent local
+restriction at the API took effect earlier.
 
 **Evidence to retain.** The drafts define no log format; as a
 deployment convention, retain:
@@ -385,8 +387,9 @@ token's `jti` joins the RAS's to the API's.
 **Limitations.**
 
 * Tokens that an API validates offline or caches stay usable until they
-  expire or the cache entry ends. Document the expected and maximum
-  disablement delay.
+  expire or the cache entry ends or is invalidated, unless an
+  independent local restriction stops them earlier. Document the
+  expected and maximum disablement delay.
 * Current administrative state cannot reveal a missed
   disable-and-re-enable cycle.
 * Each SaaS application is its own resource domain. Repeat the RAS and
@@ -462,8 +465,9 @@ that mapping.
 * **Disablement and Local Suspension:** as in the delegated recipe,
   each restored only by undoing it. Disabling the agent stops its
   self-acting and delegated access together.
-* **Stop only its own access:** withdraw or narrow the Agent
-  Authorization. New WAGs for that target are refused, and tokens
+* **Stop only its own access:** withdraw the Agent Authorization, or
+  narrow it so that it no longer covers that target. New WAGs for that
+  target are then refused with `invalid_target`, and tokens
   already issued run until they expire; Alice's delegation is
   unaffected. Restore the authorization to restore access.
 * **Stop one grant:** revoking a single WAG is deployment-specific;
@@ -494,17 +498,20 @@ Each variation changes one of the recipes as stated; the rest holds.
 
 `agent-42` reaches a tool in another domain through an MCP gateway. Add
 [continuation](#continuation-through-gateways): the gateway's
-authorization server attests the agent's grant, and the IdP issues an
-onward grant naming the same agent and user, with the gateway as
-client. The tool sees the same agent; its API also sees the gateway in
+authorization server, or an issuer trusted as Continuation Assertion
+Issuer for it, attests the agent's grant, and the IdP issues an onward
+grant naming the same agent (and, for delegated access, the same user),
+with the gateway as client. The tool sees the same agent; its API also sees the gateway in
 `continuation_via` where the tool's RAS supports path disclosure.
 
 Run the continuation checks in [step 4](#continuation-through-gateways),
 which include containment: disabling the agent ends its chains, and
-re-enabling it does not revive them. One limitation remains: once the
-gateway's source hop passes its continuation window, continuation fails
-with `invalid_grant`, even while the agent's access token at the
-gateway is still accepted.
+re-enabling it does not revive them. Limitations remain: where the IdP
+enforces a continuation window, as the continuation profile recommends,
+continuation from a hop past it fails with `invalid_grant` even while
+the agent's access token at the gateway is still accepted; the chain's
+other limits fail the same way, and the chain ends when its anchor
+session ends.
 
 #### Scheduled work
 
@@ -512,9 +519,12 @@ gateway is still accepted.
 Alice is signed in, the client uses her refresh token once to establish
 a chain anchored to that refresh token's grant; each run continues from
 server-held task state with no retained user credential. This needs an
-IdP that claims grant-anchored continuation, and a continuation-aware
-authorization server at the agent's operator that holds the task
-record. The continuation profile's [scheduled
+IdP that claims grant-anchored continuation; tenant policy and Alice's
+Delegation Authorization that permit continuation; a refresh token
+whose grant has that Delegation Authorization explicitly associated; a
+continuation-aware authorization server at the agent's operator,
+trusted as Continuation Assertion Issuer, that holds the task record;
+and a Continuation Association for the client. The continuation profile's [scheduled
 variant][continuation-scheduled] shows the messages.
 
 * **Extra test:** when Alice withdraws her Delegation Authorization for
@@ -540,12 +550,18 @@ core's [AWS example][core-aws-example] shows the input.
 
 Ask vendors for conformance claims, which name the profile, the role,
 the realization, and the inputs, and then record evidence that the
-selected products work together. The profile identifiers to name are
-`urn:ietf:params:oauth:grant-profile:id-jag-agent-federation` (bound,
-delegated), `urn:ietf:params:oauth:grant-profile:wag-agent-federation`
-(bound, self-acting), and
-`urn:ietf:params:oauth:grant-profile:governed-agent-continuation`
-(continuation).
+selected products work together. The governed profile URIs identify
+RAS and client processing, one for each realization and protection:
+`urn:ietf:params:oauth:grant-profile:id-jag-governed-agent` and
+`urn:ietf:params:oauth:grant-profile:id-jag-agent-federation` (delegated;
+the second is bound), and
+`urn:ietf:params:oauth:grant-profile:wag-governed-agent` and
+`urn:ietf:params:oauth:grant-profile:wag-agent-federation` (self-acting;
+the second is bound). For continuation, each role claims delegated or
+self-acting continuation; a continuation-aware RAS lists
+`urn:ietf:params:oauth:grant-profile:governed-agent-continuation`, and
+an IdP that supports delegated continuation advertises
+`identity_continuation_supported`.
 
 ### Capability worksheet
 
@@ -559,16 +575,17 @@ are for the evaluator.
 | IdP: delegated realization of the core, with dedicated-client resolution through `private_key_jwt` and ID Token subjects | Delegated access | The delegated recipe's transaction and rejection tests | | | |
 | IdP: self-acting realization of the core | Self-acting access | The self-acting recipe's transaction and rejection tests | | | |
 | IdP and RAS: bound governed agent access, with DPoP at grant issuance and redemption | Bound grant protection | Step 3: a grant without `cnf`, and a bound grant without its proof, fail with `invalid_grant` | | | |
-| IdP: the existing platform JWT input | A shared platform client | The shared-client variation's tests | | | |
+| IdP: a workload-identity input that distinguishes a shared client's agents; the existing platform JWT input for generic shared-client interoperability | A shared platform client | The shared-client variation's tests | | | |
 | RAS: redemption for each realization served, with correlation by the exact (issuer, agent identifier) pair | Always | The recipes' redemption steps; the self-acting correlation test | | | |
 | API: resource processing, including tenant checks, the actor gate, and the agent's own authority | Always | Step 3's other-tenant test; the delegated recipe's missing-`act` test | | | |
 | RAS and API: telling the delegated and self-acting populations apart | Both acting relationships | The self-acting recipe's combined-deployment test | | | |
-| Client: one grant or token per agent, user, tenant, and authority | Always | The shared-client variation's token reuse test | | | |
+| Client: one grant or token per authorized context (agent, user, tenants, client registration and RAS, resource and authority, profile, and proof binding; for a gateway, also the source hop) | Always | The shared-client variation's token reuse test | | | |
 | Client: DPoP | Bound grant protection, or DPoP access tokens | The delegated recipe's redemption and API call with proofs | | | |
 | IdP: SCIM management Service Provider; platform: Provisioning Client | Platforms register agents | Step 2's exit checks | | | |
+| IdP or its connector: lifecycle provisioning of status changes | Keeping agent records current through lifecycle | Step 4's lifecycle checks | | | |
 | RAS: lifecycle Receiver | Keeping agent records current through lifecycle | Step 4's lifecycle checks, and the lifecycle profile's acceptance checklist | | | |
-| RAS: grant-derived revocation | Revoking one grant | [Revoke one suspicious grant](#revoke-one-suspicious-grant), including a revocation that arrives before redemption | | | |
-| IdP, gateway, and the gateway's RAS: continuation, with the gateway's RAS, or an issuer trusted for it, as Continuation Assertion Issuer | Gateways | Step 4's continuation checks, and the continuation profile's negative tests | | | |
+| IdP (transmitter) and RAS: grant-derived revocation of ID-JAGs | Revoking one delegated grant | [Revoke one suspicious grant](#revoke-one-suspicious-grant), including a revocation that arrives before redemption | | | |
+| IdP, gateway, and the gateway's RAS: continuation, with the gateway's RAS, or an issuer trusted for it, as Continuation Assertion Issuer; the target RAS, with DPoP at its token endpoint and, where policy requires it, path disclosure | Gateways | Step 4's continuation checks, and the continuation profile's negative tests | | | |
 | IdP: grant-anchored continuation | Scheduled work | The scheduled-work variation's test | | | |
 | API: an external policy decision point | Delegated per-action policy | Step 4's policy checks | | | |
 | RAS and API: a shared token identifier, not itself a credential, retained at both | Opaque access tokens | Trace one opaque-token action back to its exact grant ([audit evidence](#audit-evidence)) | | | |

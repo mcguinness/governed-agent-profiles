@@ -13,6 +13,7 @@ configuration, see the [implementer's guide](IMPLEMENTERS-GUIDE.md).
 * [How the drafts fit](#how-the-drafts-fit)
 * [Continuation through gateways](#continuation-through-gateways)
 * [Changes and revocation](#changes-and-revocation)
+* [Authorization decisions with AuthZEN](#authorization-decisions-with-authzen)
 * [Platform-hosted agents](#platform-hosted-agents)
 * [Beyond these drafts](#beyond-these-drafts)
 
@@ -288,6 +289,38 @@ revoked sessions. Current administrative state cannot reveal a missed
 disable-and-reenable cycle, and how quickly an API stops accepting
 tokens depends on introspection, caching, and token lifetimes.
 
+## Authorization decisions with AuthZEN
+
+These drafts decide which governed agent is acting and what authority
+its grant carries. A resource domain can still ask a policy decision
+point (PDP) whether to permit one operation, such as one MCP tool call,
+through the OpenID AuthZEN Authorization API; COAZ-MCP maps MCP tool
+calls into AuthZEN requests. The drafts define no AuthZEN mapping.
+
+Whatever the PDP, the enforcement point keeps the user, the
+issuer-qualified Agent Principal, the OAuth client, the tenant, and the
+token's authority distinct, and a permit never widens the token
+("Optional Policy Services" in the core). Two points need care:
+
+* **Where the agent comes from.** COAZ-MCP's default puts the agent in
+  `context.agent`, "typically `$token.?client_id`". For a governed
+  delegated token, that names the platform's shared client, or in a
+  further domain the gateway, instead of the agent. Delegated access
+  takes the agent from the validated `act`; self-acting access uses the
+  correlated local subject. The enforcement point selects the case by
+  the token population configured for the resource, not by whether
+  `act` is present.
+* **Who supplies it.** COAZ-MCP treats attributes from a tool's declared
+  mapping as untrusted and verifies only the subject identifier against
+  the token. The enforcement point therefore supplies or verifies the
+  agent, client, tenant, and token constraints from the validated token
+  and trusted configuration; a declared mapping cannot override them.
+
+The implementer's guide has the [integration points, use cases, and
+worked requests](IMPLEMENTERS-GUIDE.md#authorization-decisions-with-authzen),
+and [COORDINATION.md](COORDINATION.md) records the change proposed for
+COAZ-MCP.
+
 ## Platform-hosted agents
 
 A platform such as a data or application platform can host agents for a
@@ -338,7 +371,7 @@ context and per-action authorization belong to other specifications:
 | Concern | Question | Responsibility | Specifications |
 |---|---|---|---|
 | Identity | Which governed agent is acting? | The IdP resolves the Agent Principal; the resource domain correlates it locally | These drafts |
-| Authority | What may it do, and for whom? | The IdP authorizes the grant; the resource domain decides within its limits | These drafts; AuthZEN and COAZ for per-action decisions; ARAP and AROP for requestable denials |
+| Authority | What may it do, and for whom? | The IdP authorizes the grant; the resource domain decides within its limits | These drafts; AuthZEN and COAZ for per-action decisions ([above](#authorization-decisions-with-authzen)); ARAP and AROP for requestable denials |
 | Work | Does approved work still justify this action? | A mission control point supplies and evaluates work context; ending a Mission denies actions at every boundary that checks work state | [Mission-Bound Authorization](https://github.com/mcguinness/mission-bound-authorization) |
 
 Two compositions remain undefined:

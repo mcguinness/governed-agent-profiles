@@ -25,6 +25,7 @@ Identification-00, Client Attester Endorsement-00, and WISE draft 03.
 | WAG | Registration of the WAG token type and JWT type, and alignment on protection, linking, and subject presentation (`wag-gaps`) | The WAG token type and JWT type remain provisional values |
 | ID-JAG | Bound-grant example aligned with the normative `jwt-bearer` grant type, and grant-confirmation errors separated from RFC 9449 proof errors (below) | Confirmation checks are applied to `jwt-bearer` here |
 | Actor Profile | A reusable principal-resolution extension point separating credential validation, identity mapping, and actor construction | The mapping is defined locally in `actor-construction` |
+| COAZ-MCP | A trusted agent identity: from `act` for delegated tokens and the subject for self-acting tokens, supplied or verified by the enforcement point, never from a declared mapping or `client_id` (below) | Governed deployments configure their enforcement points themselves; this profile defines no AuthZEN mapping |
 
 #### WAG
 
@@ -154,6 +155,48 @@ extension: trusted configuration selects the resolution input,
 separate mapping and authorization checks establish the governed actor,
 and the issued ID-JAG contains `act`. Generic Token Exchange or Actor
 Profile support does not advertise support for this composition.
+
+#### AuthZEN and COAZ-MCP
+
+`policy-services` lets an API delegate evaluation to a policy decision
+service, names AuthZEN as one optional interface, and defines no
+mapping. The service must keep the user, the issuer-qualified Agent
+Principal, and the OAuth client distinct, and the client identifier
+must not stand in for the actor (`actor-authorization`).
+
+AuthZEN Authorization API 1.0 defines a subject with `type`, `id`, and
+`properties`, and no member for an actor acting on behalf of a subject.
+COAZ-MCP Draft 1 (February 2026) takes the subject from the token's
+`sub` (Section 3.1) and, in its default `tools/call` mapping (Section
+7.1), puts the agent in `context.agent`, "typically `$token.?client_id`".
+It does not read `act` or mention token exchange. For a governed
+delegated token, that default names the platform's shared client, or
+in a further domain the continuing gateway, as the agent for every agent
+behind it.
+
+Changing the mapping's source to `act` is not enough on its own.
+COAZ-MCP treats every attribute a server-declared mapping produces,
+other than the verified `subject.id`, as untrusted input (Section 11.4),
+and it verifies only `subject.id` against the token (Section 8). A
+declared mapping could therefore supply another agent's identity in
+`context.agent` and obtain an actor-gate decision for that agent.
+
+Suggested change for the OpenID AuthZEN working group:
+
+* The enforcement point supplies or verifies the agent identity, like
+  `subject.id`, from the validated access token: from `act` (`iss` and
+  `sub`) for delegated tokens, and as the subject for tokens with no
+  user, such as those derived from a WAG. The case follows the token
+  population configured for the resource, not the presence of `act`.
+* `client_id` stays a separate attribute and never stands in for the
+  agent.
+* A declared mapping does not supply or override these attributes.
+
+A reusable vocabulary for these context members belongs in COAZ-MCP,
+not in these profiles, whose examples are illustrations only. Not yet
+filed. The implementer's guide ("Authorization decisions with AuthZEN")
+shows the enforcement point's inputs and the default mapping as a
+counter-example.
 
 ### Deferred Compositions
 

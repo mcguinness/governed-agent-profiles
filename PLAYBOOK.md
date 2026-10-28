@@ -59,8 +59,14 @@ that the later steps test:
 | Grant protection | Bound governed agent access, with DPoP at grant issuance and redemption; or governed agent access, with unbound grants only where policy explicitly permits them | Whether a stolen grant can be redeemed |
 | Access-token protection, per resource | DPoP, mutual TLS, or bearer where the resource explicitly permits it | What a stolen access token allows |
 | Token validation at the API | Introspection on each request, cached introspection, or offline JWT validation | How soon a revocation at the RAS reaches the API: at the next check, when the cache entry ends, or at token expiry ("Resource Enforcement and Delay" in the [lifecycle profile][lifecycle]) |
-| Agent records at the RAS | Provisioned in advance, or created from a validated grant where resource policy enables just-in-time correlation | Whether the RAS learns of the agent's disablement through provisioning; a record created just in time learns of it only through local action or another signal |
+| Creating agent records at the RAS | Provisioned in advance, or created just in time from a validated grant where resource policy enables it | Whether the first redemption needs provisioning to have run; without a record, the RAS denies it |
+| Keeping agent records current | Lifecycle provisioning and reconciliation, another supported signal, or local administration only | How the RAS learns that the agent was disabled. A grant does not carry the IdP's administrative status, so without lifecycle integration, any record learns of it only through local action or another signal |
 | Federation | Federated, or registration only, for a platform-hosted agent that uses only its platform's own resources | Registration-only agents follow the [registration-only branch](#registration-only-branch) |
+
+The two record choices are independent. Under the lifecycle profile, a
+record created just in time is exposed to provisioning and follows the
+same reconciliation and disablement rules as one provisioned in
+advance.
 
 The [recipes](#recipes) fill in these choices for a complete pilot.
 Acceptance in steps 2 and 3 covers the pilot population; coverage of

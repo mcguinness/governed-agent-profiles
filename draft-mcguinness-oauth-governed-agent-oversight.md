@@ -428,9 +428,10 @@ that:
 * the Delegation or Agent Authorization still permits the approved
   authority;
 * for delegated access, the user is active and resolves as before;
-* for a continuation, the chain has not ended, and a Continuation
-  Association still permits the continuing client
-  ({{deferred-continuation}}); and
+* for a continuation, neither the presented hop nor an ancestor is
+  revoked, the chain has not ended, a Continuation Association still
+  permits the continuing client, and the continuation is within the
+  limits of {{Section 6.3 of ICA}} ({{deferred-continuation}}); and
 * no change applied within the IdP's freshness limit ("Issuance
   Authorization" in {{FEDERATION}}) withdraws any of these.
 
@@ -477,15 +478,22 @@ cannot be presented again.
 A continuation exchange performs no agent resolution, so at resolution
 the IdP re-checks the chain and the continuing client's Continuation
 Association rather than an Identity Binding ({{resolution}}). The
-continuation window and the limits of {{ICA}} are evaluated when the
-request is received, not at resolution: the assertion is consumed at
-deferral, the maximum pending lifetime bounds how long after that the
-onward grant can issue, and an approver decides in between. A chain
+continuation window is evaluated when the request is received: it
+bounds when a continuation can be requested, and the maximum pending
+lifetime bounds how long after that the onward grant can issue. A chain
 that ended while the request was pending resolves to `access_denied`;
 the continuing client learns of the ending from its next continuation,
 which fails with `invalid_continuation`. While the request is pending,
 the continuing client reports the wait to its own caller through its
 own interface, such as an MCP task ({{mcp}}).
+
+The limits of {{Section 6.3 of ICA}} count continuations that have
+issued, not requests, so passing them at deferral reserves no capacity.
+At resolution, the IdP MUST evaluate them again against the
+continuations issued by then, and MUST count the onward grant against
+them atomically with issuing it, so that continuations pending together
+cannot exceed a limit. A request that would exceed a limit resolves to
+`access_denied`.
 
 # Supervised Issuance {#supervised}
 

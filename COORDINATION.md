@@ -295,7 +295,8 @@ exclusion does not prevent the independently supported uses listed here.
 
 | Composition | Boundary in this document |
 |---|---|
-| Asynchronous approval with `AROP` | Defined for governed issuance in the oversight companion (`OVERSIGHT`), which profiles Deferred Token Response and AROP's deferred binding; otherwise, external approval remains subject to `external-approval` and the lifetime limits in `authorization-lifetime` |
+| Approval before issuance | Defined for governed issuance, including continuation, in the oversight companion (`OVERSIGHT`, below) |
+| Asynchronous approval with `AROP` | No approval transport or completion flow; external approval remains subject to `external-approval` and the lifetime limits in `authorization-lifetime` |
 | Continuation with `ICA` | Defined for governed grants in the continuation companion (`CONTINUATION`, below); renewal without continuation follows `continuing-access` |
 | General WIMSE WIT/WIC inputs | WIT-SVID and X.509-SVID resolution is defined in `spiffe-input` of `INPUTS`; non-SPIFFE credentials need an explicit OAuth presentation and proof composition |
 | Instance context carried in an ID-JAG or WAG, or preserved across domains, under `INSTANCE` | The RAS conveys only an instance it validated (`access-token-response`); instances resolve the agent only through a managed-installation binding (`agent-evidence` of `INPUTS`). Preservation would need this profile to define provenance and association under Section 7.4 of `INSTANCE` |
@@ -337,7 +338,7 @@ the nearest mechanism here, not an equivalent.
 | CB4A element | Nearest counterpart here | Difference |
 |---|---|---|
 | Policy decision point before credential issuance | IdP issuance authorization (Delegation or Agent Authorization), optionally through an AuthZEN PDP | None in role; CB4A also scores behavior against baselines |
-| Human and MFA approval tiers | An additional issuance condition (`external-approval`), or approval before issuance under the oversight profile | Approval completes as a governed grant through Deferred Token Response, optionally through AROP's deferred binding |
+| Human and MFA approval tiers | An additional issuance condition (`external-approval`), or approval before issuance under the oversight profile | Approval completes as a governed grant through Deferred Token Response; completion as a token through ARAP and AROP is an excluded composition (`excluded-compositions`) |
 | Credential delivery point minting, for a target that accepts governed grants | The IdP grant, redeemed at the target's RAS for an access token | No vaulted credential; the target sees the agent |
 | Proxy gateway, for a target that accepts governed grants | Continuation through a gateway | No credential injection; the onward grant names the same agent |
 | Envelope target: service, action, resource, scope | Token exchange `audience`, `resource`, `scope`, `authorization_details` | None |
@@ -538,13 +539,18 @@ code, client credentials, and Token Exchange grants, but not
 
 ### AROP
 
-The companion profiles AROP's deferred binding with a governed token
-exchange as the originating grant (`arop`). It requires what AROP does
-not state: the completed grant keeps the originating agent, user,
-client, and key. AROP still cites `draft-gerber-oauth-deferred-token-response`;
-the "Convergence across AuthZEN profiles" note above records both
-requests. AROP's CIBA and transaction-challenge bindings are outside
-the companion.
+The companion does not compose AROP. AROP bounds every token issued
+under an approval by `approved_until`, including refresh tokens and
+tokens obtained by exchange, and requires a refresh or exchange after
+that time to fail. When the IdP defers governed issuance, the RAS
+issues those tokens and has no portable way to learn the deadline. The
+core forbids treating a shorter grant lifetime as enforcing a
+downstream condition (the core's `issuance-authorization`), so a
+composition at the IdP cannot meet AROP's bound. Deferral at the RAS,
+which issues the tokens AROP bounds, is the likely composition and is
+an open item in the companion. AROP still cites
+`draft-gerber-oauth-deferred-token-response`; the "Convergence across
+AuthZEN profiles" note above records both requests.
 
 ### MCP
 
@@ -558,7 +564,8 @@ per-action realization the companion describes.
 ### Open Items
 
 The companion's open items (`open-items`) are deferred redemption at
-the RAS, an attribute for the oversight mode in the SCIM management
+the RAS, where AROP could compose, an attribute for the oversight mode
+in the SCIM management
 profile, a Shared Signals event for supervised-issuance notices, and
 duplicate pending requests.
 

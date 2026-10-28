@@ -39,7 +39,6 @@ normative:
   RFC8693:
   RFC9449:
 informative:
-  ACTOR-PROFILE: I-D.mcguinness-oauth-actor-profile
   AGENT-LIFECYCLE:
     title: "Governed Agent Lifecycle Profile for SCIM and OAuth"
     author:
@@ -123,10 +122,8 @@ decision. The document profiles OAuth Deferred Token Response so that
 an identity provider can hold a governed grant until a person decides,
 binds that decision to the resolved agent, user, client, target,
 authority, and proof key, and requires the grant that follows to be the
-one the request would have produced. It optionally profiles the AuthZEN
-Access Request OAuth Profile so that an approved access request can
-complete as a governed grant, and describes how Model Context Protocol
-servers hold tool calls under these modes.
+one the request would have produced. It also describes how Model
+Context Protocol servers hold tool calls under these modes.
 
 --- middle
 
@@ -150,8 +147,6 @@ hold a tool call while they wait. None of them says which agent, user,
 and authority an approval covers when the requester is a governed
 agent, or what grant follows it. {{DTR}} does not say that the token it
 eventually returns keeps the original subject, actor, or client.
-{{FEDERATION}} lists asynchronous approval with {{AROP}} as a
-composition it excludes.
 
 {{FEDERATION}} answers who acts, for whom, and under what authorization.
 {{DTR}} answers how a token endpoint waits. This document answers when
@@ -167,9 +162,7 @@ it. It defines:
   claiming that a person can observe and end each grant
   ({{supervised}});
 * per-action oversight at a resource, within the authority of the
-  access token ({{per-action}});
-* optionally, approved access requests that complete as governed grants
-  through {{AROP}} ({{arop}}).
+  access token ({{per-action}}).
 
 {{mcp}} describes how Model Context Protocol servers realize these
 modes; that section is informative.
@@ -217,16 +210,16 @@ Client          IdP              Alice            RAS
 ## Scope {#scope}
 
 This document covers governed grant issuance at the IdP, including
-continuation ({{CONTINUATION}}), oversight of individual actions at an
-API, and the completion of approved access requests as governed grants.
-It does not cover:
+continuation ({{CONTINUATION}}), and oversight of individual actions at
+an API. It does not cover:
 
 * approval of a task, which Mission-Bound Authorization addresses
   ({{MISSION-APPROVAL}});
 * multi-party approval or the provenance of an approver's authority;
 * the approval channel or its user interface;
 * the format or transport of notices to overseers;
-* deferral of grant redemption at the RAS ({{open-items}}).
+* deferral of grant redemption at the RAS, or completion of an approved
+  access request as a token under {{AROP}} ({{open-items}}).
 
 This document defines no new token format, claim, error code, grant
 type, or request parameter.
@@ -548,44 +541,12 @@ oversight applies within the access token's authority:
   condition within the token's authority and cannot expand it
   ("External Approval" in {{FEDERATION}}). An action outside that
   authority needs a new governed grant, which the client requests by
-  token exchange and the IdP can defer under {{deferred-issuance}}, or
-  through {{arop}}.
+  token exchange and the IdP can defer under {{deferred-issuance}}.
 * **A confirmation is not an approval unless it is bound.** A
   confirmation the client shows in its own interface is not an approval
   under this document. It becomes one only where the API authenticates
   the person, binds the decision as above, and makes the decision
   itself, consistent with {{Section 10.7 of AIMS}}.
-
-# Approved Access Requests Completed as Governed Grants {#arop}
-
-This section is OPTIONAL. Where an access request under {{ARAP}} is
-approved and the agent needs new authority rather than a held action,
-{{AROP}} completes the approved request as a token. This section
-profiles the deferred binding of {{AROP}}, with a governed token
-exchange as the originating grant. An implementation that claims it:
-
-* sends, as the client, a governed token exchange request for the
-  authority the access request names, for the same agent and, for
-  delegated access, the same user, with `completion_mode=deferred`;
-* defers that request under {{deferred-issuance}}, as the IdP, while
-  the access request is approved, and resolves it under
-  {{resolution}};
-* issues a grant that names the same Agent Principal, user, client
-  registration, and proof key as the originating request, which {{AROP}}
-  does not itself require; and
-* applies `approved_until` only to the grant's own lifetime.
-
-In the access evaluation, the agent is identified by the (`iss`, `sub`)
-pair of {{ACTOR-PROFILE}} and the client by `context.client_id`, as
-{{AROP}} places them. The approval satisfies a condition of issuance;
-it never replaces agent resolution, the Client Association, or the
-Delegation or Agent Authorization, all of which {{resolution}}
-re-checks. The CIBA and transaction-challenge bindings of {{AROP}} are
-outside this profile.
-
-{{FEDERATION}} lists asynchronous approval with {{AROP}} as an excluded
-composition; this section defines that composition for governed
-issuance.
 
 # Model Context Protocol {#mcp}
 
@@ -629,7 +590,6 @@ Each claim below is optional and names the role that makes it:
 | IdP | Deferred governed issuance | {{deferred-issuance}}, except {{deferred-continuation}} |
 | IdP | Deferred continuation | {{deferred-continuation}}, with an IdP continuation claim under {{CONTINUATION}} |
 | IdP | Supervised issuance, per target | {{supervised}} |
-| IdP and client | Approved access requests as governed grants | {{arop}} |
 | Client | Deferred governed issuance | {{opt-in}}; polling with the same key under {{DTR}}; the no-retry rule of {{resolution}} |
 | API | Per-action oversight | {{per-action}} |
 {: title="Conformance claims"}
@@ -804,7 +764,7 @@ Each case changes the walkthrough as stated; all other checks succeed.
 | Specification | Relationship |
 |---|---|
 | {{DTR}} | Profiled for governed token exchange. Narrowed: DPoP on every deferred request; all governed checks before deferring and again at resolution; the grant keeps the request's agent, user, client, and key |
-| {{AROP}} | Its deferred binding, optionally profiled with a governed origin; the completed grant keeps the originating agent, user, client, and key |
+| {{AROP}} | Not profiled. Its `approved_until` bounds every token issued under an approval, including those the RAS issues, which deferral at the IdP cannot enforce ({{open-items}}) |
 | {{ARAP}} | One way to route an approval; not required |
 | {{CIBA}} | One way to reach a user for a decision; not profiled |
 | {{MCP}} | Informative realization of per-action oversight ({{mcp}}) |
@@ -818,7 +778,11 @@ Each case changes the walkthrough as stated; all other checks succeed.
 1. **Deferred redemption at the RAS.** {{AROP}} lets the RAS defer
    when an agent redeems a grant. {{DTR}} does not name the
    `jwt-bearer` grant, and a deferred redemption needs rules for the
-   grant's `exp` and the RAS's replay record while pending.
+   grant's `exp` and the RAS's replay record while pending. Deferral at
+   the RAS is also where {{AROP}} could compose with governed access:
+   the RAS issues the tokens that `approved_until` bounds, while at the
+   IdP that bound is a downstream condition the composition cannot
+   enforce ("Issuance Authorization" in {{FEDERATION}}).
 2. **Administering the mode.** No attribute records the oversight mode
    on a Delegation or Agent Authorization in the SCIM management
    profile.

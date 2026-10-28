@@ -2421,8 +2421,9 @@ resource-local approval can satisfy an additional policy condition
 within the presented token's authority. It MUST NOT expand that
 authority or override token validity or tenant restrictions. Access
 beyond that authority requires new authorization through an applicable
-protocol. Asynchronous approval follows {{OVERSIGHT}}
-({{excluded-compositions}}).
+protocol. Approval before issuance follows {{OVERSIGHT}}; other
+asynchronous approval composition is deferred under
+{{excluded-compositions}}.
 
 # Privacy Considerations {#privacy}
 
@@ -2952,7 +2953,8 @@ This document does not define the following compositions:
 
 | Composition | Boundary in this document |
 |---|---|
-| Asynchronous approval, including with {{AROP}} | Defined for governed issuance, including continuation, in {{OVERSIGHT}}; otherwise, external approval follows {{external-approval}}, {{authorization-lifetime}}, and {{issuance-authorization}} |
+| Approval before issuance | Defined for governed issuance, including continuation, in {{OVERSIGHT}} |
+| Asynchronous approval with {{AROP}} | External approval follows {{external-approval}}, {{authorization-lifetime}}, and {{issuance-authorization}} |
 | Continuation with {{ICA}} | Defined for governed grants, including through gateways, in {{CONTINUATION}}; renewal without continuation follows {{continuing-access}} |
 | General WIMSE WIT/WIC inputs | Only the SPIFFE forms in {{INPUTS}} are defined |
 | Instance context in an ID-JAG or WAG, or preserved across domains, under {{INSTANCE}} | The RAS conveys only an instance it validated ({{access-token-response}}); workload evidence resolves the agent, and a shared workload identity does not distinguish replicas {{SPIFFE-CONCEPTS}} |

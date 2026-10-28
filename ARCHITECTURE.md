@@ -737,7 +737,7 @@ an example here is not a promise of interoperability:
 | Transaction Tokens inside a resource domain | Illustrative deployment composition, in the [implementer's guide](IMPLEMENTERS-GUIDE.md#transaction-tokens-inside-a-resource-domain) |
 | Credential brokers | Illustrative deployment composition ([below](#credential-brokers)) |
 | Human oversight: approval before issuance, supervised issuance, and per-action approval | Defined protocol behavior in the [oversight profile][oversight], which profiles Deferred Token Response for governed issuance |
-| Approved access requests through ARAP and AROP | Optional capability with defined requirements: AROP's deferred binding with a governed origin, in the oversight profile; its CIBA and transaction-challenge bindings remain unresolved |
+| Asynchronous approval with ARAP and AROP | Unresolved composition: an excluded composition in the core. AROP bounds every token issued under an approval, including the RAS's, which deferral at the IdP cannot enforce |
 | Approved work, such as Mission-Bound Authorization | Outside these drafts ([below](#beyond-these-drafts)) |
 
 ### Authorization decisions with AuthZEN
@@ -800,8 +800,8 @@ change what a broker needs for targets that accept governed grants:
 * **The broker's decisions map onto existing points.** Its policy
   decision is the IdP's issuance authorization, which can use an
   AuthZEN PDP. Its human approval tiers correspond to approval before
-  issuance under the [oversight profile][oversight], which defines
-  AROP's deferred binding for governed issuance.
+  issuance under the [oversight profile][oversight]; completing an
+  approval through AROP stays unresolved.
 * **Identity stays separate.** CB4A names each agent session
   `spiffe://trust-domain/agent/{user-id}/{session-id}`. A governed Agent
   Principal is stable and excludes the user and the session: the user
@@ -870,7 +870,7 @@ at issuance and redemption.
 | Platforms that register agents and their relationships at the IdP | [SCIM Profile for Governed Agent Federation Management][management] | SCIM | Keeps registering, binding, and authorizing client use as separate permissions ([trust](#trust-between-parties)) |
 | OAuth client registrations managed through SCIM | [SCIM Profile for OAuth 2.0 Client Management][oauth-client] | SCIM | Develops the approach first proposed by Phil Hunt, Morteza Ansari, and Anthony Nadalin. It can share a registration with OAuth dynamic registration, and admits Client ID Metadata Document clients without copying their metadata |
 | Resource domains provisioned with agents and their disablement | [Governed Agent Lifecycle Profile][lifecycle] | SCIM | Applies administrative disablement to OAuth authorization, with an optional CAEP composition that revokes what one grant authorized. It defines no new schema, event type, or authorization timestamp |
-| A person to approve, or to observe and end, an agent's grants and actions | [Human Oversight Profile][oversight] | OAuth | Defines human-in-the-loop, on-the-loop, and out-of-the-loop modes; profiles Deferred Token Response so the IdP holds a governed grant until an approver decides, and optionally AROP. It defines no new claim, error, or grant type |
+| A person to approve, or to observe and end, an agent's grants and actions | [Human Oversight Profile][oversight] | OAuth | Defines human-in-the-loop, on-the-loop, and out-of-the-loop modes; profiles Deferred Token Response so the IdP holds a governed grant until an approver decides. It defines no new claim, error, or grant type |
 
 ### How they connect
 

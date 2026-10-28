@@ -13,7 +13,7 @@ builds.
 * [The decisions an identity team owns](#the-decisions-an-identity-team-owns)
 * [Operating steps](#operating-steps)
 * [Recipes](#recipes)
-* [Vendor requirements](#vendor-requirements)
+* [Vendor evidence](#vendor-evidence)
 * [Runbooks: stop and restore](#runbooks-stop-and-restore)
 * [Audit evidence](#audit-evidence)
 * [Where security tooling plugs in](#where-security-tooling-plugs-in)
@@ -521,29 +521,63 @@ core's [AWS example][core-aws-example] shows the input.
   or another credential class; and a token the client holds for
   `agent-42` is not reused for another agent with the same scope.
 
-## Vendor requirements
+## Vendor evidence
 
 Ask vendors for conformance claims, which name the profile, the role,
-the realization, and the inputs. Requirements to include:
-
-| Role | Require |
-|---|---|
-| Identity provider | Delegated and, where needed, self-acting realization of the core, with dedicated-client resolution through `private_key_jwt` and ID Token subjects; bound governed agent access; generic shared-client interoperability through the existing platform JWT input, where platforms share a client; the SCIM management Service Provider role; continuation as IdP, and grant-anchored continuation for scheduled work |
-| Resource authorization server (the app's or API's) | The RAS role for each realization it serves; DPoP at its token endpoint; the lifecycle Receiver role, with grant-derived revocation where needed; correlation of agents by the exact (issuer, agent identifier) pair |
-| API | The core's resource processing: tenant checks, the user's authority and the actor gate for delegated tokens, and the agent's own authority for self-acting tokens |
-| Agent platform | A client per agent with `private_key_jwt`, or the existing platform JWT input for a shared client; DPoP; reuse of tokens only within the same agent, user, tenant, and authority; the SCIM management Provisioning Client role |
-| Gateway | Continuation as continuing client; no fallback to the gateway's own authority after a refused continuation |
-| The gateway's source authorization server: the RAS that redeems the agent's grant and issues the access token the gateway receives | Continuation as continuation-aware RAS; and, for it or a separate issuer trusted for it, Continuation Assertion Issuer with assertion issuance at the token endpoint. Often the gateway operator's own, but possibly a separate one |
-
-The profile identifiers to name are
+the realization, and the inputs, and then record evidence that the
+selected products work together. The profile identifiers to name are
 `urn:ietf:params:oauth:grant-profile:id-jag-agent-federation` (bound,
 delegated), `urn:ietf:params:oauth:grant-profile:wag-agent-federation`
 (bound, self-acting), and
 `urn:ietf:params:oauth:grant-profile:governed-agent-continuation`
-(continuation). During evaluation, run the exit checks above and the
-negative tests in the core ("Renewal and Negative Tests"), the
-continuation profile ("Negative Tests"), and the lifecycle profile
-("Acceptance Checklist").
+(continuation).
+
+### Capability worksheet
+
+Fill in one row for each capability the deployment needs. "When
+needed" maps each row to a choice from [step 1](#1-choose-a-pilot-and-its-operating-model);
+"Demonstration" names the test that shows it. The last three columns
+are for the evaluator.
+
+| Capability | When needed | Demonstration | Vendor claim and version | Evidence | Gap or workaround |
+|---|---|---|---|---|---|
+| IdP: delegated realization of the core, with dedicated-client resolution through `private_key_jwt` and ID Token subjects | Delegated access | The delegated recipe's transaction and rejection tests | | | |
+| IdP: self-acting realization of the core | Self-acting access | The self-acting recipe's transaction and rejection tests | | | |
+| IdP and RAS: bound governed agent access, with DPoP at grant issuance and redemption | Bound grant protection | Step 3: a grant without `cnf`, and a bound grant without its proof, fail with `invalid_grant` | | | |
+| IdP: the existing platform JWT input | A shared platform client | The shared-client variation's tests | | | |
+| RAS: redemption for each realization served, with correlation by the exact (issuer, agent identifier) pair | Always | The recipes' redemption steps; the self-acting correlation test | | | |
+| API: resource processing, including tenant checks, the actor gate, and the agent's own authority | Always | Step 3's other-tenant test; the delegated recipe's missing-`act` test | | | |
+| RAS and API: telling the delegated and self-acting populations apart | Both acting relationships | The self-acting recipe's combined-deployment test | | | |
+| Client: one grant per agent, user, tenant, and authority; DPoP | Always | The shared-client variation's token reuse test | | | |
+| IdP: SCIM management Service Provider; platform: Provisioning Client | Platforms register agents | Step 2's exit checks | | | |
+| RAS: lifecycle Receiver | Keeping agent records current through lifecycle | Step 4's lifecycle checks, and the lifecycle profile's acceptance checklist | | | |
+| RAS: grant-derived revocation | Revoking one grant | [Revoke one suspicious grant](#revoke-one-suspicious-grant), including a revocation that arrives before redemption | | | |
+| IdP, gateway, and the gateway's RAS: continuation, with the gateway's RAS, or an issuer trusted for it, as Continuation Assertion Issuer | Gateways | Step 4's continuation checks, and the continuation profile's negative tests | | | |
+| IdP: grant-anchored continuation | Scheduled work | The scheduled-work variation's test | | | |
+| API: an external policy decision point | Delegated per-action policy | Step 4's policy checks | | | |
+
+### Interoperability
+
+A claim from each vendor does not show that the selected products work
+together. Test each boundary from [trust between
+parties](ARCHITECTURE.md#trust-between-parties) with the products that
+will meet there:
+
+| Boundary | Products | Test | Evidence |
+|---|---|---|---|
+| Client → IdP | | The token exchange, with each input in use | |
+| IdP → RAS | | Redemption, the client registration association, and the minimum profile | |
+| RAS → API | | Token population, tenant, access-token protection, and validation mode | |
+| Platform connector → IdP | | Registration, binding, and association as separate permissions | |
+| Lifecycle sender → receiver | | Provisioning, disablement, and events | |
+| Gateway's RAS → IdP → target RAS | | One continuation, end to end | |
+
+Pin each test to the draft revisions used, either the published -NN
+revision or the editor's copy commit, and to the product versions. A
+result against one revision is not evidence for the next. The core's
+negative tests ("Renewal and Negative Tests"), the continuation
+profile's ("Negative Tests"), and the lifecycle profile's ("Acceptance
+Checklist") supply further cases.
 
 ## Runbooks: stop and restore
 

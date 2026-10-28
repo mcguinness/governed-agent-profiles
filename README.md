@@ -79,7 +79,8 @@ that claims none of the optional inputs needs only the core.
   integrations, and a specification map with a glossary.
 * **[Playbook for identity teams](PLAYBOOK.md):** five operating steps
   with exit checks, recipes for delegated and self-acting deployments,
-  vendor requirements, stop-and-restore runbooks, and audit evidence.
+  a vendor evidence worksheet, stop-and-restore runbooks, and an audit
+  trace.
 * **[Implementer's guide](IMPLEMENTERS-GUIDE.md):** message flows for
   both grants, what each role builds, configuration, and deployment
   tradeoffs.

@@ -556,8 +556,8 @@ be implemented today: an enforcement point can map each profile's
 request into this model, and policy can be written against the model
 rather than any one profile's members. The issuance and approval
 protocols cannot, except where the oversight profile defines them;
-mapping fields does not compose them. [COORDINATION.md](COORDINATION.md) records the
-changes proposed to the profiles.
+mapping fields does not compose them. [COORDINATION.md](COORDINATION.md)
+records the changes proposed to the profiles.
 
 A client that holds tokens for several tools or resources keeps each
 under the context of [Client Token Reuse][client-token-reuse]: agent,

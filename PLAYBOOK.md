@@ -20,8 +20,9 @@ builds.
 
 ## The decisions an identity team owns
 
-Each decision is recorded in one relationship, so it can be granted,
-reviewed, and withdrawn on its own:
+Each decision is recorded in its own relationship, so most can be
+granted, reviewed, and withdrawn on their own; SCIM management records a
+dedicated client's Identity Binding and Client Association together:
 
 | Decision | Recorded as | Where |
 |---|---|---|
@@ -54,7 +55,7 @@ that the later steps test:
 
 | Choice | Options | What it determines |
 |---|---|---|
-| Acting relationship | Delegated (ID-JAG), self-acting (WAG), or both | Which authorization the IdP checks, and whether the RAS and API apply the actor gate. With both, also how the API tells the two token populations apart: separate client registrations, audiences, or issuers, or authenticated introspection context. The absence of `act` never does, since a malformed delegated token would then pass as self-acting |
+| Acting relationship | Delegated (ID-JAG), self-acting (WAG), or both | Which authorization the IdP checks, and whether the RAS and API apply the actor gate. With both, also how the API tells the two token populations apart: separate client registrations, audiences, or issuers. One registration and one audience for both needs an additional bilateral contract, such as an introspection member the RAS and API agree on. The absence of `act` never does, since a malformed delegated token would then pass as self-acting |
 | Resolution input | A dedicated client authenticating with `private_key_jwt`, or a shared client presenting its existing platform JWT | Whether the client's own authentication identifies the agent, or a platform JWT does |
 | Grant protection | Bound governed agent access, with DPoP at grant issuance and redemption; or governed agent access, with unbound grants only where policy explicitly permits them | Whether a stolen grant can be redeemed |
 | Access-token protection, per resource | DPoP, mutual TLS, or bearer where the resource explicitly permits it | What a stolen access token allows |
@@ -87,9 +88,10 @@ to a team:
 Then create an Agent Principal for each pilot agent, with an
 accountable owner, an Identity Binding for each execution identity that
 runs it, and the OAuth client registrations it uses. Platforms can do
-this through the [SCIM management profile][management], whose Service
-Provider keeps registering an agent, binding it, and authorizing a
-client as separate permissions.
+this through the [SCIM management profile][management], with client
+registrations through the OAuth client management profile in the same
+SCIM service. Its Service Provider keeps registering an agent, binding
+it, and authorizing a client as separate permissions.
 
 *Exit checks, for the pilot population:*
 * Each pilot agent has an Agent Principal with a recorded owner; in SCIM
@@ -127,8 +129,9 @@ configuration](IMPLEMENTERS-GUIDE.md#federation-configuration).
 
 *Exit checks:* run the matching recipe's transaction and rejection
 tests, and these common checks:
-* Resource-domain records show the user, the issuer-qualified Agent
-  Principal, and the client separately.
+* Resource-domain records show the issuer-qualified Agent Principal and
+  the client separately, and for delegated access the user, as the
+  core's implementation considerations recommend.
 * With the Identity Binding disabled, issuance fails with
   `invalid_grant`.
 * Where the bound profile is required, a grant without `cnf` is rejected
@@ -152,8 +155,9 @@ revokes its sessions. Optionally, enable grant-derived revocation so
 one ID-JAG's authority can be revoked without disabling the agent.
 
 *Exit checks:*
-* Disabling an agent at the IdP stops redemption and refresh at the
-  resource domain, and revokes its sessions there.
+* Once a disablement made at the IdP is applied at the resource domain,
+  redemption and refresh stop there and the agent's sessions are
+  revoked.
 * Re-enabling it permits new decisions but restores no revoked session.
 * A delayed activation notice triggers retrieval of current state; it is
   never applied as an activation.
@@ -164,15 +168,19 @@ one ID-JAG's authority can be revoked without disabling the agent.
 #### Continuation through gateways
 
 Where agents reach tools through gateways, deploy continuation
-([continuation][continuation]): the gateway's authorization server
-attests the agent's grant, and the IdP issues an onward grant naming the
-same agent, with the gateway as client. Give each gateway a Continuation
-Association, and make sure target authorization servers support DPoP at
-their token endpoints.
+([continuation][continuation]): a Continuation Assertion Issuer, often
+the gateway's authorization server, attests that it accepted the
+agent's grant, and the IdP issues an onward grant naming the same
+agent, with the gateway as client. Permit continuation in tenant policy
+and in the Delegation or Agent Authorization; make the gateway's
+authorization server continuation-aware; sender-constrain the
+gateway's access tokens unless policy permits continuation from bearer
+tokens; give each gateway a Continuation Association; and make sure
+target authorization servers support DPoP at their token endpoints.
 
 *Exit checks:*
-* The onward grant names the same Agent Principal and user, and lists
-  the gateway in `continuation_via`.
+* The onward grant names the same Agent Principal and, for a delegated
+  chain, the same user, and lists the gateway in `continuation_via`.
 * A gateway without a Continuation Association is refused with
   `unauthorized_client`, and it does not call the tool with its own
   authority.
@@ -185,13 +193,16 @@ Resource authorization already applies at every RAS and API from step
 3. A resource domain that needs decisions finer than a grant's resource
 and scope can evaluate that policy locally or delegate it. This
 capability covers delegation: an external policy decision point, for
-example through AuthZEN ([guide][guide-authzen]), fed with risk signals
-([guide][guide-risk]). The enforcement point supplies the user, agent,
-client, tenant, and token constraints itself, from the validated token.
+example through AuthZEN ([guide][guide-authzen]), and, as a deployment
+choice, risk signals ([guide][guide-risk]). The enforcement point keeps
+the user, the agent, and the client distinct, and supplies the tenant
+and token constraints, from the validated token; for a self-acting
+token, the local principal stands for the agent.
 
 *Exit checks:*
-* A tool's declared mapping cannot change the agent identity the policy
-  decision point sees.
+* The enforcement point, not a tool's declared mapping, supplies the
+  agent identity the policy decision point sees; treating the mapping
+  this way is a deployment rule.
 * A permit never widens the token's scope or tenant.
 
 ### 5. Operate, review, and retire
@@ -231,9 +242,9 @@ registration replaces step 3:
   reconciliation indicates a change.
 
 *Exit checks:*
-* With the agent set to `active: false` at the IdP, the platform denies
-  new authorization for it and revokes its existing authorization in its
-  own system. An agent the IdP registered inactive pending approval is
+* Once the platform applies `active: false` from the IdP, it denies new
+  authorization for the agent and revokes its existing authorization in
+  its own system. An agent the IdP registered inactive pending approval is
   denied the same way.
 * Re-enabling the agent permits new decisions but restores no revoked
   authorization.
@@ -245,11 +256,15 @@ registration replaces step 3:
   the deployment bounds how long the platform relies on unrefreshed
   state, new authorization is denied when that bound expires.
 * The platform's audit records carry the qualified Agent Principal
-  identifier next to its own identifier for the agent.
+  identifier next to its own identifier for the agent, as the lifecycle
+  profile recommends.
 
-To federate later, add an Identity Binding and a Client Association
-for the selected acting relationship to the same Agent, and continue
-with step 3. The Agent Principal identifier and its governance history carry
+To federate later, add an Identity Binding to the same Agent, with the
+client-use permission the core requires before any grant, and continue
+with step 3. In SCIM management, a dedicated-client binding carries that
+permission for delegated access, and other bindings need a Client
+Association; self-acting associations are configured at the IdP
+directly. The Agent Principal identifier and its governance history carry
 over. The implementer's guide [follows one platform-hosted
 agent](IMPLEMENTERS-GUIDE.md#platform-hosted-agents) from registration
 to retirement.

@@ -919,7 +919,7 @@ If-Match: W/"a1"
 ~~~
 
 The placeholder connector token is not a test credential. The Receiver
-returns a new ETag. At 12:01:03, the IdP issues ID-JAG `grant-7` for
+returns a new ETag. At 12:01:03, the IdP issues ID-JAG `grant-1` for
 Alice with `act.iss` `https://idp.example/` and `act.sub` `agent-42`. No
 lifecycle timestamp is added to the grant or compared with its `iat`.
 
@@ -1009,7 +1009,7 @@ later change, retrieval obtains current state instead.
 ## Revoke Authorization Derived from an ID-JAG
 
 Separately, an authorized Transmitter can report revocation of the
-ID-JAG `grant-7` issued in {{example}} while the principal remains
+ID-JAG `grant-1` issued in {{example}} while the principal remains
 active:
 
 ~~~ json
@@ -1019,11 +1019,11 @@ active:
   "https://ras.example/signals/acme-data"
  ],
  "iat": 1789646520,
- "jti": "revoke-grant-7",
+ "jti": "revoke-grant-1",
  "sub_id": {
   "format": "jwt_id",
   "iss": "https://idp.example/",
-  "jti": "grant-7"
+  "jti": "grant-1"
  },
  "events": {
 "https://schemas.openid.net/secevent/caep/event-type/session-revoked"
@@ -1039,7 +1039,7 @@ active:
 ~~~
 
 No principal-state update is implied. Revocation covers every session
-derived from `grant-7`, not another grant's sessions or every session
+derived from `grant-1`, not another grant's sessions or every session
 involving the same agent.
 
 # Platform-Hosted Agent Example {#platform-example}

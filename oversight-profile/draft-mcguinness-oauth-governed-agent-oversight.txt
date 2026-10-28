@@ -30,10 +30,8 @@ Abstract
    governed grant until a person decides, binds that decision to the
    resolved agent, user, client, target, authority, and proof key, and
    requires the grant that follows to be the one the request would have
-   produced.  It optionally profiles the AuthZEN Access Request OAuth
-   Profile so that an approved access request can complete as a governed
-   grant, and describes how Model Context Protocol servers hold tool
-   calls under these modes.
+   produced.  It also describes how Model Context Protocol servers hold
+   tool calls under these modes.
 
 About This Document
 
@@ -99,22 +97,21 @@ Table of Contents
      4.5.  Continuation
    5.  Supervised Issuance
    6.  Per-Action Oversight
-   7.  Approved Access Requests Completed as Governed Grants
-   8.  Model Context Protocol
-   9.  Conformance
-   10. Security Considerations
-     10.1.  Approval Fatigue
-     10.2.  Misleading Requests
-     10.3.  Self-Approval
-     10.4.  Stale Approvals
-     10.5.  Deferral Codes
-     10.6.  Downgrade
-     10.7.  Supervised Exposure
-   11. Privacy Considerations
-   12. IANA Considerations
-   13. References
-     13.1.  Normative References
-     13.2.  Informative References
+   7.  Model Context Protocol
+   8.  Conformance
+   9.  Security Considerations
+     9.1.  Approval Fatigue
+     9.2.  Misleading Requests
+     9.3.  Self-Approval
+     9.4.  Stale Approvals
+     9.5.  Deferral Codes
+     9.6.  Downgrade
+     9.7.  Supervised Exposure
+   10. Privacy Considerations
+   11. IANA Considerations
+   12. References
+     12.1.  Normative References
+     12.2.  Informative References
    Appendix A.  Walkthrough: Approval Before Issuance
      A.1.  Deferred Request
      A.2.  Approval
@@ -147,8 +144,7 @@ Table of Contents
    user, and authority an approval covers when the requester is a
    governed agent, or what grant follows it.  [DTR] does not say that
    the token it eventually returns keeps the original subject, actor, or
-   client.  [FEDERATION] lists asynchronous approval with [AROP] as a
-   composition it excludes.
+   client.
 
    [FEDERATION] answers who acts, for whom, and under what
    authorization.  [DTR] answers how a token endpoint waits.  This
@@ -166,12 +162,9 @@ Table of Contents
       (Section 5);
 
    *  per-action oversight at a resource, within the authority of the
-      access token (Section 6);
+      access token (Section 6).
 
-   *  optionally, approved access requests that complete as governed
-      grants through [AROP] (Section 7).
-
-   Section 8 describes how Model Context Protocol servers realize these
+   Section 7 describes how Model Context Protocol servers realize these
    modes; that section is informative.
 
 1.1.  Protocol Overview
@@ -221,9 +214,8 @@ Table of Contents
 1.2.  Scope
 
    This document covers governed grant issuance at the IdP, including
-   continuation ([CONTINUATION]), oversight of individual actions at an
-   API, and the completion of approved access requests as governed
-   grants.  It does not cover:
+   continuation ([CONTINUATION]), and oversight of individual actions at
+   an API.  It does not cover:
 
    *  approval of a task, which Mission-Bound Authorization addresses
       ([MISSION-APPROVAL]);
@@ -234,7 +226,8 @@ Table of Contents
 
    *  the format or transport of notices to overseers;
 
-   *  deferral of grant redemption at the RAS (Appendix C).
+   *  deferral of grant redemption at the RAS, or completion of an
+      approved access request as a token under [AROP] (Appendix C).
 
    This document defines no new token format, claim, error code, grant
    type, or request parameter.
@@ -364,7 +357,52 @@ Table of Contents
 
    This section profiles [DTR] for governed token exchange requests at
    the IdP: ID-JAG and WAG requests under [FEDERATION], and continuation
-   requests under [CONTINUATION].
+   requests under [CONTINUATION].  A pending governed request moves
+   through these steps, which the subsections define:
+
+   +=============+============================+=======================+
+   | Event       | IdP action                 | Result                |
+   +=============+============================+=======================+
+   | Request     | Completes every check      | Pending; deferred     |
+   | with the    | except the approver's      | response              |
+   | opt-in      | decision; for a            |                       |
+   |             | continuation, reserves the |                       |
+   |             | assertion (Section 4.2,    |                       |
+   |             | Section 4.5)               |                       |
+   +-------------+----------------------------+-----------------------+
+   | Poll before | Verifies the client and    | authorization_pending |
+   | a decision  | its key                    | or slow_down          |
+   +-------------+----------------------------+-----------------------+
+   | Approver    | Records the decision for   | Pending until the     |
+   | decides     | this request only          | next poll             |
+   |             | (Section 4.3)              |                       |
+   +-------------+----------------------------+-----------------------+
+   | Poll after  | Re-checks the request; for | Grant; reservation    |
+   | approval    | a continuation, counts the | ISSUED                |
+   |             | grant against the limits   |                       |
+   |             | as it issues (Section 4.4) |                       |
+   +-------------+----------------------------+-----------------------+
+   | Poll after  | Issues nothing             | access_denied;        |
+   | denial, or  |                            | reservation FAILED    |
+   | a re-check  |                            |                       |
+   | fails       |                            |                       |
+   +-------------+----------------------------+-----------------------+
+   | Client      | Ends the request           | access_denied;        |
+   | revokes the |                            | reservation FAILED    |
+   | deferral    |                            |                       |
+   | code        |                            |                       |
+   | (Section 7  |                            |                       |
+   | of [DTR])   |                            |                       |
+   +-------------+----------------------------+-----------------------+
+   | expires_in  | Issues nothing             | expired_token;        |
+   | elapses     |                            | reservation FAILED    |
+   +-------------+----------------------------+-----------------------+
+
+               Table 2: Steps of a pending governed request
+
+   Reservation states apply to a deferred continuation at an IdP that
+   offers idempotent retry (Section 4.5).  A pending request holds no
+   limit capacity and no grant, so its end releases nothing else.
 
 4.1.  Client Opt-In
 
@@ -409,13 +447,18 @@ Table of Contents
    (Section 10.1 of [DTR]).  The IdP MUST set expires_in no greater than
    a configured maximum pending lifetime for the applicable policy.
 
-   The IdP validates the subject token when it receives the request.  At
-   resolution it re-checks the user's current state (Section 4.4), not
-   the subject token's lifetime, because the pending governed request is
-   not a credential and the deferral code is single-use and sender-
-   constrained.  A deployment that needs a current user credential at
-   resolution sets a maximum pending lifetime no longer than the subject
-   token's remaining lifetime.
+   The client does not present the subject token or the agent-resolution
+   input again; the IdP validates them when it receives the request.
+   The lifetime limits of [FEDERATION] still bound the grant issued at
+   resolution: an ID-JAG does not outlive its subject credential ("Grant
+   Issuance" in [FEDERATION]), and no grant outlives an agent-resolution
+   input that bounds it, such as a platform JWT ("Common Grant Claims,
+   Lifetime, and Response" in [FEDERATION]).  For root issuance, the IdP
+   MUST set expires_in so that the pending governed request ends no
+   later than the earliest of those expirations.  An approval late in
+   the window therefore yields a shorter grant.  A deployment that needs
+   a longer window uses a subject credential that expires later, such as
+   a refresh token.
 
 4.3.  Approval
 
@@ -474,8 +517,10 @@ Table of Contents
 
    *  for delegated access, the user is active and resolves as before;
 
-   *  for a continuation, the chain has not ended, and a Continuation
-      Association still permits the continuing client (Section 4.5); and
+   *  for a continuation, neither the presented hop nor an ancestor is
+      revoked, the chain has not ended, a Continuation Association still
+      permits the continuing client, and the continuation is within the
+      limits of Section 6.3 of [ICA] (Section 4.5); and
 
    *  no change applied within the IdP's freshness limit ("Issuance
       Authorization" in [FEDERATION]) withdraws any of these.
@@ -499,7 +544,8 @@ Table of Contents
    *  cnf.jkt equal to the thumbprint of the request's proof key; and
 
    *  iat and exp set when the grant issues, so that the grant's
-      redemption window begins at resolution.
+      redemption window begins at resolution, within the lifetime limits
+      of [FEDERATION] (Section 4.2).
 
    The successful polling response carries the issued_token_type of the
    originating request (Section 5.5.2 of [DTR]).  No claim in the grant
@@ -520,22 +566,44 @@ Table of Contents
    the IdP performs every validation step of the continuation exchange,
    including the Continuation Association and the limits of [ICA], and
    reserves the assertion as Section 5.5.7 of [ICA] requires.  The
-   deferral code then stands for that reservation, and the assertion
-   cannot be presented again.
+   pending governed request holds that reservation:
+
+   *  *Retention.* The IdP MUST retain the reservation until the later
+      of the request's end and the time Section 5.5.7 of [ICA] requires.
+
+   *  *States.* Where the IdP offers idempotent retry, this document
+      replaces one transition of Section 5.5.7.1 of [ICA] for a deferred
+      continuation: the reservation stays RESERVED while the request is
+      pending, rather than becoming FAILED at the assertion's exp plus
+      the permitted clock skew.  It becomes ISSUED when the onward grant
+      issues and FAILED when the request ends otherwise, on denial,
+      cancellation, expiry, or a failed re-check.
+
+   *  *Retries.* The IdP MUST reject a second presentation of the
+      assertion, both while the request is pending and after it ends.
+      Recovery (Section 5.5.7.1 of [ICA]) does not apply to an onward
+      grant issued at resolution, which only the polling response
+      delivers (Section 5.5.2 of [DTR]).
 
    A continuation exchange performs no agent resolution, so at
    resolution the IdP re-checks the chain and the continuing client's
    Continuation Association rather than an Identity Binding
-   (Section 4.4).  The continuation window and the limits of [ICA] are
-   evaluated when the request is received, not at resolution: the
-   assertion is consumed at deferral, the maximum pending lifetime
-   bounds how long after that the onward grant can issue, and an
-   approver decides in between.  A chain that ended while the request
-   was pending resolves to access_denied; the continuing client learns
-   of the ending from its next continuation, which fails with
-   invalid_continuation.  While the request is pending, the continuing
-   client reports the wait to its own caller through its own interface,
-   such as an MCP task (Section 8).
+   (Section 4.4).  The continuation window is evaluated when the request
+   is received: it bounds when a continuation can be requested, and the
+   maximum pending lifetime bounds how long after that the onward grant
+   can issue.  A chain that ended while the request was pending resolves
+   to access_denied; the continuing client learns of the ending from its
+   next continuation, which fails with invalid_continuation.  While the
+   request is pending, the continuing client reports the wait to its own
+   caller through its own interface, such as an MCP task (Section 7).
+
+   The limits of Section 6.3 of [ICA] count continuations that have
+   issued, not requests, so passing them at deferral reserves no
+   capacity.  At resolution, the IdP MUST evaluate them again against
+   the continuations issued by then, and MUST count the onward grant
+   against them atomically with issuing it, so that continuations
+   pending together cannot exceed a limit.  A request that would exceed
+   a limit resolves to access_denied.
 
 5.  Supervised Issuance
 
@@ -591,7 +659,7 @@ Table of Contents
 
    *  *Policy selects the mode.* A tool's declared hint, such as an MCP
       tool annotation, MUST NOT select or lower the mode that resource
-      policy requires for an action (Section 8).
+      policy requires for an action (Section 7).
 
    *  *The approver is a person.* Resource policy designates approvers
       as in Section 4.3, and the API MUST NOT accept a decision from the
@@ -601,8 +669,7 @@ Table of Contents
       condition within the token's authority and cannot expand it
       ("External Approval" in [FEDERATION]).  An action outside that
       authority needs a new governed grant, which the client requests by
-      token exchange and the IdP can defer under Section 4, or through
-      Section 7.
+      token exchange and the IdP can defer under Section 4.
 
    *  *A confirmation is not an approval unless it is bound.* A
       confirmation the client shows in its own interface is not an
@@ -610,40 +677,7 @@ Table of Contents
       authenticates the person, binds the decision as above, and makes
       the decision itself, consistent with Section 10.7 of [AIMS].
 
-7.  Approved Access Requests Completed as Governed Grants
-
-   This section is OPTIONAL.  Where an access request under [ARAP] is
-   approved and the agent needs new authority rather than a held action,
-   [AROP] completes the approved request as a token.  This section
-   profiles the deferred binding of [AROP], with a governed token
-   exchange as the originating grant.  An implementation that claims it:
-
-   *  sends, as the client, a governed token exchange request for the
-      authority the access request names, for the same agent and, for
-      delegated access, the same user, with completion_mode=deferred;
-
-   *  defers that request under Section 4, as the IdP, while the access
-      request is approved, and resolves it under Section 4.4;
-
-   *  issues a grant that names the same Agent Principal, user, client
-      registration, and proof key as the originating request, which
-      [AROP] does not itself require; and
-
-   *  applies approved_until only to the grant's own lifetime.
-
-   In the access evaluation, the agent is identified by the (iss, sub)
-   pair of [ACTOR-PROFILE] and the client by context.client_id, as
-   [AROP] places them.  The approval satisfies a condition of issuance;
-   it never replaces agent resolution, the Client Association, or the
-   Delegation or Agent Authorization, all of which Section 4.4 re-
-   checks.  The CIBA and transaction-challenge bindings of [AROP] are
-   outside this profile.
-
-   [FEDERATION] lists asynchronous approval with [AROP] as an excluded
-   composition; this section defines that composition for governed
-   issuance.
-
-8.  Model Context Protocol
+7.  Model Context Protocol
 
    This section is informative.  An MCP server is the enforcement point
    for each tool call it serves.  It realizes the modes as follows.
@@ -681,7 +715,7 @@ Table of Contents
       confirmation is client behavior, not an approval under this
       document (Section 6).
 
-9.  Conformance
+8.  Conformance
 
    Each claim below is optional and names the role that makes it:
 
@@ -699,10 +733,6 @@ Table of Contents
       |        | issuance, per     |                               |
       |        | target            |                               |
       +--------+-------------------+-------------------------------+
-      | IdP    | Approved access   | Section 7                     |
-      | and    | requests as       |                               |
-      | client | governed grants   |                               |
-      +--------+-------------------+-------------------------------+
       | Client | Deferred governed | Section 4.1; polling with the |
       |        | issuance          | same key under [DTR]; the no- |
       |        |                   | retry rule of Section 4.4     |
@@ -711,15 +741,15 @@ Table of Contents
       |        | oversight         |                               |
       +--------+-------------------+-------------------------------+
 
-                       Table 2: Conformance claims
+                       Table 3: Conformance claims
 
    A claim of deferred governed issuance requires the polling mode of
    [DTR]; callback notification (Section 6 of [DTR]) is optional.  Each
    claim requires the realization of [FEDERATION] it applies to.
 
-10.  Security Considerations
+9.  Security Considerations
 
-10.1.  Approval Fatigue
+9.1.  Approval Fatigue
 
    An approver asked too often approves without reading.  Policy that
    places routine requests under human in the loop trains approvers to
@@ -730,7 +760,7 @@ Table of Contents
    standing authority is an authorization change (Section 3), not a side
    effect of approving.
 
-10.2.  Misleading Requests
+9.2.  Misleading Requests
 
    An agent can phrase a request to mislead an approver.  The governed
    request context comes from the IdP's resolution, not from the
@@ -739,7 +769,7 @@ Table of Contents
    authority is needed; this document makes the request accurate, not
    the reason.
 
-10.3.  Self-Approval
+9.3.  Self-Approval
 
    An agent that could approve its own requests would remove the person
    the mode requires.  An approver is a person designated by policy, and
@@ -751,22 +781,23 @@ Table of Contents
    routes decisions to an automated approver is human out of the loop
    and records it as such (Section 3).
 
-10.4.  Stale Approvals
+9.4.  Stale Approvals
 
    A decision can come long after the request.  The IdP re-checks the
    agent, its bindings and associations, its authorization, the user,
    and the chain at resolution (Section 4.4), and the grant's lifetime
-   starts then.  The maximum pending lifetime bounds how old a request
-   can be when it is approved.
+   starts then.  The maximum pending lifetime, and for root issuance the
+   expiration of the credentials the request presented (Section 4.2),
+   bound how old a request can be when it is approved.
 
-10.5.  Deferral Codes
+9.5.  Deferral Codes
 
    A stolen deferral code could otherwise yield the grant after
    approval.  The code is bound to the client and to a DPoP key
    (Section 4.2), as Section 10.1 of [DTR] requires for clients whose
    profile mandates DPoP, and the grant carries the same key.
 
-10.6.  Downgrade
+9.6.  Downgrade
 
    A client that omits the opt-in, or retries a denied request another
    way, must not obtain the grant without the approval policy requires.
@@ -775,14 +806,14 @@ Table of Contents
    not retried as self-acting access, under another client, or under a
    lower profile (Section 4.4).
 
-10.7.  Supervised Exposure
+9.7.  Supervised Exposure
 
    Under supervised issuance, an agent acts before anyone reviews the
    grant.  What it does before an overseer intervenes, and before the
    intervention takes effect, cannot be undone.  The intervention bound
    (Section 5) states that window; it does not shorten it.
 
-11.  Privacy Considerations
+10.  Privacy Considerations
 
    An approver sees the agent, the user, the client, the target, and the
    requested authority, and an overseer sees the same for each grant.
@@ -792,13 +823,13 @@ Table of Contents
    designated for, and follow Section 8.3 of [DTR]: progress information
    in a polling response carries no personal data.
 
-12.  IANA Considerations
+11.  IANA Considerations
 
    This document has no IANA actions.
 
-13.  References
+12.  References
 
-13.1.  Normative References
+12.1.  Normative References
 
    [FEDERATION]
               McGuinness, K., "OAuth 2.0 Profile for Governed Agent
@@ -836,14 +867,7 @@ Table of Contents
               2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
               May 2017, <https://www.rfc-editor.org/rfc/rfc8174>.
 
-13.2.  Informative References
-
-   [ACTOR-PROFILE]
-              McGuinness, K., "OAuth Actor Profile for Delegation", Work
-              in Progress, Internet-Draft, draft-mcguinness-oauth-actor-
-              profile-01, 8 October 2026,
-              <https://datatracker.ietf.org/doc/html/draft-mcguinness-
-              oauth-actor-profile-01>.
+12.2.  Informative References
 
    [AGENT-LIFECYCLE]
               McGuinness, K., "Governed Agent Lifecycle Profile for SCIM
@@ -947,7 +971,10 @@ A.1.  Deferred Request
    DPoP proof of key K.  The IdP authenticates analysis-client, resolves
    agent-42, checks the Client Association and Alice's Delegation
    Authorization, and finds that policy requires Alice's approval for
-   files.write.  It records the pending governed request and responds:
+   files.write.  Alice's ID Token expires in 65 minutes, so a one-hour
+   pending lifetime leaves a grant issued at any point in it its full
+   300-second lifetime.  The IdP records the pending governed request
+   and responds:
 
    HTTP/1.1 400 Bad Request
    Content-Type: application/json
@@ -1017,9 +1044,10 @@ A.4.  Negative Tests
    | pending, and Alice then  |         | the next poll; no            |
    | approves                 |         | grant                        |
    +--------------------------+---------+------------------------------+
-   | Alice approves           | IdP     | A grant with scope           |
-   | files.read instead of    |         | files.read                   |
-   | files.write              |         |                              |
+   | The request asks for     | IdP     | A grant with scope           |
+   | files.read files.write,  |         | files.read                   |
+   | and Alice approves only  |         |                              |
+   | files.read               |         |                              |
    +--------------------------+---------+------------------------------+
    | Alice denies             | IdP     | HTTP 400,                    |
    |                          |         | access_denied at             |
@@ -1031,7 +1059,7 @@ A.4.  Negative Tests
    | grant                    |         |                              |
    +--------------------------+---------+------------------------------+
 
-                        Table 3: Negative test cases
+                        Table 4: Negative test cases
 
 Appendix B.  Relationship to Other Specifications
 
@@ -1044,19 +1072,27 @@ Appendix B.  Relationship to Other Specifications
     |                    | again at resolution; the grant keeps the  |
     |                    | request's agent, user, client, and key    |
     +--------------------+-------------------------------------------+
-    | [AROP]             | Its deferred binding, optionally profiled |
-    |                    | with a governed origin; the completed     |
-    |                    | grant keeps the originating agent, user,  |
-    |                    | client, and key                           |
+    | [AROP]             | Not profiled.  Its approved_until bounds  |
+    |                    | every token issued under an approval,     |
+    |                    | including those the RAS issues, which     |
+    |                    | deferral at the IdP cannot enforce        |
+    |                    | (Appendix C)                              |
     +--------------------+-------------------------------------------+
     | [ARAP]             | One way to route an approval; not         |
     |                    | required                                  |
+    +--------------------+-------------------------------------------+
+    | [ICA]              | A deferred continuation holds the         |
+    |                    | assertion's replay reservation while      |
+    |                    | pending, replacing one transition of      |
+    |                    | Section 5.5.7.1 of [ICA], and counts the  |
+    |                    | limits of Section 6.3 of [ICA] when the   |
+    |                    | onward grant issues (Section 4.5)         |
     +--------------------+-------------------------------------------+
     | [CIBA]             | One way to reach a user for a decision;   |
     |                    | not profiled                              |
     +--------------------+-------------------------------------------+
     | [MCP]              | Informative realization of per-action     |
-    |                    | oversight (Section 8)                     |
+    |                    | oversight (Section 7)                     |
     +--------------------+-------------------------------------------+
     | [MISSION-APPROVAL] | Approves a task, where this document      |
     |                    | approves a governed request.  A Mission   |
@@ -1073,14 +1109,18 @@ Appendix B.  Relationship to Other Specifications
     |                    | (Section 3)                               |
     +--------------------+-------------------------------------------+
 
-              Table 4: Relationship to other specifications
+              Table 5: Relationship to other specifications
 
 Appendix C.  Open Items
 
    1.  *Deferred redemption at the RAS.* [AROP] lets the RAS defer when
        an agent redeems a grant.  [DTR] does not name the jwt-bearer
        grant, and a deferred redemption needs rules for the grant's exp
-       and the RAS's replay record while pending.
+       and the RAS's replay record while pending.  Deferral at the RAS
+       is also where [AROP] could compose with governed access: the RAS
+       issues the tokens that approved_until bounds, while at the IdP
+       that bound is a downstream condition the composition cannot
+       enforce ("Issuance Authorization" in [FEDERATION]).
 
    2.  *Administering the mode.* No attribute records the oversight mode
        on a Delegation or Agent Authorization in the SCIM management

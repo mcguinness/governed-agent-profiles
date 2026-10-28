@@ -22,10 +22,8 @@ decision. The document profiles OAuth Deferred Token Response so that
 an identity provider can hold a governed grant until a person decides,
 binds that decision to the resolved agent, user, client, target,
 authority, and proof key, and requires the grant that follows to be the
-one the request would have produced. It optionally profiles the AuthZEN
-Access Request OAuth Profile so that an approved access request can
-complete as a governed grant, and describes how Model Context Protocol
-servers hold tool calls under these modes. 
+one the request would have produced. It also describes how Model
+Context Protocol servers hold tool calls under these modes. 
     " name="description">
 <meta content="xml2rfc 3.34.1" name="generator">
 <meta content="OAuth" name="keyword">
@@ -1113,10 +1111,8 @@ decision. The document profiles OAuth Deferred Token Response so that
 an identity provider can hold a governed grant until a person decides,
 binds that decision to the resolved agent, user, client, target,
 authority, and proof key, and requires the grant that follows to be the
-one the request would have produced. It optionally profiles the AuthZEN
-Access Request OAuth Profile so that an approved access request can
-complete as a governed grant, and describes how Model Context Protocol
-servers hold tool calls under these modes.<a href="#section-abstract-2" class="pilcrow">¶</a></p>
+one the request would have produced. It also describes how Model
+Context Protocol servers hold tool calls under these modes.<a href="#section-abstract-2" class="pilcrow">¶</a></p>
 </section>
 <section class="note rfcEditorRemove" id="section-note.1">
       <h2 id="name-about-this-document">
@@ -1226,88 +1222,85 @@ servers hold tool calls under these modes.<a href="#section-abstract-2" class="p
             <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-per-action-oversight" class="internal xref">Per-Action Oversight</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
-            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-approved-access-requests-co" class="internal xref">Approved Access Requests Completed as Governed Grants</a></p>
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-model-context-protocol" class="internal xref">Model Context Protocol</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
-            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-model-context-protocol" class="internal xref">Model Context Protocol</a></p>
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-conformance" class="internal xref">Conformance</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
-            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-conformance" class="internal xref">Conformance</a></p>
-</li>
-          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
-            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
+            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
 <ul class="compact toc ulBare ulEmpty">
-<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.1">
-                <p id="section-toc.1-1.10.2.1.1"><a href="#section-10.1" class="auto internal xref">10.1</a>.  <a href="#name-approval-fatigue" class="internal xref">Approval Fatigue</a></p>
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.1">
+                <p id="section-toc.1-1.9.2.1.1"><a href="#section-9.1" class="auto internal xref">9.1</a>.  <a href="#name-approval-fatigue" class="internal xref">Approval Fatigue</a></p>
 </li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.2">
-                <p id="section-toc.1-1.10.2.2.1"><a href="#section-10.2" class="auto internal xref">10.2</a>.  <a href="#name-misleading-requests" class="internal xref">Misleading Requests</a></p>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.2">
+                <p id="section-toc.1-1.9.2.2.1"><a href="#section-9.2" class="auto internal xref">9.2</a>.  <a href="#name-misleading-requests" class="internal xref">Misleading Requests</a></p>
 </li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.3">
-                <p id="section-toc.1-1.10.2.3.1"><a href="#section-10.3" class="auto internal xref">10.3</a>.  <a href="#name-self-approval" class="internal xref">Self-Approval</a></p>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.3">
+                <p id="section-toc.1-1.9.2.3.1"><a href="#section-9.3" class="auto internal xref">9.3</a>.  <a href="#name-self-approval" class="internal xref">Self-Approval</a></p>
 </li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.4">
-                <p id="section-toc.1-1.10.2.4.1"><a href="#section-10.4" class="auto internal xref">10.4</a>.  <a href="#name-stale-approvals" class="internal xref">Stale Approvals</a></p>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.4">
+                <p id="section-toc.1-1.9.2.4.1"><a href="#section-9.4" class="auto internal xref">9.4</a>.  <a href="#name-stale-approvals" class="internal xref">Stale Approvals</a></p>
 </li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.5">
-                <p id="section-toc.1-1.10.2.5.1"><a href="#section-10.5" class="auto internal xref">10.5</a>.  <a href="#name-deferral-codes" class="internal xref">Deferral Codes</a></p>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.5">
+                <p id="section-toc.1-1.9.2.5.1"><a href="#section-9.5" class="auto internal xref">9.5</a>.  <a href="#name-deferral-codes" class="internal xref">Deferral Codes</a></p>
 </li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.6">
-                <p id="section-toc.1-1.10.2.6.1"><a href="#section-10.6" class="auto internal xref">10.6</a>.  <a href="#name-downgrade" class="internal xref">Downgrade</a></p>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.6">
+                <p id="section-toc.1-1.9.2.6.1"><a href="#section-9.6" class="auto internal xref">9.6</a>.  <a href="#name-downgrade" class="internal xref">Downgrade</a></p>
 </li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.7">
-                <p id="section-toc.1-1.10.2.7.1"><a href="#section-10.7" class="auto internal xref">10.7</a>.  <a href="#name-supervised-exposure" class="internal xref">Supervised Exposure</a></p>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.7">
+                <p id="section-toc.1-1.9.2.7.1"><a href="#section-9.7" class="auto internal xref">9.7</a>.  <a href="#name-supervised-exposure" class="internal xref">Supervised Exposure</a></p>
 </li>
             </ul>
 </li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-privacy-considerations" class="internal xref">Privacy Considerations</a></p>
+</li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
-            <p id="section-toc.1-1.11.1"><a href="#section-11" class="auto internal xref">11</a>. <a href="#name-privacy-considerations" class="internal xref">Privacy Considerations</a></p>
+            <p id="section-toc.1-1.11.1"><a href="#section-11" class="auto internal xref">11</a>. <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
-            <p id="section-toc.1-1.12.1"><a href="#section-12" class="auto internal xref">12</a>. <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+            <p id="section-toc.1-1.12.1"><a href="#section-12" class="auto internal xref">12</a>. <a href="#name-references" class="internal xref">References</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.1">
+                <p id="section-toc.1-1.12.2.1.1"><a href="#section-12.1" class="auto internal xref">12.1</a>.  <a href="#name-normative-references" class="internal xref">Normative References</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.2">
+                <p id="section-toc.1-1.12.2.2.1"><a href="#section-12.2" class="auto internal xref">12.2</a>.  <a href="#name-informative-references" class="internal xref">Informative References</a></p>
+</li>
+            </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
-            <p id="section-toc.1-1.13.1"><a href="#section-13" class="auto internal xref">13</a>. <a href="#name-references" class="internal xref">References</a></p>
+            <p id="section-toc.1-1.13.1"><a href="#appendix-A" class="auto internal xref">Appendix A</a>.  <a href="#name-walkthrough-approval-before" class="internal xref">Walkthrough: Approval Before Issuance</a></p>
 <ul class="compact toc ulBare ulEmpty">
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.1">
-                <p id="section-toc.1-1.13.2.1.1"><a href="#section-13.1" class="auto internal xref">13.1</a>.  <a href="#name-normative-references" class="internal xref">Normative References</a></p>
+                <p id="section-toc.1-1.13.2.1.1"><a href="#appendix-A.1" class="auto internal xref">A.1</a>.  <a href="#name-deferred-request" class="internal xref">Deferred Request</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.2">
-                <p id="section-toc.1-1.13.2.2.1"><a href="#section-13.2" class="auto internal xref">13.2</a>.  <a href="#name-informative-references" class="internal xref">Informative References</a></p>
+                <p id="section-toc.1-1.13.2.2.1"><a href="#appendix-A.2" class="auto internal xref">A.2</a>.  <a href="#name-approval-2" class="internal xref">Approval</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.3">
+                <p id="section-toc.1-1.13.2.3.1"><a href="#appendix-A.3" class="auto internal xref">A.3</a>.  <a href="#name-resolution-2" class="internal xref">Resolution</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.4">
+                <p id="section-toc.1-1.13.2.4.1"><a href="#appendix-A.4" class="auto internal xref">A.4</a>.  <a href="#name-negative-tests" class="internal xref">Negative Tests</a></p>
 </li>
             </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14">
-            <p id="section-toc.1-1.14.1"><a href="#appendix-A" class="auto internal xref">Appendix A</a>.  <a href="#name-walkthrough-approval-before" class="internal xref">Walkthrough: Approval Before Issuance</a></p>
-<ul class="compact toc ulBare ulEmpty">
-<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.1">
-                <p id="section-toc.1-1.14.2.1.1"><a href="#appendix-A.1" class="auto internal xref">A.1</a>.  <a href="#name-deferred-request" class="internal xref">Deferred Request</a></p>
-</li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.2">
-                <p id="section-toc.1-1.14.2.2.1"><a href="#appendix-A.2" class="auto internal xref">A.2</a>.  <a href="#name-approval-2" class="internal xref">Approval</a></p>
-</li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.3">
-                <p id="section-toc.1-1.14.2.3.1"><a href="#appendix-A.3" class="auto internal xref">A.3</a>.  <a href="#name-resolution-2" class="internal xref">Resolution</a></p>
-</li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.4">
-                <p id="section-toc.1-1.14.2.4.1"><a href="#appendix-A.4" class="auto internal xref">A.4</a>.  <a href="#name-negative-tests" class="internal xref">Negative Tests</a></p>
-</li>
-            </ul>
+            <p id="section-toc.1-1.14.1"><a href="#appendix-B" class="auto internal xref">Appendix B</a>.  <a href="#name-relationship-to-other-speci" class="internal xref">Relationship to Other Specifications</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15">
-            <p id="section-toc.1-1.15.1"><a href="#appendix-B" class="auto internal xref">Appendix B</a>.  <a href="#name-relationship-to-other-speci" class="internal xref">Relationship to Other Specifications</a></p>
+            <p id="section-toc.1-1.15.1"><a href="#appendix-C" class="auto internal xref">Appendix C</a>.  <a href="#name-open-items" class="internal xref">Open Items</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.16">
-            <p id="section-toc.1-1.16.1"><a href="#appendix-C" class="auto internal xref">Appendix C</a>.  <a href="#name-open-items" class="internal xref">Open Items</a></p>
+            <p id="section-toc.1-1.16.1"><a href="#appendix-D" class="auto internal xref"></a><a href="#name-document-history" class="internal xref">Document History</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.17">
-            <p id="section-toc.1-1.17.1"><a href="#appendix-D" class="auto internal xref"></a><a href="#name-document-history" class="internal xref">Document History</a></p>
+            <p id="section-toc.1-1.17.1"><a href="#appendix-E" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.18">
-            <p id="section-toc.1-1.18.1"><a href="#appendix-E" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
-</li>
-          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.19">
-            <p id="section-toc.1-1.19.1"><a href="#appendix-F" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
+            <p id="section-toc.1-1.18.1"><a href="#appendix-F" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
 </li>
         </ul>
 </nav>
@@ -1334,9 +1327,7 @@ a token (<span>[<a href="#ARAP" class="cite xref">ARAP</a>]</span>, <span>[<a hr
 hold a tool call while they wait. None of them says which agent, user,
 and authority an approval covers when the requester is a governed
 agent, or what grant follows it. <span>[<a href="#DTR" class="cite xref">DTR</a>]</span> does not say that the token it
-eventually returns keeps the original subject, actor, or client.
-<span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> lists asynchronous approval with <span>[<a href="#AROP" class="cite xref">AROP</a>]</span> as a
-composition it excludes.<a href="#section-1-2" class="pilcrow">¶</a></p>
+eventually returns keeps the original subject, actor, or client.<a href="#section-1-2" class="pilcrow">¶</a></p>
 <p id="section-1-3"><span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> answers who acts, for whom, and under what authorization.
 <span>[<a href="#DTR" class="cite xref">DTR</a>]</span> answers how a token endpoint waits. This document answers when
 a person must decide, what the decision binds to, and what grant follows
@@ -1358,14 +1349,10 @@ claiming that a person can observe and end each grant
 </li>
         <li class="normal" id="section-1-4.4">
           <p id="section-1-4.4.1">per-action oversight at a resource, within the authority of the
-access token (<a href="#per-action" class="auto internal xref">Section 6</a>);<a href="#section-1-4.4.1" class="pilcrow">¶</a></p>
-</li>
-        <li class="normal" id="section-1-4.5">
-          <p id="section-1-4.5.1">optionally, approved access requests that complete as governed grants
-through <span>[<a href="#AROP" class="cite xref">AROP</a>]</span> (<a href="#arop" class="auto internal xref">Section 7</a>).<a href="#section-1-4.5.1" class="pilcrow">¶</a></p>
+access token (<a href="#per-action" class="auto internal xref">Section 6</a>).<a href="#section-1-4.4.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
-<p id="section-1-5"><a href="#mcp" class="auto internal xref">Section 8</a> describes how Model Context Protocol servers realize these
+<p id="section-1-5"><a href="#mcp" class="auto internal xref">Section 7</a> describes how Model Context Protocol servers realize these
 modes; that section is informative.<a href="#section-1-5" class="pilcrow">¶</a></p>
 <div id="overview">
 <section id="section-1.1">
@@ -1436,9 +1423,8 @@ the same key (<a href="#resolution" class="auto internal xref">Section 4.4</a>).
 <a href="#section-1.2" class="section-number selfRef">1.2. </a><a href="#name-scope" class="section-name selfRef">Scope</a>
         </h3>
 <p id="section-1.2-1">This document covers governed grant issuance at the IdP, including
-continuation (<span>[<a href="#CONTINUATION" class="cite xref">CONTINUATION</a>]</span>), oversight of individual actions at an
-API, and the completion of approved access requests as governed grants.
-It does not cover:<a href="#section-1.2-1" class="pilcrow">¶</a></p>
+continuation (<span>[<a href="#CONTINUATION" class="cite xref">CONTINUATION</a>]</span>), and oversight of individual actions at
+an API. It does not cover:<a href="#section-1.2-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-1.2-2.1">
             <p id="section-1.2-2.1.1">approval of a task, which Mission-Bound Authorization addresses
@@ -1454,7 +1440,8 @@ It does not cover:<a href="#section-1.2-1" class="pilcrow">¶</a></p>
             <p id="section-1.2-2.4.1">the format or transport of notices to overseers;<a href="#section-1.2-2.4.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-1.2-2.5">
-            <p id="section-1.2-2.5.1">deferral of grant redemption at the RAS (<a href="#open-items" class="auto internal xref">Appendix C</a>).<a href="#section-1.2-2.5.1" class="pilcrow">¶</a></p>
+            <p id="section-1.2-2.5.1">deferral of grant redemption at the RAS, or completion of an approved
+access request as a token under <span>[<a href="#AROP" class="cite xref">AROP</a>]</span> (<a href="#open-items" class="auto internal xref">Appendix C</a>).<a href="#section-1.2-2.5.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 <p id="section-1.2-3">This document defines no new token format, claim, error code, grant
@@ -1632,7 +1619,67 @@ define how such acts are recorded.<a href="#section-3-5" class="pilcrow">¶</a><
       </h2>
 <p id="section-4-1">This section profiles <span>[<a href="#DTR" class="cite xref">DTR</a>]</span> for governed token exchange requests at
 the IdP: ID-JAG and WAG requests under <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>, and continuation
-requests under <span>[<a href="#CONTINUATION" class="cite xref">CONTINUATION</a>]</span>.<a href="#section-4-1" class="pilcrow">¶</a></p>
+requests under <span>[<a href="#CONTINUATION" class="cite xref">CONTINUATION</a>]</span>. A pending governed request moves
+through these steps, which the subsections define:<a href="#section-4-1" class="pilcrow">¶</a></p>
+<span id="name-steps-of-a-pending-governed"></span><table class="center" id="table-2">
+        <caption>
+<a href="#table-2" class="selfRef">Table 2</a>:
+<a href="#name-steps-of-a-pending-governed" class="selfRef">Steps of a pending governed request</a>
+        </caption>
+<thead>
+          <tr>
+            <th class="text-left" rowspan="1" colspan="1">Event</th>
+            <th class="text-left" rowspan="1" colspan="1">IdP action</th>
+            <th class="text-left" rowspan="1" colspan="1">Result</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Request with the opt-in</td>
+            <td class="text-left" rowspan="1" colspan="1">Completes every check except the approver's decision; for a continuation, reserves the assertion (<a href="#deferring" class="auto internal xref">Section 4.2</a>, <a href="#deferred-continuation" class="auto internal xref">Section 4.5</a>)</td>
+            <td class="text-left" rowspan="1" colspan="1">Pending; deferred response</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Poll before a decision</td>
+            <td class="text-left" rowspan="1" colspan="1">Verifies the client and its key</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>authorization_pending</code> or <code>slow_down</code>
+</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Approver decides</td>
+            <td class="text-left" rowspan="1" colspan="1">Records the decision for this request only (<a href="#approval" class="auto internal xref">Section 4.3</a>)</td>
+            <td class="text-left" rowspan="1" colspan="1">Pending until the next poll</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Poll after approval</td>
+            <td class="text-left" rowspan="1" colspan="1">Re-checks the request; for a continuation, counts the grant against the limits as it issues (<a href="#resolution" class="auto internal xref">Section 4.4</a>)</td>
+            <td class="text-left" rowspan="1" colspan="1">Grant; reservation ISSUED</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Poll after denial, or a re-check fails</td>
+            <td class="text-left" rowspan="1" colspan="1">Issues nothing</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>access_denied</code>; reservation FAILED</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Client revokes the deferral code (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-7" class="relref">Section 7</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>)</td>
+            <td class="text-left" rowspan="1" colspan="1">Ends the request</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>access_denied</code>; reservation FAILED</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>expires_in</code> elapses</td>
+            <td class="text-left" rowspan="1" colspan="1">Issues nothing</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>expired_token</code>; reservation FAILED</td>
+          </tr>
+        </tbody>
+      </table>
+<p id="section-4-3">Reservation states apply to a deferred continuation at an IdP that
+offers idempotent retry (<a href="#deferred-continuation" class="auto internal xref">Section 4.5</a>). A pending request
+holds no limit capacity and no grant, so its end releases nothing else.<a href="#section-4-3" class="pilcrow">¶</a></p>
 <div id="opt-in">
 <section id="section-4.1">
         <h3 id="name-client-opt-in">
@@ -1679,13 +1726,18 @@ authenticated client and to the key of the request's DPoP proof, and
 <span class="bcp14">MUST</span> reject a poll or cancellation that does not prove that key
 (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-10.1" class="relref">Section 10.1</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>). The IdP <span class="bcp14">MUST</span> set <code>expires_in</code> no greater than
 a configured maximum pending lifetime for the applicable policy.<a href="#section-4.2-2" class="pilcrow">¶</a></p>
-<p id="section-4.2-3">The IdP validates the subject token when it receives the request. At
-resolution it re-checks the user's current state (<a href="#resolution" class="auto internal xref">Section 4.4</a>), not
-the subject token's lifetime, because the pending governed request is
-not a credential and the deferral code is single-use and
-sender-constrained. A deployment that needs a current user credential
-at resolution sets a maximum pending lifetime no longer than the
-subject token's remaining lifetime.<a href="#section-4.2-3" class="pilcrow">¶</a></p>
+<p id="section-4.2-3">The client does not present the subject token or the agent-resolution
+input again; the IdP validates them when it receives the request. The
+lifetime limits of <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> still bound the grant issued at
+resolution: an ID-JAG does not outlive its subject credential ("Grant
+Issuance" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>), and no grant outlives an agent-resolution
+input that bounds it, such as a platform JWT ("Common Grant Claims,
+Lifetime, and Response" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>). For root issuance, the IdP
+<span class="bcp14">MUST</span> set <code>expires_in</code> so that the pending governed request ends no
+later than the earliest of those expirations. An approval late in the
+window therefore yields a shorter grant. A deployment that needs a
+longer window uses a subject credential that expires later, such as a
+refresh token.<a href="#section-4.2-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="approval">
@@ -1752,9 +1804,10 @@ authority;<a href="#section-4.4-2.3.1" class="pilcrow">¶</a></p>
             <p id="section-4.4-2.4.1">for delegated access, the user is active and resolves as before;<a href="#section-4.4-2.4.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-4.4-2.5">
-            <p id="section-4.4-2.5.1">for a continuation, the chain has not ended, and a Continuation
-Association still permits the continuing client
-(<a href="#deferred-continuation" class="auto internal xref">Section 4.5</a>); and<a href="#section-4.4-2.5.1" class="pilcrow">¶</a></p>
+            <p id="section-4.4-2.5.1">for a continuation, neither the presented hop nor an ancestor is
+revoked, the chain has not ended, a Continuation Association still
+permits the continuing client, and the continuation is within the
+limits of <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-6.3" class="relref">Section 6.3</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span> (<a href="#deferred-continuation" class="auto internal xref">Section 4.5</a>); and<a href="#section-4.4-2.5.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-4.4-2.6">
             <p id="section-4.4-2.6.1">no change applied within the IdP's freshness limit ("Issuance
@@ -1783,7 +1836,8 @@ resource;<a href="#section-4.4-5.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-4.4-5.4">
             <p id="section-4.4-5.4.1"><code>iat</code> and <code>exp</code> set when the grant issues, so that the grant's
-redemption window begins at resolution.<a href="#section-4.4-5.4.1" class="pilcrow">¶</a></p>
+redemption window begins at resolution, within the lifetime limits of
+<span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> (<a href="#deferring" class="auto internal xref">Section 4.2</a>).<a href="#section-4.4-5.4.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 <p id="section-4.4-6">The successful polling response carries the <code>issued_token_type</code> of the
@@ -1808,20 +1862,47 @@ section, with the continuing client as the client. Before deferring, the
 IdP performs every validation step of the continuation exchange,
 including the Continuation Association and the limits of <span>[<a href="#ICA" class="cite xref">ICA</a>]</span>, and
 reserves the assertion as <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.5.7" class="relref">Section 5.5.7</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span> requires. The
-deferral code then stands for that reservation, and the assertion
-cannot be presented again.<a href="#section-4.5-1" class="pilcrow">¶</a></p>
-<p id="section-4.5-2">A continuation exchange performs no agent resolution, so at resolution
+pending governed request holds that reservation:<a href="#section-4.5-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.5-2.1">
+            <p id="section-4.5-2.1.1"><strong>Retention.</strong> The IdP <span class="bcp14">MUST</span> retain the reservation until the later of
+the request's end and the time <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.5.7" class="relref">Section 5.5.7</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span> requires.<a href="#section-4.5-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.5-2.2">
+            <p id="section-4.5-2.2.1"><strong>States.</strong> Where the IdP offers idempotent retry, this document
+replaces one transition of <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.5.7.1" class="relref">Section 5.5.7.1</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span> for a deferred
+continuation: the reservation stays RESERVED while the request is
+pending, rather than becoming FAILED at the assertion's <code>exp</code> plus
+the permitted clock skew. It becomes ISSUED when the onward grant
+issues and FAILED when the request ends otherwise, on denial,
+cancellation, expiry, or a failed re-check.<a href="#section-4.5-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.5-2.3">
+            <p id="section-4.5-2.3.1"><strong>Retries.</strong> The IdP <span class="bcp14">MUST</span> reject a second presentation of the
+assertion, both while the request is pending and after it ends.
+Recovery (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.5.7.1" class="relref">Section 5.5.7.1</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>) does not apply to an onward
+grant issued at resolution, which only the polling response delivers
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-5.5.2" class="relref">Section 5.5.2</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>).<a href="#section-4.5-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-4.5-3">A continuation exchange performs no agent resolution, so at resolution
 the IdP re-checks the chain and the continuing client's Continuation
 Association rather than an Identity Binding (<a href="#resolution" class="auto internal xref">Section 4.4</a>). The
-continuation window and the limits of <span>[<a href="#ICA" class="cite xref">ICA</a>]</span> are evaluated when the
-request is received, not at resolution: the assertion is consumed at
-deferral, the maximum pending lifetime bounds how long after that the
-onward grant can issue, and an approver decides in between. A chain
+continuation window is evaluated when the request is received: it
+bounds when a continuation can be requested, and the maximum pending
+lifetime bounds how long after that the onward grant can issue. A chain
 that ended while the request was pending resolves to <code>access_denied</code>;
 the continuing client learns of the ending from its next continuation,
 which fails with <code>invalid_continuation</code>. While the request is pending,
 the continuing client reports the wait to its own caller through its
-own interface, such as an MCP task (<a href="#mcp" class="auto internal xref">Section 8</a>).<a href="#section-4.5-2" class="pilcrow">¶</a></p>
+own interface, such as an MCP task (<a href="#mcp" class="auto internal xref">Section 7</a>).<a href="#section-4.5-3" class="pilcrow">¶</a></p>
+<p id="section-4.5-4">The limits of <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-6.3" class="relref">Section 6.3</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span> count continuations that have
+issued, not requests, so passing them at deferral reserves no capacity.
+At resolution, the IdP <span class="bcp14">MUST</span> evaluate them again against the
+continuations issued by then, and <span class="bcp14">MUST</span> count the onward grant against
+them atomically with issuing it, so that continuations pending together
+cannot exceed a limit. A request that would exceed a limit resolves to
+<code>access_denied</code>.<a href="#section-4.5-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -1895,7 +1976,7 @@ establishes as self-acting ("Profile Applicability" in
         <li class="normal" id="section-6-2.2">
           <p id="section-6-2.2.1"><strong>Policy selects the mode.</strong> A tool's declared hint, such as an MCP
 tool annotation, <span class="bcp14">MUST NOT</span> select or lower the mode that resource
-policy requires for an action (<a href="#mcp" class="auto internal xref">Section 8</a>).<a href="#section-6-2.2.1" class="pilcrow">¶</a></p>
+policy requires for an action (<a href="#mcp" class="auto internal xref">Section 7</a>).<a href="#section-6-2.2.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-6-2.3">
           <p id="section-6-2.3.1"><strong>The approver is a person.</strong> Resource policy designates approvers as
@@ -1907,8 +1988,7 @@ client, the agent, or another agent as an approval.<a href="#section-6-2.3.1" cl
 condition within the token's authority and cannot expand it
 ("External Approval" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>). An action outside that
 authority needs a new governed grant, which the client requests by
-token exchange and the IdP can defer under <a href="#deferred-issuance" class="auto internal xref">Section 4</a>, or
-through <a href="#arop" class="auto internal xref">Section 7</a>.<a href="#section-6-2.4.1" class="pilcrow">¶</a></p>
+token exchange and the IdP can defer under <a href="#deferred-issuance" class="auto internal xref">Section 4</a>.<a href="#section-6-2.4.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-6-2.5">
           <p id="section-6-2.5.1"><strong>A confirmation is not an approval unless it is bound.</strong> A
@@ -1920,105 +2000,63 @@ itself, consistent with <span><a href="https://datatracker.ietf.org/doc/html/dra
       </ul>
 </section>
 </div>
-<div id="arop">
+<div id="mcp">
 <section id="section-7">
-      <h2 id="name-approved-access-requests-co">
-<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-approved-access-requests-co" class="section-name selfRef">Approved Access Requests Completed as Governed Grants</a>
+      <h2 id="name-model-context-protocol">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-model-context-protocol" class="section-name selfRef">Model Context Protocol</a>
       </h2>
-<p id="section-7-1">This section is <span class="bcp14">OPTIONAL</span>. Where an access request under <span>[<a href="#ARAP" class="cite xref">ARAP</a>]</span> is
-approved and the agent needs new authority rather than a held action,
-<span>[<a href="#AROP" class="cite xref">AROP</a>]</span> completes the approved request as a token. This section
-profiles the deferred binding of <span>[<a href="#AROP" class="cite xref">AROP</a>]</span>, with a governed token
-exchange as the originating grant. An implementation that claims it:<a href="#section-7-1" class="pilcrow">¶</a></p>
+<p id="section-7-1">This section is informative. An MCP server is the enforcement point for
+each tool call it serves. It realizes the modes as follows.<a href="#section-7-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-7-2.1">
-          <p id="section-7-2.1.1">sends, as the client, a governed token exchange request for the
-authority the access request names, for the same agent and, for
-delegated access, the same user, with <code>completion_mode=deferred</code>;<a href="#section-7-2.1.1" class="pilcrow">¶</a></p>
-</li>
-        <li class="normal" id="section-7-2.2">
-          <p id="section-7-2.2.1">defers that request under <a href="#deferred-issuance" class="auto internal xref">Section 4</a>, as the IdP, while
-the access request is approved, and resolves it under
-<a href="#resolution" class="auto internal xref">Section 4.4</a>;<a href="#section-7-2.2.1" class="pilcrow">¶</a></p>
-</li>
-        <li class="normal" id="section-7-2.3">
-          <p id="section-7-2.3.1">issues a grant that names the same Agent Principal, user, client
-registration, and proof key as the originating request, which <span>[<a href="#AROP" class="cite xref">AROP</a>]</span>
-does not itself require; and<a href="#section-7-2.3.1" class="pilcrow">¶</a></p>
-</li>
-        <li class="normal" id="section-7-2.4">
-          <p id="section-7-2.4.1">applies <code>approved_until</code> only to the grant's own lifetime.<a href="#section-7-2.4.1" class="pilcrow">¶</a></p>
-</li>
-      </ul>
-<p id="section-7-3">In the access evaluation, the agent is identified by the (<code>iss</code>, <code>sub</code>)
-pair of <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span> and the client by <code>context.client_id</code>, as
-<span>[<a href="#AROP" class="cite xref">AROP</a>]</span> places them. The approval satisfies a condition of issuance;
-it never replaces agent resolution, the Client Association, or the
-Delegation or Agent Authorization, all of which <a href="#resolution" class="auto internal xref">Section 4.4</a>
-re-checks. The CIBA and transaction-challenge bindings of <span>[<a href="#AROP" class="cite xref">AROP</a>]</span> are
-outside this profile.<a href="#section-7-3" class="pilcrow">¶</a></p>
-<p id="section-7-4"><span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> lists asynchronous approval with <span>[<a href="#AROP" class="cite xref">AROP</a>]</span> as an excluded
-composition; this section defines that composition for governed
-issuance.<a href="#section-7-4" class="pilcrow">¶</a></p>
-</section>
-</div>
-<div id="mcp">
-<section id="section-8">
-      <h2 id="name-model-context-protocol">
-<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-model-context-protocol" class="section-name selfRef">Model Context Protocol</a>
-      </h2>
-<p id="section-8-1">This section is informative. An MCP server is the enforcement point for
-each tool call it serves. It realizes the modes as follows.<a href="#section-8-1" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-8-2.1">
-          <p id="section-8-2.1.1"><strong>Holding a call.</strong> A server that requires a person to decide on a
+          <p id="section-7-2.1.1"><strong>Holding a call.</strong> A server that requires a person to decide on a
 call holds it as an MCP task, reporting <code>working</code> or <code>input_required</code>
 until the approver decides (<span>[<a href="#MCP" class="cite xref">MCP</a>]</span>). <span>[<a href="#MCP-SEP-2848" class="cite xref">MCP-SEP-2848</a>]</span> proposes a
 standard extension in which a requestable denial returns a task that
 stays <code>working</code> while the approval resolves out of band, with an
-access request service under <span>[<a href="#ARAP" class="cite xref">ARAP</a>]</span> behind it.<a href="#section-8-2.1.1" class="pilcrow">¶</a></p>
+access request service under <span>[<a href="#ARAP" class="cite xref">ARAP</a>]</span> behind it.<a href="#section-7-2.1.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-8-2.2">
-          <p id="section-8-2.2.1"><strong>Reaching the user.</strong> URL-mode elicitation can take the user to an
+        <li class="normal" id="section-7-2.2">
+          <p id="section-7-2.2.1"><strong>Reaching the user.</strong> URL-mode elicitation can take the user to an
 approval page while the user is present. <span>[<a href="#MCP" class="cite xref">MCP</a>]</span> requires the server
 to bind the elicitation to the user identified by its authorization
 and states that the elicitation response does not authorize. Under
 this document, the decision is made on the approval page by an
 authenticated approver and feeds the server's decision
-(<a href="#per-action" class="auto internal xref">Section 6</a>). A self-acting token has no user to elicit from.<a href="#section-8-2.2.1" class="pilcrow">¶</a></p>
+(<a href="#per-action" class="auto internal xref">Section 6</a>). A self-acting token has no user to elicit from.<a href="#section-7-2.2.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-8-2.3">
-          <p id="section-8-2.3.1"><strong>Asking for more authority.</strong> A call outside the token's authority
+        <li class="normal" id="section-7-2.3">
+          <p id="section-7-2.3.1"><strong>Asking for more authority.</strong> A call outside the token's authority
 can be refused with an <code>insufficient_scope</code> challenge. The client then
 requests a new governed grant by token exchange, which the IdP can
 defer (<a href="#deferred-issuance" class="auto internal xref">Section 4</a>). <span>[<a href="#MCP-SEP-2643" class="cite xref">MCP-SEP-2643</a>]</span> proposes structured
-denials that can describe this remediation.<a href="#section-8-2.3.1" class="pilcrow">¶</a></p>
+denials that can describe this remediation.<a href="#section-7-2.3.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-8-2.4">
-          <p id="section-8-2.4.1"><strong>Tool annotations.</strong> <span>[<a href="#MCP" class="cite xref">MCP</a>]</span> defines tool annotations, such as
+        <li class="normal" id="section-7-2.4">
+          <p id="section-7-2.4.1"><strong>Tool annotations.</strong> <span>[<a href="#MCP" class="cite xref">MCP</a>]</span> defines tool annotations, such as
 <code>destructiveHint</code>, as hints that clients treat as untrusted unless the
 server is trusted. They do not select or lower a mode
 (<a href="#modes" class="auto internal xref">Section 3</a>); a deployment can use its own classification of tools to
-require a stricter one.<a href="#section-8-2.4.1" class="pilcrow">¶</a></p>
+require a stricter one.<a href="#section-7-2.4.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-8-2.5">
-          <p id="section-8-2.5.1"><strong>Client confirmations.</strong> <span>[<a href="#MCP" class="cite xref">MCP</a>]</span> recommends that a person be able to
+        <li class="normal" id="section-7-2.5">
+          <p id="section-7-2.5.1"><strong>Client confirmations.</strong> <span>[<a href="#MCP" class="cite xref">MCP</a>]</span> recommends that a person be able to
 deny tool calls and sampling requests in the client. Such a
 confirmation is client behavior, not an approval under this document
-(<a href="#per-action" class="auto internal xref">Section 6</a>).<a href="#section-8-2.5.1" class="pilcrow">¶</a></p>
+(<a href="#per-action" class="auto internal xref">Section 6</a>).<a href="#section-7-2.5.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 </section>
 </div>
 <div id="conformance">
-<section id="section-9">
+<section id="section-8">
       <h2 id="name-conformance">
-<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-conformance" class="section-name selfRef">Conformance</a>
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-conformance" class="section-name selfRef">Conformance</a>
       </h2>
-<p id="section-9-1">Each claim below is optional and names the role that makes it:<a href="#section-9-1" class="pilcrow">¶</a></p>
-<span id="name-conformance-claims"></span><table class="center" id="table-2">
+<p id="section-8-1">Each claim below is optional and names the role that makes it:<a href="#section-8-1" class="pilcrow">¶</a></p>
+<span id="name-conformance-claims"></span><table class="center" id="table-3">
         <caption>
-<a href="#table-2" class="selfRef">Table 2</a>:
+<a href="#table-3" class="selfRef">Table 3</a>:
 <a href="#name-conformance-claims" class="selfRef">Conformance claims</a>
         </caption>
 <thead>
@@ -2051,13 +2089,6 @@ confirmation is client behavior, not an approval under this document
 </td>
           </tr>
           <tr>
-            <td class="text-left" rowspan="1" colspan="1">IdP and client</td>
-            <td class="text-left" rowspan="1" colspan="1">Approved access requests as governed grants</td>
-            <td class="text-left" rowspan="1" colspan="1">
-              <a href="#arop" class="auto internal xref">Section 7</a>
-</td>
-          </tr>
-          <tr>
             <td class="text-left" rowspan="1" colspan="1">Client</td>
             <td class="text-left" rowspan="1" colspan="1">Deferred governed issuance</td>
             <td class="text-left" rowspan="1" colspan="1">
@@ -2073,48 +2104,48 @@ confirmation is client behavior, not an approval under this document
           </tr>
         </tbody>
       </table>
-<p id="section-9-3">A claim of deferred governed issuance requires the polling mode of
+<p id="section-8-3">A claim of deferred governed issuance requires the polling mode of
 <span>[<a href="#DTR" class="cite xref">DTR</a>]</span>; callback notification (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-6" class="relref">Section 6</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>) is optional. Each
-claim requires the realization of <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> it applies to.<a href="#section-9-3" class="pilcrow">¶</a></p>
+claim requires the realization of <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> it applies to.<a href="#section-8-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="security">
-<section id="section-10">
+<section id="section-9">
       <h2 id="name-security-considerations">
-<a href="#section-10" class="section-number selfRef">10. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
+<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
       </h2>
 <div id="security-fatigue">
-<section id="section-10.1">
+<section id="section-9.1">
         <h3 id="name-approval-fatigue">
-<a href="#section-10.1" class="section-number selfRef">10.1. </a><a href="#name-approval-fatigue" class="section-name selfRef">Approval Fatigue</a>
+<a href="#section-9.1" class="section-number selfRef">9.1. </a><a href="#name-approval-fatigue" class="section-name selfRef">Approval Fatigue</a>
         </h3>
-<p id="section-10.1-1">An approver asked too often approves without reading. Policy that
+<p id="section-9.1-1">An approver asked too often approves without reading. Policy that
 places routine requests under human in the loop trains approvers to
 approve. Deployments can reserve approval for requests whose authority
 warrants it, grant routine authority as standing authorization that a
 person reviews periodically, and limit how many pending requests one
 agent can hold. Converting an approval into standing authority is an
-authorization change (<a href="#modes" class="auto internal xref">Section 3</a>), not a side effect of approving.<a href="#section-10.1-1" class="pilcrow">¶</a></p>
+authorization change (<a href="#modes" class="auto internal xref">Section 3</a>), not a side effect of approving.<a href="#section-9.1-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="security-misleading">
-<section id="section-10.2">
+<section id="section-9.2">
         <h3 id="name-misleading-requests">
-<a href="#section-10.2" class="section-number selfRef">10.2. </a><a href="#name-misleading-requests" class="section-name selfRef">Misleading Requests</a>
+<a href="#section-9.2" class="section-number selfRef">9.2. </a><a href="#name-misleading-requests" class="section-name selfRef">Misleading Requests</a>
         </h3>
-<p id="section-10.2-1">An agent can phrase a request to mislead an approver. The governed
+<p id="section-9.2-1">An agent can phrase a request to mislead an approver. The governed
 request context comes from the IdP's resolution, not from the request,
 and the requester's own text is shown as the requester's
 (<a href="#approval" class="auto internal xref">Section 4.3</a>). An approver can still be misled about why the authority
-is needed; this document makes the request accurate, not the reason.<a href="#section-10.2-1" class="pilcrow">¶</a></p>
+is needed; this document makes the request accurate, not the reason.<a href="#section-9.2-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="security-self">
-<section id="section-10.3">
+<section id="section-9.3">
         <h3 id="name-self-approval">
-<a href="#section-10.3" class="section-number selfRef">10.3. </a><a href="#name-self-approval" class="section-name selfRef">Self-Approval</a>
+<a href="#section-9.3" class="section-number selfRef">9.3. </a><a href="#name-self-approval" class="section-name selfRef">Self-Approval</a>
         </h3>
-<p id="section-10.3-1">An agent that could approve its own requests would remove the person the
+<p id="section-9.3-1">An agent that could approve its own requests would remove the person the
 mode requires. An approver is a person designated by policy, and neither
 the requesting agent, its client, nor another agent can approve
 (<a href="#approval" class="auto internal xref">Section 4.3</a>, <a href="#per-action" class="auto internal xref">Section 6</a>). How an IdP or API tells a person's
@@ -2122,89 +2153,90 @@ decision from an automated one depends on the approval channel, which
 this document does not define; the channel's authentication of the
 approver is what makes the rule enforceable. A deployment that routes
 decisions to an automated approver is human out of the loop and records
-it as such (<a href="#modes" class="auto internal xref">Section 3</a>).<a href="#section-10.3-1" class="pilcrow">¶</a></p>
+it as such (<a href="#modes" class="auto internal xref">Section 3</a>).<a href="#section-9.3-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="security-stale">
-<section id="section-10.4">
+<section id="section-9.4">
         <h3 id="name-stale-approvals">
-<a href="#section-10.4" class="section-number selfRef">10.4. </a><a href="#name-stale-approvals" class="section-name selfRef">Stale Approvals</a>
+<a href="#section-9.4" class="section-number selfRef">9.4. </a><a href="#name-stale-approvals" class="section-name selfRef">Stale Approvals</a>
         </h3>
-<p id="section-10.4-1">A decision can come long after the request. The IdP re-checks the agent,
+<p id="section-9.4-1">A decision can come long after the request. The IdP re-checks the agent,
 its bindings and associations, its authorization, the user, and the
 chain at resolution (<a href="#resolution" class="auto internal xref">Section 4.4</a>), and the grant's lifetime starts
-then. The maximum pending lifetime bounds how old a request can be when
-it is approved.<a href="#section-10.4-1" class="pilcrow">¶</a></p>
+then. The maximum pending lifetime, and for root issuance the
+expiration of the credentials the request presented (<a href="#deferring" class="auto internal xref">Section 4.2</a>),
+bound how old a request can be when it is approved.<a href="#section-9.4-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="security-codes">
-<section id="section-10.5">
+<section id="section-9.5">
         <h3 id="name-deferral-codes">
-<a href="#section-10.5" class="section-number selfRef">10.5. </a><a href="#name-deferral-codes" class="section-name selfRef">Deferral Codes</a>
+<a href="#section-9.5" class="section-number selfRef">9.5. </a><a href="#name-deferral-codes" class="section-name selfRef">Deferral Codes</a>
         </h3>
-<p id="section-10.5-1">A stolen deferral code could otherwise yield the grant after approval.
+<p id="section-9.5-1">A stolen deferral code could otherwise yield the grant after approval.
 The code is bound to the client and to a DPoP key (<a href="#deferring" class="auto internal xref">Section 4.2</a>), as
 <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-10.1" class="relref">Section 10.1</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span> requires for clients whose profile mandates
-DPoP, and the grant carries the same key.<a href="#section-10.5-1" class="pilcrow">¶</a></p>
+DPoP, and the grant carries the same key.<a href="#section-9.5-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="security-downgrade">
-<section id="section-10.6">
+<section id="section-9.6">
         <h3 id="name-downgrade">
-<a href="#section-10.6" class="section-number selfRef">10.6. </a><a href="#name-downgrade" class="section-name selfRef">Downgrade</a>
+<a href="#section-9.6" class="section-number selfRef">9.6. </a><a href="#name-downgrade" class="section-name selfRef">Downgrade</a>
         </h3>
-<p id="section-10.6-1">A client that omits the opt-in, or retries a denied request another way,
+<p id="section-9.6-1">A client that omits the opt-in, or retries a denied request another way,
 must not obtain the grant without the approval policy requires. Policy
 selects the mode, a request without the opt-in is refused rather than
 issued (<a href="#opt-in" class="auto internal xref">Section 4.1</a>), and a denied or expired request is not retried as
 self-acting access, under another client, or under a lower profile
-(<a href="#resolution" class="auto internal xref">Section 4.4</a>).<a href="#section-10.6-1" class="pilcrow">¶</a></p>
+(<a href="#resolution" class="auto internal xref">Section 4.4</a>).<a href="#section-9.6-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="security-exposure">
-<section id="section-10.7">
+<section id="section-9.7">
         <h3 id="name-supervised-exposure">
-<a href="#section-10.7" class="section-number selfRef">10.7. </a><a href="#name-supervised-exposure" class="section-name selfRef">Supervised Exposure</a>
+<a href="#section-9.7" class="section-number selfRef">9.7. </a><a href="#name-supervised-exposure" class="section-name selfRef">Supervised Exposure</a>
         </h3>
-<p id="section-10.7-1">Under supervised issuance, an agent acts before anyone reviews the
+<p id="section-9.7-1">Under supervised issuance, an agent acts before anyone reviews the
 grant. What it does before an overseer intervenes, and before the
 intervention takes effect, cannot be undone. The intervention bound
-(<a href="#supervised" class="auto internal xref">Section 5</a>) states that window; it does not shorten it.<a href="#section-10.7-1" class="pilcrow">¶</a></p>
+(<a href="#supervised" class="auto internal xref">Section 5</a>) states that window; it does not shorten it.<a href="#section-9.7-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
 </div>
 <div id="privacy">
-<section id="section-11">
+<section id="section-10">
       <h2 id="name-privacy-considerations">
-<a href="#section-11" class="section-number selfRef">11. </a><a href="#name-privacy-considerations" class="section-name selfRef">Privacy Considerations</a>
+<a href="#section-10" class="section-number selfRef">10. </a><a href="#name-privacy-considerations" class="section-name selfRef">Privacy Considerations</a>
       </h2>
-<p id="section-11-1">An approver sees the agent, the user, the client, the target, and the
+<p id="section-10-1">An approver sees the agent, the user, the client, the target, and the
 requested authority, and an overseer sees the same for each grant. The
 approval channel and overseer notices therefore carry personal data and
 reveal patterns of an agent's work for a user. Deployments limit what
 approvers and overseers can see to the requests they are designated
 for, and follow <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-8.3" class="relref">Section 8.3</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>: progress information in a
-polling response carries no personal data.<a href="#section-11-1" class="pilcrow">¶</a></p>
+polling response carries no personal data.<a href="#section-10-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="iana">
-<section id="section-12">
+<section id="section-11">
       <h2 id="name-iana-considerations">
-<a href="#section-12" class="section-number selfRef">12. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+<a href="#section-11" class="section-number selfRef">11. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
       </h2>
-<p id="section-12-1">This document has no IANA actions.<a href="#section-12-1" class="pilcrow">¶</a></p>
+<p id="section-11-1">This document has no IANA actions.<a href="#section-11-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="sec-combined-references">
-<section id="section-13">
+<section id="section-12">
       <h2 id="name-references">
-<a href="#section-13" class="section-number selfRef">13. </a><a href="#name-references" class="section-name selfRef">References</a>
+<a href="#section-12" class="section-number selfRef">12. </a><a href="#name-references" class="section-name selfRef">References</a>
       </h2>
 <div id="sec-normative-references">
-<section id="section-13.1">
+<section id="section-12.1">
         <h3 id="name-normative-references">
-<a href="#section-13.1" class="section-number selfRef">13.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
+<a href="#section-12.1" class="section-number selfRef">12.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
         </h3>
 <dl class="references">
 <dt id="FEDERATION">[FEDERATION]</dt>
@@ -2239,15 +2271,11 @@ polling response carries no personal data.<a href="#section-11-1" class="pilcrow
 </section>
 </div>
 <div id="sec-informative-references">
-<section id="section-13.2">
+<section id="section-12.2">
         <h3 id="name-informative-references">
-<a href="#section-13.2" class="section-number selfRef">13.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
+<a href="#section-12.2" class="section-number selfRef">12.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
         </h3>
 <dl class="references">
-<dt id="ACTOR-PROFILE">[ACTOR-PROFILE]</dt>
-        <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth Actor Profile for Delegation"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-actor-profile-01</span>, <time datetime="2026-10-08" class="refDate">8 October 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-actor-profile-01">https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-actor-profile-01</a>&gt;</span>. </dd>
-<dd class="break"></dd>
 <dt id="AGENT-LIFECYCLE">[AGENT-LIFECYCLE]</dt>
         <dd>
 <span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Governed Agent Lifecycle Profile for SCIM and OAuth"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-governed-agent-lifecycle</span>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html</a>&gt;</span>. </dd>
@@ -2332,7 +2360,10 @@ walkthrough with <code>scope=files.write</code>, <code>completion_mode=deferred<
 DPoP proof of key K. The IdP authenticates <code>analysis-client</code>, resolves
 <code>agent-42</code>, checks the Client Association and Alice's Delegation
 Authorization, and finds that policy requires Alice's approval for
-<code>files.write</code>. It records the pending governed request and responds:<a href="#appendix-A.1-1" class="pilcrow">¶</a></p>
+<code>files.write</code>. Alice's ID Token expires in 65 minutes, so a one-hour
+pending lifetime leaves a grant issued at any point in it its full
+300-second lifetime. The IdP records the pending governed request and
+responds:<a href="#appendix-A.1-1" class="pilcrow">¶</a></p>
 <div class="lang-http-message sourcecode" id="appendix-A.1-2">
 <pre>
 HTTP/1.1 400 Bad Request
@@ -2402,9 +2433,9 @@ client redeems it at the RAS as in the <span>[<a href="#FEDERATION" class="cite 
 <a href="#appendix-A.4" class="section-number selfRef">A.4. </a><a href="#name-negative-tests" class="section-name selfRef">Negative Tests</a>
         </h3>
 <p id="appendix-A.4-1">Each case changes the walkthrough as stated; all other checks succeed.<a href="#appendix-A.4-1" class="pilcrow">¶</a></p>
-<span id="name-negative-test-cases"></span><table class="center" id="table-3">
+<span id="name-negative-test-cases"></span><table class="center" id="table-4">
           <caption>
-<a href="#table-3" class="selfRef">Table 3</a>:
+<a href="#table-4" class="selfRef">Table 4</a>:
 <a href="#name-negative-test-cases" class="selfRef">Negative test cases</a>
           </caption>
 <thead>
@@ -2434,7 +2465,7 @@ client redeems it at the RAS as in the <span>[<a href="#FEDERATION" class="cite 
               <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>access_denied</code> at the next poll; no grant</td>
             </tr>
             <tr>
-              <td class="text-left" rowspan="1" colspan="1">Alice approves <code>files.read</code> instead of <code>files.write</code>
+              <td class="text-left" rowspan="1" colspan="1">The request asks for <code>files.read files.write</code>, and Alice approves only <code>files.read</code>
 </td>
               <td class="text-left" rowspan="1" colspan="1">IdP</td>
               <td class="text-left" rowspan="1" colspan="1">A grant with <code>scope</code> <code>files.read</code>
@@ -2462,9 +2493,9 @@ client redeems it at the RAS as in the <span>[<a href="#FEDERATION" class="cite 
       <h2 id="name-relationship-to-other-speci">
 <a href="#appendix-B" class="section-number selfRef">Appendix B. </a><a href="#name-relationship-to-other-speci" class="section-name selfRef">Relationship to Other Specifications</a>
       </h2>
-<span id="name-relationship-to-other-specif"></span><table class="center" id="table-4">
+<span id="name-relationship-to-other-specif"></span><table class="center" id="table-5">
         <caption>
-<a href="#table-4" class="selfRef">Table 4</a>:
+<a href="#table-5" class="selfRef">Table 5</a>:
 <a href="#name-relationship-to-other-specif" class="selfRef">Relationship to other specifications</a>
         </caption>
 <thead>
@@ -2484,13 +2515,19 @@ client redeems it at the RAS as in the <span>[<a href="#FEDERATION" class="cite 
             <td class="text-left" rowspan="1" colspan="1">
               <span>[<a href="#AROP" class="cite xref">AROP</a>]</span>
 </td>
-            <td class="text-left" rowspan="1" colspan="1">Its deferred binding, optionally profiled with a governed origin; the completed grant keeps the originating agent, user, client, and key</td>
+            <td class="text-left" rowspan="1" colspan="1">Not profiled. Its <code>approved_until</code> bounds every token issued under an approval, including those the RAS issues, which deferral at the IdP cannot enforce (<a href="#open-items" class="auto internal xref">Appendix C</a>)</td>
           </tr>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">
               <span>[<a href="#ARAP" class="cite xref">ARAP</a>]</span>
 </td>
             <td class="text-left" rowspan="1" colspan="1">One way to route an approval; not required</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <span>[<a href="#ICA" class="cite xref">ICA</a>]</span>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">A deferred continuation holds the assertion's replay reservation while pending, replacing one transition of <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.5.7.1" class="relref">Section 5.5.7.1</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>, and counts the limits of <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-6.3" class="relref">Section 6.3</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span> when the onward grant issues (<a href="#deferred-continuation" class="auto internal xref">Section 4.5</a>)</td>
           </tr>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">
@@ -2502,7 +2539,7 @@ client redeems it at the RAS as in the <span>[<a href="#FEDERATION" class="cite 
             <td class="text-left" rowspan="1" colspan="1">
               <span>[<a href="#MCP" class="cite xref">MCP</a>]</span>
 </td>
-            <td class="text-left" rowspan="1" colspan="1">Informative realization of per-action oversight (<a href="#mcp" class="auto internal xref">Section 8</a>)</td>
+            <td class="text-left" rowspan="1" colspan="1">Informative realization of per-action oversight (<a href="#mcp" class="auto internal xref">Section 7</a>)</td>
           </tr>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">
@@ -2536,7 +2573,11 @@ client redeems it at the RAS as in the <span>[<a href="#FEDERATION" class="cite 
           <p id="appendix-C-1.1.1"><strong>Deferred redemption at the RAS.</strong> <span>[<a href="#AROP" class="cite xref">AROP</a>]</span> lets the RAS defer
 when an agent redeems a grant. <span>[<a href="#DTR" class="cite xref">DTR</a>]</span> does not name the
 <code>jwt-bearer</code> grant, and a deferred redemption needs rules for the
-grant's <code>exp</code> and the RAS's replay record while pending.<a href="#appendix-C-1.1.1" class="pilcrow">¶</a></p>
+grant's <code>exp</code> and the RAS's replay record while pending. Deferral at
+the RAS is also where <span>[<a href="#AROP" class="cite xref">AROP</a>]</span> could compose with governed access:
+the RAS issues the tokens that <code>approved_until</code> bounds, while at the
+IdP that bound is a downstream condition the composition cannot
+enforce ("Issuance Authorization" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>).<a href="#appendix-C-1.1.1" class="pilcrow">¶</a></p>
 </li>
         <li id="appendix-C-1.2">
           <p id="appendix-C-1.2.1"><strong>Administering the mode.</strong> No attribute records the oversight mode

@@ -846,7 +846,9 @@ Table of Contents
    return only resources within the caller's read permission.  For a
    platform connector, an externalId lookup is scoped to its
    Provisioning Domain and resource type; another connector's
-   correlation value cannot select its resource (Section 8.1).
+   correlation value cannot select its resource.  An administrative
+   reader spanning several domains cannot assume that externalId alone
+   is unique.
 
    Appendix A.7 shows these filters in use.
 
@@ -1019,13 +1021,9 @@ Table of Contents
       authority; DELETE alone does not revoke its management
       credentials.
 
-   *  *Readers across domains:* An administrative reader spanning
-      several Provisioning Domains cannot assume that externalId alone
-      is unique (Section 5.4).
-
    *  *Credential classes:* The connector and the IdP agree on usable
-      input classes during trust setup; /Schemas describes syntax only
-      (Section 5.5).
+      input classes during trust setup.  Schema discovery advertises
+      supported classes; it does not authorize their use (Section 5.5).
 
 8.2.  Service Provider
 

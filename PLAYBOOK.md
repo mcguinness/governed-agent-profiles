@@ -555,6 +555,7 @@ are for the evaluator.
 | IdP, gateway, and the gateway's RAS: continuation, with the gateway's RAS, or an issuer trusted for it, as Continuation Assertion Issuer | Gateways | Step 4's continuation checks, and the continuation profile's negative tests | | | |
 | IdP: grant-anchored continuation | Scheduled work | The scheduled-work variation's test | | | |
 | API: an external policy decision point | Delegated per-action policy | Step 4's policy checks | | | |
+| RAS and API: a shared token identifier, not itself a credential, retained at both | Opaque access tokens | Trace one opaque-token action back to its exact grant ([audit evidence](#audit-evidence)) | | | |
 
 ### Interoperability
 
@@ -929,8 +930,15 @@ The delegated recipe's read of `report-7` traces back as follows:
 Three joins need deliberate retention:
 
 * **API to RAS.** A JWT access token carries `jti`. For an opaque token,
-  the introspection response is not required to include one, so the
-  API records whatever stable identifier the RAS returns.
+  the introspection response need not include any token-specific
+  identifier, and the subject, client, tenant, and scope cannot tell
+  apart two tokens issued under different grants. This convention
+  therefore requires the RAS to return a token identifier that is not
+  itself a credential, such as `jti`, and both the API and the RAS to
+  retain it. Accept the deployment only after tracing one opaque-token
+  action back to its exact grant; if the products cannot provide that
+  join, record the gap in the [vendor evidence
+  worksheet](#capability-worksheet).
 * **RAS to grant.** The core requires the RAS to keep enough
   association to invalidate authorization by agent and tenant. Keeping
   the grant's issuer and `jti` with each authorization it derives is

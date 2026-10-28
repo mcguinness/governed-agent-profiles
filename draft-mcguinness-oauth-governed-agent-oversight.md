@@ -346,9 +346,11 @@ When policy requires human in the loop and the request does not include
 `deferred`, the IdP MUST NOT return a deferred response
 ({{Section 4.1 of DTR}}) and MUST NOT issue the grant. It rejects the
 request ({{Section 5.2 of RFC6749}}) with `actor_unauthorized` for
-delegated issuance or `invalid_target` for self-acting issuance, the
-errors {{FEDERATION}} uses for an approval condition the request cannot
-meet ("Issuance Authorization" in {{FEDERATION}}). This document defines no discovery
+delegated issuance or `invalid_target` for self-acting issuance. These
+are the errors {{FEDERATION}} assigns when approval requires a condition
+the selected composition cannot enforce ("Issuance Authorization" in
+{{FEDERATION}}); this document reuses them for an approval that the
+request did not let the IdP obtain. This document defines no discovery
 of a target's oversight mode; a client learns to opt in from
 configuration or from a pre-token hint ({{Section 4.2 of DTR}}).
 

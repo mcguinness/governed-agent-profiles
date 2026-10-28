@@ -663,15 +663,7 @@ platform connector, an `externalId` lookup is scoped to its Provisioning
 Domain and resource type; another connector's correlation value cannot
 select its resource ({{implementation-client}}).
 
-A binding lookup can use `agent.value eq "a17" and active eq true`. To
-find dependencies of OAuthClient `oc7`, query both relationship
-collections with `client.value eq "oc7"`. This finds dedicated-client
-bindings and all associations naming that client. External-identity
-bindings have no `client` attribute; their client permissions are found
-through associations. For an Agent subject lookup, the attribute name is
-the extension schema URI followed by `:subject`, with the expression `eq
-"agent-42"`. The connector URI-encodes the complete filter under SCIM's
-query rules.
+{{example-queries}} shows these filters in use.
 
 Incremental reads on `meta.lastModified` follow the common provisioning
 conventions of {{OAUTH-CLIENT}}. A connector MUST NOT delete records
@@ -1109,6 +1101,18 @@ Accept: application/scim+json
 An authorized query returns a SCIM ListResponse containing `a17`. The
 connector verifies the record before continuing. A racing duplicate POST
 receives `409` with `scimType: uniqueness`, not another principal.
+
+## Find Bindings and Dependencies {#example-queries}
+
+A binding lookup can use `agent.value eq "a17" and active eq true`. To
+find dependencies of OAuthClient `oc7`, query both relationship
+collections with `client.value eq "oc7"`. This finds dedicated-client
+bindings and all associations naming that client. External-identity
+bindings have no `client` attribute; their client permissions are found
+through associations. For an Agent subject lookup, the attribute name is
+the extension schema URI followed by `:subject`, with the expression `eq
+"agent-42"`. The connector URI-encodes the complete filter under SCIM's
+query rules.
 
 ## Disable One Binding
 

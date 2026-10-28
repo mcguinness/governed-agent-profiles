@@ -2450,9 +2450,12 @@ approval state.<a href="#section-7-3.4.1" class="pilcrow">¶</a></p>
       </ul>
 <p id="section-7-4">The platform applies the IdP's administrative state to its own
 authorization under <span>[<a href="#LIFECYCLE" class="cite xref">LIFECYCLE</a>]</span>. To give the agent access beyond the
-platform later, an authorized administrator adds an Identity Binding
-and a Client Association for the selected acting relationship to the
-same Agent. <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> then applies, and the Agent Principal identifier
+platform later, an authorized administrator adds an Identity Binding to
+the same Agent, with the client-use permission <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> requires
+before any governed grant: a dedicated-client binding carries it, and
+an external-identity binding needs a Client Association
+(<a href="#association-schema" class="auto internal xref">Section 4.4</a>). <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> then applies, and the Agent
+Principal identifier
 and its governance history do not change.<a href="#section-7-4" class="pilcrow">¶</a></p>
 <p id="section-7-5">This profile defines registration by the platform. An IdP can also
 discover hosted agents by reading a platform's agent inventory; that

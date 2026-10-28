@@ -134,10 +134,12 @@ their token endpoints.
 * An agent disabled and re-enabled between continuations has its chain
   ended (`invalid_continuation`); a new root grant is needed.
 
-### 6. Decide per action
+### 6. Add an external policy decision point
 
-Where a resource domain needs decisions finer than a grant's resource
-and scope, add a policy decision point, for example through AuthZEN
+Resource authorization already applies at every RAS and API from stage
+2. Where a resource domain needs decisions finer than a grant's
+resource and scope, add an external policy decision point or a
+finer-grained policy interface, for example through AuthZEN
 ([guide][guide-authzen]), and feed it risk signals
 ([guide][guide-risk]). The enforcement point supplies the user, agent,
 client, tenant, and token constraints itself, from the validated token.
@@ -153,7 +155,7 @@ client, tenant, and token constraints itself, from the validated token.
 |---|---|---|
 | A SaaS agent works for employees across SaaS apps | Core delegated access (ID-JAG) at each target app; lifecycle where apps are provisioned | Each app sees the employee and the agent, not the vendor's shared client |
 | An internal agent acts for itself | Core self-acting access (WAG); an Agent Authorization per target | A WAG redemption yields no refresh token; the agent obtains a new WAG |
-| An agent reaches tools through an MCP gateway | Continuation, with the gateway as continuing client; per-tool policy optional | The tool sees the same agent, with the gateway as client and in `continuation_via` |
+| An agent reaches tools through an MCP gateway | Continuation, with the gateway as continuing client; per-tool policy optional | The tool sees the same agent, with the gateway as client; its API also sees the gateway in `continuation_via` where the tool's RAS supports path disclosure |
 | Scheduled work runs after the user signs out | Continuation from a chain anchored to a refresh-token grant, where the IdP claims grant-anchored continuation | Runs need no retained user credential; withdrawing the delegation ends the chain |
 | A platform hosts agents that use only its own resources | Registration through SCIM management, with no binding or association; the platform applies the IdP's decisions under lifecycle | The IdP is not on the platform's runtime path; federating later keeps the same Agent Principal |
 
@@ -282,6 +284,7 @@ deployment-specific.
 Certify on the same cadence as human access:
 
 * Delegation Authorizations, by user and by agent.
+* Agent Authorizations, by agent, since they govern self-acting access.
 * Client Associations and dedicated-client bindings, by client.
 * Continuation Associations, by gateway.
 * Agent Principals without an owner, or with no grant issued for a

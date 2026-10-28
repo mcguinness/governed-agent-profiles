@@ -329,9 +329,8 @@ Table of Contents
       governed request from trusted policy for the resolved agent,
       acting relationship, user, client, target, and requested
       authority, usually as a condition of the Delegation or Agent
-      Authorization.  A request parameter, the client's opt-in to
-      deferral, or a tool's declared hint MUST NOT select a mode or
-      lower one that policy requires.
+      Authorization.  A request parameter or the client's opt-in to
+      deferral MUST NOT select a mode or lower one that policy requires.
 
    *  *Each decision point applies its own mode.* IdP issuance, IdP
       continuation, and the API's decision on an action each apply the
@@ -381,9 +380,11 @@ Table of Contents
    include deferred, the IdP MUST NOT return a deferred response
    (Section 4.1 of [DTR]) and MUST NOT issue the grant.  It rejects the
    request (Section 5.2 of [RFC6749]) with actor_unauthorized for
-   delegated issuance or invalid_target for self-acting issuance, the
-   errors [FEDERATION] uses for an approval condition the request cannot
-   meet ("Issuance Authorization" in [FEDERATION]).  This document
+   delegated issuance or invalid_target for self-acting issuance.  These
+   are the errors [FEDERATION] assigns when approval requires a
+   condition the selected composition cannot enforce ("Issuance
+   Authorization" in [FEDERATION]); this document reuses them for an
+   approval that the request did not let the IdP obtain.  This document
    defines no discovery of a target's oversight mode; a client learns to
    opt in from configuration or from a pre-token hint (Section 4.2 of
    [DTR]).
@@ -463,15 +464,18 @@ Table of Contents
    evaluate the request under Section 10.7 of [DTR] and, in addition,
    MUST confirm that:
 
-   *  the Agent Principal is active, and the Identity Binding and Client
-      Association used still permit the request;
+   *  the Agent Principal is active;
+
+   *  for root issuance, the Identity Binding and Client Association
+      used still permit the request;
 
    *  the Delegation or Agent Authorization still permits the approved
       authority;
 
    *  for delegated access, the user is active and resolves as before;
 
-   *  for a continuation, the chain has not ended (Section 4.5); and
+   *  for a continuation, the chain has not ended, and a Continuation
+      Association still permits the continuing client (Section 4.5); and
 
    *  no change applied within the IdP's freshness limit ("Issuance
       Authorization" in [FEDERATION]) withdraws any of these.
@@ -519,12 +523,19 @@ Table of Contents
    deferral code then stands for that reservation, and the assertion
    cannot be presented again.
 
-   At resolution, the IdP re-checks that the chain has not ended.  A
-   chain that ended while the request was pending resolves to
-   access_denied; the continuing client learns of the ending from its
-   next continuation, which fails with invalid_continuation.  While the
-   request is pending, the continuing client reports the wait to its own
-   caller through its own interface, such as an MCP task (Section 8).
+   A continuation exchange performs no agent resolution, so at
+   resolution the IdP re-checks the chain and the continuing client's
+   Continuation Association rather than an Identity Binding
+   (Section 4.4).  The continuation window and the limits of [ICA] are
+   evaluated when the request is received, not at resolution: the
+   assertion is consumed at deferral, the maximum pending lifetime
+   bounds how long after that the onward grant can issue, and an
+   approver decides in between.  A chain that ended while the request
+   was pending resolves to access_denied; the continuing client learns
+   of the ending from its next continuation, which fails with
+   invalid_continuation.  While the request is pending, the continuing
+   client reports the wait to its own caller through its own interface,
+   such as an MCP task (Section 8).
 
 5.  Supervised Issuance
 
@@ -577,6 +588,10 @@ Table of Contents
       delegated token, and the subject for a token that trusted context
       establishes as self-acting ("Profile Applicability" in
       [FEDERATION]).  A changed action needs a new decision.
+
+   *  *Policy selects the mode.* A tool's declared hint, such as an MCP
+      tool annotation, MUST NOT select or lower the mode that resource
+      policy requires for an action (Section 8).
 
    *  *The approver is a person.* Resource policy designates approvers
       as in Section 4.3, and the API MUST NOT accept a decision from the
@@ -729,9 +744,12 @@ Table of Contents
    An agent that could approve its own requests would remove the person
    the mode requires.  An approver is a person designated by policy, and
    neither the requesting agent, its client, nor another agent can
-   approve (Section 4.3, Section 6).  A deployment that routes decisions
-   to an automated approver is human out of the loop and records it as
-   such (Section 3).
+   approve (Section 4.3, Section 6).  How an IdP or API tells a person's
+   decision from an automated one depends on the approval channel, which
+   this document does not define; the channel's authentication of the
+   approver is what makes the rule enforceable.  A deployment that
+   routes decisions to an automated approver is human out of the loop
+   and records it as such (Section 3).
 
 10.4.  Stale Approvals
 
@@ -1011,10 +1029,6 @@ A.4.  Negative Tests
    | The client polls again   | IdP     | HTTP 400,                    |
    | after receiving the      |         | invalid_grant                |
    | grant                    |         |                              |
-   +--------------------------+---------+------------------------------+
-   | The agent's client       | IdP     | Not accepted as an           |
-   | submits a decision on    |         | approval                     |
-   | the pending request      |         |                              |
    +--------------------------+---------+------------------------------+
 
                         Table 3: Negative test cases

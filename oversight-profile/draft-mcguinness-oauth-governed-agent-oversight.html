@@ -1475,8 +1475,8 @@ appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶<
 <p id="section-2-2">Agent Principal, Identity Binding, Client Association, acting
 relationship, Delegation Authorization, Agent Authorization, Governance
 Tenant, Target Tenant, actor gate, and resource authorization server
-(RAS) follow <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>. ID-JAG and WAG <span>[<a href="#WAG" class="cite xref">WAG</a>]</span> refer to the
-grants as <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> profiles them. Deferral code, deferred response,
+(RAS) follow <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>. ID-JAG and WAG <span>[<a href="#WAG" class="cite xref">WAG</a>]</span> refer to the grants
+as <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> profiles them. Deferral code, deferred response,
 completion mode, and originating grant follow <span>[<a href="#DTR" class="cite xref">DTR</a>]</span>. Local Suspension
 and grant-derived revocation follow <span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span>.<a href="#section-2-2" class="pilcrow">¶</a></p>
 <p id="section-2-3">This document defines these terms:<a href="#section-2-3" class="pilcrow">¶</a></p>
@@ -1591,8 +1591,8 @@ caching, and the lifetime of tokens accepted without a check.<a href="#section-2
 governed request from trusted policy for the resolved agent, acting
 relationship, user, client, target, and requested authority, usually
 as a condition of the Delegation or Agent Authorization. A request
-parameter, the client's opt-in to deferral, or a tool's declared hint
-<span class="bcp14">MUST NOT</span> select a mode or lower one that policy requires.<a href="#section-3-3.1.1" class="pilcrow">¶</a></p>
+parameter or the client's opt-in to deferral <span class="bcp14">MUST NOT</span> select a mode or
+lower one that policy requires.<a href="#section-3-3.1.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-3-3.2">
           <p id="section-3-3.2.1"><strong>Each decision point applies its own mode.</strong> IdP issuance, IdP
@@ -1649,9 +1649,11 @@ the grant it yields are bound to one key.<a href="#section-4.1-1" class="pilcrow
 <code>deferred</code>, the IdP <span class="bcp14">MUST NOT</span> return a deferred response
 (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-4.1" class="relref">Section 4.1</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>) and <span class="bcp14">MUST NOT</span> issue the grant. It rejects the
 request (<span><a href="https://rfc-editor.org/rfc/rfc6749#section-5.2" class="relref">Section 5.2</a> of [<a href="#RFC6749" class="cite xref">RFC6749</a>]</span>) with <code>actor_unauthorized</code> for
-delegated issuance or <code>invalid_target</code> for self-acting issuance, the
-errors <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> uses for an approval condition the request cannot
-meet ("Issuance Authorization" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>). This document defines no discovery
+delegated issuance or <code>invalid_target</code> for self-acting issuance. These
+are the errors <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> assigns when approval requires a condition
+the selected composition cannot enforce ("Issuance Authorization" in
+<span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>); this document reuses them for an approval that the
+request did not let the IdP obtain. This document defines no discovery
 of a target's oversight mode; a client learns to opt in from
 configuration or from a pre-token hint (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-4.2" class="relref">Section 4.2</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>).<a href="#section-4.1-2" class="pilcrow">¶</a></p>
 </section>
@@ -1736,23 +1738,27 @@ the request under <span><a href="https://datatracker.ietf.org/doc/html/draft-iet
 that:<a href="#section-4.4-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-4.4-2.1">
-            <p id="section-4.4-2.1.1">the Agent Principal is active, and the Identity Binding and Client
-Association used still permit the request;<a href="#section-4.4-2.1.1" class="pilcrow">¶</a></p>
+            <p id="section-4.4-2.1.1">the Agent Principal is active;<a href="#section-4.4-2.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-4.4-2.2">
-            <p id="section-4.4-2.2.1">the Delegation or Agent Authorization still permits the approved
-authority;<a href="#section-4.4-2.2.1" class="pilcrow">¶</a></p>
+            <p id="section-4.4-2.2.1">for root issuance, the Identity Binding and Client Association used
+still permit the request;<a href="#section-4.4-2.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-4.4-2.3">
-            <p id="section-4.4-2.3.1">for delegated access, the user is active and resolves as before;<a href="#section-4.4-2.3.1" class="pilcrow">¶</a></p>
+            <p id="section-4.4-2.3.1">the Delegation or Agent Authorization still permits the approved
+authority;<a href="#section-4.4-2.3.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-4.4-2.4">
-            <p id="section-4.4-2.4.1">for a continuation, the chain has not ended (<a href="#deferred-continuation" class="auto internal xref">Section 4.5</a>);
-and<a href="#section-4.4-2.4.1" class="pilcrow">¶</a></p>
+            <p id="section-4.4-2.4.1">for delegated access, the user is active and resolves as before;<a href="#section-4.4-2.4.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-4.4-2.5">
-            <p id="section-4.4-2.5.1">no change applied within the IdP's freshness limit ("Issuance
-Authorization" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>) withdraws any of these.<a href="#section-4.4-2.5.1" class="pilcrow">¶</a></p>
+            <p id="section-4.4-2.5.1">for a continuation, the chain has not ended, and a Continuation
+Association still permits the continuing client
+(<a href="#deferred-continuation" class="auto internal xref">Section 4.5</a>); and<a href="#section-4.4-2.5.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.4-2.6">
+            <p id="section-4.4-2.6.1">no change applied within the IdP's freshness limit ("Issuance
+Authorization" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>) withdraws any of these.<a href="#section-4.4-2.6.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 <p id="section-4.4-3">If any check fails, the IdP returns <code>access_denied</code> and issues no grant,
@@ -1804,7 +1810,13 @@ including the Continuation Association and the limits of <span>[<a href="#ICA" c
 reserves the assertion as <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.5.7" class="relref">Section 5.5.7</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span> requires. The
 deferral code then stands for that reservation, and the assertion
 cannot be presented again.<a href="#section-4.5-1" class="pilcrow">¶</a></p>
-<p id="section-4.5-2">At resolution, the IdP re-checks that the chain has not ended. A chain
+<p id="section-4.5-2">A continuation exchange performs no agent resolution, so at resolution
+the IdP re-checks the chain and the continuing client's Continuation
+Association rather than an Identity Binding (<a href="#resolution" class="auto internal xref">Section 4.4</a>). The
+continuation window and the limits of <span>[<a href="#ICA" class="cite xref">ICA</a>]</span> are evaluated when the
+request is received, not at resolution: the assertion is consumed at
+deferral, the maximum pending lifetime bounds how long after that the
+onward grant can issue, and an approver decides in between. A chain
 that ended while the request was pending resolves to <code>access_denied</code>;
 the continuing client learns of the ending from its next continuation,
 which fails with <code>invalid_continuation</code>. While the request is pending,
@@ -1881,24 +1893,29 @@ establishes as self-acting ("Profile Applicability" in
 <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>). A changed action needs a new decision.<a href="#section-6-2.1.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-6-2.2">
-          <p id="section-6-2.2.1"><strong>The approver is a person.</strong> Resource policy designates approvers as
-in <a href="#approval" class="auto internal xref">Section 4.3</a>, and the API <span class="bcp14">MUST NOT</span> accept a decision from the
-client, the agent, or another agent as an approval.<a href="#section-6-2.2.1" class="pilcrow">¶</a></p>
+          <p id="section-6-2.2.1"><strong>Policy selects the mode.</strong> A tool's declared hint, such as an MCP
+tool annotation, <span class="bcp14">MUST NOT</span> select or lower the mode that resource
+policy requires for an action (<a href="#mcp" class="auto internal xref">Section 8</a>).<a href="#section-6-2.2.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-6-2.3">
-          <p id="section-6-2.3.1"><strong>The approval does not add authority.</strong> It satisfies an additional
+          <p id="section-6-2.3.1"><strong>The approver is a person.</strong> Resource policy designates approvers as
+in <a href="#approval" class="auto internal xref">Section 4.3</a>, and the API <span class="bcp14">MUST NOT</span> accept a decision from the
+client, the agent, or another agent as an approval.<a href="#section-6-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-6-2.4">
+          <p id="section-6-2.4.1"><strong>The approval does not add authority.</strong> It satisfies an additional
 condition within the token's authority and cannot expand it
 ("External Approval" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>). An action outside that
 authority needs a new governed grant, which the client requests by
 token exchange and the IdP can defer under <a href="#deferred-issuance" class="auto internal xref">Section 4</a>, or
-through <a href="#arop" class="auto internal xref">Section 7</a>.<a href="#section-6-2.3.1" class="pilcrow">¶</a></p>
+through <a href="#arop" class="auto internal xref">Section 7</a>.<a href="#section-6-2.4.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-6-2.4">
-          <p id="section-6-2.4.1"><strong>A confirmation is not an approval unless it is bound.</strong> A
+        <li class="normal" id="section-6-2.5">
+          <p id="section-6-2.5.1"><strong>A confirmation is not an approval unless it is bound.</strong> A
 confirmation the client shows in its own interface is not an approval
 under this document. It becomes one only where the API authenticates
 the person, binds the decision as above, and makes the decision
-itself, consistent with <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-wimse-aims-00#section-10.7" class="relref">Section 10.7</a> of [<a href="#AIMS" class="cite xref">AIMS</a>]</span>.<a href="#section-6-2.4.1" class="pilcrow">¶</a></p>
+itself, consistent with <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-wimse-aims-00#section-10.7" class="relref">Section 10.7</a> of [<a href="#AIMS" class="cite xref">AIMS</a>]</span>.<a href="#section-6-2.5.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 </section>
@@ -2097,12 +2114,15 @@ is needed; this document makes the request accurate, not the reason.<a href="#se
         <h3 id="name-self-approval">
 <a href="#section-10.3" class="section-number selfRef">10.3. </a><a href="#name-self-approval" class="section-name selfRef">Self-Approval</a>
         </h3>
-<p id="section-10.3-1">An agent that could approve its own requests would remove the person
-the mode requires. An approver is a person designated by policy, and
-neither the requesting agent, its client, nor another agent can approve
-(<a href="#approval" class="auto internal xref">Section 4.3</a>, <a href="#per-action" class="auto internal xref">Section 6</a>). A deployment that routes decisions to an
-automated approver is human out of the loop and records it as such
-(<a href="#modes" class="auto internal xref">Section 3</a>).<a href="#section-10.3-1" class="pilcrow">¶</a></p>
+<p id="section-10.3-1">An agent that could approve its own requests would remove the person the
+mode requires. An approver is a person designated by policy, and neither
+the requesting agent, its client, nor another agent can approve
+(<a href="#approval" class="auto internal xref">Section 4.3</a>, <a href="#per-action" class="auto internal xref">Section 6</a>). How an IdP or API tells a person's
+decision from an automated one depends on the approval channel, which
+this document does not define; the channel's authentication of the
+approver is what makes the rule enforceable. A deployment that routes
+decisions to an automated approver is human out of the loop and records
+it as such (<a href="#modes" class="auto internal xref">Section 3</a>).<a href="#section-10.3-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="security-stale">
@@ -2430,11 +2450,6 @@ client redeems it at the RAS as in the <span>[<a href="#FEDERATION" class="cite 
               <td class="text-left" rowspan="1" colspan="1">IdP</td>
               <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>invalid_grant</code>
 </td>
-            </tr>
-            <tr>
-              <td class="text-left" rowspan="1" colspan="1">The agent's client submits a decision on the pending request</td>
-              <td class="text-left" rowspan="1" colspan="1">IdP</td>
-              <td class="text-left" rowspan="1" colspan="1">Not accepted as an approval</td>
             </tr>
           </tbody>
         </table>

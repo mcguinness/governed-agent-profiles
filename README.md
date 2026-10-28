@@ -73,12 +73,13 @@ that claims none of the optional inputs needs only the core.
 
 ## Where to start
 
-* **[Architecture overview](ARCHITECTURE.md):** the problem, how the
-  drafts work and fit together, principles, revocation boundaries,
-  platform-hosted agents, and related work.
-* **[Playbook for identity teams](PLAYBOOK.md):** adoption stages with
-  exit checks, enterprise patterns, vendor requirements, stop-and-restore
-  runbooks, ownership, and audit evidence.
+* **[Architecture overview](ARCHITECTURE.md):** the system in one page,
+  identity and responsibility, the delegated and self-acting flows and
+  their variants, revocation boundaries, optional integrations, and how
+  the drafts fit.
+* **[Playbook for identity teams](PLAYBOOK.md):** five operating steps
+  with exit checks, recipes for delegated and self-acting deployments,
+  vendor requirements, stop-and-restore runbooks, and audit evidence.
 * **[Implementer's guide](IMPLEMENTERS-GUIDE.md):** message flows for
   both grants, what each role builds, configuration, and deployment
   tradeoffs.

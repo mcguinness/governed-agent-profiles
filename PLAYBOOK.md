@@ -1,20 +1,20 @@
 # Governing Agents: A Playbook for Identity Teams
 
 This playbook is non-normative. It turns the governed agent profiles
-into the work an enterprise identity team does: what to stand up, in
-what order, what to require from vendors, how to stop and restore an
-agent, and what to show an auditor. The drafts define every
+into the work an enterprise identity team does: choosing a pilot,
+assigning owners, configuring and validating an integration, requiring
+evidence from vendors, stopping and restoring an agent, and showing an
+auditor what happened. The drafts define every
 requirement and govern wherever this playbook differs. The
 [architecture overview](ARCHITECTURE.md) explains the model, and the
 [implementer's guide](IMPLEMENTERS-GUIDE.md) explains what each role
 builds.
 
 * [The decisions an identity team owns](#the-decisions-an-identity-team-owns)
-* [Adoption stages](#adoption-stages)
-* [Enterprise patterns](#enterprise-patterns)
+* [Operating steps](#operating-steps)
+* [Recipes](#recipes)
 * [Vendor requirements](#vendor-requirements)
 * [Runbooks: stop and restore](#runbooks-stop-and-restore)
-* [Ownership and reviews](#ownership-and-reviews)
 * [Audit evidence](#audit-evidence)
 * [Where security tooling plugs in](#where-security-tooling-plugs-in)
 
@@ -38,67 +38,112 @@ use of the agent, owning an agent does not make the owner its
 delegator, and a user's sign-in does not authorize an agent to act for
 that user.
 
-## Adoption stages
+## Operating steps
 
-The stages build on each other, but delegated and self-acting access
-can be adopted in either order. Each stage ends with checks that can be
-run, most of them from the drafts' negative tests.
+Five steps take a deployment from a pilot to operation. Delegated and
+self-acting access are independent: a pilot can start with either, and
+adding the other later repeats steps 2 and 3 for it. Grant protection is
+chosen in step 1 and configured in step 3, with the rest of the
+integration.
 
-### 1. Register
+### 1. Choose a pilot and its operating model
 
-Create an Agent Principal for each agent, with an owner, and an Identity
-Binding for each execution identity that runs it. Register the OAuth
-clients agents use. Platforms can do this through the [SCIM management
-profile][management], whose Service Provider keeps registering an agent,
-binding it, and authorizing a client as separate permissions.
+Pick one agent, one OAuth client, one resource domain and tenant, and,
+for delegated access, a small set of users. Then record the choices
+that the later steps test:
 
-*Exit checks:*
-* Every production agent has an Agent Principal, with its owner recorded
-  in the Agent resource's `owners` attribute.
+| Choice | Options | What it determines |
+|---|---|---|
+| Acting relationship | Delegated (ID-JAG), self-acting (WAG), or both | Which authorization the IdP checks, and whether the RAS and API apply the actor gate. With both, also how the API tells the two token populations apart: separate client registrations, audiences, or issuers, or authenticated introspection context. The absence of `act` never does, since a malformed delegated token would then pass as self-acting |
+| Resolution input | A dedicated client authenticating with `private_key_jwt`, or a shared client presenting its existing platform JWT | Whether the client's own authentication identifies the agent, or a platform JWT does |
+| Grant protection | Bound governed agent access, with DPoP at grant issuance and redemption; or governed agent access, with unbound grants only where policy explicitly permits them | Whether a stolen grant can be redeemed |
+| Access-token protection, per resource | DPoP, mutual TLS, or bearer where the resource explicitly permits it | What a stolen access token allows |
+| Token validation at the API | Introspection on each request, cached introspection, or offline JWT validation | How soon a revocation at the RAS reaches the API: at the next check, when the cache entry ends, or at token expiry ("Resource Enforcement and Delay" in the [lifecycle profile][lifecycle]) |
+| Creating agent records at the RAS | Provisioned in advance, or created just in time from a validated grant where resource policy enables it | Whether the first redemption needs provisioning to have run; without a record, the RAS denies it |
+| Keeping agent records current | Lifecycle provisioning and reconciliation, another supported signal, or local administration only | How the RAS learns that the agent was disabled. A grant does not carry the IdP's administrative status, so without lifecycle integration, any record learns of it only through local action or another signal |
+| Federation | Federated, or registration only, for a platform-hosted agent that uses only its platform's own resources | Registration-only agents follow the [registration-only branch](#registration-only-branch) |
+
+The two record choices are independent. Under the lifecycle profile, a
+record created just in time is exposed to provisioning and follows the
+same reconciliation and disablement rules as one provisioned in
+advance.
+
+The [recipes](#recipes) fill in these choices for a complete pilot.
+Acceptance in steps 2 and 3 covers the pilot population; coverage of
+every production agent is a rollout measure in step 5.
+
+### 2. Assign owners and record the decisions
+
+Assign each decision in [the table above](#the-decisions-an-identity-team-owns)
+to a team:
+
+| Team | Owns |
+|---|---|
+| Identity (IAM) | Agent Principals and owners; Identity Bindings; Client Associations; Delegation and Agent Authorizations; Continuation Associations; IdP issuance policy; the authority of SCIM connectors |
+| Resource and application owners | Local agent principals and their eligibility; actor-gate policy; access-token protection per client and resource; Local Suspension; per-action policy |
+| Platform engineering | Agent OAuth clients and their keys; workload credentials; the SCIM connector |
+| Security operations | Signals into the IdP and policy decision points; running the containment runbooks; incident records |
+
+Then create an Agent Principal for each pilot agent, with an
+accountable owner, an Identity Binding for each execution identity that
+runs it, and the OAuth client registrations it uses. Platforms can do
+this through the [SCIM management profile][management], whose Service
+Provider keeps registering an agent, binding it, and authorizing a
+client as separate permissions.
+
+*Exit checks, for the pilot population:*
+* Each pilot agent has an Agent Principal with a recorded owner; in SCIM
+  management, the Agent resource's `owners` attribute.
 * Permission to register agents does not let a connector bind them or
   authorize clients.
 * An execution identifier, such as a session or replica ID, never
   selects an Agent Principal; bindings name exact identities.
 
-### 2. Federate
+### 3. Configure and validate the first integration
 
-Configure Client Associations and Delegation or Agent Authorizations,
-and have resource domains accept governed grants: an ID-JAG for
-delegated access and a WAG for self-acting access ([core][core]). Start
-with dedicated-client resolution, one OAuth client per agent
-authenticating with `private_key_jwt`, which every conforming
-implementation supports. Shared platforms add the existing platform JWT
-input. Self-acting Client Associations are configured at the IdP
-directly; the SCIM management profile administers associations for
-delegated issuance only.
+Configure the choices from step 1 together, including grant and
+access-token protection:
 
-*Exit checks:*
+* **At the IdP:** the Client Association for the acting relationship;
+  the Delegation Authorization (agent, user, client, tenant, target, and
+  authority) or the Agent Authorization; the target RAS and tenant; and
+  the client registration association that supplies the grant's
+  `client_id` at the RAS. Self-acting Client Associations are
+  configured at the IdP directly; the SCIM management profile
+  administers associations for delegated issuance only.
+* **At the RAS:** the agent's local record, keyed by the exact (IdP
+  issuer, agent identifier) pair; user links and the actor-gate policy
+  for delegated access; DPoP at the token endpoint for bound grants; and
+  the access-token protection for each resource.
+* **At the API:** tenant checks, and either the user's authority and the
+  actor gate for delegated tokens, or the agent's own authority for
+  self-acting tokens. Where both populations reach one API, it
+  distinguishes them as chosen in step 1.
+* **At the client:** its registrations and keys at the IdP and the RAS,
+  and a DPoP key for bound grants.
+
+The implementer's guide lists each item under [Federation
+configuration](IMPLEMENTERS-GUIDE.md#federation-configuration).
+
+*Exit checks:* run the matching recipe's transaction and rejection
+tests, and these common checks:
 * Resource-domain records show the user, the issuer-qualified Agent
   Principal, and the client separately.
 * With the Identity Binding disabled, issuance fails with
   `invalid_grant`.
-* With the Client Association disabled, delegated issuance fails with
-  `actor_unauthorized`, and self-acting issuance fails with
-  `unauthorized_client`, since no actor is asserted.
-* A delegated access token without `act`, presented to an API configured
-  for delegated tokens, is rejected with HTTP 401 `invalid_token`.
-* An access token presented in another tenant, even with a valid proof,
-  is rejected with HTTP 401 `invalid_token`.
-
-### 3. Bind
-
-Move to bound governed agent access: DPoP at grant issuance and
-redemption, so a stolen grant cannot be redeemed. Choose access-token
-protection separately, per client and resource: DPoP, mutual TLS, or
-bearer where explicitly permitted.
-
-*Exit checks:*
 * Where the bound profile is required, a grant without `cnf` is rejected
   with `invalid_grant`, with no fallback.
 * A bound grant redeemed without its proof is rejected with
   `invalid_grant`.
+* An access token presented in another tenant, even with a valid proof,
+  is rejected with HTTP 401 `invalid_token`.
 
-### 4. Propagate
+### 4. Add capabilities when needed
+
+Each capability is independent of the others. Add one when the
+deployment needs what it addresses, and run its checks.
+
+#### Lifecycle propagation
 
 Provision Agent Principals into resource domains and apply disablement
 there ([lifecycle][lifecycle]). The resource domain's authorization
@@ -116,7 +161,7 @@ one ID-JAG's authority can be revoked without disabling the agent.
   including propagation, token lifetime, and caching, as the lifecycle
   profile recommends ("Resource Enforcement and Delay").
 
-### 5. Continue
+#### Continuation through gateways
 
 Where agents reach tools through gateways, deploy continuation
 ([continuation][continuation]): the gateway's authorization server
@@ -134,13 +179,13 @@ their token endpoints.
 * An agent disabled and re-enabled between continuations has its chain
   ended (`invalid_continuation`); a new root grant is needed.
 
-### 6. Add an external policy decision point
+#### An external policy decision point
 
-Resource authorization already applies at every RAS and API from stage
-2. A resource domain that needs decisions finer than a grant's resource
-and scope can evaluate that policy locally or delegate it. This stage
-covers delegation: an external policy decision point, for example
-through AuthZEN ([guide][guide-authzen]), fed with risk signals
+Resource authorization already applies at every RAS and API from step
+3. A resource domain that needs decisions finer than a grant's resource
+and scope can evaluate that policy locally or delegate it. This
+capability covers delegation: an external policy decision point, for
+example through AuthZEN ([guide][guide-authzen]), fed with risk signals
 ([guide][guide-risk]). The enforcement point supplies the user, agent,
 client, tenant, and token constraints itself, from the validated token.
 
@@ -149,15 +194,331 @@ client, tenant, and token constraints itself, from the validated token.
   decision point sees.
 * A permit never widens the token's scope or tenant.
 
-## Enterprise patterns
+### 5. Operate, review, and retire
 
-| Pattern | What it needs | Notes |
+* **Roll out.** Extend from the pilot until every production agent has
+  an Agent Principal with an owner, and an exact Identity Binding for
+  each execution identity that runs it.
+* **Review.** Certify on the same cadence as human access:
+  * Delegation Authorizations, by user and by agent.
+  * Agent Authorizations, by agent, since they govern self-acting
+    access.
+  * Client Associations and dedicated-client bindings, by client.
+  * Continuation Associations, by gateway.
+  * Agent Principals without an owner, or with no grant issued for a
+    defined period.
+* **Respond.** Stop and restore access with the
+  [runbooks](#runbooks-stop-and-restore).
+* **Retire.** [Disable the agent everywhere](#disable-an-agent-everywhere)
+  first, so resource domains revoke its sessions, and then withdraw its
+  bindings, associations, and authorizations.
+
+### Registration-only branch
+
+A platform-hosted agent that uses only its platform's own tools and
+resources needs no federation. Steps 1, 2, and 5 apply to it, and
+registration replaces step 3:
+
+* The platform's connector registers the agent at the IdP through the
+  SCIM management profile, with no Identity Binding or Client
+  Association, so no client can obtain an IdP grant naming it.
+* The platform is the resource domain and the lifecycle Receiver for
+  the agent. It correlates its agent with the qualified Agent Principal
+  identifier the registration returned; just-in-time correlation does
+  not apply.
+* The platform obtains the agent's `active` value from IdP provisioning,
+  or by retrieving the registered Agent when a change notice or periodic
+  reconciliation indicates a change.
+
+*Exit checks:*
+* With the agent set to `active: false` at the IdP, the platform denies
+  new authorization for it and revokes its existing authorization in its
+  own system. An agent the IdP registered inactive pending approval is
+  denied the same way.
+* Re-enabling the agent permits new decisions but restores no revoked
+  authorization.
+* The connector's authority to register and describe agents does not
+  let it set `active: true` on an agent the IdP disabled, and the
+  platform's own suspension is a Local Suspension that IdP activation
+  does not clear.
+* An unreachable IdP neither disables nor re-enables the agent. Where
+  the deployment bounds how long the platform relies on unrefreshed
+  state, new authorization is denied when that bound expires.
+* The platform's audit records carry the qualified Agent Principal
+  identifier next to its own identifier for the agent.
+
+To federate later, add an Identity Binding and, where the input
+requires one, a Client Association to the same Agent, and continue with
+step 3. The Agent Principal identifier and its governance history carry
+over. The implementer's guide [follows one platform-hosted
+agent](IMPLEMENTERS-GUIDE.md#platform-hosted-agents) from registration
+to retirement.
+
+## Recipes
+
+| Pattern | What it needs | Recipe |
 |---|---|---|
-| A SaaS agent works for employees across SaaS apps | Core delegated access (ID-JAG) at each target app; lifecycle where apps are provisioned | Each app sees the employee and the agent, not the vendor's shared client |
-| An internal agent acts for itself | Core self-acting access (WAG); an Agent Authorization per target | A WAG redemption yields no refresh token; the agent obtains a new WAG |
-| An agent reaches tools through an MCP gateway | Continuation, with the gateway as continuing client; per-tool policy optional | The tool sees the same agent, with the gateway as client; its API also sees the gateway in `continuation_via` where the tool's RAS supports path disclosure |
-| Scheduled work runs after the user signs out | Continuation from a chain anchored to a refresh-token grant, where the IdP claims grant-anchored continuation | Runs need no retained user credential; withdrawing the delegation ends the chain |
-| A platform hosts agents that use only its own resources | Registration through SCIM management, with no binding or association; the platform applies the IdP's decisions under lifecycle | The IdP is not on the platform's runtime path; federating later keeps the same Agent Principal |
+| A SaaS agent works for employees across SaaS apps | Core delegated access (ID-JAG) at each target app; lifecycle where apps are provisioned | [Delegated access to a SaaS application](#recipe-delegated-access-to-a-saas-application) |
+| An internal agent acts for itself | Core self-acting access (WAG); an Agent Authorization per target | [Self-acting access](#recipe-self-acting-access) |
+| An agent reaches tools through an MCP gateway | Continuation, with the gateway as continuing client; per-tool policy optional | [Through a gateway](#through-a-gateway) |
+| Scheduled work runs after the user signs out | Continuation from a chain anchored to a refresh-token grant, where the IdP claims grant-anchored continuation | [Scheduled work](#scheduled-work) |
+| A platform runs many agents behind one client | The existing platform JWT input | [A shared platform client](#a-shared-platform-client) |
+| A platform hosts agents that use only its own resources | Registration through SCIM management, with no binding or association; the platform applies the IdP's decisions under lifecycle | [Registration-only branch](#registration-only-branch) |
+
+Both recipes use the architecture's example and the identifiers of the
+core's [walkthrough][core-walkthrough], so each test can be compared
+with the messages there. The [architecture](ARCHITECTURE.md#access-flows-and-deployment-variants)
+explains why each check holds.
+
+### Recipe: delegated access to a SaaS application
+
+**Outcome.** `agent-42` reads files for Alice in the data application
+`https://api.example/`, a SaaS application in which the enterprise's
+tenant is `acme-data`. The application sees Alice as the user and
+`agent-42` as the actor, separately from the client, and the enterprise
+IdP can stop the agent without affecting Alice or other agents.
+
+**Parties and owners.**
+
+| Party | In the example | Owner |
+|---|---|---|
+| Agent platform and client | `analysis-client`, a dedicated client that runs `agent-42` | Platform engineering |
+| Governing IdP | `https://idp.example/` | Identity (IAM) |
+| Resource domain | RAS `https://ras.example/`, API `https://api.example/`, tenant `acme-data` | The application owner |
+| User | Alice: `alice-ras` in the grant, `user-108` at the API | Not applicable; her delegations are certified by user in step 5 |
+| Agent | (`https://idp.example/`, `agent-42`) | Its accountable owner, from step 2 |
+
+**Operating model.** Delegated; a dedicated client with
+`private_key_jwt`; bound governed agent access; DPoP access tokens;
+introspection at the API; and the agent provisioned at the RAS through
+the lifecycle profile, which also propagates its disablement
+([step 4](#lifecycle-propagation)).
+
+**Configuration.**
+
+* At the IdP: an Identity Binding that maps (`analysis-client`,
+  `analysis-client`) to `agent-42`; a Client Association that permits
+  `analysis-client` to use it for delegated issuance; Alice's Delegation
+  Authorization for `agent-42`, with `files.read` at
+  `https://api.example/tenants/acme-data/`; and the client registration
+  association from `analysis-client` to `analysis-api` at
+  `https://ras.example/`.
+* At the RAS: the local agent principal for (`https://idp.example/`,
+  `agent-42`), Alice's link to `user-108`, an actor-gate policy that
+  permits `agent-42` to act for Alice in `acme-data`, the client
+  registration `analysis-api`, and DPoP at the token endpoint.
+* At the API: DPoP access tokens, tenant checks, Alice's permissions,
+  and the actor gate.
+
+**One successful transaction.**
+
+1. Alice signs in to the client through the IdP. The client holds her
+   ID Token, whose audience is `analysis-client`.
+2. The client exchanges the ID Token at the IdP, authenticating as
+   `analysis-client` and proving its DPoP key, for audience
+   `https://ras.example/`, resource
+   `https://api.example/tenants/acme-data/`, and scope `files.read`.
+3. The IdP resolves `agent-42`, checks the Client Association and
+   Alice's Delegation Authorization, and issues ID-JAG `grant-1`, valid
+   for 300 seconds.
+4. The client redeems `grant-1` at the RAS as `analysis-api`, with a
+   fresh proof of the same key. The RAS correlates `agent-42`, resolves
+   Alice to `user-108`, applies the actor gate, and issues the DPoP
+   access token `access-1`, valid for 600 seconds, with no refresh
+   token.
+5. The client reads `/tenants/acme-data/files/report-7` with `access-1`
+   and a new proof. The API checks the proof, the tenant, Alice's
+   permissions, and the actor gate.
+6. When `access-1` expires, the client obtains a new ID-JAG.
+
+**Rejection tests.**
+
+| Change | Expected result |
+|---|---|
+| The Client Association for `analysis-client` is disabled; the binding still resolves `agent-42` | The IdP returns HTTP 400 `actor_unauthorized` and issues no ID-JAG. Resolution succeeded; authorization to use it did not |
+| Alice's Delegation Authorization for `agent-42` is withdrawn | The IdP returns HTTP 400 `actor_unauthorized` for Alice; the agent's grants for other users it may act for are unaffected |
+| A delegated access token without `act` is presented to the API | HTTP 401 `invalid_token`; a missing `act` does not make the token self-acting |
+
+**Containment and restoration.** Restore by undoing the action taken;
+no other action clears it.
+
+| Containment | Effect | Restore by |
+|---|---|---|
+| [Disable the agent everywhere](#disable-an-agent-everywhere) at the IdP | A fresh exchange for Alice fails with `invalid_grant`. Once lifecycle propagation reaches the RAS, redemption is denied and introspection reports `access-1` inactive | Setting the agent `active: true` at the IdP, and confirming the change has propagated to the RAS |
+| [Local Suspension](#cut-one-agent-off-from-one-application) at the RAS | The RAS issues no new access token or refresh for `agent-42`. Activation at the IdP and new grants do not clear it | The resource owner lifting the suspension at the RAS |
+| [Revoke `grant-1`](#revoke-one-suspicious-grant), where the RAS supports grant-derived revocation | Later redemption of `grant-1` is rejected and access derived from it is revoked; the agent stays enabled | The client obtaining a new grant; `grant-1` stays unusable |
+
+Restoration is complete when a new grant is redeemed and the client
+reads `report-7` again, not when the IdP accepts an exchange. Sessions
+revoked in the meantime stay revoked. An API that validated `access-1`
+offline, instead of introspecting it, would accept it until its 600
+seconds end, whichever action was taken.
+
+**Evidence to retain.** The drafts define no log format; as a
+deployment convention, retain:
+
+* the IdP's issuance record for `grant-1`: time, `alice-ras`,
+  `agent-42`, `analysis-client` and its `client_id` `analysis-api`,
+  resource, scope, and the Delegation Authorization it relied on;
+* the RAS's record linking `grant-1` to `access-1`, `user-108`, and
+  `agent-42`; and
+* the API's record of the operation on `report-7`, with `access-1`.
+
+The grant's `jti` joins the IdP's record to the RAS's, and the access
+token's `jti` joins the RAS's to the API's.
+
+**Limitations.**
+
+* Tokens that an API validates offline or caches stay usable until they
+  expire or the cache entry ends. Document the expected and maximum
+  disablement delay.
+* Current administrative state cannot reveal a missed
+  disable-and-re-enable cycle.
+* Each SaaS application is its own resource domain. Repeat the RAS and
+  API configuration, the client registration association, and these
+  tests for each one.
+
+### Recipe: self-acting access
+
+**Outcome.** `agent-42` runs a nightly data-quality job in `acme-data`
+on its own authority, with no user. The recipe uses the same agent,
+client, and resource domain as the delegated recipe, so the two differ
+only in the acting relationship. An internal API changes who owns the
+resource domain, not any step.
+
+**Parties and owners.** As in the delegated recipe, without a user. The
+identity team records the Agent Authorization; the application owner
+decides what the local principal `service-principal-42` may do.
+
+**Operating model.** Self-acting, alongside the delegated recipe, with
+the same dedicated client, client registration, resource, and
+protection choices. Because both token populations share a client
+registration and an audience, the RAS and API need the additional
+bilateral contract the core's implementation considerations describe
+for that case. Here, the RAS records which acting relationship
+authorized each access token and returns it in its authenticated
+introspection response, under a member the two agree on; the drafts
+define none. A deployment that wants no such contract, or whose API
+validates access tokens offline, gives self-acting tokens a separate
+client registration or audience instead, and configures the API with
+that mapping.
+
+**Configuration.**
+
+* At the IdP: the same Identity Binding; a Client Association that
+  permits `analysis-client` to use it for self-acting issuance,
+  configured at the IdP directly; an Agent Authorization for `agent-42`
+  with `files.read` at `https://api.example/tenants/acme-data/`; and
+  the same client registration association.
+* At the RAS: the local principal `service-principal-42`, correlated
+  with (`https://idp.example/`, `agent-42`), and its permissions in
+  `acme-data`; and the acting relationship recorded with each access
+  token and returned on introspection.
+* At the API: the acting relationship taken from the introspection
+  response, then the agent's own permissions and tenant checks; no
+  actor gate.
+
+**One successful transaction.**
+
+1. The client authenticates to the IdP with a fresh assertion, repeats
+   it as the subject token, and requests a WAG for the same audience,
+   resource, and scope, with a DPoP proof. It sends no user token and
+   no actor token.
+2. The IdP resolves `agent-42`, checks the self-acting Client
+   Association and the Agent Authorization, and issues WAG `wag-1`.
+3. The client redeems `wag-1` at the RAS. The RAS checks the grant's
+   type, correlates `agent-42` to `service-principal-42`, and issues an
+   access token with `sub` `service-principal-42`, no `act`, and no
+   refresh token.
+4. The API enforces `service-principal-42`'s permissions in `acme-data`.
+5. When the access token expires, the client obtains a new WAG.
+
+**Rejection tests.**
+
+| Change | Expected result |
+|---|---|
+| The self-acting Client Association is disabled; the delegated one remains | The IdP returns HTTP 400 `unauthorized_client`, not `actor_unauthorized`, since no actor is asserted |
+| The client requests a resource the Agent Authorization does not cover | The IdP returns HTTP 400 `invalid_target` |
+| The RAS has no authorized correlation for `agent-42` in `acme-data` | The RAS rejects `wag-1` with HTTP 400 `invalid_grant` |
+| With self-acting access enabled, the API receives a token from the delegated population that lacks `act` | HTTP 401 `invalid_token`, as before self-acting access was enabled; the token is not accepted as self-acting |
+
+**Containment and restoration.**
+
+* **Disablement and Local Suspension:** as in the delegated recipe,
+  each restored only by undoing it. Disabling the agent stops its
+  self-acting and delegated access together.
+* **Stop only its own access:** withdraw or narrow the Agent
+  Authorization. New WAGs for that target are refused, and tokens
+  already issued run until they expire; Alice's delegation is
+  unaffected. Restore the authorization to restore access.
+* **Stop one grant:** revoking a single WAG is deployment-specific;
+  grant-derived revocation covers ID-JAGs only.
+* **Verify:** restoration is complete when a new WAG is redeemed and
+  the job's API call succeeds.
+
+**Evidence to retain.** As a deployment convention: the IdP's issuance
+record for `wag-1` and the Agent Authorization it relied on; the RAS's
+record linking `wag-1` to the access token and to
+`service-principal-42`; and the API's records for
+`service-principal-42`. The RAS's correlation joins the local principal
+to (`https://idp.example/`, `agent-42`).
+
+**Limitations.**
+
+* A WAG yields no refresh token, so the IdP must be reachable whenever
+  the agent needs a new access token.
+* The resource domain sees only the agent: no user is attributed, so
+  review the Agent Authorization by agent.
+
+### Variations
+
+Each variation changes one of the recipes as stated; the rest holds.
+
+#### Through a gateway
+
+`agent-42` reaches a tool in another domain through an MCP gateway. Add
+[continuation](#continuation-through-gateways): the gateway's
+authorization server attests the agent's grant, and the IdP issues an
+onward grant naming the same agent and user, with the gateway as
+client. The tool sees the same agent; its API also sees the gateway in
+`continuation_via` where the tool's RAS supports path disclosure.
+
+Run the continuation checks in [step 4](#continuation-through-gateways),
+which include containment: disabling the agent ends its chains, and
+re-enabling it does not revive them. One limitation remains: once the
+gateway's source hop passes its continuation window, continuation fails
+with `invalid_grant`, even while the agent's access token at the
+gateway is still accepted.
+
+#### Scheduled work
+
+`agent-42` prepares a daily report for Alice after she signs out. While
+Alice is signed in, the client uses her refresh token once to establish
+a chain anchored to that refresh token's grant; each run continues from
+server-held task state with no retained user credential. This needs an
+IdP that claims grant-anchored continuation, and a continuation-aware
+authorization server at the agent's operator that holds the task
+record. The continuation profile's [scheduled
+variant][continuation-scheduled] shows the messages.
+
+* **Extra test:** when Alice withdraws her Delegation Authorization for
+  `agent-42`, the next run fails with `invalid_continuation`, and her
+  delegations to other agents continue.
+* **Containment:** revoking the refresh-token grant that anchors the
+  chain also ends it.
+
+#### A shared platform client
+
+A platform runs many agents behind one OAuth client and presents its
+existing platform JWT, which names the agent's workload. The IdP
+resolves the agent from the JWT through an exact Identity Binding, and
+a Client Association permits the shared client to use that binding. The
+core's [AWS example][core-aws-example] shows the input.
+
+* **Extra tests:** a platform JWT that fails validation is rejected
+  with `invalid_grant`, with no retry from the client's authentication
+  or another credential class; and a token the client holds for
+  `agent-42` is not reused for another agent with the same scope.
 
 ## Vendor requirements
 
@@ -272,24 +633,6 @@ deployment-specific.
   alters no authorization. Disable the agent if policy requires an
   owner and none is assigned.
 
-## Ownership and reviews
-
-| Team | Owns |
-|---|---|
-| Identity (IAM) | Agent Principals and owners; Identity Bindings; Client Associations; Delegation and Agent Authorizations; Continuation Associations; IdP issuance policy; the authority of SCIM connectors |
-| Resource and application owners | Local agent principals and their eligibility; actor-gate policy; access-token protection per client and resource; Local Suspension; per-action policy |
-| Platform engineering | Agent OAuth clients and their keys; workload credentials; the SCIM connector |
-| Security operations | Signals into the IdP and policy decision points; running the containment runbooks; incident records |
-
-Certify on the same cadence as human access:
-
-* Delegation Authorizations, by user and by agent.
-* Agent Authorizations, by agent, since they govern self-acting access.
-* Client Associations and dedicated-client bindings, by client.
-* Continuation Associations, by gateway.
-* Agent Principals without an owner, or with no grant issued for a
-  defined period.
-
 ## Audit evidence
 
 Each action an API performs for an agent can be traced to:
@@ -323,7 +666,10 @@ profile's events and through risk inputs to policy decision points
 defined effect that response tooling can rely on.
 
 [core]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
+[core-walkthrough]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#walkthrough
+[core-aws-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#aws-example
 [continuation]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
+[continuation-scheduled]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#walkthrough-scheduled
 [lifecycle]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
 [management]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html
 [guide-authzen]: IMPLEMENTERS-GUIDE.md#authorization-decisions-with-authzen

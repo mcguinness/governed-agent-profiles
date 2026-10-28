@@ -20,7 +20,7 @@ resource domain whose authorization server (RAS) is
 * [Access flows and deployment variants](#access-flows-and-deployment-variants)
 * [Changes, failures, and recovery](#changes-failures-and-recovery)
 * [Optional integrations and boundaries](#optional-integrations-and-boundaries)
-* [How the drafts fit](#how-the-drafts-fit)
+* [Specification map and glossary](#specification-map-and-glossary)
 
 ## The system in one page
 
@@ -645,26 +645,8 @@ context and per-action authorization belong to other specifications:
 | Concern | Question | Responsibility | Specifications |
 |---|---|---|---|
 | Identity | Which governed agent is acting? | The IdP resolves the Agent Principal; the resource domain correlates it locally | These drafts |
-| Authority | What may it do, and for whom? | The IdP authorizes the grant; the resource domain decides within its limits | These drafts; AuthZEN and COAZ for per-action decisions ([above](#authorization-decisions-with-authzen)); ARAP and AROP for requestable denials |
+| Authority | What may it do, and for whom? | The IdP authorizes the grant; the resource domain decides within its limits | These drafts; AuthZEN and COAZ for per-action decisions ([above](#authorization-decisions-with-authzen)); ARAP and AROP for requestable denials ([glossary](#glossary)) |
 | Work | Does approved work still justify this action? | A mission control point supplies and evaluates work context; ending a Mission denies actions at every boundary that checks work state | [Mission-Bound Authorization](https://github.com/mcguinness/mission-bound-authorization) |
-
-The AuthZEN profiles are developed in the OpenID AuthZEN working group:
-
-* [AuthZEN Authorization API 1.0](https://openid.net/specs/authorization-api-1_0.html):
-  a policy enforcement point asks a policy decision point for an access
-  decision about a subject, action, resource, and context.
-* [COAZ](https://openid.github.io/authzen/authzen-coaz-framework-1_0.html)
-  (Compatible with OpenID AuthZEN): a protocol-neutral framework that
-  maps an operation's inputs into an AuthZEN request.
-  [COAZ-MCP](https://openid.github.io/authzen/authzen-coaz-mcp-binding-1_0.html)
-  is its binding for the Model Context Protocol.
-* [ARAP](https://openid.github.io/authzen/authzen-access-request-approval-profile-1_0.html)
-  (AuthZEN Access Request and Approval Profile): after a requestable
-  denial, the enforcement point submits an access request, tracks it as
-  an asynchronous task, and re-evaluates after approval.
-* [AROP](https://github.com/openid/authzen/blob/main/profiles/authzen-access-request-oauth/authzen-access-request-oauth-profile-1_0.md)
-  (AuthZEN Access Request OAuth Profile): binds ARAP to OAuth so that an
-  approved request completes as an issued access token.
 
 Also outside these drafts: identity continuity across a chain of IdPs,
 multi-agent delegation chains, authorization of individual client
@@ -672,7 +654,7 @@ instances, enrollment and key-replacement protocols, request provenance
 through intermediaries other than governed continuation, and behavioral
 monitoring and anomaly detection.
 
-## How the drafts fit
+## Specification map and glossary
 
 The standards the drafts build on exist separately and do not yet
 compose:
@@ -701,42 +683,13 @@ at issuance and redemption.
 
 **Add a companion when you need what it addresses:**
 
-| When you need | Add | Working group |
-|---|---|---|
-| SPIFFE or Client Attestation evidence, including several managed installations behind one client | [Agent Resolution Input Profiles][inputs] | OAuth |
-| A gateway that calls further resource domains for the agent | [Identity Continuation Profile][continuation] | OAuth |
-| Platforms that register agents and their relationships at the IdP | [SCIM Profile for Governed Agent Federation Management][management] | SCIM |
-| OAuth client registrations managed through SCIM | [SCIM Profile for OAuth 2.0 Client Management][oauth-client] | SCIM |
-| Resource domains provisioned with agents and their disablement | [Governed Agent Lifecycle Profile][lifecycle] | SCIM |
-
-**Inputs.** Further agent-resolution inputs that satisfy the core's
-input contract, each claimed separately. The core requires an
-implementation that uses JWT-SVID client authentication to follow this
-companion, so the two drafts reference each other and are published
-together. An implementation that claims none of these inputs needs only
-the core.
-
-**Continuation.** Profiles the Identity Continuation Assertion (ICA) for
-governed agents, with gateways as the primary deployment. See
-[Continuation through gateways](#continuation-through-gateways).
-
-**SCIM management.** Platform-to-IdP administration of the relationships
-above. Administering them is authorization management: permission to
-create an agent does not imply permission to bind it, and permission to
-disable a relationship does not imply permission to enable it.
-
-**OAuth client management.** A generic SCIM resource for OAuth client
-registrations, developing the approach first proposed by Phil Hunt,
-Morteza Ansari, and Anthony Nadalin. It can share a registration with
-OAuth dynamic registration, and manages local admission of Client ID
-Metadata Document clients without copying their metadata.
-
-**Lifecycle.** Provisions issuer-qualified Agent Principals into a
-resource domain and applies administrative disablement to OAuth
-authorization. Existing SCIM Events trigger reconciliation, and an
-optional composition with CAEP session-revocation events can revoke
-what one grant authorized. It defines no new schema, event type, or
-authorization timestamp, and states what current state cannot recover.
+| When you need | Add | Working group | Notes |
+|---|---|---|---|
+| SPIFFE or Client Attestation evidence, including several managed installations behind one client | [Agent Resolution Input Profiles][inputs] | OAuth | Each input is claimed separately. The core requires it for JWT-SVID client authentication, so the two are published together; without these inputs, the core alone suffices |
+| A gateway that calls further resource domains for the agent | [Identity Continuation Profile][continuation] | OAuth | Profiles the Identity Continuation Assertion (ICA) for governed agents ([variant](#continuation-through-gateways)) |
+| Platforms that register agents and their relationships at the IdP | [SCIM Profile for Governed Agent Federation Management][management] | SCIM | Keeps registering, binding, and authorizing client use as separate permissions ([trust](#trust-between-parties)) |
+| OAuth client registrations managed through SCIM | [SCIM Profile for OAuth 2.0 Client Management][oauth-client] | SCIM | Develops the approach first proposed by Phil Hunt, Morteza Ansari, and Anthony Nadalin. It can share a registration with OAuth dynamic registration, and admits Client ID Metadata Document clients without copying their metadata |
+| Resource domains provisioned with agents and their disablement | [Governed Agent Lifecycle Profile][lifecycle] | SCIM | Applies administrative disablement to OAuth authorization, with an optional CAEP composition that revokes what one grant authorized. It defines no new schema, event type, or authorization timestamp |
 
 ### How they connect
 
@@ -781,6 +734,45 @@ flowchart LR
 
 What each draft needs from the specifications it depends on is in
 [COORDINATION.md](COORDINATION.md).
+
+### Glossary
+
+| Term | Meaning | Defined in |
+|---|---|---|
+| Acting relationship | Whether the agent acts for a user (delegated) or for itself (self-acting) | The core |
+| Actor gate | The check, at the RAS and the API, that the issuer-qualified agent may act for the user in the selected tenant and resource | The core ("Delegated Actor Authorization") |
+| Agent Authorization | The IdP's decision that an agent may access a target on its own behalf, within an approved client, tenant, target, and authority | The core |
+| Agent Principal | The stable principal, in the IdP's namespace, that the enterprise governs as one agent; identified by its IdP's issuer and its identifier | The core |
+| Agent session | IdP state recording that an agent recently authenticated through one Identity Binding; it anchors self-acting chains | Continuation |
+| ARAP | [AuthZEN Access Request and Approval Profile](https://openid.github.io/authzen/authzen-access-request-approval-profile-1_0.html): after a requestable denial, the enforcement point submits an access request, tracks it, and re-evaluates after approval | OpenID AuthZEN |
+| AROP | [AuthZEN Access Request OAuth Profile](https://github.com/openid/authzen/blob/main/profiles/authzen-access-request-oauth/authzen-access-request-oauth-profile-1_0.md): binds ARAP to OAuth, so an approved request completes as an access token | OpenID AuthZEN |
+| AuthZEN Authorization API | [The API](https://openid.net/specs/authorization-api-1_0.html) through which an enforcement point asks a policy decision point for a decision about a subject, action, resource, and context | OpenID AuthZEN |
+| Bound governed agent access | The adoption profile that requires DPoP at grant issuance and redemption | The core |
+| Chain, hop | The IdP's record of grants continued from one root grant; each grant in it is a hop | ICA, as the continuation profile uses it |
+| Client Association | Permission for an OAuth client to use an agent through one Identity Binding, acting relationship, and credential class | The core |
+| Client registration association | The IdP's mapping from an authenticated client to its registration at a target RAS, which supplies the grant's `client_id`; not a Client Association | The core ("Issuance Prerequisites") |
+| COAZ, COAZ-MCP | [COAZ](https://openid.github.io/authzen/authzen-coaz-framework-1_0.html) (Compatible with OpenID AuthZEN) maps an operation's inputs into an AuthZEN request; [COAZ-MCP](https://openid.github.io/authzen/authzen-coaz-mcp-binding-1_0.html) is its binding for the Model Context Protocol | OpenID AuthZEN |
+| Continuation Assertion Issuer (CAI) | The issuer that attests, for a continuation exchange, that a RAS accepted a hop | ICA |
+| Continuation Association | Permission for a client to continue an agent's governed chains in one acting relationship | Continuation |
+| `continuation_via` | The onward grant's claim listing the continuing clients on the path | Continuation |
+| Continuing client | The client, usually a gateway, that continues a chain: it obtains the assertion, exchanges it at the IdP, and redeems the onward grant | Continuation |
+| Credential class | A configured category of agent-resolution input with its own validation rules, such as a client assertion, a SPIFFE SVID, Client Attestation, or a platform's workload JWT | The core |
+| Dedicated client, shared client | A dedicated client's authenticated identity maps to one agent. A shared client serves several agents, so resolving one needs workload evidence | The core |
+| Delegation Authorization | The IdP's decision that an agent may act for a user, within an approved client, tenant, target, and authority | The core |
+| Execution identity | What a platform issues for a workload it runs, or a client's own authentication: evidence the IdP resolves, not the governed principal | This overview |
+| Governance Tenant | The IdP's administrative scope for an agent and its relationships; not part of the agent's identity | The core |
+| Governed agent access | The adoption profile that permits unbound grants only where trusted policy explicitly allows them | The core |
+| Grant-derived revocation | Optional revocation, by a CAEP event, of the authorization one ID-JAG produced in a tenant | Lifecycle |
+| ID-JAG | Identity Assertion JWT Authorization Grant: the delegated grant, with the user as subject and the agent in `act` | ID-JAG, profiled by the core |
+| Identity Binding | An approved association from an exact client or workload identity to one agent; it resolves the agent and grants no permission | The core |
+| Local Suspension | A resource-domain restriction independent of the IdP's state; upstream activation cannot clear it | Lifecycle |
+| Onward grant | An ID-JAG or WAG issued on a continuation exchange | Continuation |
+| Provisioning Domain | Configuration naming one governing IdP issuer, one Target Tenant, and the connectors authorized to manage them | Lifecycle; SCIM management for the IdP side |
+| RAS | The resource domain's authorization server, which redeems grants and issues access tokens | The core |
+| Resource domain | A RAS and the APIs it issues access tokens for | This overview |
+| Target Tenant | The tenant at the RAS in which the agent or user exercises authority | The core |
+| Transaction Token | A short-lived token carrying identity and context through a call chain inside one trust domain | OAuth Transaction Tokens |
+| WAG | Workload Authorization Grant: the self-acting grant, with the agent as subject | WAG, profiled by the core |
 
 [core]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
 [core-walkthrough]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#walkthrough

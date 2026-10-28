@@ -543,13 +543,18 @@ Four differences matter for governed deployments:
   resolved, which, for a dedicated client, is not the requesting
   client. Likewise, AROP completes an approved request as an access
   token, but says nothing about keeping the originating grant's
-  subject and actor. Under the core's [External
-  Approval][external-approval], such a token is still issued under
-  governed issuance.
+  subject and actor. The core defers asynchronous approval, and its
+  [External Approval][external-approval] constraints define no
+  AROP-to-governed-issuance flow. A future composition of either
+  profile with governed issuance would need to preserve governed
+  identity resolution and authorization checks.
 
-Until the profiles converge, an enforcement point maps each one into
-this model, and policy is written against the model rather than any
-one profile's members. [COORDINATION.md](COORDINATION.md) records the
+Two things are different here. The request projections in the table can
+be implemented today: an enforcement point can map each profile's
+request into this model, and policy can be written against the model
+rather than any one profile's members. The issuance and approval
+protocols cannot; mapping fields does not compose them, and they remain
+unresolved. [COORDINATION.md](COORDINATION.md) records the
 changes proposed to the profiles.
 
 A client that holds tokens for several tools or resources keeps each

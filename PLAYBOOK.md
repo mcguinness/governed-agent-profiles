@@ -465,8 +465,9 @@ to (`https://idp.example/`, `agent-42`).
 
 **Limitations.**
 
-* A WAG yields no refresh token, so the IdP must be reachable whenever
-  the agent needs a new access token.
+* A WAG yields no refresh token. Once the access token expires, the
+  agent needs a WAG the RAS still accepts, under its validity, replay,
+  and proof rules, or a new one from the IdP.
 * The resource domain sees only the agent: no user is attributed, so
   review the Agent Authorization by agent.
 

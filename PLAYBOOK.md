@@ -895,10 +895,52 @@ Each action an API performs for an agent can be traced to:
   Delegation or Agent Authorization, and the resource domain's own
   decision.
 
-The drafts define no log format. Record these identifiers together in
-the IdP's issuance records and in each resource domain's access
-records, and use the Agent Principal as the key that joins them with
-security telemetry.
+The Agent Principal groups an agent's activity, but it does not show
+which grant or decision authorized a particular action. That takes a
+trace from the action back to the authorization, joined at each step by
+an identifier that the next record also holds. The drafts define no log
+format, so every field below is a deployment convention, not a logging
+standard.
+
+### A worked trace
+
+The delegated recipe's read of `report-7` traces back as follows:
+
+| Step | Record | Joined to the next step by | Retained by |
+|---|---|---|---|
+| API action | The read of `/tenants/acme-data/files/report-7`, its time, and its result | The access token's identifier, `access-1` | The API |
+| Token record | `access-1`: subject `user-108`, actor `agent-42`, client `analysis-api`, scope, tenant, and expiry | The issuer and `jti` of the grant it was redeemed from: `https://idp.example/` and `grant-1` | The RAS |
+| Redeemed grant | `grant-1`: subject `alice-ras`, actor `agent-42`, client `analysis-api`, resource, scope, and key binding | The same issuer and `jti` | The RAS and the IdP |
+| IdP issuance decision | The exchange that issued `grant-1`: its time, the authenticated client `analysis-client`, the Identity Binding and Client Association used, and Alice's ID Token | The authorization the decision relied on | The IdP |
+| Applicable authorization | Alice's Delegation Authorization for `agent-42`: client, tenant, target, `files.read`, and who approved it, and when | (end of trace) | The IdP |
+
+Three joins need deliberate retention:
+
+* **API to RAS.** A JWT access token carries `jti`. For an opaque token,
+  the introspection response is not required to include one, so the
+  API records whatever stable identifier the RAS returns.
+* **RAS to grant.** The core requires the RAS to keep enough
+  association to invalidate authorization by agent and tenant. Keeping
+  the grant's issuer and `jti` with each authorization it derives is
+  required only where grant-derived revocation is enabled; elsewhere it
+  is this convention.
+* **IdP to authorization.** Withdrawing a delegation, binding, or
+  association can reach authorization already derived from it only if
+  the IdP kept the `jti` of each grant it issued under that
+  relationship. The same record answers an auditor's question.
+
+For self-acting access, the trace runs from the API's records for
+`service-principal-42`, through the access token and `wag-1`, to the
+agent's Agent Authorization; the RAS's correlation joins
+`service-principal-42` to (`https://idp.example/`, `agent-42`). Where a
+gateway continued the request, the onward grant replaces `grant-1`, its
+`continuation_via` names the gateway where the target supports path
+disclosure, and the IdP's hop records lead back to the root grant and
+its authorization.
+
+Record these identifiers in the IdP's issuance records and in each
+resource domain's access records, and use the Agent Principal as the
+key that joins them with security telemetry.
 
 ## Where security tooling plugs in
 

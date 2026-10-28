@@ -393,12 +393,15 @@ decides what the local principal `service-principal-42` may do.
 **Operating model.** Self-acting, alongside the delegated recipe, with
 the same dedicated client, client registration, resource, and
 protection choices. Because both token populations share a client
-registration and an audience, the API tells them apart through
-authenticated introspection context: the RAS records which acting
-relationship authorized each access token and returns it in its
-introspection response. An API that validates access tokens offline
-needs a separate client registration or audience for self-acting
-tokens instead.
+registration and an audience, the RAS and API need the additional
+bilateral contract the core's implementation considerations describe
+for that case. Here, the RAS records which acting relationship
+authorized each access token and returns it in its authenticated
+introspection response, under a member the two agree on; the drafts
+define none. A deployment that wants no such contract, or whose API
+validates access tokens offline, gives self-acting tokens a separate
+client registration or audience instead, and configures the API with
+that mapping.
 
 **Configuration.**
 

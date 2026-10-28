@@ -251,10 +251,15 @@ the same: one binding, one Agent Principal. The authority is different:
 
 Neither authorization implies the other. Withdrawing Alice's delegation
 leaves the agent's own access unchanged, and withdrawing the Agent
-Authorization leaves Alice's delegation in place. The core's
-[self-acting variant][core-wag-example] shows the messages, and the
-playbook's [self-acting recipe](PLAYBOOK.md#recipe-self-acting-access)
-deploys and tests the flow.
+Authorization leaves Alice's delegation in place. Where both flows
+reach one API, the API tells their tokens apart from trusted
+configuration, such as a separate client registration or audience, or
+from authenticated issuance context. It never relies on the absence of
+`act`, which would let a malformed delegated token pass as self-acting.
+The core's [self-acting variant][core-wag-example] shows the messages,
+and the playbook's
+[self-acting recipe](PLAYBOOK.md#recipe-self-acting-access) deploys and
+tests the flow.
 
 ### Continuation through gateways
 

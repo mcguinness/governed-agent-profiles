@@ -19,6 +19,7 @@ profile that defines them.
 * [Distributed platforms and key use](#distributed-platforms-and-key-use)
 * [Continuation through gateways](#continuation-through-gateways)
 * [Authorization decisions with AuthZEN](#authorization-decisions-with-authzen)
+* [Credential brokers](#credential-brokers)
 * [Adoption tradeoffs](#adoption-tradeoffs)
 * [Intermediate adoption](#intermediate-adoption)
 * [Provisioning and linking](#provisioning-and-linking)
@@ -511,6 +512,96 @@ enforcement point to supply the agent itself: the validated `act` for a
 delegated token population, or the correlated local subject for a
 self-acting one, with `client_id` kept as a separate attribute.
 
+## Credential brokers
+
+The Credential Broker for Agents ([CB4A]) draft describes a broker that
+keeps long-lived credentials away from agents. The agent submits each
+request as a signed Task Request Envelope, and a policy decision point
+(PDP) approves it. A separate credential delivery point (CDP) then
+mints a short-lived, DPoP-bound token from a vaulted credential
+(Model B), proxies the call with the real credential (Model A), or hands
+out a credential and revokes it later (Model C). CB4A is an individual,
+Informational -00 draft, now expired, and defines no wire protocol apart
+from a native token format it describes as future work. This chapter
+shows how a broker works with these profiles; the [architecture
+overview](ARCHITECTURE.md#credential-brokers) summarizes it.
+
+### Mapping
+
+| CB4A element | In these profiles |
+|---|---|
+| PDP decision before issuance | The IdP's issuance authorization, through Delegation or Agent Authorization, which can use an AuthZEN PDP ([Authorization decisions with AuthZEN](#authorization-decisions-with-authzen)) |
+| Human and MFA approval tiers | An additional condition on issuance that never replaces identity resolution or delegation authorization ([External Approval][external-approval]). Approval that completes as a token through ARAP and AROP is an [excluded composition][excluded-compositions] |
+| CDP minting (Model B) for a target that accepts governed grants | The IdP issues a grant naming the agent, and the target's RAS issues the access token; no vaulted credential is needed for that target |
+| Proxy gateway (Model A) for a target that accepts governed grants | A gateway continues the agent's grant to the target ([Continuation through gateways](#continuation-through-gateways)) instead of injecting a shared credential |
+| Envelope target: service, action, resource, scope | Token exchange `audience`, `resource`, `scope`, and `authorization_details` |
+| Envelope justification and task reference | Not an authorization input in CB4A either; approved work belongs to Mission-Bound Authorization ([Beyond these drafts](ARCHITECTURE.md#beyond-these-drafts)) |
+| Future native token (Section 4.11 of CB4A): `iss`, `sub`, `aud`, `scope`, `exp`, `jti`, `cnf`, `envelope_hash` | A governed WAG carries the same claims except `envelope_hash`, with `cnf` when the grant is DPoP-bound. It adds `client_id`, `resource`, and `iat`, and names the Agent Principal, issued by the IdP the target trusts, as `sub` ([Grant Claims][wag-claims]) |
+| Non-renewable leases and short TTLs | Short-lived grants, single-use unless bound; WAG-derived access has no refresh tokens |
+| Lease revocation on an anomaly signal | The lifecycle profile's optional [grant-derived revocation][lc-grant-revocation], and Local Suspension in the resource domain |
+| Targets that accept only API keys or their own minting interfaces | Outside these profiles (below) |
+
+### Identity
+
+CB4A gives each agent session a SPIFFE ID of the form
+`spiffe://trust-domain/agent/{user-id}/{session-id}` (Section 4.1 of
+CB4A). That identifier combines what these profiles keep apart:
+
+* **The agent** is a stable, issuer-qualified Agent Principal. An
+  Identity Binding names an exact identity, without pattern matching,
+  and an identifier of one execution, such as a session, cannot select
+  or change the Agent Principal ([Identity Binding][identity-binding]).
+* **The user** is the subject of a delegated ID-JAG, taken from the
+  user's own sign-in.
+* **A session** is a lifecycle anchor of a continuation chain, or the
+  agent session of a self-acting chain.
+
+A broker that federates therefore presents a stable per-agent identity,
+such as `spiffe://trust-domain/agent/{agent-id}`. The per-session SVID
+can still authenticate the agent to the broker.
+
+### Pattern 1: the agent authenticates itself
+
+The agent authenticates to the IdP with a JWT-SVID carrying its stable
+per-agent SPIFFE ID ([JWT-SVID input][inputs-jwt-svid]), as a dedicated
+client or behind a shared client. The broker no longer mints credentials
+for targets that accept governed grants: its PDP and approval service
+act as the IdP's issuance policy rather than as a credential gate. The
+agent holds its own DPoP key, so the grant and the access token are
+bound to that key, as CB4A's sender-constrained tokens (Section 4.5 of
+CB4A) require.
+
+### Pattern 2: the broker as a governed shared client
+
+The broker authenticates to the IdP as its own OAuth client and
+presents, as workload evidence, a JWT it issues for the agent with the
+stable agent identifier as `sub` ([Existing Platform
+JWT][imported-jwt-input]). It cannot relay the agent's SVID instead:
+inputs that resolve from authentication context are not accepted as
+presented evidence ([Agent Resolution Input
+Validation][actor-inputs]). A Client Association permits the broker's
+client to use each agent's binding. For delegated access, the broker
+also needs the user's ID Token, issued to the broker's client, as the
+subject token.
+
+To bind tokens to the agent's key, the agent keeps the DPoP key and
+gives the broker a request-specific proof for each token request, which
+the broker sends. The grant and the access token are then bound to the
+agent's key, which the broker never holds ([Distributed platforms and
+key use](#distributed-platforms-and-key-use)). Where a token endpoint
+requires a DPoP nonce, the broker relays the challenge to the agent for
+a new proof.
+
+### Targets that do not accept governed grants
+
+For a target that accepts only API keys or its own minting interface,
+the broker remains the credential holder (CB4A Models A to C). The
+target sees the broker's credential, not the agent, so per-agent
+attribution and revocation at the target are lost. Apply the governed
+identity where the broker decides: evaluate and audit each request by
+the issuer-qualified Agent Principal rather than by the session
+identifier.
+
 ## Adoption tradeoffs
 
 The profile's security controls carry these deployment costs. The
@@ -757,6 +848,13 @@ resource domain provisioned for `agent-58` applies the deletion under
 [policy-services]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#policy-services
 [actor-authorization]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#actor-authorization
 [api-applicability]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#api-applicability
+[external-approval]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#external-approval
+[wag-claims]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#wag-claims
+[identity-binding]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#identity-binding
+[imported-jwt-input]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#imported-jwt-input
+[inputs-jwt-svid]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html#jwt-svid-input
+[lc-grant-revocation]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#grant-revocation
+[CB4A]: https://www.ietf.org/archive/id/draft-hartman-credential-broker-4-agents-00.html
 [AUTHZEN]: https://openid.net/specs/authorization-api-1_0.html
 [COAZ-MCP]: https://openid.github.io/authzen/authzen-coaz-mcp-binding-1_0.html
 [lc-platform-hosted]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#platform-hosted

@@ -54,7 +54,7 @@ that the later steps test:
 
 | Choice | Options | What it determines |
 |---|---|---|
-| Acting relationship | Delegated (ID-JAG), self-acting (WAG), or both | Which authorization the IdP checks, and whether the RAS and API apply the actor gate |
+| Acting relationship | Delegated (ID-JAG), self-acting (WAG), or both | Which authorization the IdP checks, and whether the RAS and API apply the actor gate. With both, also how the API tells the two token populations apart: separate client registrations, audiences, or issuers, or authenticated introspection context. The absence of `act` never does, since a malformed delegated token would then pass as self-acting |
 | Resolution input | A dedicated client authenticating with `private_key_jwt`, or a shared client presenting its existing platform JWT | Whether the client's own authentication identifies the agent, or a platform JWT does |
 | Grant protection | Bound governed agent access, with DPoP at grant issuance and redemption; or governed agent access, with unbound grants only where policy explicitly permits them | Whether a stolen grant can be redeemed |
 | Access-token protection, per resource | DPoP, mutual TLS, or bearer where the resource explicitly permits it | What a stolen access token allows |
@@ -111,7 +111,8 @@ access-token protection:
   the access-token protection for each resource.
 * **At the API:** tenant checks, and either the user's authority and the
   actor gate for delegated tokens, or the agent's own authority for
-  self-acting tokens.
+  self-acting tokens. Where both populations reach one API, it
+  distinguishes them as chosen in step 1.
 * **At the client:** its registrations and keys at the IdP and the RAS,
   and a DPoP key for bound grants.
 
@@ -385,8 +386,15 @@ resource domain, not any step.
 identity team records the Agent Authorization; the application owner
 decides what the local principal `service-principal-42` may do.
 
-**Operating model.** Self-acting; the same dedicated client and
-protection choices.
+**Operating model.** Self-acting, alongside the delegated recipe, with
+the same dedicated client, client registration, resource, and
+protection choices. Because both token populations share a client
+registration and an audience, the API tells them apart through
+authenticated introspection context: the RAS records which acting
+relationship authorized each access token and returns it in its
+introspection response. An API that validates access tokens offline
+needs a separate client registration or audience for self-acting
+tokens instead.
 
 **Configuration.**
 
@@ -397,9 +405,11 @@ protection choices.
   the same client registration association.
 * At the RAS: the local principal `service-principal-42`, correlated
   with (`https://idp.example/`, `agent-42`), and its permissions in
-  `acme-data`.
-* At the API: the agent's own permissions and tenant checks; no actor
-  gate.
+  `acme-data`; and the acting relationship recorded with each access
+  token and returned on introspection.
+* At the API: the acting relationship taken from the introspection
+  response, then the agent's own permissions and tenant checks; no
+  actor gate.
 
 **One successful transaction.**
 
@@ -423,6 +433,7 @@ protection choices.
 | The self-acting Client Association is disabled; the delegated one remains | The IdP returns HTTP 400 `unauthorized_client`, not `actor_unauthorized`, since no actor is asserted |
 | The client requests a resource the Agent Authorization does not cover | The IdP returns HTTP 400 `invalid_target` |
 | The RAS has no authorized correlation for `agent-42` in `acme-data` | The RAS rejects `wag-1` with HTTP 400 `invalid_grant` |
+| With self-acting access enabled, the API receives a token from the delegated population that lacks `act` | HTTP 401 `invalid_token`, as before self-acting access was enabled; the token is not accepted as self-acting |
 
 **Containment and restoration.**
 

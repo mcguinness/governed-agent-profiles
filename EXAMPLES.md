@@ -806,9 +806,11 @@ client can cancel its own request by revoking the deferral code.
 
 The agent reaches the file service through an MCP gateway. The gateway
 is the API for the agent's access token, and the client of every
-server after it. MCP messages below follow MCP revision 2026-07-28;
-like MCP's own examples, they omit the required `_meta` members, such
-as the protocol version and client information.
+server after it. MCP messages below follow MCP revision 2026-07-28,
+except that the agent's client presents a DPoP-bound token
+([below](#call-a-tool)). Like MCP's own examples, they omit the
+required `_meta` members, such as the protocol version and client
+information.
 
 ### Get a gateway access token
 
@@ -883,6 +885,29 @@ Mcp-Name: read_file
   }
 }
 ```
+
+MCP has MCP clients send access tokens with the `Bearer` scheme and
+defines no DPoP usage. These examples, like the continuation
+walkthrough, assume that the agent's client and the gateway also
+support DPoP for this hop. A standard bearer-only MCP client sends the
+same request with the token alone (new):
+
+```http
+POST /mcp HTTP/1.1
+Host: gateway.example
+Authorization: Bearer GW_ACCESS_TOKEN
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: read_file
+```
+
+For that client, the gateway's RAS issues a bearer access token, and
+the hop is eligible for continuation only where resource policy
+explicitly permits continuation from bearer access tokens for
+`analysis-gw` and the gateway resource. That policy accepts that a
+stolen gateway token could induce an honest continuation.
 
 The gateway validates the token and proof and applies the actor gate
 for `agent-42` acting for Alice. Where it delegates the decision to an
@@ -1072,7 +1097,8 @@ describes this flow; the messages below are new.
 ### The agent calls the tool and accepts a task
 
 The agent's client declares the MCP tasks extension on the request, so
-the gateway may answer with a task:
+the gateway may answer with a task. As in scene 5, a bearer-only MCP
+client would send `Authorization: Bearer` and no DPoP proof:
 
 ```http
 POST /mcp HTTP/1.1

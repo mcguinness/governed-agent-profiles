@@ -181,6 +181,8 @@ authorization server continuation-aware; sender-constrain the
 gateway's access tokens unless policy permits continuation from bearer
 tokens; give each gateway a Continuation Association; and make sure
 target authorization servers support DPoP at their token endpoints.
+MCP clients send bearer tokens, so an MCP gateway needs that bearer
+policy unless its clients also support DPoP.
 
 *Exit checks:*
 * The onward grant names the same Agent Principal and, for a delegated

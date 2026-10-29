@@ -70,6 +70,12 @@ informative:
       - name: Karl McGuinness
     date: false
     target: https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md
+  MCP:
+    title: "Model Context Protocol Specification, Revision 2026-07-28"
+    author:
+      - org: Model Context Protocol
+    date: 2026-07-28
+    target: https://modelcontextprotocol.io/specification/2026-07-28
   RFC6755:
   RFC7519:
   RFC7662:
@@ -1198,6 +1204,14 @@ H0, and issues `GW_ACCESS_TOKEN`, DPoP-bound and carrying H0:
 The agent calls a tool with this token and a proof of K. The gateway
 validates both, enforces the actor gate for `agent-42` acting for
 Alice, and routes the call to the file service in `acme-data`.
+
+{{MCP}} has MCP clients send access tokens with the `Bearer` scheme and
+defines no DPoP usage, so this walkthrough assumes that the agent's
+client and the gateway also support DPoP for this hop. With a
+bearer-only MCP client, GatewayRAS issues a bearer access token, and
+the hop is eligible for continuation only where resource policy permits
+continuation from bearer access tokens for `analysis-gw` and the
+gateway resource ({{root-redemption}}).
 
 ## Assertion {#walkthrough-assertion}
 

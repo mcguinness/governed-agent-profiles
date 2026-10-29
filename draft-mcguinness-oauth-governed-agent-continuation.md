@@ -43,6 +43,7 @@ normative:
   RFC8707:
   RFC9449:
   RFC9110:
+  RFC9396:
 informative:
   AGENT-LIFECYCLE:
     title: "Governed Agent Lifecycle Profile for SCIM and OAuth"
@@ -469,8 +470,8 @@ relationship it determined for the received access token as the API
 A Continuation Association permits an authenticated client to continue
 an Agent Principal's governed chains in one acting relationship. It
 belongs to the Governance Tenant of those chains and does not apply to
-chains in another. It can restrict targets and authority, and it
-narrows, without replacing, the
+chains in another. It can restrict targets and authority
+({{restrictions}}), and it narrows, without replacing, the
 restrictions on who may continue that the chain authorization records
 ({{Section 5.1.4 of ICA}}). It has these limits:
 
@@ -484,6 +485,70 @@ restrictions on who may continue that the chain authorization records
   bound to an agent of its own.
 
 Policy representation and administration are outside this document.
+
+## Restrictions {#restrictions}
+
+A chain authorization's restrictions ({{Section 5.1.4 of ICA}}) and a
+Continuation Association's restrictions have the meaning this section
+defines; their representation is outside this document. Either can
+contain these members:
+
+| Member | Content |
+|---|---|
+| Targets | Target entries, each naming a target RAS issuer and either one resource or one Target Tenant |
+| Authority | Authority entries, each for one target entry: a set of scope values, authorization details {{RFC9396}}, or both, in that target's vocabulary |
+| Continuing clients | Canonical actor identities ({{Section 5.5.2 of ICA}}); in a chain authorization only, since a Continuation Association names its client |
+{: title="Members of a restriction"}
+
+The IdP MUST evaluate each restriction as follows:
+
+* **Absent:** An absent member restricts nothing, and the other bounds
+  of this section still apply. Where a chain authorization records no
+  Targets member, a target that current policy comes to permit is
+  reachable from every such chain, as {{Section 9.2 of ICA}} describes.
+  Likewise, a target that matches no authority entry has no authority
+  limited by that restriction. Absence never removes the finite
+  hop-count limit of {{Section 6.3 of ICA}} or the continuation window
+  ({{governed-chain-authorization}}).
+* **Present:** A member present in a chain authorization is fixed for
+  the chain's lifetime ({{Section 5.1.4 of ICA}}). Current policy can
+  narrow access beneath it but cannot exceed it. A Continuation
+  Association's members are current policy and apply as they stand at
+  each continuation.
+* **Empty:** A present member that is empty permits nothing: an empty
+  Targets member permits no continuation, an empty Continuing clients
+  member permits no client, and an authority entry whose scope set or
+  authorization details are present but empty permits no access to its
+  target.
+* **Matching:** A request matches a target entry when its `audience`
+  equals the entry's RAS issuer and, for an entry naming a resource,
+  its `resource` equals that resource or, for an entry naming a Target
+  Tenant, the Target Tenant resolved for it in step 7 of
+  {{continuation-validation}} equals that tenant. A continuing
+  client matches when its canonical actor identity equals a recorded
+  one. This document compares each value as an exact string, without
+  normalization.
+* **Authority:** A request is within a restriction's authority only if
+  it is within every authority entry whose target entry it matches:
+  each requested scope value is in the entry's scope set, if the entry
+  has one; and, if the entry has authorization details, the request
+  carries authorization details, each within a recorded detail of the
+  same type under that type's rules. A request without authorization
+  details is not within such an entry, even when its scope is, since
+  its grant would carry the scope without the limit the details
+  express.
+* **Unevaluable:** If the IdP cannot determine that requested
+  authorization details are within an authority entry, for example
+  because it does not implement their type's comparison, the request is
+  not within it.
+* **Combined:** The chain authorization's restrictions, the
+  Continuation Association's restrictions, and the agent's current
+  authorization each bound the onward grant independently. The target
+  RAS then applies its own policy.
+
+The IdP derives a chain authorization's restrictions when it
+establishes the chain, from tenant policy and from the Delegation or
+Agent Authorization under which the root grant is issued.
 
 ## Validation {#continuation-validation}
 
@@ -515,7 +580,7 @@ within the steps that cite them, changed only as stated.
 6. **Continuer:** A current Continuation Association in the chain's
    Governance Tenant permits the client for the chain's Agent Principal
    and acting relationship, and so do the chain authorization's
-   restrictions on who may continue ({{Section 5.1.4 of ICA}}).
+   restrictions on who may continue ({{restrictions}}).
 7. **Target context (ICA rule 5, replacing its subject resolution):**
    The Target Tenant for the requested resource, the continuing
    client's registration at the target RAS ("Issuance Prerequisites" in
@@ -531,10 +596,10 @@ within the steps that cite them, changed only as stated.
    client's context, for the requested target and authority. A current
    Delegation Authorization or Agent Authorization that permits
    continuation covers them; it need not name the continuing client.
-   The Continuation Association's restrictions and the chain
-   authorization also bound the target and authority. Withdrawal of the
-   root authorization as a whole is chain state (step 5), not a failure
-   of this step.
+   The restrictions of the chain authorization and the Continuation
+   Association also bound the target and authority ({{restrictions}}).
+   Withdrawal of the root authorization as a whole is chain state
+   (step 5), not a failure of this step.
 
 Because step 6 precedes step 7, a client without a Continuation
 Association learns nothing about where the chain's user resolves. The
@@ -718,7 +783,8 @@ both chain types:
 | The Target Tenant, the user's subject, or the continuing client's registration cannot be resolved at the target | 7 | `invalid_target` |
 | Policy requires path disclosure, and the target RAS is not established to support it | 7 | `invalid_target` |
 | The chain authorization, the Continuation Association, or the agent's current authorization does not permit the target | 9 | `invalid_target` |
-| The same sources permit the target but not the requested authority | 9 | `invalid_scope` or `invalid_authorization_details` |
+| The same sources permit the target but not the requested scope | 9 | `invalid_scope` |
+| The same sources permit the target but not the requested authorization details, or a restriction's authority entry has authorization details and the request has none, or has details the IdP cannot evaluate against it ({{restrictions}}) | 9 | `invalid_authorization_details` |
 {: title="Errors for governed continuation"}
 
 The client is not the actor, and the subject token is the assertion,
@@ -1653,6 +1719,7 @@ Where this document is silent, {{ICA}} applies unchanged.
 | Establishment | Tenant policy permits continuation ({{Section 5.1.2 of ICA}}) | The root's Delegation or Agent Authorization must also permit it ({{chain-establishment}}) |
 | Anchors | User session or refresh-token grant; no non-user roots ({{Section 6.1 of ICA}}) | Unchanged for delegated chains; an agent session for self-acting chains ({{self-acting-root}}) |
 | Chain authorization | User, root actor, authentication context, anchor, restrictions | Adds the facts of {{governed-chain-authorization}} |
+| Restrictions | Representation implementation-specific ({{Section 5.1.4 of ICA}}) | Meaning defined for absent, present, and empty members, matching, and authority with authorization details ({{restrictions}}) |
 | Who may continue | Chain authorization and current policy | Also a Continuation Association ({{continuation-association}}) |
 | Continuation request | Zero or more `resource`; optional `scope`; ID-JAG ({{Section 5.5.1 of ICA}}) | One `resource`; required `scope`; the chain's grant type ({{continuation-request}}) |
 | Retry fingerprint | No requested token type ({{Section 5.5.7.1 of ICA}}) | Includes `requested_token_type` ({{continuation-validation}}) |

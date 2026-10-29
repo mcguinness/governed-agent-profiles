@@ -43,14 +43,17 @@ OTHER_RESOURCE = "https://api.example/tenants/beta-data/"
 CHECKS = {
     "idp.client_assertion_audience": "client assertion aud is the IdP issuer only",
     "idp.client_assertion_replay": "client assertion jti is not reused",
+    "idp.client_assertion_time": "client assertion iat and nbf are not in the future",
     "idp.require_dpop": "bound profile requires a DPoP proof at issuance",
     "idp.single_resource": "exactly one resource parameter",
     "idp.id_token_audience": "ID Token audience is the authenticated client",
+    "idp.id_token_time": "ID Token iat and nbf are not in the future",
     "idp.binding_enabled": "Identity Binding is enabled",
     "idp.agent_active": "Agent Principal is active",
     "idp.client_association": "Client Association permits delegated use of the binding",
     "idp.delegation": "Delegation Authorization permits the agent for the user",
     "ras.client_id": "grant client_id matches the authenticated client",
+    "ras.grant_time": "grant iat and nbf are not in the future",
     "ras.require_cnf": "bound profile requires cnf.jkt in the grant",
     "ras.require_proof": "a grant with cnf requires a DPoP proof",
     "ras.proof_key_match": "the redemption proof key matches cnf.jkt",
@@ -59,6 +62,7 @@ CHECKS = {
     "ras.actor_gate": "RAS policy permits the agent to act for the user",
     "ras.actor_preservation": "act is copied unchanged into the access token",
     "api.key_binding": "the DPoP proof key matches the token's cnf.jkt",
+    "api.token_time": "access token iat and nbf are not in the future",
     "api.require_act": "a governed delegated token carries a valid act",
     "api.tenant": "the token's tenant matches the requested tenant",
     "api.actor_gate": "API policy permits the agent to act for the user",
@@ -96,6 +100,32 @@ def _one(form, name, error="invalid_request"):
     if len(values) != 1 or not values[0]:
         raise OAuthError(error, description=f"exactly one {name} required")
     return values[0]
+
+
+def _time_valid(claims, require_iat, check_future=True):
+    """exp not passed; iat, where required or present, and nbf not after now plus skew.
+
+    RFC 7519 Section 4.1.5 for nbf, RFC 7523 Section 3 for assertions and grants,
+    and the core's Time, Replay, and Key Validation for iat.
+    """
+    now = time.time()
+    exp, iat, nbf = claims.get("exp"), claims.get("iat"), claims.get("nbf")
+    if not isinstance(exp, int) or exp + SKEW < now:
+        return False
+    if require_iat and not isinstance(iat, int):
+        return False
+    if not check_future:
+        return True
+    for value in (iat, nbf):
+        if value is not None and (not isinstance(value, int) or value > now + SKEW):
+            return False
+    return True
+
+
+def _typ_is(header, media_type):
+    """typ names the media type, with or without "application/" (RFC 7515 Section 4.1.9)."""
+    value = header.get("typ")
+    return isinstance(value, str) and value.lower() in (media_type, "application/" + media_type)
 
 
 def _single_audience(aud, expected):
@@ -173,11 +203,11 @@ class Server:
         if self.on(f"{check_prefix}.client_assertion_audience") and \
                 not _single_audience(claims.get("aud"), audience):
             raise OAuthError("invalid_client", description="aud must be the issuer")
-        exp, iat, jti = claims.get("exp"), claims.get("iat"), claims.get("jti")
-        if not isinstance(exp, int) or exp + SKEW < now or not jti or \
-                (isinstance(iat, int) and iat > now + SKEW):
+        jti = claims.get("jti")
+        if not jti or not _time_valid(claims, require_iat=False, check_future=self.on(
+                f"{check_prefix}.client_assertion_time")):
             raise OAuthError("invalid_client")
-        key = (client_id, jti)
+        exp, key = claims["exp"], (client_id, jti)
         if key in self.assertion_replay and self.assertion_replay[key] > now and \
                 self.on(f"{check_prefix}.client_assertion_replay"):
             raise OAuthError("invalid_client", description="assertion reused")
@@ -241,7 +271,15 @@ class IdP(Server):
             claims = {"iss": self.issuer, "sub": body.get("user", "alice"),
                       "aud": body.get("aud", "analysis-client"), "iat": now,
                       "exp": now + int(body.get("lifetime", 3900))}
+            claims.update(body.get("claims", {}))
             return {"id_token": jws.sign({"typ": "JWT", "kid": self.kid}, claims, self.key)}
+        if op == "mint_grant":
+            now = int(time.time())
+            claims = {"iss": self.issuer, "aud": RAS_ISSUER, "iat": now,
+                      "exp": now + GRANT_LIFETIME, "jti": uuid.uuid4().hex}
+            claims.update(body["claims"])
+            return {"grant": jws.sign({"typ": "oauth-id-jag+jwt", "kid": self.kid},
+                                      claims, self.key)}
         if op == "set":
             what, value = body["what"], body["value"]
             if what == "binding_enabled":
@@ -337,13 +375,13 @@ class IdP(Server):
             raise OAuthError("invalid_grant")
         aud = claims.get("aud")
         audiences = aud if isinstance(aud, list) else [aud]
-        exp = claims.get("exp")
-        if claims.get("iss") != self.issuer or not isinstance(exp, int) or \
-                exp + SKEW < time.time() or claims.get("sub") not in self.users:
+        if claims.get("iss") != self.issuer or claims.get("sub") not in self.users or \
+                not _time_valid(claims, require_iat=True,
+                                check_future=self.on("idp.id_token_time")):
             raise OAuthError("invalid_grant")
         if client_id not in audiences and self.on("idp.id_token_audience"):
             raise OAuthError("invalid_grant")
-        return claims["sub"], exp
+        return claims["sub"], claims["exp"]
 
     def resolve_agent(self, client_id):
         matches = [(bid, b) for bid, b in self.bindings.items()
@@ -394,8 +432,8 @@ class RAS(Server):
             claims = {"iss": self.issuer, "iat": now, "exp": now + ACCESS_TOKEN_LIFETIME,
                       "jti": uuid.uuid4().hex}
             claims.update(body["claims"])
-            return {"access_token": jws.sign({"typ": "at+jwt", "kid": self.kid},
-                                             claims, self.key)}
+            return {"access_token": jws.sign({"typ": body.get("typ", "at+jwt"),
+                                              "kid": self.kid}, claims, self.key)}
         return super().control_op(op, body)
 
     def handle(self, environ, start_response):
@@ -477,7 +515,7 @@ class RAS(Server):
         """ID-JAG validation (ID-JAG Section 4.4.1, RFC 7523 Section 3)."""
         try:
             header, unverified, _, _ = jws.decode(assertion)
-            if header.get("typ") != "oauth-id-jag+jwt":
+            if not _typ_is(header, "oauth-id-jag+jwt"):
                 raise ValueError("typ")
             key = self.trusted_idps.get(unverified.get("iss"))
             if key is None:
@@ -485,11 +523,8 @@ class RAS(Server):
             _, claims = jws.verify(assertion, key, "RS256")
         except ValueError:
             raise OAuthError("invalid_grant")
-        now = time.time()
-        exp = claims.get("exp")
-        if not _single_audience(claims.get("aud"), self.issuer) or \
-                not isinstance(exp, int) or exp + SKEW < now or not claims.get("jti") or \
-                (isinstance(claims.get("iat"), int) and claims["iat"] > now + SKEW):
+        if not _single_audience(claims.get("aud"), self.issuer) or not claims.get("jti") or \
+                not _time_valid(claims, require_iat=True, check_future=self.on("ras.grant_time")):
             raise OAuthError("invalid_grant")
         return claims
 
@@ -546,12 +581,12 @@ class API(Server):
         try:
             header, unverified, _, _ = jws.decode(token)
             ras = self.trusted_ras.get(unverified.get("iss"))
-            if header.get("typ") != "at+jwt" or ras is None:
+            if not _typ_is(header, "at+jwt") or ras is None:
                 raise ValueError("typ or issuer")
             _, claims = jws.verify(token, ras["key"], "RS256")
         except ValueError:
             raise invalid
-        if not isinstance(claims.get("exp"), int) or claims["exp"] + SKEW < time.time():
+        if not _time_valid(claims, require_iat=True, check_future=self.on("api.token_time")):
             raise invalid
         # Protection: DPoP proof, ath, and key binding.
         jkt = self.validate_dpop(environ, "GET", API_BASE + path, access_token=token, status=401)

@@ -48,6 +48,7 @@ class Config:
     user: str
     scope: str
     expect: dict = field(default_factory=dict)  # agent_iss, agent, grant_sub, token_sub
+    max_grant_lifetime: int = 300  # the IdP's configured limit; the core recommends 300 s
 
 
 class Response:
@@ -126,15 +127,20 @@ class Client:
 class Adapter:
     """Test-control contract. A deployment under test supplies an implementation.
 
-    id_token(user, aud=None)       an ID Token for the user, for the IdP client
-                                   unless aud names another audience
+    id_token(user, aud=None, claims=None)
+                                   an ID Token for the user, for the IdP client
+                                   unless aud names another audience; claims
+                                   overrides members such as iat
     set(role, what, value)         change one relationship or setting:
                                      idp: binding_enabled, agent_active,
                                           client_association, delegation,
                                           client_profile ("bound" or "governed")
                                      ras: agent_active, actor_gate
                                      api: actor_gate
-    mint_access_token(claims)      an access token the RAS signs with these claims
+    mint_grant(claims)             an ID-JAG the IdP signs with these claims
+    mint_access_token(claims, typ="at+jwt")
+                                   an access token the RAS signs with these
+                                   claims and this typ
     reset()                        restore the scene 1 configuration
     disable_check(role, name)      reference implementation only (vacuity mode)
     """
@@ -142,13 +148,16 @@ class Adapter:
     def reset(self):
         raise NotImplementedError
 
-    def id_token(self, user, aud=None):
+    def id_token(self, user, aud=None, claims=None):
         raise NotImplementedError
 
     def set(self, role, what, value):
         raise NotImplementedError
 
-    def mint_access_token(self, claims):
+    def mint_grant(self, claims):
+        raise NotImplementedError
+
+    def mint_access_token(self, claims, typ="at+jwt"):
         raise NotImplementedError
 
     def disable_check(self, role, name):
@@ -175,8 +184,8 @@ class ReferenceAdapter(Adapter):
         for role in ("idp", "ras", "api"):
             self._call(role, "reset")
 
-    def id_token(self, user, aud=None):
-        body = {"user": user}
+    def id_token(self, user, aud=None, claims=None):
+        body = {"user": user, "claims": claims or {}}
         if aud:
             body["aud"] = aud
         return self._call("idp", "id_token", body)["id_token"]
@@ -184,8 +193,12 @@ class ReferenceAdapter(Adapter):
     def set(self, role, what, value):
         self._call(role, "set", {"what": what, "value": value})
 
-    def mint_access_token(self, claims):
-        return self._call("ras", "mint_access_token", {"claims": claims})["access_token"]
+    def mint_grant(self, claims):
+        return self._call("idp", "mint_grant", {"claims": claims})["grant"]
+
+    def mint_access_token(self, claims, typ="at+jwt"):
+        return self._call("ras", "mint_access_token",
+                          {"claims": claims, "typ": typ})["access_token"]
 
     def disable_check(self, role, name):
         self._call(role, "disable_check", {"name": name})
@@ -217,8 +230,8 @@ class Context:
         self.cfg, self.adapter, self.client = cfg, adapter, Client(cfg)
         self.notes = []
 
-    def id_token(self, aud=None):
-        return self.adapter.id_token(self.cfg.user, aud)
+    def id_token(self, aud=None, claims=None):
+        return self.adapter.id_token(self.cfg.user, aud, claims)
 
     def grant(self, dpop_key="k"):
         resp = self.client.exchange(self.id_token(), dpop_key=dpop_key)
@@ -236,6 +249,22 @@ def check(condition, message):
         raise AssertionError(message)
 
 
+def typ_is(header, media_type):
+    """typ names the media type, with or without "application/" (RFC 7515 Section 4.1.9)."""
+    value = header.get("typ")
+    return isinstance(value, str) and value.lower() in (media_type, "application/" + media_type)
+
+
+def single(value):
+    """A JWT claim that may be a string or a one-element array, as one value."""
+    return value[0] if isinstance(value, list) and len(value) == 1 else value
+
+
+def jkt(claims):
+    cnf = claims.get("cnf")
+    return cnf.get("jkt") if isinstance(cnf, dict) else None
+
+
 def expect_error(resp, status, error):
     body = resp.json()
     check(resp.status == status and body.get("error") == error,
@@ -243,11 +272,16 @@ def expect_error(resp, status, error):
     check("access_token" not in body, "an error response carried a token")
 
 
-def expect_challenge(resp, status, error):
+def expect_challenge(ctx, resp, status, error):
+    """The status, the DPoP scheme, and the error code where the challenge carries one."""
     challenge = resp.headers.get("WWW-Authenticate", "") if resp.headers else ""
-    check(resp.status == status and challenge.startswith("DPoP") and
-          f'error="{error}"' in challenge,
-          f"expected HTTP {status} with a DPoP {error} challenge, got {resp} {challenge!r}")
+    check(resp.status == status and challenge.startswith("DPoP"),
+          f"expected HTTP {status} with a DPoP challenge, got {resp} {challenge!r}")
+    if "error=" in challenge:
+        check(f'error="{error}"' in challenge, f"expected error {error}, got {challenge!r}")
+    else:
+        ctx.notes.append(f"challenge carries no error parameter; {error} expected "
+                         "(RFC 9449 Section 7.1 SHOULD)")
 
 
 def expect_rejected(ctx, resp):
@@ -271,18 +305,24 @@ def p1(ctx):
     check(body.get("token_type") == "N_A", "token_type")
     header, grant, _, _ = jws.decode(body["access_token"])
     _, subject, _, _ = jws.decode(id_token)
-    check(header.get("typ") == "oauth-id-jag+jwt", "typ")
+    check(typ_is(header, "oauth-id-jag+jwt"), "typ")
     check(grant.get("iss") == cfg.idp.issuer, "iss")
-    check(grant.get("aud") == cfg.ras.issuer, "aud")
+    check(single(grant.get("aud")) == cfg.ras.issuer, "aud")
     check(grant.get("sub") == cfg.expect["grant_sub"], "sub is the user in the RAS namespace")
     check(grant.get("client_id") == cfg.ras_client_id, "client_id is the RAS registration")
-    check(grant.get("resource") == cfg.resource, "resource")
+    check(single(grant.get("resource")) == cfg.resource, "resource")
     check(grant.get("scope") == cfg.scope, "scope")
-    check(grant.get("act") == {"iss": cfg.expect["agent_iss"], "sub": cfg.expect["agent"]},
-          f"act names the Agent Principal: {grant.get('act')}")
-    check(grant.get("cnf") == {"jkt": jws.thumbprint(jws.public_jwk(ctx.client.k))},
+    act = grant.get("act")
+    check(isinstance(act, dict) and "act" not in act and
+          act.get("iss") == cfg.expect["agent_iss"] and act.get("sub") == cfg.expect["agent"],
+          f"act names the Agent Principal: {act}")
+    check(jkt(grant) == jws.thumbprint(jws.public_jwk(ctx.client.k)),
           "cnf.jkt is the grant proof key")
-    check(grant["exp"] - grant["iat"] <= 300, "grant lifetime at most 300 s")
+    lifetime = grant["exp"] - grant["iat"]
+    check(lifetime <= cfg.max_grant_lifetime,
+          f"grant lifetime {lifetime} s exceeds the configured limit {cfg.max_grant_lifetime} s")
+    if lifetime > 300:
+        ctx.notes.append(f"grant lifetime {lifetime} s exceeds the recommended 300 s (SHOULD)")
     check(grant["exp"] <= subject["exp"], "grant does not outlive the ID Token")
 
 
@@ -295,15 +335,17 @@ def p2(ctx):
     check(resp.status == 200, f"redemption failed: {resp}")
     body = resp.json()
     check(body.get("token_type") == "DPoP", "token_type DPoP")
-    check("refresh_token" not in body, "no refresh token")
+    if "refresh_token" in body:
+        ctx.notes.append("a refresh token was issued; the core permits one only under "
+                         "explicit policy (Optional RAS Refresh Tokens)")
     header, token, _, _ = jws.decode(body["access_token"])
     _, grant_claims, _, _ = jws.decode(grant)
-    check(header.get("typ") == "at+jwt", "typ at+jwt")
+    check(typ_is(header, "at+jwt"), "typ at+jwt or application/at+jwt")
     check(token.get("sub") == cfg.expect["token_sub"], "sub is the local user")
     check(token.get("act") == grant_claims["act"], f"act unchanged: {token.get('act')}")
     check(token.get("client_id") == cfg.ras_client_id, "client_id")
-    check(token.get("aud") == cfg.resource, "aud is the tenant resource")
-    check(token.get("cnf") == {"jkt": jws.thumbprint(jws.public_jwk(ctx.client.k))},
+    check(single(token.get("aud")) == cfg.resource, "aud is the tenant resource")
+    check(jkt(token) == jws.thumbprint(jws.public_jwk(ctx.client.k)),
           "access token bound to the same key")
 
 
@@ -311,6 +353,26 @@ def p2(ctx):
       "core: Token Validation; Delegated Access")
 def p3(ctx):
     resp = ctx.client.get(ctx.cfg.read_path, ctx.access_token())
+    check(resp.status == 200, f"read failed: {resp}")
+
+
+def minted_token_claims(ctx, **overrides):
+    """Claims of a valid delegated access token bound to K, with overrides."""
+    cfg = ctx.cfg
+    claims = {"sub": cfg.expect["token_sub"], "aud": cfg.resource,
+              "client_id": cfg.ras_client_id, "scope": cfg.scope,
+              "act": {"iss": cfg.expect["agent_iss"], "sub": cfg.expect["agent"]},
+              "cnf": {"jkt": jws.thumbprint(jws.public_jwk(ctx.client.k))}}
+    claims.update(overrides)
+    return claims
+
+
+@case("P4", "API", "Accepts typ application/at+jwt and a one-element audience array",
+      "RFC 9068 Sections 2.1 and 4; core: Token Validation", needs=("mint_access_token",))
+def p4(ctx):
+    token = ctx.adapter.mint_access_token(minted_token_claims(ctx, aud=[ctx.cfg.resource]),
+                                          typ="application/at+jwt")
+    resp = ctx.client.get(ctx.cfg.read_path, token)
     check(resp.status == 200, f"read failed: {resp}")
 
 
@@ -451,18 +513,17 @@ def n16(ctx):
       "core: Renewal and Negative Tests, another tenant", defeats=("api.tenant",))
 def n17(ctx):
     resp = ctx.client.get(ctx.cfg.other_tenant_path, ctx.access_token())
-    expect_challenge(resp, 401, "invalid_token")
+    expect_challenge(ctx, resp, 401, "invalid_token")
 
 
 @case("N18", "API", "Rejects a delegated-population access token without act",
       "core: Renewal and Negative Tests, missing act; Profile Applicability",
       needs=("mint_access_token",), defeats=("api.require_act",))
 def n18(ctx):
-    cfg = ctx.cfg
-    token = ctx.adapter.mint_access_token({
-        "sub": cfg.expect["token_sub"], "aud": cfg.resource, "client_id": cfg.ras_client_id,
-        "scope": cfg.scope, "cnf": {"jkt": jws.thumbprint(jws.public_jwk(ctx.client.k))}})
-    expect_challenge(ctx.client.get(cfg.read_path, token), 401, "invalid_token")
+    claims = minted_token_claims(ctx)
+    del claims["act"]
+    token = ctx.adapter.mint_access_token(claims)
+    expect_challenge(ctx, ctx.client.get(ctx.cfg.read_path, token), 401, "invalid_token")
 
 
 @case("N19", "API", "Rejects a request proven with a key other than the token's",
@@ -470,7 +531,7 @@ def n18(ctx):
       defeats=("api.key_binding",))
 def n19(ctx):
     resp = ctx.client.get(ctx.cfg.read_path, ctx.access_token(), dpop_key="k2")
-    expect_challenge(resp, 401, "invalid_token")
+    expect_challenge(ctx, resp, 401, "invalid_token")
 
 
 @case("N20", "API", "Denies the actor with actor_unauthorized, not insufficient_scope",
@@ -479,7 +540,55 @@ def n19(ctx):
 def n20(ctx):
     token = ctx.access_token()
     ctx.adapter.set("api", "actor_gate", False)
-    expect_challenge(ctx.client.get(ctx.cfg.read_path, token), 403, "actor_unauthorized")
+    expect_challenge(ctx, ctx.client.get(ctx.cfg.read_path, token), 403, "actor_unauthorized")
+
+
+# Time claims ---------------------------------------------------------------
+
+HOUR = 3600
+
+
+@case("N21", "IdP", "Rejects an ID Token whose iat is an hour in the future",
+      "core: Time, Replay, and Key Validation", needs=("id_token:claims",),
+      defeats=("idp.id_token_time",))
+def n21(ctx):
+    now = int(time.time())
+    id_token = ctx.id_token(claims={"iat": now + HOUR, "exp": now + HOUR + 3900})
+    expect_error(ctx.client.exchange(id_token), 400, "invalid_grant")
+
+
+@case("N22", "IdP", "Rejects a client assertion whose nbf is an hour in the future",
+      "RFC 7523 Section 3; core: Time, Replay, and Key Validation",
+      defeats=("idp.client_assertion_time",))
+def n22(ctx):
+    cfg, now = ctx.cfg, int(time.time())
+    assertion = jws.client_assertion(cfg.idp_client_key, cfg.idp_client_id, cfg.idp.issuer,
+                                     extra={"nbf": now + HOUR, "exp": now + HOUR + 60})
+    expect_error(ctx.client.exchange(ctx.id_token(), assertion=assertion), 400, "invalid_client")
+
+
+@case("N23", "RAS", "Rejects a grant whose nbf is an hour in the future",
+      "RFC 7523 Section 3; core: Time, Replay, and Key Validation",
+      needs=("mint_grant",), defeats=("ras.grant_time",))
+def n23(ctx):
+    cfg, now = ctx.cfg, int(time.time())
+    grant = ctx.adapter.mint_grant({
+        "sub": cfg.expect["grant_sub"], "client_id": cfg.ras_client_id,
+        "resource": cfg.resource, "scope": cfg.scope,
+        "act": {"iss": cfg.expect["agent_iss"], "sub": cfg.expect["agent"]},
+        "cnf": {"jkt": jws.thumbprint(jws.public_jwk(ctx.client.k))},
+        "nbf": now + HOUR, "exp": now + HOUR + 300})
+    expect_error(ctx.client.redeem(grant), 400, "invalid_grant")
+
+
+@case("N24", "API", "Rejects an access token whose iat is an hour in the future",
+      "core: Time, Replay, and Key Validation; RFC 9068 Section 4",
+      needs=("mint_access_token",), defeats=("api.token_time",))
+def n24(ctx):
+    now = int(time.time())
+    token = ctx.adapter.mint_access_token(
+        minted_token_claims(ctx, iat=now + HOUR, exp=now + HOUR + 600))
+    expect_challenge(ctx, ctx.client.get(ctx.cfg.read_path, token), 401, "invalid_token")
 
 
 def run_case(c, cfg, adapter, disable=()):

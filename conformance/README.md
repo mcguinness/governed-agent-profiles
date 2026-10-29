@@ -49,9 +49,10 @@ servers listen on localhost. A reader can lay the output beside
 
 | Case | Role | Checks that | Source | Test control |
 |---|---|---|---|---|
-| P1 | IdP | The ID-JAG names the user in the RAS namespace, the agent in `act`, the RAS registration as `client_id`, and the grant key in `cnf.jkt`, and lives at most 300 s and no longer than the ID Token | core: Actor Resolution and Construction; Grant Issuance; Common Grant Claims | None |
-| P2 | RAS | The access token is DPoP-bound to the same key, names the local user, and carries `act` unchanged; no refresh token | core: Actor Preservation; Access Token Issuance and Response | None |
+| P1 | IdP | The ID-JAG names the user in the RAS namespace, the agent in `act`, the RAS registration as `client_id`, and the grant key in `cnf.jkt`, lives no longer than the configured limit (`max_grant_lifetime`, 300 s by default) or the ID Token, and is noted if it exceeds the recommended 300 s | core: Actor Resolution and Construction; Grant Issuance; Common Grant Claims | None |
+| P2 | RAS | The access token is DPoP-bound to the same key, names the local user, and carries `act` unchanged; a refresh token is noted, not failed | core: Actor Preservation; Access Token Issuance and Response | None |
 | P3 | API | A read with the access token and a fresh proof succeeds | core: Token Validation; Delegated Access | None |
+| P4 | API | An access token typed `application/at+jwt`, with a one-element `aud` array, is accepted | RFC 9068 Sections 2.1 and 4; core: Token Validation | Mint an access token |
 | N01 | IdP | A reused client assertion fails with `invalid_client` | core: Dedicated Client Identity (Replay); negative-test row for the nonce retry | None |
 | N02 | IdP | A client assertion addressed to the token endpoint URL fails with `invalid_client` | core: Dedicated Client Identity (Audience) | None |
 | N03 | IdP | An exchange without a DPoP proof under the bound profile fails with `invalid_request` | core: Grant Protection | None |
@@ -72,17 +73,28 @@ servers listen on localhost. A reader can lay the output beside
 | N18 | API | A delegated-population token without `act` fails with 401 `invalid_token` | core: negative-test row; Profile Applicability | Mint an access token |
 | N19 | API | A request proven with another key fails with 401 `invalid_token` | core: Token Validation; RFC 9449 Section 7.1 | None |
 | N20 | API | A closed actor gate fails with 403 `actor_unauthorized`, not `insufficient_scope` | core: Error Responses | Close the actor gate at the API |
+| N21 | IdP | An ID Token whose `iat` is an hour ahead fails with `invalid_grant` | core: Time, Replay, and Key Validation | ID Token with chosen claims |
+| N22 | IdP | A client assertion whose `nbf` is an hour ahead fails with `invalid_client` | RFC 7523 Section 3; core: Time, Replay, and Key Validation | None |
+| N23 | RAS | A grant whose `nbf` is an hour ahead fails with `invalid_grant` | RFC 7523 Section 3; core: Time, Replay, and Key Validation | Mint a grant |
+| N24 | API | An access token whose `iat` is an hour ahead fails with 401 `invalid_token` | core: Time, Replay, and Key Validation; RFC 9068 Section 4 | Mint an access token |
 
 The "negative-test row" sources are the rows of the core's "Renewal and
 Negative Tests" table. N15 and N16 assert only that no token issues,
 because the drafts fix no error code for those cases; the runner prints
-the code it observed.
+the code it observed. The time cases use an hour, well beyond the few
+minutes of skew the core contemplates, so they do not depend on one
+implementation's tolerance.
+
+The suite fails a case only for a departure from a requirement. A
+departure from a recommendation, such as a grant longer than five
+minutes or a resource challenge without an `error` parameter, is
+printed as a note.
 
 Every negative case and P2 name the reference check they exercise
-(`CHECKS` in [reference.py](reference.py)). With `--vacuity`, all 21
-fail with their check switched off. Nineteen negative cases fail because
-the server then accepts the request. P2 fails because the access token
-then carries a rewritten `act`. N11 fails because the RAS returns
+(`CHECKS` in [reference.py](reference.py)). With `--vacuity`, all 25
+fail with their check switched off. Twenty-three negative cases fail
+because the server then accepts the request. P2 fails because the access
+token then carries a rewritten `act`. N11 fails because the RAS returns
 `invalid_request` instead of `invalid_grant`: its access-token
 protection check also rejects a redemption without a proof, so the case
 depends on the code that Grant Protection requires.
@@ -107,7 +119,8 @@ another IdP, RAS or API:
    endpoints, API origin, transport URLs, client identifiers and keys,
    and the identities `expect` names: the agent's issuer and
    identifier, the user's subject in the grant, and the user's subject
-   in the access token. N13 needs a second client registered at the RAS;
+   in the access token. Set `max_grant_lifetime` to the IdP's configured
+   grant lifetime limit. N13 needs a second client registered at the RAS;
    N17 needs a second tenant in which the user and the agent also have
    rights.
 2. Implement `suite.Adapter` for the deployment. Every case needs
@@ -137,6 +150,8 @@ interoperates only where the choice is agreed:
 | Client assertion `aud` | The issuer identifier as a string or a one-element array | core: Dedicated Client Identity (Audience) |
 | ID Token audience | Accepted when the `aud` string or array contains the authenticated client, without checking `azp` | ID-JAG Section 4.3.3 |
 | Clock skew and DPoP proof age | 60 s each; no server nonces | core: Time, Replay, and Key Validation; RFC 9449 |
+| Time claims | `exp` enforced on every JWT; `iat` required on ID Tokens, grants and access tokens; `iat` and `nbf`, where present, rejected beyond the skew | core: Time, Replay, and Key Validation; RFC 7519; RFC 7523 Section 3 |
+| Explicit types | `typ` accepted with or without the `application/` prefix | RFC 7515 Section 4.1.9; RFC 9068 Section 4 |
 | Lifetimes | ID Token 65 min (as the oversight walkthrough uses), grant 300 s, access token 600 s | core: Common Grant Claims |
 
 ## Draft questions found while implementing

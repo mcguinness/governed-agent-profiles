@@ -1410,15 +1410,18 @@ authorizes access to the next resource. The agent's own client can
 continue a chain in the same way, as for scheduled work after the user
 signs out (<a href="#walkthrough-scheduled" class="auto internal xref">Appendix A.7</a>).<a href="#section-1-2" class="pilcrow">¶</a></p>
 <p id="section-1-3">OAuth Identity and Authorization Chaining Across Domains
-<span>[<a href="#ID-CHAINING" class="cite xref">ID-CHAINING</a>]</span> offers another route: the authorization server of the
+<span>[<a href="#ID-CHAINING" class="cite xref">ID-CHAINING</a>]</span> offers another route: an authorization server in the
 gateway's domain issues a JWT authorization grant that the next
-domain's authorization server accepts. Each target would then trust
-every gateway's authorization server, and the IdP that governs the
-agent would not take part in the decision. Continuation instead returns
-to the IdP, which the target already trusts for governed grants and
-which applies the agent's current authorization and governance state at
-each hop. The gateway's domain contributes only its attestation that it
-accepted the request (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.4" class="relref">Section 5.4</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>).<a href="#section-1-3" class="pilcrow">¶</a></p>
+domain's authorization server accepts. In that topology, each target
+trusts the gateway-domain authorization servers whose grants it
+accepts, and Identity Chaining does not require consulting the
+governing IdP at each hop. This profile does: continuation returns to
+the IdP, which the target already trusts for governed grants and which
+applies the agent's current authorization and governance state at each
+hop. The gateway's domain contributes the CAI's attestation that its
+RAS accepted the originating grant, that the resulting authorization
+remains active and eligible for continuation, and that the continuing
+client is associated with it (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.4" class="relref">Section 5.4</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>).<a href="#section-1-3" class="pilcrow">¶</a></p>
 <p id="section-1-4">The onward grant names the Agent Principal and acting relationship of
 the chain's root grant, and for delegated access the same user. The
 continuing client, typically a gateway, is its client, not an added

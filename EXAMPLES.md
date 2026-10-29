@@ -895,7 +895,7 @@ same request with the token alone (new):
 ```http
 POST /mcp HTTP/1.1
 Host: gateway.example
-Authorization: Bearer GW_ACCESS_TOKEN
+Authorization: Bearer GW_BEARER_ACCESS_TOKEN
 Content-Type: application/json
 Accept: application/json, text/event-stream
 MCP-Protocol-Version: 2026-07-28
@@ -903,8 +903,9 @@ Mcp-Method: tools/call
 Mcp-Name: read_file
 ```
 
-For that client, the gateway's RAS issues a bearer access token, and
-the hop is eligible for continuation only where resource policy
+For that client, the gateway's RAS issues a bearer access token,
+`GW_BEARER_ACCESS_TOKEN`, in place of the DPoP-bound one, and the hop
+is eligible for continuation only where resource policy
 explicitly permits continuation from bearer access tokens for
 `analysis-gw` and the gateway resource. That policy accepts that a
 stolen gateway token could induce an honest continuation.

@@ -577,9 +577,9 @@ path disclosure.
 
 Run the continuation checks in [step 4](#continuation-through-gateways),
 which include containment: disabling the agent ends its chains, and
-re-enabling it does not revive them. Limitations remain: where the IdP
-enforces a continuation window, as the continuation profile recommends,
-continuation from a hop past it fails with `invalid_grant` even while
+re-enabling it does not revive them. Limitations remain: the IdP
+enforces a continuation window, as the continuation profile requires,
+so continuation from a hop past it fails with `invalid_grant` even while
 the agent's access token at the gateway is still accepted; the chain's
 other limits fail the same way, and the chain ends when its anchor
 session ends.

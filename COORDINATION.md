@@ -487,9 +487,30 @@ rule that stays local to the profile:
 * **Continuation window:** ICA bounds no hop by how long after issuance
   a CAI can obtain continuations from it, and a compromised RAS acting
   as CAI can attest any hop it accepted (Section 9.5 of ICA). The
-  companion adds a per-hop window as a SHOULD
-  (`governed-chain-authorization`), which ICA could adopt for all
-  chains.
+  companion requires a finite, configured window per hop, checked when
+  a request is received; lengthening the window does not extend a
+  deadline already set (`governed-chain-authorization`). The window
+  bounds continuation from one hop, not the chain, which ICA's finite
+  hop-count limit bounds (Section 6.3 of ICA). ICA could adopt the
+  window for all chains.
+* **Restriction meaning:** Section 5.1.4 of ICA leaves the
+  representation of a chain authorization's restrictions
+  implementation-specific, so two IdPs can enforce different bounds
+  from the same configuration. The companion defines their meaning
+  (`restrictions`): an absent member restricts nothing, as Section 9.2
+  of ICA describes for targets; a present one is a fixed ceiling; an
+  empty one permits nothing; values match exactly; and an entry with
+  authorization details is not met by a request without them. ICA
+  could adopt that meaning for all chains. A representation that
+  another product can read waits on the [authority inventory
+  exercise](exercises/authority-inventory/README.md).
+* **Per-hop narrowing:** A continuing client cannot ask that the hops
+  it creates receive less than it holds, for example a gateway asking
+  in advance for `files.read` only at the file service, in that
+  service's own vocabulary. That needs restrictions carried in ICA's
+  hop records, an authenticated way for a continuing client or CAI to
+  request narrowing, and rules for what a child hop inherits from its
+  parent. Deferred until a deployment needs it.
 
 ### WAG
 
@@ -507,6 +528,42 @@ Associations (`continuation-association`) need a resource or an
 association dimension there before SCIM can administer them, and a
 Delegation or Agent Authorization needs a way to record its permission
 to continue (`chain-establishment`).
+
+### Mission
+
+How Mission-Bound Authorization composes with governed continuation is
+unresolved. Mission stays optional, as the candidate layer for task
+authorization. The "Identity Continuation Transport" of
+`draft-mcguinness-oauth-mission-continuation` uses ICA and bounds each
+onward ID-JAG's authorization details by the Mission's Authority Set,
+but "the actor is rebound per hop", where the companion keeps the Agent
+Principal as the actor and lists continuing clients in
+`continuation_via` (`identity-preservation`). Aligning that sentence
+alone would not complete the composition. Also open:
+
+* how a Mission is authoritatively associated with a governed chain;
+* how Mission authority maps to each target's scopes and authorization
+  details (`restrictions`);
+* whether narrowing a Mission narrows a chain whose chain authorization
+  recorded a wider ceiling;
+* how Mission state, expiry, and ancestor checks sit beside the governed
+  chain-ending events (`chain-ending`); and
+* which error takes precedence, and how a client retries, when a Mission
+  denial and a governed failure such as `invalid_continuation` both
+  apply.
+
+A deadline for a whole task, which the per-hop continuation window does
+not provide, belongs to this composition.
+
+`draft-mcguinness-oauth-mission-child-delegation` makes a child an
+OAuth client of the Child Mission ("Child Client Identity"), not an
+Agent Principal with an Identity Binding, a Client Association, or a
+governed authorization. The companion's "One agent" condition
+(`scope-boundaries`) stands without Mission: a child agent that needs
+its own governance is an Agent Principal of its own and obtains its own
+governed grants and chains, and its acting for the parent agent remains
+multi-agent delegation, which the core excludes. A Child Mission can
+optionally supply its task lineage.
 
 ### References
 

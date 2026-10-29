@@ -43,6 +43,7 @@ normative:
   RFC8707:
   RFC9449:
   RFC9110:
+  RFC9396:
 informative:
   AGENT-LIFECYCLE:
     title: "Governed Agent Lifecycle Profile for SCIM and OAuth"
@@ -344,11 +345,20 @@ limits of {{Section 6.3 of ICA}}, including the actor-lineage depth
 bound, apply to the IdP's hop records, whose lineage entries are the
 root client and the continuing clients.
 
-The IdP SHOULD also enforce a configured continuation window: it refuses
-continuation from a hop more than that window after it issued the hop,
-with `invalid_grant` as for those limits. The window bounds how long a
-CAI, including one that a compromised gateway operator controls, can
-obtain continuations from a hop it accepted ({{implementation-idp}}).
+The IdP MUST also enforce a finite continuation window, whose length is
+configured: it refuses a continuation request received after the hop's
+deadline, with `invalid_grant` as for those limits. A hop's deadline is
+the time the IdP issued the hop plus the window configured then.
+Shortening the window can bring existing deadlines forward; lengthening
+it applies only to hops issued afterwards. The deadline limits when a
+continuation can be requested, not when its onward grant issues, so an
+onward grant whose issuance is deferred after a timely request can
+issue after it. The window bounds how long a CAI, including one that a
+compromised gateway operator controls, can obtain continuations from a
+hop it accepted. It does not bound the chain: each continuation creates
+a hop with a deadline of its own, and the hop-count limit of
+{{Section 6.3 of ICA}} bounds how far a chain extends
+({{security-gateway}}, {{implementation-idp}}).
 
 ## Delegated Root {#delegated-root}
 
@@ -469,8 +479,8 @@ relationship it determined for the received access token as the API
 A Continuation Association permits an authenticated client to continue
 an Agent Principal's governed chains in one acting relationship. It
 belongs to the Governance Tenant of those chains and does not apply to
-chains in another. It can restrict targets and authority, and it
-narrows, without replacing, the
+chains in another. It can restrict targets and authority
+({{restrictions}}), and it narrows, without replacing, the
 restrictions on who may continue that the chain authorization records
 ({{Section 5.1.4 of ICA}}). It has these limits:
 
@@ -484,6 +494,71 @@ restrictions on who may continue that the chain authorization records
   bound to an agent of its own.
 
 Policy representation and administration are outside this document.
+
+## Restrictions {#restrictions}
+
+A chain authorization's restrictions ({{Section 5.1.4 of ICA}}) and a
+Continuation Association's restrictions have the meaning this section
+defines; their representation is outside this document. Either can
+contain these members:
+
+| Member | Content |
+|---|---|
+| Targets | Target entries, each naming a target RAS issuer and either one resource or one Target Tenant |
+| Authority | Authority entries, each for one target entry: a set of scope values, authorization details {{RFC9396}}, or both, in that target's vocabulary |
+| Continuing clients | Canonical actor identities ({{Section 5.5.2 of ICA}}); in a chain authorization only, since a Continuation Association names its client |
+{: title="Members of a restriction"}
+
+The IdP MUST evaluate each restriction as follows:
+
+* **Absent:** An absent member restricts nothing, and the other bounds
+  of this section still apply. Where a chain authorization records no
+  Targets member, a target that current policy comes to permit is
+  reachable from every such chain, as {{Section 9.2 of ICA}} describes.
+  Likewise, a target that matches no authority entry has no authority
+  limited by that restriction. Absence never removes the finite
+  hop-count limit of {{Section 6.3 of ICA}} or the continuation window
+  ({{governed-chain-authorization}}).
+* **Present:** A member present in a chain authorization is fixed for
+  the chain's lifetime ({{Section 5.1.4 of ICA}}). Current policy can
+  narrow access beneath it but cannot exceed it. A Continuation
+  Association's members are current policy and apply as they stand at
+  each continuation.
+* **Empty:** A present member that is empty permits nothing: an empty
+  Targets member permits no continuation, an empty Continuing clients
+  member permits no client, and an authority entry whose scope set or
+  authorization details are present but empty permits no access to its
+  target.
+* **Matching:** A request matches a target entry when its `audience`
+  equals the entry's RAS issuer and, for an entry naming a resource,
+  its `resource` equals that resource or, for an entry naming a Target
+  Tenant, the Target Tenant resolved for it in step 7 of
+  {{continuation-validation}} equals that tenant. A continuing
+  client matches when its canonical actor identity equals a recorded
+  one. This document compares each value as an exact string, without
+  normalization.
+* **Authority:** A request is within a restriction's authority only if
+  it is within every authority entry whose target entry it matches:
+  each requested scope value is in the entry's scope set, if the entry
+  has one; and, if the entry has authorization details, the request
+  carries a non-empty `authorization_details` array, each of whose
+  details is within a recorded detail of the same type under that
+  type's rules. A request without authorization details, or with an
+  empty array, is not within such an entry, even when its scope is,
+  since its grant would carry the scope without the limit the details
+  express.
+* **Unevaluable:** If the IdP cannot determine that requested
+  authorization details are within an authority entry, for example
+  because it does not implement their type's comparison, the request is
+  not within it.
+* **Combined:** The chain authorization's restrictions, the
+  Continuation Association's restrictions, and the agent's current
+  authorization each bound the onward grant independently. The target
+  RAS then applies its own policy.
+
+The IdP derives a chain authorization's restrictions when it
+establishes the chain, from tenant policy and from the Delegation or
+Agent Authorization under which the root grant is issued.
 
 ## Validation {#continuation-validation}
 
@@ -515,7 +590,7 @@ within the steps that cite them, changed only as stated.
 6. **Continuer:** A current Continuation Association in the chain's
    Governance Tenant permits the client for the chain's Agent Principal
    and acting relationship, and so do the chain authorization's
-   restrictions on who may continue ({{Section 5.1.4 of ICA}}).
+   restrictions on who may continue ({{restrictions}}).
 7. **Target context (ICA rule 5, replacing its subject resolution):**
    The Target Tenant for the requested resource, the continuing
    client's registration at the target RAS ("Issuance Prerequisites" in
@@ -531,10 +606,10 @@ within the steps that cite them, changed only as stated.
    client's context, for the requested target and authority. A current
    Delegation Authorization or Agent Authorization that permits
    continuation covers them; it need not name the continuing client.
-   The Continuation Association's restrictions and the chain
-   authorization also bound the target and authority. Withdrawal of the
-   root authorization as a whole is chain state (step 5), not a failure
-   of this step.
+   The restrictions of the chain authorization and the Continuation
+   Association also bound the target and authority ({{restrictions}}).
+   Withdrawal of the root authorization as a whole is chain state
+   (step 5), not a failure of this step.
 
 Because step 6 precedes step 7, a client without a Continuation
 Association learns nothing about where the chain's user resolves. The
@@ -713,12 +788,13 @@ both chain types:
 | Multiple `resource` parameters | 2 | `invalid_target`, as in "Token Exchange Request" in {{FEDERATION}} |
 | The chain has ended ({{chain-ending}}) | 5 | `invalid_continuation` |
 | `requested_token_type` is not the chain's grant type | 5 | `invalid_request` |
-| The hop's continuation window has passed | 5 | `invalid_grant` |
+| The request is received after the hop's continuation deadline | 5 | `invalid_grant` |
 | No Continuation Association, or the chain authorization's restriction on who may continue, permits the continuing client | 6 | `unauthorized_client` |
 | The Target Tenant, the user's subject, or the continuing client's registration cannot be resolved at the target | 7 | `invalid_target` |
 | Policy requires path disclosure, and the target RAS is not established to support it | 7 | `invalid_target` |
 | The chain authorization, the Continuation Association, or the agent's current authorization does not permit the target | 9 | `invalid_target` |
-| The same sources permit the target but not the requested authority | 9 | `invalid_scope` or `invalid_authorization_details` |
+| The same sources permit the target but not the requested scope | 9 | `invalid_scope` |
+| The same sources permit the target but not the requested authorization details, or a restriction's authority entry has authorization details and the request has none, has an empty array, or has details the IdP cannot evaluate against it ({{restrictions}}) | 9 | `invalid_authorization_details` |
 {: title="Errors for governed continuation"}
 
 The client is not the actor, and the subject token is the assertion,
@@ -965,7 +1041,13 @@ intend.
   whose tokens are still accepted, and the gateway fails those requests
   without prompting a new root grant ({{gateway-reuse}}). A deployment
   whose gateway or client continues from durable task state sets the
-  window to the task's needs, as in {{walkthrough-scheduled}}.
+  window to the task's needs, as in {{walkthrough-scheduled}}. This
+  document sets no default. Lengthening the window does not extend the
+  deadlines of hops already issued, so it cannot restore continuation
+  from a hop whose deadline has passed. Continuation can still proceed
+  from a later hop within its own deadline; a task with no such hop,
+  such as the scheduled variant once H0's deadline passes, needs a new
+  chain.
 * **Agent sessions:** A working agent obtains a new WAG at least as
   often as its gateway access token expires, since WAG redemption
   yields no refresh token, so a deployment sets the idle timeout longer
@@ -1007,7 +1089,11 @@ its RAS accepted, as {{Section 9.5 of ICA}} notes for a compromised
 RAS, until the chain
 ends or the hop's continuation window passes. In either case it cannot
 change the agent or user, convert the acting relationship, or exceed
-the agent's own authorization. Narrow Continuation Associations, chain
+the agent's own authorization. The window does not bound the chain:
+where policy permits continuation to a target whose RAS the operator
+also runs, each hop accepted there has a window of its own, and only
+the hop-count limit of {{Section 6.3 of ICA}} bounds how far the
+operator can extend the chain. Narrow Continuation Associations, chain
 authorizations that restrict targets, a short continuation window,
 short downstream token lifetimes, and sender-constrained ingress reduce
 the exposure; the last also keeps a stolen bearer token at the gateway
@@ -1621,6 +1707,16 @@ Each case changes the stated conditions; all other checks succeed.
 | `agent-42` disabled at the IdP after the root grant, then reactivated before the next continuation | IdP | HTTP 400, `invalid_continuation`; the chain stays ended, and a new root grant is needed |
 | Root binding of `analysis-client` disabled while another binding of `agent-42` remains enabled | IdP | HTTP 400, `invalid_continuation` |
 | Alice's Delegation Authorization does not cover the requested resource | IdP | HTTP 400, `invalid_target`; the chain stays continuable to other targets |
+| The chain authorization records no Targets member, and after the chain is established Alice's Delegation Authorization comes to permit a second resource in `acme-data` | IdP | HTTP 200 for a continuation to the second resource; current authorization governs |
+| The chain authorization records Targets naming only `https://api.example/tenants/acme-data/`, and Alice's Delegation Authorization later permits a second resource | IdP | HTTP 400, `invalid_target` for the second resource; the recorded ceiling is fixed |
+| The chain authorization records an empty Targets member | IdP | HTTP 400, `invalid_target` for every target |
+| The chain authorization records Targets naming two resources and an authority entry only for the first, and the gateway requests the second | IdP | HTTP 200 where Alice's Delegation Authorization and the Continuation Association permit the request; the chain authorization limits no authority there |
+| The authority entry for the requested resource has an empty scope set | IdP | HTTP 400, `invalid_scope` |
+| The chain authorization's Targets names `https://api.example/tenants/acme-data/`, and the gateway requests `https://api.example/tenants/acme-data` | IdP | HTTP 400, `invalid_target`; target values are compared without normalization |
+| The authority entry for the requested resource has `scope` `files.read` and authorization details of a type `file_access` limited to the folder `reports`; the request has `files.read` and `file_access` details for the folder `payroll` | IdP | HTTP 400, `invalid_authorization_details` |
+| The same authority entry; the request has `scope` `files.read` and no `authorization_details` | IdP | HTTP 400, `invalid_authorization_details`; no grant carries `files.read` without the folder limit |
+| The same authority entry; the request has `scope` `files.read` and `authorization_details` `[]` | IdP | HTTP 400, `invalid_authorization_details`; an empty array does not satisfy the folder limit |
+| The authority entry for the requested resource has authorization details, and the request carries details of a type whose comparison the IdP does not implement | IdP | HTTP 400, `invalid_authorization_details` |
 | GatewayRAS keeps the self-acting hop's authorization active as durable task state, `agent-42`'s client stops obtaining WAGs, and the agent session passes its idle timeout | IdP | HTTP 400, `invalid_continuation`; the gateway's continuations do not keep the session active |
 | Two `resource` parameters in the continuation request | IdP | HTTP 400, `invalid_target` |
 | The Continuation Association for `tool-gateway` requires path disclosure, and `https://ras.example/` is not established to support it | IdP | HTTP 400, `invalid_target`; the IdP does not issue a grant whose path the target would discard |
@@ -1628,6 +1724,7 @@ Each case changes the stated conditions; all other checks succeed.
 | Governed agent access: the root ID-JAG has no `cnf`, the agent's client redeems it without a DPoP proof, GatewayRAS issues a bearer access token, and no policy permits continuation from it | CAI | HTTP 400, `invalid_request`; the authorization is not eligible for continuation |
 | The gateway redeems the onward ID-JAG without a proof of G | Target RAS | HTTP 400, `invalid_grant` |
 | The gateway's source hop has passed its continuation window while the agent's access token at the gateway is still accepted | IdP, then gateway | HTTP 400, `invalid_grant`; the gateway fails the agent's request with an error of its own API, not with HTTP 401 `invalid_token` |
+| Tenant policy lengthens the continuation window after the gateway's source hop was issued, and the gateway requests a continuation after the hop's original deadline | IdP | HTTP 400, `invalid_grant`; lengthening the window does not extend a hop's deadline |
 | Tenant policy sets the actor-lineage depth bound to 1, and `tool-gateway` continues H0, whose lineage is the root client `analysis-client` | IdP, then gateway | HTTP 400, `invalid_grant`; H0 is not unusable, and a continuation from it by `analysis-client`, whose entry merges with the root's, can still succeed; the gateway fails the agent's request without HTTP 401 `invalid_token` |
 | In the scheduled variant, Alice withdraws her Delegation Authorization for `agent-42` before the next run | IdP | HTTP 400, `invalid_continuation`; the chain stays ended, and Alice's delegations to other agents are unaffected |
 | The gateway holds the target token for `agent-42` and receives a request for another agent with the same scope | Gateway | Continues that agent's own chain; a matching scope does not permit reuse |
@@ -1653,6 +1750,7 @@ Where this document is silent, {{ICA}} applies unchanged.
 | Establishment | Tenant policy permits continuation ({{Section 5.1.2 of ICA}}) | The root's Delegation or Agent Authorization must also permit it ({{chain-establishment}}) |
 | Anchors | User session or refresh-token grant; no non-user roots ({{Section 6.1 of ICA}}) | Unchanged for delegated chains; an agent session for self-acting chains ({{self-acting-root}}) |
 | Chain authorization | User, root actor, authentication context, anchor, restrictions | Adds the facts of {{governed-chain-authorization}} |
+| Restrictions | Representation implementation-specific ({{Section 5.1.4 of ICA}}) | Meaning defined for absent, present, and empty members, matching, and authority with authorization details ({{restrictions}}) |
 | Who may continue | Chain authorization and current policy | Also a Continuation Association ({{continuation-association}}) |
 | Continuation request | Zero or more `resource`; optional `scope`; ID-JAG ({{Section 5.5.1 of ICA}}) | One `resource`; required `scope`; the chain's grant type ({{continuation-request}}) |
 | Retry fingerprint | No requested token type ({{Section 5.5.7.1 of ICA}}) | Includes `requested_token_type` ({{continuation-validation}}) |
@@ -1663,7 +1761,7 @@ Where this document is silent, {{ICA}} applies unchanged.
 | Access token for a grant with `cnf` | DPoP-bound, never bearer ({{Section 5.2 of ICA}}) | Protection under {{FEDERATION}}; bearer access tokens, whatever the grant's binding, make a hop ineligible without explicit policy ({{root-redemption}}) |
 | Advertisement | RAS `id-jag-continuation` with `jwt-dpop`; IdP `identity_continuation_supported` ({{Section 7 of ICA}}) | `governed-agent-continuation` for governed grants, without `jwt-dpop`; the IdP flag only for delegated continuation ({{metadata}}) |
 | Chain ending | Anchor end, revocation, withdrawn permission ({{Section 6.2 of ICA}}) | Also governance events ({{chain-ending}}) |
-| Continuation window | None | A recommended per-hop window ({{governed-chain-authorization}}) |
+| Continuation window | None | A required, finite per-hop window, checked when a request is received ({{governed-chain-authorization}}) |
 {: title="Changes to ICA for governed chains"}
 
 ## Changes to FEDERATION {#federation-changes}

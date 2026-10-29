@@ -490,10 +490,10 @@ The gateway is the grant's client, never an added actor; a separate
   Self-acting chains anchor
   to an agent session that only the agent's own authentication keeps
   active, so a gateway cannot keep a stopped agent's chains alive.
-  Where the IdP enforces a continuation window, as the continuation
-  profile recommends, continuation from a source hop stops once that
-  window passes, even while the agent's access token at the gateway is
-  still accepted.
+  The continuation profile requires the IdP to enforce a continuation
+  window, so continuation from a source hop stops once that window
+  passes, even while the agent's access token at the gateway is still
+  accepted.
 
 ### Scheduled work
 

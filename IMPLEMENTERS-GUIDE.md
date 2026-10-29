@@ -766,16 +766,21 @@ Four differences matter for governed deployments:
   casts the authorization server as an enforcement point; a decision
   "may narrow what is issued; it may not broaden it, re-subject it, or
   re-target it." That matches the core's [Issuance
-  Authorization][issuance-authorization], but the request has no member
-  for the actor. A governed IdP decides on the Agent Principal it
-  resolved, which, for a dedicated client, is not the requesting
-  client. Likewise, AROP completes an approved request as an access
-  token, but says nothing about keeping the originating grant's
-  subject and actor. The [oversight profile][OVERSIGHT] defines
-  deferred governed issuance but not AROP, whose approval deadline
-  bounds tokens the RAS issues. A future composition of either profile
-  with governed issuance would need to preserve governed identity
-  resolution and authorization checks.
+  Authorization][issuance-authorization], but the profile has no
+  mandatory input for the actor, and its `context` is advisory. A
+  governed IdP decides on the Agent Principal it resolved, which, for a
+  dedicated client, is not the requesting client. AROP completes an
+  approved request as an access token without saying which identities
+  the token carries; for a governed grant these are the identities
+  redemption resolves, such as the RAS's local user, not the grant's
+  literal `sub`. ARAP's default approval comparison leaves out the
+  actor, and an approval deadline bounds only what the approving
+  server issues. The [oversight profile][OVERSIGHT] defines deferred
+  governed issuance but not AROP. A composition of these profiles with
+  governed issuance would need the resolved agent as a mandatory
+  decision input, an approval bound to the governed request and its
+  resolved identities, and the governed identity resolution and
+  authorization checks preserved.
 
 Two things are different here. The request projections in the table can
 be implemented today: an enforcement point can map each profile's

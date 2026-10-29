@@ -735,11 +735,11 @@ an example here is not a promise of interoperability:
 | Grant-derived revocation of one ID-JAG | Optional capability with defined requirements, in the lifecycle profile |
 | An external policy decision service | Optional capability with defined requirements: "Optional Policy Services" in the core |
 | An AuthZEN or COAZ-MCP message mapping | Unresolved composition: the core names AuthZEN as one interface and defines no mapping; the AuthZEN working group plans an OAuth mapping profile ([below](#authorization-decisions-with-authzen)) |
-| AuthZEN Token Issuance or Token Exchange profiles at the IdP | Unresolved composition: compatible with the core's issuance authorization, which a decision can narrow but not broaden, but the profiles carry no resolved Agent Principal |
+| AuthZEN Token Issuance or Token Exchange profiles at the IdP | Unresolved composition: compatible with the core's issuance authorization, which a decision can narrow but not broaden, but neither profile makes the resolved Agent Principal a mandatory decision input |
 | Transaction Tokens inside a resource domain | Illustrative deployment composition, in the [implementer's guide](IMPLEMENTERS-GUIDE.md#transaction-tokens-inside-a-resource-domain) |
 | Credential brokers | Illustrative deployment composition ([below](#credential-brokers)) |
 | Human oversight: approval before issuance, supervised issuance, and per-action approval | Defined protocol behavior in the [oversight profile][oversight], which profiles Deferred Token Response for governed issuance |
-| Asynchronous approval with ARAP and AROP | Unresolved composition: an excluded composition in the core. AROP bounds every token issued under an approval, including the RAS's, which deferral at the IdP cannot enforce |
+| Asynchronous approval with ARAP and AROP | Unresolved composition: an excluded composition in the core. An approval at the IdP bounds only the grant, not the RAS's tokens that AROP bounds, and ARAP does not yet bind an approval to a governed request's resolved identities |
 | Approved work, such as Mission-Bound Authorization | Outside these drafts ([below](#beyond-these-drafts)) |
 
 ### Authorization decisions with AuthZEN

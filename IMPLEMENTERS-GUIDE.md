@@ -17,6 +17,7 @@ profile that defines them.
 * [Primer: two grants, one identity model](#primer-two-grants-one-identity-model)
 * [What each role builds](#what-each-role-builds)
 * [Federation configuration](#federation-configuration)
+* [Configuration exchanged between implementations](#configuration-exchanged-between-implementations)
 * [Distributed platforms and key use](#distributed-platforms-and-key-use)
 * [Continuation through gateways](#continuation-through-gateways)
 * [Human oversight](#human-oversight)
@@ -223,6 +224,101 @@ interface for it.
 [AWS Workload Identity Binding][aws-example] applies the model to an AWS
 Security Token Service (STS) workload credential, and [INPUTS]
 illustrates a shared client with SPIFFE.
+
+## Configuration exchanged between implementations
+
+Independently built implementations work together only after each pair
+of them exchanges the values below and agrees on the choices the drafts
+leave open. Authorization server metadata carries part of it ([Capability
+Discovery][capability-discovery]); the rest is configuration, because
+the core profile defines no discovery for bindings, associations,
+delegations, or local links. The tables cover the mandatory delegated
+path under the bound profile, with the [EXAMPLES.md](EXAMPLES.md) scene 2
+value for each item.
+
+The last column names the related cases in the [conformance
+suite](conformance/README.md) and how far they go:
+
+* **Direct:** the case fails when the value or rule is wrong.
+* **Positive path:** a passing case uses the value, but no case shows
+  what happens when it is wrong.
+* **Untested:** no case covers it yet.
+
+### Client and IdP
+
+| Item | From | Scene 2 value | In metadata | Related cases |
+|---|---|---|---|---|
+| IdP issuer identifier, the client assertion's sole `aud`, and token endpoint | IdP | `https://idp.example/`; `https://idp.example/token` | Yes (RFC 8414 metadata) | Direct: N02 |
+| Client identifier and keys for `private_key_jwt` with `RS256` | Client, through registration | `analysis-client` and its JWK Set | Client metadata or CIMD | Positive path: P1. Direct for assertion replay and `nbf`: N01, N22 |
+| The client registration's `grant_types`, permitting token exchange at the IdP ([Client Metadata][client-metadata]) | Client, through registration | `urn:ietf:params:oauth:grant-type:token-exchange` | Client metadata or CIMD | Untested |
+| The client's OpenID Connect registration, so ID Tokens name it as audience | IdP | ID Token `aud` `analysis-client` | No | Direct: N05 |
+| Token exchange for ID-JAG, and the resolution mode: the dedicated client's own authentication, with no actor token | Agreed; IdP configures | Authentication-context resolution | Token exchange and ID-JAG support only; the mode is configuration ([Agent Resolution Input Validation][actor-inputs]) | Positive path: P1 |
+| The minimum profile for this client and target: bound, with DPoP at issuance | Agreed | `urn:ietf:params:oauth:grant-profile:id-jag-agent-federation`; DPoP `ES256` | DPoP algorithms only; the minimum is configuration ([Profile Applicability and Downgrade Prevention][discovery]) | Direct: N03 |
+| The targets the client may request: RAS issuer as `audience`, one resource per grant, and scopes | IdP | `https://ras.example/`; `https://api.example/tenants/acme-data/`; `files.read` | No | Direct for one resource: N04. Positive path: P1 |
+
+### IdP and RAS
+
+| Item | From | Scene 2 value | In metadata | Related cases |
+|---|---|---|---|---|
+| IdP issuer and grant signing keys | IdP | `https://idp.example/`; its JWK Set | Yes (`jwks_uri`) | Positive path: P2 |
+| Authority for the IdP to assert agents in `act` under its issuer ([Grant Validation][redemption-validation]) | RAS trust configuration | Agents of `https://idp.example/` | No | Positive path: P2 |
+| The user subject namespace: what the grant's `sub` identifies at this RAS, and whether the IdP may assert `aud_sub` ([Subject Resolution][idp-subject-resolution]) | Agreed, as part of the SSO relationship | `alice-ras` | No | Positive path: P2 |
+| RAS issuer, the grant's `aud`, and token endpoint | RAS | `https://ras.example/`; `https://ras.example/token` | Yes | Positive path: P2 |
+| Resources the RAS serves, and each one's Target Tenant | RAS, to the IdP | `https://api.example/tenants/acme-data/` in `acme-data` | No | Direct for resource matching: N14. Positive path: P1, P2 |
+| Client registration association: each IdP client's registration at the RAS, which becomes the grant's `client_id` ([Issuance Prerequisites][flow-configuration]) | RAS, to the IdP | `analysis-client` to `analysis-api` | No | Direct: N13 |
+| The minimum profile per client and resource, enforced at redemption | Agreed | `urn:ietf:params:oauth:grant-profile:id-jag-agent-federation` | No; the minimum is configuration | Direct for grant binding: N10, N11, N12 |
+| Agent records: the (IdP issuer, agent identifier) pairs the RAS correlates, provisioned in advance or created just in time ([Agent Principal Correlation][agent-correlation]) | IdP or its connector, to the RAS | (`https://idp.example/`, `agent-42`) to `service-principal-42` | No | Direct: N15 |
+| What opens the actor gate at the RAS for an agent and a user ([Delegated Actor Authorization][actor-authorization]) | RAS policy, agreed with the IdP's operator | An entry for `agent-42` and `user-108` in `acme-data` | No | Direct: N16 |
+
+### Client and RAS
+
+| Item | From | Scene 2 value | In metadata | Related cases |
+|---|---|---|---|---|
+| Client registration and keys at the RAS, with the RAS issuer as the assertion's `aud` | Client, through registration | `analysis-api` and its JWK Set | Client metadata or CIMD | Positive path: P2. Direct for the grant's `client_id`: N13 |
+| The client registration's `grant_types`, permitting the JWT bearer grant at the RAS ([Client Metadata][client-metadata]) | Client, through registration | `urn:ietf:params:oauth:grant-type:jwt-bearer` | Client metadata or CIMD | Untested |
+| Before starting the path, the client verifies that the RAS advertises a profile meeting the configured minimum, supports the JWT bearer grant, and offers compatible access-token protection ([Capability Discovery][capability-discovery]) | RAS advertises; client verifies | `authorization_grant_profiles_supported` includes `urn:ietf:params:oauth:grant-profile:id-jag-agent-federation`; `grant_types_supported` includes `urn:ietf:params:oauth:grant-type:jwt-bearer` | Yes | Untested: the suite does not retrieve metadata |
+| DPoP at the token endpoint, proven with the grant's key | RAS | `ES256`; the same key K | DPoP algorithms | Direct: N11, N12 |
+| Access-token protection per resource ([Access-Token Protection][access-token-protection]) | Agreed with the resource | DPoP | `token_type` in the response, which does not tell mutual TLS from bearer | Positive path: P2 |
+| Refresh tokens ([Optional RAS Refresh Tokens][ras-refresh]) | RAS policy | None | No | Untested: P2 notes a refresh token but does not fail |
+
+### RAS and API
+
+| Item | From | Scene 2 value | In metadata | Related cases |
+|---|---|---|---|---|
+| RAS issuer and access-token signing keys | RAS | `https://ras.example/`; JWT access tokens validated offline | Yes (`jwks_uri`) | Positive path: P3, P4 |
+| Introspection endpoint and the API's credentials for it, where access tokens are opaque ([Optional Opaque Access Tokens and Introspection][introspection]) | RAS | Not used | Introspection endpoint | Untested |
+| Which IdP namespaces the RAS may assert in `act` ([Access at the Resource Server][api-processing]) | API trust configuration | Agents of `https://idp.example/` | No | Positive path: P3 |
+| How the API tells the governed delegated population apart ([Profile Applicability][api-applicability]) | Agreed | Client `analysis-api` with the `acme-data` audience | No; the core defines no in-band discriminator | Direct: N18 |
+| Where the tenant is carried | Agreed | The tenant-specific resource URI as `aud` | No | Direct: N17 |
+| Access-token protection and scopes per resource | API, to the RAS | DPoP; `files.read` | Protected Resource Metadata, where the API publishes it | Direct for key binding: N19. Scope untested |
+| How the API enforces the actor gate: direct evaluation, or reliance on validated RAS authorization with sufficient scope and freshness. The RAS enforces the gate in either case | Agreed | The API evaluates the gate directly | No | Direct: N20 at the API, N16 at the RAS |
+| How fresh authorization must be: introspection caching and the disablement delay | Agreed | Offline JWT validation; 600 s tokens | No | Untested |
+
+### Choices to agree
+
+The drafts let each of these vary. Two implementations that choose
+differently fail at the boundary between them, often with an error that
+names neither choice:
+
+| Choice | What the drafts allow | Scene 2 and the reference |
+|---|---|---|
+| Telling token populations apart | Separate client registrations, audiences, or issuers, or a bilateral contract such as an introspection member | Separate configuration per client and audience |
+| Carrying the tenant | The tenant-specific resource as audience, a configured tenant claim, or authoritative token context | The resource as audience |
+| Re-redeeming a bound grant | Once, or again under explicit policy with a fresh proof | Once |
+| Clock skew and DPoP proof age | A few minutes; DPoP server nonces optional | 60 s each; no nonces |
+| Grant lifetime | The configured limit, recommended at most five minutes | 300 s |
+| Error codes the core does not fix | A RAS's actor-gate denial; a missing or disabled agent record at the RAS | `actor_unauthorized`; `invalid_grant` |
+
+The last row is a gap, not a choice; the conformance suite lists it among
+its [draft questions](conformance/README.md#draft-questions-found-while-implementing).
+
+Optional capabilities add their own exchanges: continuation adds the
+configuration in [Continuation through
+gateways](#continuation-through-gateways); oversight adds the approval
+channel and the client's opt-in ([Human oversight](#human-oversight));
+lifecycle propagation adds a provisioning connection or a Shared Signals
+stream ([AGENT-LIFECYCLE]); and SCIM management adds the connector's
+authority at the IdP ([AGENT-MANAGEMENT]).
 
 ## Distributed platforms and key use
 
@@ -1213,6 +1309,10 @@ resource domain provisioned for `agent-58` applies the deletion under
 [api-processing]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#api-processing
 [scope]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#scope
 [metadata]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#metadata
+[capability-discovery]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#capability-discovery
+[client-metadata]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#client-metadata
+[idp-subject-resolution]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#idp-subject-resolution
+[ras-refresh]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#ras-refresh
 [security]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#security
 [status-changes]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#status-changes
 [walkthrough]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#walkthrough

@@ -136,7 +136,10 @@ mode.
 
 The drafts leave these choices to deployments. The reference makes one
 choice for each, and an implementation that chooses differently
-interoperates only where the choice is agreed:
+interoperates only where the choice is agreed. The implementer's guide
+lists what each pair of implementations exchanges and must agree on
+([configuration exchanged between
+implementations](../IMPLEMENTERS-GUIDE.md#configuration-exchanged-between-implementations)).
 
 | Choice | The reference's choice | Drafts' text |
 |---|---|---|

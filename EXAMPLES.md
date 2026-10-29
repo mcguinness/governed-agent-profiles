@@ -795,10 +795,12 @@ retries the write with the new access token.
 
 A denial would have resolved to `access_denied` at the next poll, and
 the client would not retry the request as self-acting access or under
-another client. Disabling `agent-42` while the request waited would not
-have cancelled it; it would have prevented issuance only if the agent
-were still disabled at this poll. The client can cancel its own request
-by revoking the deferral code.
+another client. Disabling `agent-42` while the request waited would have
+prevented issuance if the agent were still disabled at this poll. The
+profile does not require disablement to cancel a pending request, so
+the request may survive it; if it remains pending and every check
+passes after the agent is re-enabled, it can still issue a grant. The
+client can cancel its own request by revoking the deferral code.
 
 ## 5. Through an MCP gateway
 
@@ -1578,11 +1580,10 @@ At 12:03, security operations re-enables the Agent with the same PATCH
 and `"value": true` at the IdP, using ETag `W/"a3"`, and the connector
 does the same at the RAS. New exchanges and redemptions succeed again.
 Nothing revoked at 12:02 returns: `access-1` stays inactive, the ended
-chains stay ended, and the client needs a new grant. A request held for
-approval under scene 4 would not have been cancelled by the
-disablement: a root request approved after re-enabling still issues
-its grant, so approvers deny pending requests that should not proceed
-before the agent is re-enabled.
+chains stay ended, and the client needs a new grant. A pending root
+request, such as scene 4's, may survive the disablement. If it remains
+pending and all checks pass after re-enabling, it can still issue a
+grant, so deny or cancel requests that must not proceed.
 
 ## 9. Variants not traced here
 

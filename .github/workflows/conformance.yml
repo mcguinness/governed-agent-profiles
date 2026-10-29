@@ -1,0 +1,40 @@
+name: "Conformance"
+
+on:
+  push:
+    branches: [main]
+    paths:
+    - "conformance/**"
+    - "tools/**"
+    - "EXAMPLES.md"
+    - "draft-*.md"
+    - ".github/workflows/conformance.yml"
+  pull_request:
+    paths:
+    - "conformance/**"
+    - "tools/**"
+    - "EXAMPLES.md"
+    - "draft-*.md"
+    - ".github/workflows/conformance.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  conformance:
+    name: "Conformance and example checks"
+    runs-on: ubuntu-latest
+    steps:
+    - name: "Checkout"
+      uses: actions/checkout@v6
+
+    - name: "Install"
+      run: |
+        python3 -m venv .venv-conformance
+        .venv-conformance/bin/pip install -r conformance/requirements.txt
+
+    - name: "Conformance suite, with vacuity check"
+      run: .venv-conformance/bin/python conformance/run.py --vacuity
+
+    - name: "Examples match their drafts"
+      run: python3 tools/check_examples.py

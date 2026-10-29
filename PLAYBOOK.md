@@ -345,7 +345,7 @@ to retirement.
 | An agent reaches tools through an MCP gateway | Continuation, with the gateway as continuing client; per-tool policy optional | [Through a gateway](#through-a-gateway) |
 | Scheduled work runs after the user signs out | Continuation from a chain anchored to a refresh-token grant, where the IdP claims grant-anchored continuation | [Scheduled work](#scheduled-work) |
 | A platform runs many agents behind one client | A workload-identity input that distinguishes its agents; the existing platform JWT for generic shared-client interoperability | [A shared platform client](#a-shared-platform-client) |
-| A person approves an agent's request before a sensitive grant issues | Oversight: deferred governed issuance at the IdP, an approval channel, and a client that opts in and waits | [Approval before a write](#approval-before-a-write) |
+| A person approves an agent's request before a sensitive grant issues | Oversight: deferred governed issuance at the IdP, an approval channel, and a client that opts in and waits | [Approval before granting write access](#approval-before-granting-write-access) |
 | A platform hosts agents that use only its own resources | Registration through SCIM management, with no binding or association; the platform applies the IdP's decisions under lifecycle | [Registration-only branch](#registration-only-branch) |
 
 Both recipes use the architecture's example and the identifiers of the
@@ -616,7 +616,7 @@ core's [AWS example][core-aws-example] shows the input.
   or another credential class; and a token the client holds for
   `agent-42` is not reused for another agent with the same scope.
 
-#### Approval before a write
+#### Approval before granting write access
 
 `agent-42` may read Alice's files without asking, but policy requires
 Alice to approve before it writes them. Add [human

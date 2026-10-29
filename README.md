@@ -85,6 +85,9 @@ that claims none of the optional inputs needs only the core.
 * **[Implementer's guide](IMPLEMENTERS-GUIDE.md):** message flows for
   both grants, what each role builds, configuration, and deployment
   tradeoffs.
+* **[End-to-end examples](EXAMPLES.md):** one agent from registration
+  through delegated and self-acting access, approval, a gateway, a
+  scheduled run, and an incident, with the messages on the wire.
 * **[Coordination notes](COORDINATION.md):** what the drafts need from the
   specifications they depend on.
 

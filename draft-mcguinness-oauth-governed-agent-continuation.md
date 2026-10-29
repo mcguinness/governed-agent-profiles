@@ -61,7 +61,7 @@ informative:
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html
   EMA:
     title: "Enterprise-Managed Authorization"
-    target: https://github.com/modelcontextprotocol/ext-auth/blob/main/specification/stable/enterprise-managed-authorization.mdx
+    target: https://github.com/modelcontextprotocol/ext-auth/blob/main/specification/stable/enterprise-managed-authorization/2026-07-28/enterprise-managed-authorization.mdx
     author:
       - org: Model Context Protocol
   GUIDE:
@@ -70,6 +70,13 @@ informative:
       - name: Karl McGuinness
     date: false
     target: https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md
+  ID-CHAINING: I-D.ietf-oauth-identity-chaining
+  MCP:
+    title: "Model Context Protocol Specification, Revision 2026-07-28"
+    author:
+      - org: Model Context Protocol
+    date: 2026-07-28
+    target: https://modelcontextprotocol.io/specification/2026-07-28
   RFC6755:
   RFC7519:
   RFC7662:
@@ -119,6 +126,20 @@ user, checks that the gateway may continue for that agent, and
 authorizes access to the next resource. The agent's own client can
 continue a chain in the same way, as for scheduled work after the user
 signs out ({{walkthrough-scheduled}}).
+
+OAuth Identity and Authorization Chaining Across Domains
+{{ID-CHAINING}} offers another route: an authorization server in the
+gateway's domain issues a JWT authorization grant that the next
+domain's authorization server accepts. In that topology, each target
+trusts the gateway-domain authorization servers whose grants it
+accepts, and Identity Chaining does not require consulting the
+governing IdP at each hop. This profile does: continuation returns to
+the IdP, which the target already trusts for governed grants and which
+applies the agent's current authorization and governance state at each
+hop. The gateway's domain contributes the CAI's attestation that its
+RAS accepted the originating grant, that the resulting authorization
+remains active and eligible for continuation, and that the continuing
+client is associated with it ({{Section 5.4 of ICA}}).
 
 The onward grant names the Agent Principal and acting relationship of
 the chain's root grant, and for delegated access the same user. The
@@ -1047,6 +1068,20 @@ its session active, as a stolen user credential can keep a user session
 active, until the absolute expiration or the credential's revocation
 ({{chain-ending}}).
 
+## Induced Continuation {#security-induced}
+
+An agent induced to misuse its authority ("Misuse by an Authorized
+Agent" in {{FEDERATION}}) can ask a gateway to continue its request to
+any target its chain permits. The scope of the agent's access token at
+the gateway does not limit that authority, as {{ICA}} notes for
+incoming access-token scopes. The chain authorization, the agent's
+current Delegation or Agent Authorization, and the continuing client's
+Continuation Association bound each onward grant instead
+({{continuation-validation}}), and the target applies its own
+authorization. A deployment that needs onward authority narrower than
+the agent's authorization records narrower restrictions in the chain
+authorization or the Continuation Association.
+
 ## Governance Events End the Chain {#security-chain-basis}
 
 The root's Identity Binding, Client Association, and credential are the
@@ -1198,6 +1233,14 @@ H0, and issues `GW_ACCESS_TOKEN`, DPoP-bound and carrying H0:
 The agent calls a tool with this token and a proof of K. The gateway
 validates both, enforces the actor gate for `agent-42` acting for
 Alice, and routes the call to the file service in `acme-data`.
+
+{{MCP}} has MCP clients send access tokens with the `Bearer` scheme and
+defines no DPoP usage, so this walkthrough assumes that the agent's
+client and the gateway also support DPoP for this hop. With a
+bearer-only MCP client, GatewayRAS issues a bearer access token, and
+the hop is eligible for continuation only where resource policy permits
+continuation from bearer access tokens for `analysis-gw` and the
+gateway resource ({{root-redemption}}).
 
 ## Assertion {#walkthrough-assertion}
 

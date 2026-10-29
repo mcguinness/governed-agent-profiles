@@ -93,6 +93,12 @@ informative:
       - name: Karl McGuinness
     date: false
     target: https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2848
+  MCP-TASKS:
+    title: "Tasks Extension, Revision 2026-07-28"
+    author:
+      - org: Model Context Protocol
+    date: 2026-07-28
+    target: https://tasks.extensions.modelcontextprotocol.io/specification/2026-07-28/tasks
   MISSION-APPROVAL:
     title: "Mission Deferred Approval for OAuth 2.0"
     author:
@@ -598,8 +604,10 @@ This section is informative. An MCP server is the enforcement point for
 each tool call it serves. It realizes the modes as follows.
 
 * **Holding a call.** A server that requires a person to decide on a
-  call holds it as an MCP task, reporting `working` or `input_required`
-  until the approver decides ({{MCP}}). {{MCP-SEP-2848}} proposes a
+  call holds it as a task under the MCP tasks extension
+  {{MCP-TASKS}}, which the client declares on the request, reporting
+  `working` or `input_required` until the approver decides.
+  {{MCP-SEP-2848}} proposes a
   standard extension in which a requestable denial returns a task that
   stays `working` while the approval resolves out of band, with an
   access request service under {{ARAP}} behind it.

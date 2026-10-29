@@ -89,7 +89,7 @@ informative:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-lifecycle
   EMA:
     title: "Enterprise-Managed Authorization"
-    target: https://github.com/modelcontextprotocol/ext-auth/blob/main/specification/stable/enterprise-managed-authorization.mdx
+    target: https://github.com/modelcontextprotocol/ext-auth/blob/main/specification/stable/enterprise-managed-authorization/2026-07-28/enterprise-managed-authorization.mdx
     author:
       - org: Model Context Protocol
   AUTHZEN:
@@ -113,6 +113,7 @@ informative:
     author:
       - org: Amazon Web Services
   ICA: I-D.mcguinness-oauth-id-continuation-assertion
+  ID-CHAINING: I-D.ietf-oauth-identity-chaining
   OVERSIGHT:
     title: "Human Oversight Profile for Governed Agent Federation"
     author:
@@ -181,7 +182,10 @@ withdrawing it from all of them.
 What an enterprise needs instead is a principal it can authorize once,
 audit across resources, and disable in one place. That principal's
 identity does not change when the agent moves between platforms or
-rotates credentials.
+rotates credentials. Disabling it at the IdP stops new grants; reaching
+authority that resource domains have already issued takes a
+provisioning or signaling contract, such as {{AGENT-LIFECYCLE}}
+({{status-changes}}).
 
 Existing OAuth mechanisms authenticate clients and carry actors. They do
 not resolve different client and workload identities to one governed
@@ -721,7 +725,10 @@ applies unchanged.
 
 ### Relationship to Base Specifications {#profile-additions}
 
-Existing OAuth mechanisms leave three relationships open:
+{{ID-JAG}} profiles OAuth Identity and Authorization Chaining Across
+Domains {{ID-CHAINING}}: an IdP that resource domains trust issues the
+JWT authorization grant. Existing OAuth mechanisms leave three
+relationships open:
 
 1. How different client and workload identities resolve to the same
    governed principal. {{ATTEST}} and {{SPIFFE-OAUTH}} authenticate
@@ -2360,6 +2367,45 @@ A holder of a shared private key can present any credential issued for
 that key. Agent isolation therefore depends on issuance controls and
 key custody as well as identity mapping. Sharing the grant proof key
 across components widens its exposure ({{GUIDE}}).
+
+## Misuse by an Authorized Agent {#security-authorized-misuse}
+
+This profile establishes which agent acts, for whom, and under what
+authorization. It does not establish that the agent uses that authority
+as intended. Content the agent processes, such as a document, a tool
+result, or another agent's output, can carry instructions that lead it
+to request or use authority it holds for a purpose its user or owner
+did not intend (prompt injection). The resulting requests are
+authenticated and authorized, so the checks of this profile pass.
+
+The profile limits that exposure without detecting it:
+
+* A grant carries one resource and the authority that the Delegation
+  or Agent Authorization permits ({{issuance-request}}). For delegated
+  access, the RAS and the API enforce the actor gate
+  ({{actor-authorization}}); for self-acting access, they enforce the
+  agent's own permissions. Narrow authorizations limit what an induced
+  request can obtain.
+* Detection alone changes no authorization state: the agent can keep
+  obtaining grants until its authorization is withdrawn or it is
+  disabled. After further issuance and renewal are blocked, token
+  lifetimes and revocation enforcement determine how long previously
+  issued authority remains usable ({{status-changes}}).
+* Every grant names the Agent Principal, and every access token carries
+  it or the local principal correlated with it, so a resource domain
+  can attribute, investigate, and disable one agent without affecting
+  other agents behind the same client.
+* {{CONTINUATION}} bounds each onward grant by the chain authorization
+  and the continuing client's Continuation Association, and
+  {{OVERSIGHT}} lets policy require a person's decision before
+  sensitive authority issues.
+
+It does not distinguish an induced request from an intended one,
+inspect content, or constrain how authority is used within its scope.
+Those controls belong to the agent's runtime, its platform, and
+resource policy, including decisions on individual actions. Evidence
+about an agent's software or configuration can inform policy; it does
+not establish that the agent behaves safely.
 
 ## Authorization Changes and Revocation {#status-changes}
 

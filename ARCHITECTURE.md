@@ -372,9 +372,11 @@ party decides one question, from facts it can verify itself:
 
 Three properties follow from that division:
 
-* **The agent is named once and checked three times.** The IdP resolves
-  it, the RAS correlates the exact (issuer, agent) pair with its own
-  record, and the API applies the actor gate.
+* **The agent is named once and enforced at three points.** The IdP
+  resolves it, the RAS correlates the exact (issuer, agent) pair with
+  its own record, and the API applies the actor gate. All three rely on
+  the IdP's assertion of the agent; they are not independent checks of
+  its identity.
 * **Resolution and authorization fail separately.** With the Client
   Association disabled, the Identity Binding still resolves `agent-42`,
   but the IdP refuses the grant with `actor_unauthorized`, and nothing

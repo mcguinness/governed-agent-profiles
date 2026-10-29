@@ -105,6 +105,7 @@ Accept: application/scim+json
       "urn:ietf:params:oauth:grant-type:token-exchange",
       "urn:ietf:params:oauth:grant-type:deferred"
     ],
+    "response_types": ["code"],
     "redirect_uris": ["https://analysis.example/callback"],
     "jwks_uri": "https://analysis.example/oauth/jwks.json",
     "client_name": "Data analysis"
@@ -146,6 +147,7 @@ Content-Type: application/scim+json
       "urn:ietf:params:oauth:grant-type:token-exchange",
       "urn:ietf:params:oauth:grant-type:deferred"
     ],
+    "response_types": ["code"],
     "redirect_uris": ["https://analysis.example/callback"],
     "jwks_uri": "https://analysis.example/oauth/jwks.json",
     "client_name": "Data analysis"

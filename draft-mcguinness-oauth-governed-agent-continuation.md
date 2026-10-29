@@ -541,10 +541,11 @@ The IdP MUST evaluate each restriction as follows:
   it is within every authority entry whose target entry it matches:
   each requested scope value is in the entry's scope set, if the entry
   has one; and, if the entry has authorization details, the request
-  carries authorization details, each within a recorded detail of the
-  same type under that type's rules. A request without authorization
-  details is not within such an entry, even when its scope is, since
-  its grant would carry the scope without the limit the details
+  carries a non-empty `authorization_details` array, each of whose
+  details is within a recorded detail of the same type under that
+  type's rules. A request without authorization details, or with an
+  empty array, is not within such an entry, even when its scope is,
+  since its grant would carry the scope without the limit the details
   express.
 * **Unevaluable:** If the IdP cannot determine that requested
   authorization details are within an authority entry, for example
@@ -793,7 +794,7 @@ both chain types:
 | Policy requires path disclosure, and the target RAS is not established to support it | 7 | `invalid_target` |
 | The chain authorization, the Continuation Association, or the agent's current authorization does not permit the target | 9 | `invalid_target` |
 | The same sources permit the target but not the requested scope | 9 | `invalid_scope` |
-| The same sources permit the target but not the requested authorization details, or a restriction's authority entry has authorization details and the request has none, or has details the IdP cannot evaluate against it ({{restrictions}}) | 9 | `invalid_authorization_details` |
+| The same sources permit the target but not the requested authorization details, or a restriction's authority entry has authorization details and the request has none, has an empty array, or has details the IdP cannot evaluate against it ({{restrictions}}) | 9 | `invalid_authorization_details` |
 {: title="Errors for governed continuation"}
 
 The client is not the actor, and the subject token is the assertion,
@@ -1711,6 +1712,7 @@ Each case changes the stated conditions; all other checks succeed.
 | The chain authorization's Targets names `https://api.example/tenants/acme-data/`, and the gateway requests `https://api.example/tenants/acme-data` | IdP | HTTP 400, `invalid_target`; target values are compared without normalization |
 | The authority entry for the requested resource has `scope` `files.read` and authorization details of a type `file_access` limited to the folder `reports`; the request has `files.read` and `file_access` details for the folder `payroll` | IdP | HTTP 400, `invalid_authorization_details` |
 | The same authority entry; the request has `scope` `files.read` and no `authorization_details` | IdP | HTTP 400, `invalid_authorization_details`; no grant carries `files.read` without the folder limit |
+| The same authority entry; the request has `scope` `files.read` and `authorization_details` `[]` | IdP | HTTP 400, `invalid_authorization_details`; an empty array does not satisfy the folder limit |
 | The authority entry for the requested resource has authorization details, and the request carries details of a type whose comparison the IdP does not implement | IdP | HTTP 400, `invalid_authorization_details` |
 | GatewayRAS keeps the self-acting hop's authorization active as durable task state, `agent-42`'s client stops obtaining WAGs, and the agent session passes its idle timeout | IdP | HTTP 400, `invalid_continuation`; the gateway's continuations do not keep the session active |
 | Two `resource` parameters in the continuation request | IdP | HTTP 400, `invalid_target` |

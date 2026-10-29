@@ -416,6 +416,10 @@ agent.
 The IdP MUST show the approver the governed request context: the agent,
 the user for delegated access, the client, the target RAS and resource,
 the requested authority, and, for a continuation, the continuing client.
+For a continuation, it MUST also show any restrictions of the chain
+authorization and the Continuation Association that apply to the
+requested target ("Restrictions" in {{CONTINUATION}}); an approval
+does not change them.
 Text that the client or agent supplies, such as a stated reason, MUST
 be shown as supplied by the requester and MUST NOT replace or restate
 the governed request context.
@@ -452,13 +456,14 @@ that:
 * the Agent Principal is active;
 * for root issuance, the Identity Binding and Client Association used
   still permit the request;
-* the Delegation or Agent Authorization still permits the approved
-  authority;
+* the Delegation or Agent Authorization still permits the target and
+  the approved authority;
 * for delegated access, the user is active and resolves as before;
 * for a continuation, neither the presented hop nor an ancestor is
   revoked, the chain has not ended, a Continuation Association still
-  permits the continuing client, and the continuation is within the
-  limits of {{Section 6.3 of ICA}} ({{deferred-continuation}}); and
+  permits the continuing client, the target, and the approved
+  authority, and the continuation is within the limits of
+  {{Section 6.3 of ICA}} ({{deferred-continuation}}); and
 * no change applied within the IdP's freshness limit ("Issuance
   Authorization" in {{FEDERATION}}) withdraws any of these.
 
@@ -813,6 +818,9 @@ Each case changes the walkthrough as stated; all other checks succeed.
 | The request asks for `files.read files.write`, and Alice approves only `files.read` | IdP | A grant with `scope` `files.read` |
 | Alice denies | IdP | HTTP 400, `access_denied` at the next poll; no grant |
 | The client polls again after receiving the grant | IdP | HTTP 400, `invalid_grant` |
+| A continuation ({{CONTINUATION}}) is deferred for Alice's approval; the request is received before the source hop's continuation deadline, and Alice approves after it | IdP | The onward grant issues at the next poll; the deadline applies when the request is received ({{deferred-continuation}}) |
+| A continuation requests a target or authority outside the restrictions of its chain authorization | IdP | HTTP 400, `invalid_target`, `invalid_scope`, or `invalid_authorization_details` as {{CONTINUATION}} specifies, when the request is received; no deferral and no approval |
+| A continuation is within every restriction when received and is deferred; while it is pending, Alice's Delegation Authorization or the Continuation Association is narrowed to exclude its target | IdP | HTTP 400, `access_denied` at the next poll; no grant. The narrowing comes from current authorization, since the chain authorization's restrictions are fixed |
 {: title="Negative test cases"}
 
 # Relationship to Other Specifications {#relationships}

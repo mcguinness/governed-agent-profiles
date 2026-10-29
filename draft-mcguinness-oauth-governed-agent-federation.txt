@@ -4,8 +4,8 @@
 
 Web Authorization Protocol                                 K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                         28 October 2026
-Expires: 1 May 2027
+Intended status: Standards Track                         29 October 2026
+Expires: 2 May 2027
 
 
             OAuth 2.0 Profile for Governed Agent Federation
@@ -67,7 +67,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 1 May 2027.
+   This Internet-Draft will expire on 2 May 2027.
 
 Copyright Notice
 
@@ -2898,8 +2898,9 @@ Table of Contents
    within the presented token's authority.  It MUST NOT expand that
    authority or override token validity or tenant restrictions.  Access
    beyond that authority requires new authorization through an
-   applicable protocol.  Asynchronous approval composition is deferred
-   under Appendix B.3.
+   applicable protocol.  Approval before issuance follows [OVERSIGHT];
+   other asynchronous approval composition is deferred under
+   Appendix B.3.
 
 12.  Privacy Considerations
 
@@ -3173,6 +3174,13 @@ Table of Contents
               assertion-02, 8 September 2026,
               <https://datatracker.ietf.org/doc/html/draft-mcguinness-
               oauth-id-continuation-assertion-02>.
+
+   [OVERSIGHT]
+              McGuinness, K., "Human Oversight Profile for Governed
+              Agent Federation", Work in Progress, Internet-Draft,
+              draft-mcguinness-oauth-governed-agent-oversight,
+              <https://mcguinness.github.io/governed-agent-profiles/
+              draft-mcguinness-oauth-governed-agent-oversight.html>.
 
    [CONTINUATION]
               McGuinness, K., "Identity Continuation Profile for
@@ -3849,6 +3857,9 @@ B.3.  Excluded Compositions
     +=======================+========================================+
     | Composition           | Boundary in this document              |
     +=======================+========================================+
+    | Approval before       | Defined for governed issuance,         |
+    | issuance              | including continuation, in [OVERSIGHT] |
+    +-----------------------+----------------------------------------+
     | Asynchronous approval | External approval follows              |
     | with [AROP]           | Section 11.8, Section 3.6.3, and       |
     |                       | Section 5.4                            |

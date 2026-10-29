@@ -113,6 +113,7 @@ informative:
     author:
       - org: Amazon Web Services
   ICA: I-D.mcguinness-oauth-id-continuation-assertion
+  ID-CHAINING: I-D.ietf-oauth-identity-chaining
   OVERSIGHT:
     title: "Human Oversight Profile for Governed Agent Federation"
     author:
@@ -721,7 +722,10 @@ applies unchanged.
 
 ### Relationship to Base Specifications {#profile-additions}
 
-Existing OAuth mechanisms leave three relationships open:
+{{ID-JAG}} profiles OAuth Identity and Authorization Chaining Across
+Domains {{ID-CHAINING}}: an IdP that resource domains trust issues the
+JWT authorization grant. Existing OAuth mechanisms leave three
+relationships open:
 
 1. How different client and workload identities resolve to the same
    governed principal. {{ATTEST}} and {{SPIFFE-OAUTH}} authenticate

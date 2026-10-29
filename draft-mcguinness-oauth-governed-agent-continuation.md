@@ -70,6 +70,7 @@ informative:
       - name: Karl McGuinness
     date: false
     target: https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md
+  ID-CHAINING: I-D.ietf-oauth-identity-chaining
   MCP:
     title: "Model Context Protocol Specification, Revision 2026-07-28"
     author:
@@ -125,6 +126,17 @@ user, checks that the gateway may continue for that agent, and
 authorizes access to the next resource. The agent's own client can
 continue a chain in the same way, as for scheduled work after the user
 signs out ({{walkthrough-scheduled}}).
+
+OAuth Identity and Authorization Chaining Across Domains
+{{ID-CHAINING}} offers another route: the authorization server of the
+gateway's domain issues a JWT authorization grant that the next
+domain's authorization server accepts. Each target would then trust
+every gateway's authorization server, and the IdP that governs the
+agent would not take part in the decision. Continuation instead returns
+to the IdP, which the target already trusts for governed grants and
+which applies the agent's current authorization and governance state at
+each hop. The gateway's domain contributes only its attestation that it
+accepted the request ({{Section 5.4 of ICA}}).
 
 The onward grant names the Agent Principal and acting relationship of
 the chain's root grant, and for delegated access the same user. The

@@ -1135,6 +1135,11 @@ limits. It is not required for conformance to the core profile; [Agent
 Principal Correlation][agent-correlation] and [Authorization Changes and
 Revocation][status-changes] state the core profile's guarantees.
 
+No profile defines a portable way to manage Delegation Authorizations,
+Agent Authorizations, Continuation Associations, or oversight modes. The
+[authority inventory exercise](exercises/authority-inventory/README.md)
+asks what products can already report about them before one is chosen.
+
 ## Platform-hosted agents
 
 A platform that hosts agents and authorizes them for its own resources

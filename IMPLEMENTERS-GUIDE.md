@@ -354,8 +354,11 @@ makes that change.
 requires Alice's approval before an onward grant with write authority
 issues for the tool's domain:
 
-1. The gateway accepts the agent's access token, and its Continuation
-   Assertion Issuer attests that acceptance.
+1. The gateway validates the incoming request and obtains a
+   Continuation Assertion from its CAI. The CAI attests that the
+   gateway's RAS accepted the originating grant, its authorization
+   remains active and eligible for continuation, and the gateway is
+   associated with that authorization.
 2. The gateway sends the continuation exchange to the IdP with
    `completion_mode=deferred` and a DPoP proof. The IdP performs every
    continuation check, reserves the assertion, records the pending

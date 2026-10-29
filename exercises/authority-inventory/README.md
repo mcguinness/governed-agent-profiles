@@ -44,6 +44,22 @@ The client registration association from `analysis-client` to
 `analysis-api` is configuration rather than authority, and is out of the
 exercise.
 
+### Settings to record
+
+What remains usable after a withdrawal depends on settings the drafts
+leave to each deployment. Record them for each product, and for the RAS
+and API it is tested with, before task 3:
+
+| Setting | Written as | Drafts' text |
+|---|---|---|
+| The IdP's freshness limit: the longest it may go on issuing under a withdrawn relationship before it applies the change | F | Core: Issuance Authorization |
+| Whether the IdP keeps the identifiers of the grants it issued under each relationship, and signals their revocation to the RAS | | Core: Authorization Changes and Revocation; lifecycle: Grant-Derived Session Revocation |
+| When the RAS applies a revocation it receives, if one reaches it | R | Core: Applied Disablement and Revocation |
+| How the API validates access tokens: offline, introspection on each request, or cached introspection with its cache limit | C | Core: Token Validation (Introspection caching) |
+
+The withdrawal is made at 12:02:00 on September 17. The IdP applies it at
+some time A, no later than 12:02:00 plus F; record A.
+
 ## The tasks
 
 Each task is run against each product, and each answer is recorded
@@ -55,13 +71,22 @@ whether or not the product can give it.
    administrator's assignment, a user's consent, a policy, or an import
    from a platform. Name the person or system that approved it, if the
    product knows.
-3. **Withdraw.** At 12:02 on September 17, withdraw Alice's Delegation
-   Authorization for `agent-42`, then export again.
-4. **Explain.** State what remains usable after the withdrawal, and until
-   when.
+3. **Withdraw.**
+   * At 12:02:00, withdraw Alice's Delegation Authorization for
+     `agent-42`, record when the IdP applied it, and export again. Task
+     4 checks this withdrawal.
+   * On a copy of the deployment, try to withdraw each other record kind
+     through the product's administrative interface, and record how: an
+     API, the administrative console only, or not supported. Mark any
+     kind not tried as untested.
+4. **Explain.** State what remains usable after Alice's delegation is
+   withdrawn, and until when.
+5. **Administration.** For each record kind, say who other than the
+   product's administrators needs to create or withdraw it: a platform's
+   connector, an identity-governance tool, a resource owner, or the user.
 
-Each answer has four parts, which products tend to hold to very
-different degrees:
+Each answer to tasks 1 and 2 has four parts, which products tend to hold
+to very different degrees:
 
 | Part | What it covers | Example in scene 1 |
 |---|---|---|
@@ -75,31 +100,37 @@ usage. Finding out which is the point of the exercise.
 
 ## Answer key for task 4
 
-Task 4 has a checkable answer, from the core's "Effects of administrative
-changes" table and the scene 2 clock: `grant-1` was issued at 12:01:03
-with a 300 s lifetime, and was redeemed at 12:01:04 for `access-1`, a
-JWT access token valid until 12:11:04, with no refresh token.
+Task 4's answer depends on the recorded settings. The scene 2 clock
+fixes the rest: `grant-1` was issued at 12:01:03 with a 300 s lifetime,
+and was redeemed at 12:01:04 for `access-1`, a JWT access token valid
+until 12:11:04, with no refresh token.
 
-| After the 12:02 withdrawal | Usable? | Until | Source |
+| After the 12:02:00 withdrawal | Usable? | Until | Source |
 |---|---|---|---|
-| A new delegated grant for Alice and `agent-42` | No; the IdP returns `actor_unauthorized` | — | Core: Effects of administrative changes; PLAYBOOK: delegated recipe, rejection tests |
+| A new delegated grant for Alice and `agent-42` | Yes until the IdP applies the withdrawal; then no, with `actor_unauthorized` | A, no later than 12:02:00 plus F | Core: Issuance Authorization; Effects of administrative changes. PLAYBOOK: delegated recipe, rejection tests |
+| A new continuation in a chain rooted under Alice's delegation | Yes until the IdP applies the withdrawal; then no, with `invalid_continuation`, and the chain stays ended | A | Continuation profile: Chain Ending and Governance Events |
 | `grant-1` | Already redeemed. A RAS that accepts a bound grant only once rejects it; one that accepts it again under explicit policy can redeem it until it expires | 12:06:03, at most | Core: Common Grant Validation (Grant replay) |
-| `access-1`, validated offline at the API | Yes, unless revocation reaches the API another way | 12:11:04 | Core: Effects of administrative changes ("RAS authorization can continue until revocation is applied or its absolute expiration") |
-| `access-1`, introspected by the API | Until the RAS applies a revocation, then no | When revocation is applied, or 12:11:04 | Core: Authorization Changes and Revocation |
-| Continuation chains rooted under Alice's delegation | No further continuation (`invalid_continuation`); tokens already issued downstream remain until they expire | — | Continuation profile: Chain Ending and Governance Events |
+| `access-1`, validated offline at the API | Yes, unless a revocation reaches the API by another route it checks | 12:11:04 | Core: Effects of administrative changes; Authorization Changes and Revocation |
+| `access-1`, introspected on each request | Yes until the RAS applies a revocation, if one reaches it | R, or 12:11:04 if no revocation reaches the RAS | Core: Authorization Changes and Revocation |
+| `access-1`, with cached introspection | An active response cached before R stays usable until its cache limit | The later of R and the last cached response's limit, never after 12:11:04 | Core: Token Validation (Introspection caching) |
+| Tokens already issued downstream through continuation | Yes until they expire or their revocation is applied | Their expiry, or when revocation is applied | Continuation profile: Disablement Windows |
 | `agent-42`'s delegations for other users, and its Agent Authorization | Unaffected | — | PLAYBOOK: delegated recipe, rejection tests; The decisions an identity team owns ("None of these implies another") |
 
-Withdrawal reaches `access-1` only if the IdP kept `grant-1`'s identifier
-under Alice's delegation and a signal carries it to the RAS ("Authorization
+For example, with cached introspection and a 60 s cache limit, an active
+response cached at 12:01:59 lets `access-1` through until 12:02:59, even
+if the RAS applies a revocation at 12:02:05.
+
+A revocation reaches the RAS only if the IdP kept `grant-1`'s identifier
+under Alice's delegation and a signal carries it there ("Authorization
 Changes and Revocation" in the core). Whether a product can name
 `grant-1` in its task 4 answer is part of what the exercise records.
 
 ## Recording the results
 
-Fill in one table per product. Each cell is **exported** (the product
-gives it directly), **derivable** (it can be reconstructed from logs or
-another system), or **not held**, followed by the product's own name for
-the field:
+Fill in two tables per product. In the first, each cell is **exported**
+(the product gives it directly), **derivable** (it can be reconstructed
+from logs or another system), or **not held**, followed by the
+product's own name for the field:
 
 | Record kind | Desired state | Approval provenance | Expiration policy | Observed usage |
 |---|---|---|---|---|
@@ -110,28 +141,58 @@ the field:
 | Agent Authorization | | | | |
 | Continuation Association | | | | |
 
+The second records how each kind is held and administered:
+
+| Record kind | Stored, or derived from policy or consent at issuance | Create and withdraw: API (named), console only, not supported, or untested | Others who need to create or withdraw it (task 5) |
+|---|---|---|---|
+| Identity Binding | | | |
+| Client Association | | | |
+| Delegation Authorization | | | |
+| Oversight mode | | | |
+| Agent Authorization | | | |
+| Continuation Association | | | |
+
 Then record, for the pair of products:
 
 * whether their task 1 exports describe the same effective
-  authorization, and where they differ;
-* whether each product's task 4 answer matches the answer key, and
-  which rows it could not answer; and
-* how each withdrawal was performed: through an API, an
-  administrative screen, or not at all.
+  authorization, and where they differ; and
+* whether each product's task 4 answer matches the answer key for its
+  recorded settings, and which rows it could not answer.
 
 ## What the results decide
 
-Three outcomes are named in advance, so the results cannot be read to
-fit a preferred answer:
+Decide for each record kind separately; different kinds can reach
+different outcomes. Answer these questions in order, using both
+products' results:
 
-| Outcome | The results point to it when |
-|---|---|
-| Extend the SCIM management profile with resources for these records | Products hold desired state, provenance, and expiry for most record kinds, and withdraw them through an administrative API, but the exports do not line up |
-| Define a read-only export of effective authorization | Products can report the records but manage them in incompatible ways, or the needs are certification and audit rather than shared administration |
-| Rely on the existing SCIM resources and lifecycle signals | Delegations come from policy or consent systems rather than stored records, and the task 4 answers depend on revocation signals rather than on the records themselves |
+1. **Is the record stored?** If both products derive it from policy or
+   consent when they issue a grant, there is no record to manage: the
+   outcome is **keep the existing SCIM resources and lifecycle
+   signals**, and withdrawal works through the policy.
+2. **Do others need to create or withdraw it?** If task 5 names parties
+   other than the product's administrators, and both products create and
+   withdraw the record through an API, the outcome is **extend the SCIM
+   management profile** with a resource for it. For Identity Bindings and
+   Client Associations, the question is instead whether the resources
+   the profile already defines suffice.
+3. **Do others only need to read it?** If no one else needs to create or
+   withdraw it, and both products export its desired state, provenance,
+   and expiry, the outcome is **define a read-only export** of effective
+   authorization for it.
+
+Anything else is **inconclusive** for that kind: fewer than two products
+answered, a deciding cell is not held or untested, or the products
+disagree at a step. Mixed and inconclusive results are expected. Each
+one leaves a follow-up question for the products concerned:
+
+* Does the product store this record, or derive it at issuance?
+* Who other than its administrators needs to create or withdraw it, and
+  why?
+* Would the product expose creating and withdrawing it through an API?
+* Can the product name the grants issued under it?
 
 Observed usage that no product holds points to events or logs, not to
-records, whichever outcome the other columns support.
+records, whatever the outcome for the kind.
 
 ## Running it
 

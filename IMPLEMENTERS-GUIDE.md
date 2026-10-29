@@ -338,8 +338,9 @@ yields keeps the core's lifetime limits ([Deferring][ov-deferring]):
   active, the authorization still permits the approved authority, and
   the user resolves as before; for root issuance, the binding and
   association; and for a continuation, the chain and the Continuation
-  Association. A change while the request waited ends it with
-  `access_denied` ([Resolution][ov-resolution]).
+  Association. A change that still holds then ends the request with
+  `access_denied` ([Resolution][ov-resolution]). Until then the request
+  stays pending: the profile does not require a change to cancel it.
 
 Approvers asked too often approve without reading ([Approval
 Fatigue][ov-fatigue]). Reserve the human in the loop for authority that

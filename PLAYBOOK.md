@@ -247,8 +247,11 @@ actions, the API or MCP server holds the call until an approver decides.
   agent's. A decision sent by the client or the agent is not accepted.
 * A poll that proves another key fails with `invalid_dpop_proof`, and a
   poll after the grant was delivered fails with `invalid_grant`.
-* An agent disabled while its request is pending gets `access_denied`
-  at the next poll, even after approval.
+* When an agent is disabled while its request is pending and the
+  approver then approves, the next poll returns `access_denied` and no
+  grant issues. Polls before the decision still return
+  `authorization_pending`: the IdP re-checks at resolution, and the
+  profile does not require disablement to cancel a pending request.
 * Approving narrower authority yields a grant with only that authority,
   and an approval does not carry over to the next request with the same
   context.
@@ -642,13 +645,17 @@ to deferral when it asks for `files.write`. The oversight profile's
   `completion_mode=deferred` fails with `actor_unauthorized`; when Alice
   denies, the next poll returns `access_denied`, and the client does not
   retry under another client or as self-acting access; and when
-  `agent-42` is disabled before Alice approves, the next poll returns
-  `access_denied`.
-* **Containment:** a pending request holds no grant, so disabling the
-  agent or withdrawing Alice's Delegation Authorization ends it at the
-  next poll with nothing else to revoke. The client cancels its own
-  request by revoking the deferral code. Once issued, `grant-2` is
-  contained like `grant-1`.
+  `agent-42` is disabled while the request is pending and Alice then
+  approves, the next poll returns `access_denied` and no grant issues.
+* **Containment:** a pending request holds no grant. Disabling the
+  agent or withdrawing Alice's Delegation Authorization prevents
+  issuance if the change still holds when the IdP re-checks at
+  resolution. It does not cancel the request, so a request approved
+  after the agent is re-enabled still yields `grant-2`. The client
+  cancels its own request by revoking the deferral code. A deployment
+  that wants disablement to cancel pending requests at once adds that
+  as a deployment requirement and tests it separately. Once issued,
+  `grant-2` is contained like `grant-1`.
 * **Evidence:** the IdP's issuance record for `grant-2` also holds the
   approval: Alice as approver, how she authenticated, her decision and
   its time, and the approved authority ([audit
@@ -814,7 +821,12 @@ stay revoked, and ended continuation chains stay ended.
   at the IdP cannot clear a Local Suspension, so each resource owner
   explicitly lifts the suspensions recorded for this incident, leaving
   in place any that predated it. Clients obtain new grants, and
-  restoration is verified by fresh access in each domain.
+  restoration is verified by fresh access in each domain. Disablement
+  does not cancel requests held for approval under the [oversight
+  profile][oversight]: a root request approved after re-enabling still
+  issues its grant, while a pending continuation fails because its
+  chain ended. Before re-enabling, have approvers deny pending requests
+  that should not proceed.
 * **Completion evidence:** the IdP's change record; each domain's
   applied status and time; the failed test exchange and redemption; any
   pending domain, with its containment; and, on recovery, each

@@ -1756,6 +1756,10 @@ agent.<a href="#section-4.3-1" class="pilcrow">¶</a></p>
 <p id="section-4.3-2">The IdP <span class="bcp14">MUST</span> show the approver the governed request context: the agent,
 the user for delegated access, the client, the target RAS and resource,
 the requested authority, and, for a continuation, the continuing client.
+For a continuation, it <span class="bcp14">MUST</span> also show any restrictions of the chain
+authorization and the Continuation Association that apply to the
+requested target ("Restrictions" in <span>[<a href="#CONTINUATION" class="cite xref">CONTINUATION</a>]</span>); an approval
+does not change them.
 Text that the client or agent supplies, such as a stated reason, <span class="bcp14">MUST</span>
 be shown as supplied by the requester and <span class="bcp14">MUST NOT</span> replace or restate
 the governed request context.<a href="#section-4.3-2" class="pilcrow">¶</a></p>
@@ -1797,8 +1801,8 @@ that:<a href="#section-4.4-1" class="pilcrow">¶</a></p>
 still permit the request;<a href="#section-4.4-2.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-4.4-2.3">
-            <p id="section-4.4-2.3.1">the Delegation or Agent Authorization still permits the approved
-authority;<a href="#section-4.4-2.3.1" class="pilcrow">¶</a></p>
+            <p id="section-4.4-2.3.1">the Delegation or Agent Authorization still permits the target and
+the approved authority;<a href="#section-4.4-2.3.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-4.4-2.4">
             <p id="section-4.4-2.4.1">for delegated access, the user is active and resolves as before;<a href="#section-4.4-2.4.1" class="pilcrow">¶</a></p>
@@ -1806,8 +1810,9 @@ authority;<a href="#section-4.4-2.3.1" class="pilcrow">¶</a></p>
           <li class="normal" id="section-4.4-2.5">
             <p id="section-4.4-2.5.1">for a continuation, neither the presented hop nor an ancestor is
 revoked, the chain has not ended, a Continuation Association still
-permits the continuing client, and the continuation is within the
-limits of <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-6.3" class="relref">Section 6.3</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span> (<a href="#deferred-continuation" class="auto internal xref">Section 4.5</a>); and<a href="#section-4.4-2.5.1" class="pilcrow">¶</a></p>
+permits the continuing client, the target, and the approved
+authority, and the continuation is within the limits of
+<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-6.3" class="relref">Section 6.3</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span> (<a href="#deferred-continuation" class="auto internal xref">Section 4.5</a>); and<a href="#section-4.4-2.5.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-4.4-2.6">
             <p id="section-4.4-2.6.1">no change applied within the IdP's freshness limit ("Issuance
@@ -2487,6 +2492,21 @@ client redeems it at the RAS as in the <span>[<a href="#FEDERATION" class="cite 
               <td class="text-left" rowspan="1" colspan="1">IdP</td>
               <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>invalid_grant</code>
 </td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">A continuation (<span>[<a href="#CONTINUATION" class="cite xref">CONTINUATION</a>]</span>) is deferred for Alice's approval; the request is received before the source hop's continuation deadline, and Alice approves after it</td>
+              <td class="text-left" rowspan="1" colspan="1">IdP</td>
+              <td class="text-left" rowspan="1" colspan="1">The onward grant issues at the next poll; the deadline applies when the request is received (<a href="#deferred-continuation" class="auto internal xref">Section 4.5</a>)</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">A continuation requests a target or authority outside the restrictions of its chain authorization</td>
+              <td class="text-left" rowspan="1" colspan="1">IdP</td>
+              <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>invalid_target</code>, <code>invalid_scope</code>, or <code>invalid_authorization_details</code> as <span>[<a href="#CONTINUATION" class="cite xref">CONTINUATION</a>]</span> specifies, when the request is received; no deferral and no approval</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">A continuation is within every restriction when received and is deferred; while it is pending, Alice's Delegation Authorization or the Continuation Association is narrowed to exclude its target</td>
+              <td class="text-left" rowspan="1" colspan="1">IdP</td>
+              <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>access_denied</code> at the next poll; no grant. The narrowing comes from current authorization, since the chain authorization's restrictions are fixed</td>
             </tr>
           </tbody>
         </table>

@@ -98,13 +98,14 @@ Table of Contents
    6.  Continuation Exchange at the IdP
      6.1.  Request
      6.2.  Continuation Association
-     6.3.  Validation
-     6.4.  Onward Grants
-       6.4.1.  Identity Preservation
-       6.4.2.  Path Disclosure
-       6.4.3.  Delegated: ID-JAG
-       6.4.4.  Self-Acting: WAG
-     6.5.  Errors
+     6.3.  Restrictions
+     6.4.  Validation
+     6.5.  Onward Grants
+       6.5.1.  Identity Preservation
+       6.5.2.  Path Disclosure
+       6.5.3.  Delegated: ID-JAG
+       6.5.4.  Self-Acting: WAG
+     6.6.  Errors
    7.  Onward Redemption and Access
    8.  Gateway Requirements
    9.  Chain Ending and Governance Events
@@ -186,7 +187,7 @@ Table of Contents
    the chain's root grant, and for delegated access the same user.  The
    continuing client, typically a gateway, is its client, not an added
    actor, and a separate claim, continuation_via, discloses the gateways
-   on the path (Section 6.4.1, Section 6.4.2).  A downstream RAS and API
+   on the path (Section 6.5.1, Section 6.5.2).  A downstream RAS and API
    that implement [FEDERATION], with DPoP at the RAS token endpoint,
    therefore accept it unchanged (Section 7).  This document also adds
    the Continuation Association, the IdP's permission for a client to
@@ -272,7 +273,7 @@ Table of Contents
 
    Whether a call still serves approved work is outside this document,
    as in [FEDERATION].  This document defines one claim,
-   continuation_via (Section 6.4.2), and no new token format, error
+   continuation_via (Section 6.5.2), and no new token format, error
    code, or request parameter.
 
 2.  Conventions and Terminology
@@ -410,7 +411,7 @@ Table of Contents
     | Delegation Authorization or Agent   | Not withdrawn as a whole; |
     | Authorization under which the root  | current authorization     |
     | grant was issued                    | governs each target and   |
-    |                                     | authority (Section 6.3)   |
+    |                                     | authority (Section 6.4)   |
     +-------------------------------------+---------------------------+
 
                 Table 2: Recorded facts of a governed chain
@@ -423,12 +424,20 @@ Table of Contents
    bound, apply to the IdP's hop records, whose lineage entries are the
    root client and the continuing clients.
 
-   The IdP SHOULD also enforce a configured continuation window: it
-   refuses continuation from a hop more than that window after it issued
-   the hop, with invalid_grant as for those limits.  The window bounds
-   how long a CAI, including one that a compromised gateway operator
-   controls, can obtain continuations from a hop it accepted
-   (Section 11.1).
+   The IdP MUST also enforce a finite continuation window, whose length
+   is configured: it refuses a continuation request received after the
+   hop's deadline, with invalid_grant as for those limits.  A hop's
+   deadline is the time the IdP issued the hop plus the window
+   configured then.  Shortening the window can bring existing deadlines
+   forward; lengthening it applies only to hops issued afterwards.  The
+   deadline limits when a continuation can be requested, not when its
+   onward grant issues, so an onward grant whose issuance is deferred
+   after a timely request can issue after it.  The window bounds how
+   long a CAI, including one that a compromised gateway operator
+   controls, can obtain continuations from a hop it accepted.  It does
+   not bound the chain: each continuation creates a hop with a deadline
+   of its own, and the hop-count limit of Section 6.3 of [ICA] bounds
+   how far a chain extends (Section 12.1, Section 11.1).
 
 3.2.  Delegated Root
 
@@ -486,7 +495,7 @@ Table of Contents
    [ICA]), which neither the gateway nor the CAI can keep active
    (Section 11.1).  IdP instances evaluate the idle timeout and the
    absolute expiration against shared session state; an instance that
-   cannot confirm it refuses temporarily (Section 6.5).
+   cannot confirm it refuses temporarily (Section 6.6).
 
 4.  Root Redemption at the Gateway's RAS
 
@@ -567,9 +576,9 @@ Table of Contents
    continue an Agent Principal's governed chains in one acting
    relationship.  It belongs to the Governance Tenant of those chains
    and does not apply to chains in another.  It can restrict targets and
-   authority, and it narrows, without replacing, the restrictions on who
-   may continue that the chain authorization records (Section 5.1.4 of
-   [ICA]).  It has these limits:
+   authority (Section 6.3), and it narrows, without replacing, the
+   restrictions on who may continue that the chain authorization records
+   (Section 5.1.4 of [ICA]).  It has these limits:
 
    *  A Client Association does not imply a Continuation Association,
       nor the reverse.
@@ -584,12 +593,92 @@ Table of Contents
 
    Policy representation and administration are outside this document.
 
-6.3.  Validation
+6.3.  Restrictions
+
+   A chain authorization's restrictions (Section 5.1.4 of [ICA]) and a
+   Continuation Association's restrictions have the meaning this section
+   defines; their representation is outside this document.  Either can
+   contain these members:
+
+     +============+=================================================+
+     | Member     | Content                                         |
+     +============+=================================================+
+     | Targets    | Target entries, each naming a target RAS issuer |
+     |            | and either one resource or one Target Tenant    |
+     +------------+-------------------------------------------------+
+     | Authority  | Authority entries, each for one target entry: a |
+     |            | set of scope values, authorization details      |
+     |            | [RFC9396], or both, in that target's vocabulary |
+     +------------+-------------------------------------------------+
+     | Continuing | Canonical actor identities (Section 5.5.2 of    |
+     | clients    | [ICA]); in a chain authorization only, since a  |
+     |            | Continuation Association names its client       |
+     +------------+-------------------------------------------------+
+
+                    Table 4: Members of a restriction
+
+   The IdP MUST evaluate each restriction as follows:
+
+   *  *Absent:* An absent member restricts nothing, and the other bounds
+      of this section still apply.  Where a chain authorization records
+      no Targets member, a target that current policy comes to permit is
+      reachable from every such chain, as Section 9.2 of [ICA]
+      describes.  Likewise, a target that matches no authority entry has
+      no authority limited by that restriction.  Absence never removes
+      the finite hop-count limit of Section 6.3 of [ICA] or the
+      continuation window (Section 3.1).
+
+   *  *Present:* A member present in a chain authorization is fixed for
+      the chain's lifetime (Section 5.1.4 of [ICA]).  Current policy can
+      narrow access beneath it but cannot exceed it.  A Continuation
+      Association's members are current policy and apply as they stand
+      at each continuation.
+
+   *  *Empty:* A present member that is empty permits nothing: an empty
+      Targets member permits no continuation, an empty Continuing
+      clients member permits no client, and an authority entry whose
+      scope set or authorization details are present but empty permits
+      no access to its target.
+
+   *  *Matching:* A request matches a target entry when its audience
+      equals the entry's RAS issuer and, for an entry naming a resource,
+      its resource equals that resource or, for an entry naming a Target
+      Tenant, the Target Tenant resolved for it in step 7 of Section 6.4
+      equals that tenant.  A continuing client matches when its
+      canonical actor identity equals a recorded one.  This document
+      compares each value as an exact string, without normalization.
+
+   *  *Authority:* A request is within a restriction's authority only if
+      it is within every authority entry whose target entry it matches:
+      each requested scope value is in the entry's scope set, if the
+      entry has one; and, if the entry has authorization details, the
+      request carries a non-empty authorization_details array, each of
+      whose details is within a recorded detail of the same type under
+      that type's rules.  A request without authorization details, or
+      with an empty array, is not within such an entry, even when its
+      scope is, since its grant would carry the scope without the limit
+      the details express.
+
+   *  *Unevaluable:* If the IdP cannot determine that requested
+      authorization details are within an authority entry, for example
+      because it does not implement their type's comparison, the request
+      is not within it.
+
+   *  *Combined:* The chain authorization's restrictions, the
+      Continuation Association's restrictions, and the agent's current
+      authorization each bound the onward grant independently.  The
+      target RAS then applies its own policy.
+
+   The IdP derives a chain authorization's restrictions when it
+   establishes the chain, from tenant policy and from the Delegation or
+   Agent Authorization under which the root grant is issued.
+
+6.4.  Validation
 
    For a first presentation of an assertion for a hop of a governed
    chain, the IdP MUST perform the following steps in order and MUST
    reject the request at the first step that fails, with the error of
-   Section 6.5.  The checks of Section 5.5.3 of [ICA] apply within the
+   Section 6.6.  The checks of Section 5.5.3 of [ICA] apply within the
    steps that cite them, changed only as stated.
 
    1.  *Client and proof:* Authenticate the client, map it to its
@@ -619,8 +708,7 @@ Table of Contents
    6.  *Continuer:* A current Continuation Association in the chain's
        Governance Tenant permits the client for the chain's Agent
        Principal and acting relationship, and so do the chain
-       authorization's restrictions on who may continue (Section 5.1.4
-       of [ICA]).
+       authorization's restrictions on who may continue (Section 6.3).
 
    7.  *Target context (ICA rule 5, replacing its subject resolution):*
        The Target Tenant for the requested resource, the continuing
@@ -630,7 +718,7 @@ Table of Contents
        unambiguously.  A self-acting chain's subject is its Agent
        Principal, which is not resolved per target.  Where policy
        requires path disclosure, the target RAS supports it
-       (Section 6.4.2).
+       (Section 6.5.2).
 
    8.  *Freshness and replay (ICA rule 6).*
 
@@ -640,10 +728,10 @@ Table of Contents
        client's context, for the requested target and authority.  A
        current Delegation Authorization or Agent Authorization that
        permits continuation covers them; it need not name the continuing
-       client.  The Continuation Association's restrictions and the
-       chain authorization also bound the target and authority.
-       Withdrawal of the root authorization as a whole is chain state
-       (step 5), not a failure of this step.
+       client.  The restrictions of the chain authorization and the
+       Continuation Association also bound the target and authority
+       (Section 6.3).  Withdrawal of the root authorization as a whole
+       is chain state (step 5), not a failure of this step.
 
    Because step 6 precedes step 7, a client without a Continuation
    Association learns nothing about where the chain's user resolves.
@@ -664,7 +752,7 @@ Table of Contents
    recovery consumes no limit, and a client whose response was lost
    recovers even the last continuation that a hop-count limit permits.
 
-6.4.  Onward Grants
+6.5.  Onward Grants
 
    The response follows Section 5.5.4 of [ICA], with issued_token_type
    equal to the requested grant type and no refresh token.  Every onward
@@ -679,7 +767,7 @@ Table of Contents
    grant.  An onward WAG MUST NOT outlive the absolute expiration of its
    chain's agent session.
 
-6.4.1.  Identity Preservation
+6.5.1.  Identity Preservation
 
    The IdP MUST construct every onward grant of a governed chain so
    that:
@@ -698,7 +786,7 @@ Table of Contents
       the target RAS ("Issuance Prerequisites" in [FEDERATION]); and
 
    *  it lists the chain's continuing clients in continuation_via
-      (Section 6.4.2).
+      (Section 6.5.2).
 
    Where a target RAS distinguishes delegated and self-acting tokens by
    client registration ("Profile Applicability" under "Access at the
@@ -719,7 +807,7 @@ Table of Contents
    NOT issue an onward ID-JAG whose act is constructed under
    Section 5.5.5 of [ICA].  Section 12.2 explains the choice.
 
-6.4.2.  Path Disclosure
+6.5.2.  Path Disclosure
 
    Every onward grant of a governed chain discloses the continuing
    clients it passed through, as intermediaries rather than actors, in
@@ -766,13 +854,13 @@ Table of Contents
    Where the chain authorization, the continuing client's Continuation
    Association, or policy for the target requires path disclosure, the
    IdP MUST NOT issue an onward grant for a target RAS not established
-   to support it (Section 6.5); issuing it would present a path that the
+   to support it (Section 6.6); issuing it would present a path that the
    target discards as if it were complete.  A RAS or API MUST NOT read
    the absence of continuation_via as evidence that no continuing client
    was involved, unless trusted configuration establishes that the RAS
    that issued its token supports path disclosure.
 
-6.4.3.  Delegated: ID-JAG
+6.5.3.  Delegated: ID-JAG
 
    The onward ID-JAG uses the format and claims of Section 3.1 of
    [ID-JAG] and the following:
@@ -796,20 +884,20 @@ Table of Contents
      | amr              | Section 5.5.5 of [ICA] requires           |
      +------------------+-------------------------------------------+
      | continuation_via | The chain's continuing clients            |
-     |                  | (Section 6.4.2)                           |
+     |                  | (Section 6.5.2)                           |
      +------------------+-------------------------------------------+
 
-      Table 4: Onward ID-JAG subject, actor, client, and path claims
+      Table 5: Onward ID-JAG subject, actor, client, and path claims
 
    Section 5.5.5 of [ICA] applies to the onward ID-JAG and to the IdP's
    hop records, including immutable parent references, ancestry that
    excludes sibling branches, and the merging of consecutive identical
    actors that the actor-lineage depth bound counts.  Two of its rules
-   are replaced: Section 6.4.1 replaces the act it emits, and Section 7
+   are replaced: Section 6.5.1 replaces the act it emits, and Section 7
    its redemption grant type.  The continuing clients that its lineage
    would place in act appear in continuation_via instead.
 
-6.4.4.  Self-Acting: WAG
+6.5.4.  Self-Acting: WAG
 
    The onward WAG uses the JWT type and claims of "Grant Claims" in
    [FEDERATION], including its prohibition of act, with these values:
@@ -827,17 +915,17 @@ Table of Contents
        |                  | at the target RAS                      |
        +------------------+----------------------------------------+
        | continuation_via | The chain's continuing clients         |
-       |                  | (Section 6.4.2)                        |
+       |                  | (Section 6.5.2)                        |
        +------------------+----------------------------------------+
 
-           Table 5: Onward WAG issuer, subject, audience, client,
+           Table 6: Onward WAG issuer, subject, audience, client,
                               and path claims
 
-   Section 6.3 replaces the issuance steps of "Self-Acting Issuance:
+   Section 6.4 replaces the issuance steps of "Self-Acting Issuance:
    WAG" in [FEDERATION]: no agent resolution or Client Association check
    takes place.
 
-6.5.  Errors
+6.6.  Errors
 
    Failures of the [ICA] checks within each step use the codes of
    Section 5.5.6 of [ICA], and client authentication failures use the
@@ -865,8 +953,9 @@ Table of Contents
     | not the chain's grant    |      |                               |
     | type                     |      |                               |
     +--------------------------+------+-------------------------------+
-    | The hop's continuation   | 5    | invalid_grant                 |
-    | window has passed        |      |                               |
+    | The request is received  | 5    | invalid_grant                 |
+    | after the hop's          |      |                               |
+    | continuation deadline    |      |                               |
     +--------------------------+------+-------------------------------+
     | No Continuation          | 6    | unauthorized_client           |
     | Association, or the      |      |                               |
@@ -894,12 +983,24 @@ Table of Contents
     | authorization does not   |      |                               |
     | permit the target        |      |                               |
     +--------------------------+------+-------------------------------+
-    | The same sources permit  | 9    | invalid_scope or              |
-    | the target but not the   |      | invalid_authorization_details |
-    | requested authority      |      |                               |
+    | The same sources permit  | 9    | invalid_scope                 |
+    | the target but not the   |      |                               |
+    | requested scope          |      |                               |
+    +--------------------------+------+-------------------------------+
+    | The same sources permit  | 9    | invalid_authorization_details |
+    | the target but not the   |      |                               |
+    | requested authorization  |      |                               |
+    | details, or a            |      |                               |
+    | restriction's authority  |      |                               |
+    | entry has authorization  |      |                               |
+    | details and the request  |      |                               |
+    | has none, has an empty   |      |                               |
+    | array, or has details    |      |                               |
+    | the IdP cannot evaluate  |      |                               |
+    | against it (Section 6.3) |      |                               |
     +--------------------------+------+-------------------------------+
 
-                 Table 6: Errors for governed continuation
+                 Table 7: Errors for governed continuation
 
    The client is not the actor, and the subject token is the assertion,
    so failures that [FEDERATION] reports at issuance as
@@ -1028,7 +1129,7 @@ Table of Contents
    to invalid_token.  Where deployment-specific information identifies a
    rate limit, the gateway can retry under that limit's policy.  A
    temporary refusal is not an error response: the gateway retries as
-   Section 6.5 describes.
+   Section 6.6 describes.
 
    After the IdP rejects a governed continuation for a request, the
    continuing client MUST NOT serve that request with its own authority
@@ -1087,7 +1188,7 @@ Table of Contents
      +--------------------------------------------+------------------+
      | Remove some targets or authority from      | Continuation to  |
      | current policy or an authorization         | them fails       |
-     |                                            | (Section 6.5);   |
+     |                                            | (Section 6.6);   |
      |                                            | the chain        |
      |                                            | continues        |
      |                                            | elsewhere        |
@@ -1100,7 +1201,7 @@ Table of Contents
      |                                            | elsewhere        |
      +--------------------------------------------+------------------+
 
-       Table 7: Effects of administrative changes on governed chains
+       Table 8: Effects of administrative changes on governed chains
 
    The IdP MUST treat a chain as ended once it has applied, since the
    chain's establishment, any change that the table lists as ending it,
@@ -1122,7 +1223,7 @@ Table of Contents
    document changes them.  A target RAS that does not continue the chain
    implements [FEDERATION] with DPoP support at its token endpoint, and
    nothing from this document unless it supports path disclosure
-   (Section 6.4.2).
+   (Section 6.5.2).
 
    An IdP claiming delegated continuation can additionally claim grant-
    anchored continuation.  This claim requires support for refresh-token
@@ -1193,7 +1294,13 @@ Table of Contents
       are still accepted, and the gateway fails those requests without
       prompting a new root grant (Section 8).  A deployment whose
       gateway or client continues from durable task state sets the
-      window to the task's needs, as in Appendix A.7.
+      window to the task's needs, as in Appendix A.7.  This document
+      sets no default.  Lengthening the window does not extend the
+      deadlines of hops already issued, so it cannot restore
+      continuation from a hop whose deadline has passed.  Continuation
+      can still proceed from a later hop within its own deadline; a task
+      with no such hop, such as the scheduled variant once H0's deadline
+      passes, needs a new chain.
 
    *  *Agent sessions:* A working agent obtains a new WAG at least as
       often as its gateway access token expires, since WAG redemption
@@ -1238,7 +1345,11 @@ Table of Contents
    for a compromised RAS, until the chain ends or the hop's continuation
    window passes.  In either case it cannot change the agent or user,
    convert the acting relationship, or exceed the agent's own
-   authorization.  Narrow Continuation Associations, chain
+   authorization.  The window does not bound the chain: where policy
+   permits continuation to a target whose RAS the operator also runs,
+   each hop accepted there has a window of its own, and only the hop-
+   count limit of Section 6.3 of [ICA] bounds how far the operator can
+   extend the chain.  Narrow Continuation Associations, chain
    authorizations that restrict targets, a short continuation window,
    short downstream token lifetimes, and sender-constrained ingress
    reduce the exposure; the last also keeps a stolen bearer token at the
@@ -1310,7 +1421,7 @@ Table of Contents
    incoming access-token scopes.  The chain authorization, the agent's
    current Delegation or Agent Authorization, and the continuing
    client's Continuation Association bound each onward grant instead
-   (Section 6.3), and the target applies its own authorization.  A
+   (Section 6.4), and the target applies its own authorization.  A
    deployment that needs onward authority narrower than the agent's
    authorization records narrower restrictions in the chain
    authorization or the Continuation Association.
@@ -1373,7 +1484,7 @@ Table of Contents
 
    *  Change Controller: IETF
 
-   *  Specification Document(s): Section 6.4.2 of this document.
+   *  Specification Document(s): Section 6.5.2 of this document.
 
    and of the following member in the "OAuth Token Introspection
    Response" registry established by [RFC7662]:
@@ -1385,7 +1496,7 @@ Table of Contents
 
    *  Change Controller: IETF
 
-   *  Specification Document(s): Section 6.4.2 of this document.
+   *  Specification Document(s): Section 6.5.2 of this document.
 
    If [ICA] adopts continuation_via, these registrations move to it.
    The identity_continuation_handle JWT claim and the
@@ -1451,6 +1562,11 @@ Table of Contents
               Ed., "HTTP Semantics", STD 97, RFC 9110,
               DOI 10.17487/RFC9110, June 2022,
               <https://www.rfc-editor.org/rfc/rfc9110>.
+
+   [RFC9396]  Lodderstedt, T., Richer, J., and B. Campbell, "OAuth 2.0
+              Rich Authorization Requests", RFC 9396,
+              DOI 10.17487/RFC9396, May 2023,
+              <https://www.rfc-editor.org/rfc/rfc9396>.
 
    [BCP14]    Best Current Practice 14,
               <https://www.rfc-editor.org/info/bcp14>.
@@ -1674,7 +1790,7 @@ A.3.  Continuation
    &resource=https%3A%2F%2Fapi.example%2Ftenants%2Facme-data%2F
    &scope=files.read
 
-   Every step of Section 6.3 passes: H0 belongs to an active delegated
+   Every step of Section 6.4 passes: H0 belongs to an active delegated
    chain, a Continuation Association permits tool-gateway, Alice is
    alice-ras at https://ras.example/ and tool-gateway is gateway-files
    there, and Alice's Delegation Authorization permits agent-42, in
@@ -1813,7 +1929,7 @@ A.6.  Two-Gateway Variant
    }
 
    In this variant, https://ras.example/ supports path disclosure
-   (Section 6.4.2), so the access token it issues carries the same list
+   (Section 6.5.2), so the access token it issues carries the same list
    to the API (excerpt):
 
    {
@@ -1940,7 +2056,7 @@ A.7.2.  Each Scheduled Run
    Alice's sign-in of the previous day, carried unchanged from the root
    (Section 5.5.5 of [ICA]). continuation_via names analysis-client
    because the root client continued the chain; the root hop itself
-   contributes no entry (Section 6.4.2).
+   contributes no entry (Section 6.5.2).
 
    Runs need no retained user credential.  Each creates a new child of
    H0 and obtains a short-lived, sender-constrained assertion and onward
@@ -1957,116 +2073,178 @@ A.8.  Negative Tests
 
    Each case changes the stated conditions; all other checks succeed.
 
-   +===========================+=========+============================+
-   | Changed condition         | Checked | Required result            |
-   |                           | by      |                            |
-   +===========================+=========+============================+
-   | No Continuation           | IdP     | HTTP 400,                  |
-   | Association permits tool- |         | unauthorized_client,       |
-   | gateway for agent-42's    |         | before target resolution;  |
-   | delegated chains          |         | the gateway does not call  |
-   |                           |         | the tool with its own      |
-   |                           |         | authority                  |
-   +---------------------------+---------+----------------------------+
-   | Delegated chain; the      | IdP     | HTTP 400, invalid_request; |
-   | gateway requests a WAG    |         | no conversion of the       |
-   |                           |         | acting relationship        |
-   +---------------------------+---------+----------------------------+
-   | agent-42 disabled at the  | IdP     | HTTP 400,                  |
-   | IdP after the root grant, |         | invalid_continuation; the  |
-   | then reactivated before   |         | chain stays ended, and a   |
-   | the next continuation     |         | new root grant is needed   |
-   +---------------------------+---------+----------------------------+
-   | Root binding of analysis- | IdP     | HTTP 400,                  |
-   | client disabled while     |         | invalid_continuation       |
-   | another binding of        |         |                            |
-   | agent-42 remains enabled  |         |                            |
-   +---------------------------+---------+----------------------------+
-   | Alice's Delegation        | IdP     | HTTP 400, invalid_target;  |
-   | Authorization does not    |         | the chain stays            |
-   | cover the requested       |         | continuable to other       |
-   | resource                  |         | targets                    |
-   +---------------------------+---------+----------------------------+
-   | GatewayRAS keeps the      | IdP     | HTTP 400,                  |
-   | self-acting hop's         |         | invalid_continuation; the  |
-   | authorization active as   |         | gateway's continuations do |
-   | durable task state,       |         | not keep the session       |
-   | agent-42's client stops   |         | active                     |
-   | obtaining WAGs, and the   |         |                            |
-   | agent session passes its  |         |                            |
-   | idle timeout              |         |                            |
-   +---------------------------+---------+----------------------------+
-   | Two resource parameters   | IdP     | HTTP 400, invalid_target   |
-   | in the continuation       |         |                            |
-   | request                   |         |                            |
-   +---------------------------+---------+----------------------------+
-   | The Continuation          | IdP     | HTTP 400, invalid_target;  |
-   | Association for tool-     |         | the IdP does not issue a   |
-   | gateway requires path     |         | grant whose path the       |
-   | disclosure, and           |         | target would discard       |
-   | https://ras.example/ is   |         |                            |
-   | not established to        |         |                            |
-   | support it                |         |                            |
-   +---------------------------+---------+----------------------------+
-   | The continuation used the | IdP     | Where the IdP offers       |
-   | chain's last permitted    |         | idempotent retry, HTTP 200 |
-   | hop, its response was     |         | with the same onward       |
-   | lost, and the gateway     |         | grant; limits do not apply |
-   | repeats the request with  |         | to recovery                |
-   | the same assertion        |         |                            |
-   +---------------------------+---------+----------------------------+
-   | Governed agent access:    | CAI     | HTTP 400, invalid_request; |
-   | the root ID-JAG has no    |         | the authorization is not   |
-   | cnf, the agent's client   |         | eligible for continuation  |
-   | redeems it without a DPoP |         |                            |
-   | proof, GatewayRAS issues  |         |                            |
-   | a bearer access token,    |         |                            |
-   | and no policy permits     |         |                            |
-   | continuation from it      |         |                            |
-   +---------------------------+---------+----------------------------+
-   | The gateway redeems the   | Target  | HTTP 400, invalid_grant    |
-   | onward ID-JAG without a   | RAS     |                            |
-   | proof of G                |         |                            |
-   +---------------------------+---------+----------------------------+
-   | The gateway's source hop  | IdP,    | HTTP 400, invalid_grant;   |
-   | has passed its            | then    | the gateway fails the      |
-   | continuation window while | gateway | agent's request with an    |
-   | the agent's access token  |         | error of its own API, not  |
-   | at the gateway is still   |         | with HTTP 401              |
-   | accepted                  |         | invalid_token              |
-   +---------------------------+---------+----------------------------+
-   | Tenant policy sets the    | IdP,    | HTTP 400, invalid_grant;   |
-   | actor-lineage depth bound | then    | H0 is not unusable, and a  |
-   | to 1, and tool-gateway    | gateway | continuation from it by    |
-   | continues H0, whose       |         | analysis-client, whose     |
-   | lineage is the root       |         | entry merges with the      |
-   | client analysis-client    |         | root's, can still succeed; |
-   |                           |         | the gateway fails the      |
-   |                           |         | agent's request without    |
-   |                           |         | HTTP 401 invalid_token     |
-   +---------------------------+---------+----------------------------+
-   | In the scheduled variant, | IdP     | HTTP 400,                  |
-   | Alice withdraws her       |         | invalid_continuation; the  |
-   | Delegation Authorization  |         | chain stays ended, and     |
-   | for agent-42 before the   |         | Alice's delegations to     |
-   | next run                  |         | other agents are           |
-   |                           |         | unaffected                 |
-   +---------------------------+---------+----------------------------+
-   | The gateway holds the     | Gateway | Continues that agent's own |
-   | target token for agent-42 |         | chain; a matching scope    |
-   | and receives a request    |         | does not permit reuse      |
-   | for another agent with    |         |                            |
-   | the same scope            |         |                            |
-   +---------------------------+---------+----------------------------+
-   | The gateway holds the     | Gateway | Continues that chain from  |
-   | target token obtained     |         | its own access token; the  |
-   | under H0 and receives a   |         | token obtained under H0 is |
-   | request from agent-42 for |         | not reused, so the other   |
-   | Alice with the same scope |         | chain's ending applies to  |
-   | on another chain          |         | its requests               |
-   +---------------------------+---------+----------------------------+
+   +============================+=======+==============================+
+   |Changed condition           |Checked|Required result               |
+   |                            |by     |                              |
+   +============================+=======+==============================+
+   |No Continuation Association |IdP    |HTTP 400, unauthorized_client,|
+   |permits tool-gateway for    |       |before target resolution; the |
+   |agent-42's delegated chains |       |gateway does not call the tool|
+   |                            |       |with its own authority        |
+   +----------------------------+-------+------------------------------+
+   |Delegated chain; the gateway|IdP    |HTTP 400, invalid_request; no |
+   |requests a WAG              |       |conversion of the acting      |
+   |                            |       |relationship                  |
+   +----------------------------+-------+------------------------------+
+   |agent-42 disabled at the IdP|IdP    |HTTP 400,                     |
+   |after the root grant, then  |       |invalid_continuation; the     |
+   |reactivated before the next |       |chain stays ended, and a new  |
+   |continuation                |       |root grant is needed          |
+   +----------------------------+-------+------------------------------+
+   |Root binding of analysis-   |IdP    |HTTP 400, invalid_continuation|
+   |client disabled while       |       |                              |
+   |another binding of agent-42 |       |                              |
+   |remains enabled             |       |                              |
+   +----------------------------+-------+------------------------------+
+   |Alice's Delegation          |IdP    |HTTP 400, invalid_target; the |
+   |Authorization does not cover|       |chain stays continuable to    |
+   |the requested resource      |       |other targets                 |
+   +----------------------------+-------+------------------------------+
+   |The chain authorization     |IdP    |HTTP 200 for a continuation to|
+   |records no Targets member,  |       |the second resource; current  |
+   |and after the chain is      |       |authorization governs         |
+   |established Alice's         |       |                              |
+   |Delegation Authorization    |       |                              |
+   |comes to permit a second    |       |                              |
+   |resource in acme-data       |       |                              |
+   +----------------------------+-------+------------------------------+
+   |The chain authorization     |IdP    |HTTP 400, invalid_target for  |
+   |records Targets naming only |       |the second resource; the      |
+   |https://api.example/tenants/|       |recorded ceiling is fixed     |
+   |acme-data/, and Alice's     |       |                              |
+   |Delegation Authorization    |       |                              |
+   |later permits a second      |       |                              |
+   |resource                    |       |                              |
+   +----------------------------+-------+------------------------------+
+   |The chain authorization     |IdP    |HTTP 400, invalid_target for  |
+   |records an empty Targets    |       |every target                  |
+   |member                      |       |                              |
+   +----------------------------+-------+------------------------------+
+   |The chain authorization     |IdP    |HTTP 200 where Alice's        |
+   |records Targets naming two  |       |Delegation Authorization and  |
+   |resources and an authority  |       |the Continuation Association  |
+   |entry only for the first,   |       |permit the request; the chain |
+   |and the gateway requests the|       |authorization limits no       |
+   |second                      |       |authority there               |
+   +----------------------------+-------+------------------------------+
+   |The authority entry for the |IdP    |HTTP 400, invalid_scope       |
+   |requested resource has an   |       |                              |
+   |empty scope set             |       |                              |
+   +----------------------------+-------+------------------------------+
+   |The chain authorization's   |IdP    |HTTP 400, invalid_target;     |
+   |Targets names               |       |target values are compared    |
+   |https://api.example/tenants/|       |without normalization         |
+   |acme-data/, and the gateway |       |                              |
+   |requests                    |       |                              |
+   |https://api.example/tenants/|       |                              |
+   |acme-data                   |       |                              |
+   +----------------------------+-------+------------------------------+
+   |The authority entry for the |IdP    |HTTP 400,                     |
+   |requested resource has scope|       |invalid_authorization_details |
+   |files.read and authorization|       |                              |
+   |details of a type           |       |                              |
+   |file_access limited to the  |       |                              |
+   |folder reports; the request |       |                              |
+   |has files.read and          |       |                              |
+   |file_access details for the |       |                              |
+   |folder payroll              |       |                              |
+   +----------------------------+-------+------------------------------+
+   |The same authority entry;   |IdP    |HTTP 400,                     |
+   |the request has scope       |       |invalid_authorization_details;|
+   |files.read and no           |       |no grant carries files.read   |
+   |authorization_details       |       |without the folder limit      |
+   +----------------------------+-------+------------------------------+
+   |The same authority entry;   |IdP    |HTTP 400,                     |
+   |the request has scope       |       |invalid_authorization_details;|
+   |files.read and              |       |an empty array does not       |
+   |authorization_details []    |       |satisfy the folder limit      |
+   +----------------------------+-------+------------------------------+
+   |The authority entry for the |IdP    |HTTP 400,                     |
+   |requested resource has      |       |invalid_authorization_details |
+   |authorization details, and  |       |                              |
+   |the request carries details |       |                              |
+   |of a type whose comparison  |       |                              |
+   |the IdP does not implement  |       |                              |
+   +----------------------------+-------+------------------------------+
+   |GatewayRAS keeps the self-  |IdP    |HTTP 400,                     |
+   |acting hop's authorization  |       |invalid_continuation; the     |
+   |active as durable task      |       |gateway's continuations do not|
+   |state, agent-42's client    |       |keep the session active       |
+   |stops obtaining WAGs, and   |       |                              |
+   |the agent session passes its|       |                              |
+   |idle timeout                |       |                              |
+   +----------------------------+-------+------------------------------+
+   |Two resource parameters in  |IdP    |HTTP 400, invalid_target      |
+   |the continuation request    |       |                              |
+   +----------------------------+-------+------------------------------+
+   |The Continuation Association|IdP    |HTTP 400, invalid_target; the |
+   |for tool-gateway requires   |       |IdP does not issue a grant    |
+   |path disclosure, and        |       |whose path the target would   |
+   |https://ras.example/ is not |       |discard                       |
+   |established to support it   |       |                              |
+   +----------------------------+-------+------------------------------+
+   |The continuation used the   |IdP    |Where the IdP offers          |
+   |chain's last permitted hop, |       |idempotent retry, HTTP 200    |
+   |its response was lost, and  |       |with the same onward grant;   |
+   |the gateway repeats the     |       |limits do not apply to        |
+   |request with the same       |       |recovery                      |
+   |assertion                   |       |                              |
+   +----------------------------+-------+------------------------------+
+   |Governed agent access: the  |CAI    |HTTP 400, invalid_request; the|
+   |root ID-JAG has no cnf, the |       |authorization is not eligible |
+   |agent's client redeems it   |       |for continuation              |
+   |without a DPoP proof,       |       |                              |
+   |GatewayRAS issues a bearer  |       |                              |
+   |access token, and no policy |       |                              |
+   |permits continuation from it|       |                              |
+   +----------------------------+-------+------------------------------+
+   |The gateway redeems the     |Target |HTTP 400, invalid_grant       |
+   |onward ID-JAG without a     |RAS    |                              |
+   |proof of G                  |       |                              |
+   +----------------------------+-------+------------------------------+
+   |The gateway's source hop has|IdP,   |HTTP 400, invalid_grant; the  |
+   |passed its continuation     |then   |gateway fails the agent's     |
+   |window while the agent's    |gateway|request with an error of its  |
+   |access token at the gateway |       |own API, not with HTTP 401    |
+   |is still accepted           |       |invalid_token                 |
+   +----------------------------+-------+------------------------------+
+   |Tenant policy lengthens the |IdP    |HTTP 400, invalid_grant;      |
+   |continuation window after   |       |lengthening the window does   |
+   |the gateway's source hop was|       |not extend a hop's deadline   |
+   |issued, and the gateway     |       |                              |
+   |requests a continuation     |       |                              |
+   |after the hop's original    |       |                              |
+   |deadline                    |       |                              |
+   +----------------------------+-------+------------------------------+
+   |Tenant policy sets the      |IdP,   |HTTP 400, invalid_grant; H0 is|
+   |actor-lineage depth bound to|then   |not unusable, and a           |
+   |1, and tool-gateway         |gateway|continuation from it by       |
+   |continues H0, whose lineage |       |analysis-client, whose entry  |
+   |is the root client analysis-|       |merges with the root's, can   |
+   |client                      |       |still succeed; the gateway    |
+   |                            |       |fails the agent's request     |
+   |                            |       |without HTTP 401 invalid_token|
+   +----------------------------+-------+------------------------------+
+   |In the scheduled variant,   |IdP    |HTTP 400,                     |
+   |Alice withdraws her         |       |invalid_continuation; the     |
+   |Delegation Authorization for|       |chain stays ended, and Alice's|
+   |agent-42 before the next run|       |delegations to other agents   |
+   |                            |       |are unaffected                |
+   +----------------------------+-------+------------------------------+
+   |The gateway holds the target|Gateway|Continues that agent's own    |
+   |token for agent-42 and      |       |chain; a matching scope does  |
+   |receives a request for      |       |not permit reuse              |
+   |another agent with the same |       |                              |
+   |scope                       |       |                              |
+   +----------------------------+-------+------------------------------+
+   |The gateway holds the target|Gateway|Continues that chain from its |
+   |token obtained under H0 and |       |own access token; the token   |
+   |receives a request from     |       |obtained under H0 is not      |
+   |agent-42 for Alice with the |       |reused, so the other chain's  |
+   |same scope on another chain |       |ending applies to its requests|
+   +----------------------------+-------+------------------------------+
 
-                       Table 8: Negative test cases
+                        Table 9: Negative test cases
 
 Appendix B.  Relationship to Other Specifications
 
@@ -2079,97 +2257,108 @@ B.1.  Changes to ICA
 
    Where this document is silent, [ICA] applies unchanged.
 
-   +=============+===============================+====================+
-   |Area         |ICA                            |This document       |
-   +=============+===============================+====================+
-   |Root exchange|Base ID-JAG exchange;          |Governed issuance in|
-   |             |actor_token out of scope       |either resolution   |
-   |             |(Section 5.1.1 of [ICA])       |mode (Section 3.2)  |
-   +-------------+-------------------------------+--------------------+
-   |Root grant   |ID-JAG                         |Governed ID-JAG or  |
-   |             |                               |WAG                 |
-   +-------------+-------------------------------+--------------------+
-   |Establishment|Tenant policy permits          |The root's          |
-   |             |continuation (Section 5.1.2 of |Delegation or Agent |
-   |             |[ICA])                         |Authorization must  |
-   |             |                               |also permit it      |
-   |             |                               |(Section 3)         |
-   +-------------+-------------------------------+--------------------+
-   |Anchors      |User session or refresh-token  |Unchanged for       |
-   |             |grant; no non-user roots       |delegated chains; an|
-   |             |(Section 6.1 of [ICA])         |agent session for   |
-   |             |                               |self-acting chains  |
-   |             |                               |(Section 3.3)       |
-   +-------------+-------------------------------+--------------------+
-   |Chain        |User, root actor,              |Adds the facts of   |
-   |authorization|authentication context, anchor,|Section 3.1         |
-   |             |restrictions                   |                    |
-   +-------------+-------------------------------+--------------------+
-   |Who may      |Chain authorization and current|Also a Continuation |
-   |continue     |policy                         |Association         |
-   |             |                               |(Section 6.2)       |
-   +-------------+-------------------------------+--------------------+
-   |Continuation |Zero or more resource; optional|One resource;       |
-   |request      |scope; ID-JAG (Section 5.5.1 of|required scope; the |
-   |             |[ICA])                         |chain's grant type  |
-   |             |                               |(Section 6.1)       |
-   +-------------+-------------------------------+--------------------+
-   |Retry        |No requested token type        |Includes            |
-   |fingerprint  |(Section 5.5.7.1 of [ICA])     |requested_token_type|
-   |             |                               |(Section 6.3)       |
-   +-------------+-------------------------------+--------------------+
-   |Assertion    |Optional; recommended for a RAS|Required of every   |
-   |issuance at  |acting as CAI (Section 5.4.1 of|CAI that serves a   |
-   |the token    |[ICA])                         |continuing client   |
-   |endpoint     |                               |(Section 10.1)      |
-   +-------------+-------------------------------+--------------------+
-   |Onward act   |Continuing actor atop IdP-     |The Agent Principal |
-   |             |derived lineage (Section 5.5.5 |alone in an ID-JAG, |
-   |             |of [ICA])                      |none in a WAG; hop  |
-   |             |                               |records unchanged   |
-   |             |                               |(Section 6.4.1)     |
-   +-------------+-------------------------------+--------------------+
-   |Path         |Continuing clients as nested   |Continuing clients  |
-   |disclosure   |actors in act (Section 5.5.5 of|as intermediaries in|
-   |             |[ICA])                         |continuation_via,   |
-   |             |                               |preserved to the API|
-   |             |                               |by targets that     |
-   |             |                               |support path        |
-   |             |                               |disclosure          |
-   |             |                               |(Section 6.4.2)     |
-   +-------------+-------------------------------+--------------------+
-   |Onward       |jwt-dpop (Section 5.5.5 of     |jwt-bearer with     |
-   |redemption   |[ICA])                         |grant confirmation  |
-   |             |                               |(Section 7)         |
-   +-------------+-------------------------------+--------------------+
-   |Access token |DPoP-bound, never bearer       |Protection under    |
-   |for a grant  |(Section 5.2 of [ICA])         |[FEDERATION]; bearer|
-   |with cnf     |                               |access tokens,      |
-   |             |                               |whatever the grant's|
-   |             |                               |binding, make a hop |
-   |             |                               |ineligible without  |
-   |             |                               |explicit policy     |
-   |             |                               |(Section 4)         |
-   +-------------+-------------------------------+--------------------+
-   |Advertisement|RAS id-jag-continuation with   |governed-agent-     |
-   |             |jwt-dpop; IdP                  |continuation for    |
-   |             |identity_continuation_supported|governed grants,    |
-   |             |(Section 7 of [ICA])           |without jwt-dpop;   |
-   |             |                               |the IdP flag only   |
-   |             |                               |for delegated       |
-   |             |                               |continuation        |
-   |             |                               |(Section 10.2)      |
-   +-------------+-------------------------------+--------------------+
-   |Chain ending |Anchor end, revocation,        |Also governance     |
-   |             |withdrawn permission           |events (Section 9)  |
-   |             |(Section 6.2 of [ICA])         |                    |
-   +-------------+-------------------------------+--------------------+
-   |Continuation |None                           |A recommended per-  |
-   |window       |                               |hop window          |
-   |             |                               |(Section 3.1)       |
-   +-------------+-------------------------------+--------------------+
+   +=============+===============================+=====================+
+   |Area         |ICA                            |This document        |
+   +=============+===============================+=====================+
+   |Root exchange|Base ID-JAG exchange;          |Governed issuance in |
+   |             |actor_token out of scope       |either resolution    |
+   |             |(Section 5.1.1 of [ICA])       |mode (Section 3.2)   |
+   +-------------+-------------------------------+---------------------+
+   |Root grant   |ID-JAG                         |Governed ID-JAG or   |
+   |             |                               |WAG                  |
+   +-------------+-------------------------------+---------------------+
+   |Establishment|Tenant policy permits          |The root's           |
+   |             |continuation (Section 5.1.2 of |Delegation or Agent  |
+   |             |[ICA])                         |Authorization must   |
+   |             |                               |also permit it       |
+   |             |                               |(Section 3)          |
+   +-------------+-------------------------------+---------------------+
+   |Anchors      |User session or refresh-token  |Unchanged for        |
+   |             |grant; no non-user roots       |delegated chains; an |
+   |             |(Section 6.1 of [ICA])         |agent session for    |
+   |             |                               |self-acting chains   |
+   |             |                               |(Section 3.3)        |
+   +-------------+-------------------------------+---------------------+
+   |Chain        |User, root actor,              |Adds the facts of    |
+   |authorization|authentication context, anchor,|Section 3.1          |
+   |             |restrictions                   |                     |
+   +-------------+-------------------------------+---------------------+
+   |Restrictions |Representation implementation- |Meaning defined for  |
+   |             |specific (Section 5.1.4 of     |absent, present, and |
+   |             |[ICA])                         |empty members,       |
+   |             |                               |matching, and        |
+   |             |                               |authority with       |
+   |             |                               |authorization        |
+   |             |                               |details              |
+   |             |                               |(Section 6.3)        |
+   +-------------+-------------------------------+---------------------+
+   |Who may      |Chain authorization and current|Also a Continuation  |
+   |continue     |policy                         |Association          |
+   |             |                               |(Section 6.2)        |
+   +-------------+-------------------------------+---------------------+
+   |Continuation |Zero or more resource; optional|One resource;        |
+   |request      |scope; ID-JAG (Section 5.5.1 of|required scope; the  |
+   |             |[ICA])                         |chain's grant type   |
+   |             |                               |(Section 6.1)        |
+   +-------------+-------------------------------+---------------------+
+   |Retry        |No requested token type        |Includes             |
+   |fingerprint  |(Section 5.5.7.1 of [ICA])     |requested_token_type |
+   |             |                               |(Section 6.4)        |
+   +-------------+-------------------------------+---------------------+
+   |Assertion    |Optional; recommended for a RAS|Required of every    |
+   |issuance at  |acting as CAI (Section 5.4.1 of|CAI that serves a    |
+   |the token    |[ICA])                         |continuing client    |
+   |endpoint     |                               |(Section 10.1)       |
+   +-------------+-------------------------------+---------------------+
+   |Onward act   |Continuing actor atop IdP-     |The Agent Principal  |
+   |             |derived lineage (Section 5.5.5 |alone in an ID-JAG,  |
+   |             |of [ICA])                      |none in a WAG; hop   |
+   |             |                               |records unchanged    |
+   |             |                               |(Section 6.5.1)      |
+   +-------------+-------------------------------+---------------------+
+   |Path         |Continuing clients as nested   |Continuing clients   |
+   |disclosure   |actors in act (Section 5.5.5 of|as intermediaries in |
+   |             |[ICA])                         |continuation_via,    |
+   |             |                               |preserved to the API |
+   |             |                               |by targets that      |
+   |             |                               |support path         |
+   |             |                               |disclosure           |
+   |             |                               |(Section 6.5.2)      |
+   +-------------+-------------------------------+---------------------+
+   |Onward       |jwt-dpop (Section 5.5.5 of     |jwt-bearer with      |
+   |redemption   |[ICA])                         |grant confirmation   |
+   |             |                               |(Section 7)          |
+   +-------------+-------------------------------+---------------------+
+   |Access token |DPoP-bound, never bearer       |Protection under     |
+   |for a grant  |(Section 5.2 of [ICA])         |[FEDERATION]; bearer |
+   |with cnf     |                               |access tokens,       |
+   |             |                               |whatever the grant's |
+   |             |                               |binding, make a hop  |
+   |             |                               |ineligible without   |
+   |             |                               |explicit policy      |
+   |             |                               |(Section 4)          |
+   +-------------+-------------------------------+---------------------+
+   |Advertisement|RAS id-jag-continuation with   |governed-agent-      |
+   |             |jwt-dpop; IdP                  |continuation for     |
+   |             |identity_continuation_supported|governed grants,     |
+   |             |(Section 7 of [ICA])           |without jwt-dpop;    |
+   |             |                               |the IdP flag only    |
+   |             |                               |for delegated        |
+   |             |                               |continuation         |
+   |             |                               |(Section 10.2)       |
+   +-------------+-------------------------------+---------------------+
+   |Chain ending |Anchor end, revocation,        |Also governance      |
+   |             |withdrawn permission           |events (Section 9)   |
+   |             |(Section 6.2 of [ICA])         |                     |
+   +-------------+-------------------------------+---------------------+
+   |Continuation |None                           |A required, finite   |
+   |window       |                               |per-hop window,      |
+   |             |                               |checked when a       |
+   |             |                               |request is received  |
+   |             |                               |(Section 3.1)        |
+   +-------------+-------------------------------+---------------------+
 
-               Table 9: Changes to ICA for governed chains
+                Table 10: Changes to ICA for governed chains
 
 B.2.  Changes to FEDERATION
 
@@ -2183,7 +2372,7 @@ B.2.  Changes to FEDERATION
    |               | ("Issuance           | context; the continuing   |
    |               | Authorization")      | client is authorized by   |
    |               |                      | its Continuation          |
-   |               |                      | Association (Section 6.3) |
+   |               |                      | Association (Section 6.4) |
    +---------------+----------------------+---------------------------+
    | Agent         | Required for each    | None on a continuation    |
    | resolution    | grant                | exchange; the agent comes |
@@ -2192,16 +2381,16 @@ B.2.  Changes to FEDERATION
    +---------------+----------------------+---------------------------+
    | Grant         | Bounded also by the  | The configured limit and, |
    | lifetime      | subject credential   | for a WAG, the agent      |
-   |               | and the agent-       | session (Section 6.4)     |
+   |               | and the agent-       | session (Section 6.5)     |
    |               | resolution input     |                           |
    +---------------+----------------------+---------------------------+
    | Downstream    | One association per  | Also selected by acting   |
    | client        | authenticated client | relationship where a      |
    | registration  | ("Issuance           | target distinguishes the  |
-   |               | Prerequisites")      | two (Section 6.4.1)       |
+   |               | Prerequisites")      | two (Section 6.5.1)       |
    +---------------+----------------------+---------------------------+
    | Errors        | actor_unauthorized   | The codes of [ICA]        |
-   |               | for a denied         | (Section 6.5)             |
+   |               | for a denied         | (Section 6.6)             |
    |               | delegation and       |                           |
    |               | invalid_grant for an |                           |
    |               | unresolvable user    |                           |
@@ -2221,7 +2410,7 @@ B.2.  Changes to FEDERATION
    |               | Prevention")         |                           |
    +---------------+----------------------+---------------------------+
 
-             Table 10: Changes to FEDERATION for continuation
+             Table 11: Changes to FEDERATION for continuation
 
 B.3.  Dependencies
 
@@ -2267,7 +2456,7 @@ B.3.  Dependencies
    |                  |continue         |                             |
    +------------------+-----------------+-----------------------------+
 
-                          Table 11: Dependencies
+                          Table 12: Dependencies
 
 B.4.  Open Items
 
@@ -2276,7 +2465,7 @@ B.4.  Open Items
    1.  *Home of continuation_via:* Should [ICA] define it, with an
        acting or forwarding mode for each hop, so that this document
        uses ICA's claim instead of its own?  Should policy ever be able
-       to narrow it, as it can narrow the depth of act (Section 6.4.2)?
+       to narrow it, as it can narrow the depth of act (Section 6.5.2)?
 
    2.  *Self-acting discovery:* Should the IdP advertise support for
        self-acting continuation in metadata?
@@ -2302,7 +2491,7 @@ B.4.  Open Items
    7.  *Temporary refusals:* Should [ICA] adopt the same HTTP 503
        response for state it cannot confirm, and define an OAuth error
        code for policy that blocks a chain only temporarily
-       (Section 6.5)?
+       (Section 6.6)?
 
 Document History
 

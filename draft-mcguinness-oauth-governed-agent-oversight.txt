@@ -474,9 +474,13 @@ Table of Contents
    The IdP MUST show the approver the governed request context: the
    agent, the user for delegated access, the client, the target RAS and
    resource, the requested authority, and, for a continuation, the
-   continuing client.  Text that the client or agent supplies, such as a
-   stated reason, MUST be shown as supplied by the requester and MUST
-   NOT replace or restate the governed request context.
+   continuing client.  For a continuation, it MUST also show any
+   restrictions of the chain authorization and the Continuation
+   Association that apply to the requested target ("Restrictions" in
+   [CONTINUATION]); an approval does not change them.  Text that the
+   client or agent supplies, such as a stated reason, MUST be shown as
+   supplied by the requester and MUST NOT replace or restate the
+   governed request context.
 
    An approver can approve the request as shown, approve a narrower
    authority, or deny it.  An approval MUST NOT widen the governed
@@ -512,15 +516,16 @@ Table of Contents
    *  for root issuance, the Identity Binding and Client Association
       used still permit the request;
 
-   *  the Delegation or Agent Authorization still permits the approved
-      authority;
+   *  the Delegation or Agent Authorization still permits the target and
+      the approved authority;
 
    *  for delegated access, the user is active and resolves as before;
 
    *  for a continuation, neither the presented hop nor an ancestor is
       revoked, the chain has not ended, a Continuation Association still
-      permits the continuing client, and the continuation is within the
-      limits of Section 6.3 of [ICA] (Section 4.5); and
+      permits the continuing client, the target, and the approved
+      authority, and the continuation is within the limits of
+      Section 6.3 of [ICA] (Section 4.5); and
 
    *  no change applied within the IdP's freshness limit ("Issuance
       Authorization" in [FEDERATION]) withdraws any of these.
@@ -1034,37 +1039,61 @@ A.4.  Negative Tests
    Each case changes the walkthrough as stated; all other checks
    succeed.
 
-   +==========================+=========+==============================+
-   | Changed condition        | Checked | Required result              |
-   |                          | by      |                              |
-   +==========================+=========+==============================+
-   | The request omits        | IdP     | HTTP 400,                    |
-   | completion_mode=deferred |         | actor_unauthorized;          |
-   |                          |         | no grant and no              |
-   |                          |         | deferred response            |
-   +--------------------------+---------+------------------------------+
-   | The poll proves a key    | IdP     | HTTP 400,                    |
-   | other than K             |         | invalid_dpop_proof           |
-   +--------------------------+---------+------------------------------+
-   | agent-42 is disabled     | IdP     | HTTP 400,                    |
-   | while the request is     |         | access_denied at             |
-   | pending, and Alice then  |         | the next poll; no            |
-   | approves                 |         | grant                        |
-   +--------------------------+---------+------------------------------+
-   | The request asks for     | IdP     | A grant with scope           |
-   | files.read files.write,  |         | files.read                   |
-   | and Alice approves only  |         |                              |
-   | files.read               |         |                              |
-   +--------------------------+---------+------------------------------+
-   | Alice denies             | IdP     | HTTP 400,                    |
-   |                          |         | access_denied at             |
-   |                          |         | the next poll; no            |
-   |                          |         | grant                        |
-   +--------------------------+---------+------------------------------+
-   | The client polls again   | IdP     | HTTP 400,                    |
-   | after receiving the      |         | invalid_grant                |
-   | grant                    |         |                              |
-   +--------------------------+---------+------------------------------+
+   +===========================+=======+===============================+
+   | Changed condition         |Checked| Required result               |
+   |                           |by     |                               |
+   +===========================+=======+===============================+
+   | The request omits         |IdP    | HTTP 400, actor_unauthorized; |
+   | completion_mode=deferred  |       | no grant and no deferred      |
+   |                           |       | response                      |
+   +---------------------------+-------+-------------------------------+
+   | The poll proves a key     |IdP    | HTTP 400, invalid_dpop_proof  |
+   | other than K              |       |                               |
+   +---------------------------+-------+-------------------------------+
+   | agent-42 is disabled      |IdP    | HTTP 400, access_denied at    |
+   | while the request is      |       | the next poll; no grant       |
+   | pending, and Alice then   |       |                               |
+   | approves                  |       |                               |
+   +---------------------------+-------+-------------------------------+
+   | The request asks for      |IdP    | A grant with scope files.read |
+   | files.read files.write,   |       |                               |
+   | and Alice approves only   |       |                               |
+   | files.read                |       |                               |
+   +---------------------------+-------+-------------------------------+
+   | Alice denies              |IdP    | HTTP 400, access_denied at    |
+   |                           |       | the next poll; no grant       |
+   +---------------------------+-------+-------------------------------+
+   | The client polls again    |IdP    | HTTP 400, invalid_grant       |
+   | after receiving the       |       |                               |
+   | grant                     |       |                               |
+   +---------------------------+-------+-------------------------------+
+   | A continuation            |IdP    | The onward grant issues at    |
+   | ([CONTINUATION]) is       |       | the next poll; the deadline   |
+   | deferred for Alice's      |       | applies when the request is   |
+   | approval; the request is  |       | received (Section 4.5)        |
+   | received before the       |       |                               |
+   | source hop's              |       |                               |
+   | continuation deadline,    |       |                               |
+   | and Alice approves after  |       |                               |
+   | it                        |       |                               |
+   +---------------------------+-------+-------------------------------+
+   | A continuation requests   |IdP    | HTTP 400, invalid_target,     |
+   | a target or authority     |       | invalid_scope, or             |
+   | outside the restrictions  |       | invalid_authorization_details |
+   | of its chain              |       | as [CONTINUATION] specifies,  |
+   | authorization             |       | when the request is received; |
+   |                           |       | no deferral and no approval   |
+   +---------------------------+-------+-------------------------------+
+   | A continuation is within  |IdP    | HTTP 400, access_denied at    |
+   | every restriction when    |       | the next poll; no grant.  The |
+   | received and is           |       | narrowing comes from current  |
+   | deferred; while it is     |       | authorization, since the      |
+   | pending, Alice's          |       | chain authorization's         |
+   | Delegation Authorization  |       | restrictions are fixed        |
+   | or the Continuation       |       |                               |
+   | Association is narrowed   |       |                               |
+   | to exclude its target     |       |                               |
+   +---------------------------+-------+-------------------------------+
 
                         Table 4: Negative test cases
 

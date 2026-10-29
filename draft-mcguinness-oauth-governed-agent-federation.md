@@ -2368,6 +2368,41 @@ that key. Agent isolation therefore depends on issuance controls and
 key custody as well as identity mapping. Sharing the grant proof key
 across components widens its exposure ({{GUIDE}}).
 
+## Misuse by an Authorized Agent {#security-authorized-misuse}
+
+This profile establishes which agent acts, for whom, and under what
+authorization. It does not establish that the agent uses that authority
+as intended. Content the agent processes, such as a document, a tool
+result, or another agent's output, can carry instructions that lead it
+to request or use authority it holds for a purpose its user or owner
+did not intend (prompt injection). The resulting requests are
+authenticated and authorized, so the checks of this profile pass.
+
+The profile limits that exposure without detecting it:
+
+* A grant carries one resource and the authority that the Delegation
+  or Agent Authorization permits ({{issuance-request}}), and the actor
+  gate applies at the RAS and the API ({{actor-authorization}}).
+  Narrow authorizations limit what an induced request can obtain.
+* Short grant and access-token lifetimes, and RAS refresh tokens only
+  by explicit policy ({{ras-refresh}}), bound how long induced use can
+  continue after it is detected.
+* Every grant names the Agent Principal, and every access token carries
+  it or the local principal correlated with it, so a resource domain
+  can attribute, investigate, and disable one agent without affecting
+  other agents behind the same client.
+* {{CONTINUATION}} bounds each onward grant by the chain authorization
+  and the continuing client's Continuation Association, and
+  {{OVERSIGHT}} lets policy require a person's decision before
+  sensitive authority issues.
+
+It does not distinguish an induced request from an intended one,
+inspect content, or constrain how authority is used within its scope.
+Those controls belong to the agent's runtime, its platform, and
+resource policy, including decisions on individual actions. Evidence
+about an agent's software or configuration can inform policy; it does
+not establish that the agent behaves safely.
+
 ## Authorization Changes and Revocation {#status-changes}
 
 Cross-system disablement needs a provisioning and signaling contract.

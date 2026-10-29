@@ -1065,6 +1065,20 @@ its session active, as a stolen user credential can keep a user session
 active, until the absolute expiration or the credential's revocation
 ({{chain-ending}}).
 
+## Induced Continuation {#security-induced}
+
+An agent induced to misuse its authority ("Misuse by an Authorized
+Agent" in {{FEDERATION}}) can ask a gateway to continue its request to
+any target its chain permits. The scope of the agent's access token at
+the gateway does not limit that authority, as {{ICA}} notes for
+incoming access-token scopes. The chain authorization, the agent's
+current Delegation or Agent Authorization, and the continuing client's
+Continuation Association bound each onward grant instead
+({{continuation-validation}}), and the target applies its own
+authorization. A deployment that needs onward authority narrower than
+the agent's authorization records narrower restrictions in the chain
+authorization or the Continuation Association.
+
 ## Governance Events End the Chain {#security-chain-basis}
 
 The root's Identity Binding, Client Association, and credential are the

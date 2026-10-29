@@ -673,7 +673,11 @@ the second is bound). For continuation, each role claims delegated or
 self-acting continuation; a continuation-aware RAS lists
 `urn:ietf:params:oauth:grant-profile:governed-agent-continuation`, and
 an IdP that supports delegated continuation advertises
-`identity_continuation_supported`.
+`identity_continuation_supported`. The oversight profile defines no
+profile URI or metadata: an IdP claims deferred governed issuance,
+deferred continuation, or supervised issuance for a target; a client
+claims deferred governed issuance; and an API claims per-action
+oversight.
 
 ### Capability worksheet
 
@@ -702,6 +706,12 @@ are for the evaluator.
 | API or gateway: an external policy decision point, with the agent identity taken from the validated token and never from `client_id` or a tool's declared mapping | Delegated per-action policy | Step 4's policy checks | | | |
 | API or gateway: behavior when the policy decision point is unreachable: failing closed with `-32603` under COAZ-MCP, and otherwise a configured choice per action class (a deployment requirement) | Delegated per-action policy | Step 4's unreachable-PDP check | | | |
 | API or gateway: decision cache lifetime, and invalidation when a disablement or revocation is applied (a deployment requirement) | Delegated per-action policy | Step 4's cached-decision check | | | |
+| IdP: deferred governed issuance, in Deferred Token Response's polling mode, with DPoP on every deferred request and the governed checks again at resolution | Approval before issuance | Step 4's oversight checks; the approval variation's tests | | | |
+| Client: deferred governed issuance: the opt-in with DPoP, polling with the same key, and no retry of a denied request another way | Approval before issuance | The approval variation's transaction | | | |
+| IdP: an approval channel that authenticates designated approvers at the strength policy requires and shows the request as the IdP resolved it (the drafts define no channel) | Approval before issuance | Step 4's approver check | | | |
+| IdP: deferred continuation, holding the assertion's replay reservation while the request is pending | Approval before issuance, with gateways | A continuation held for approval and then issued; the same assertion presented again while pending is rejected | | | |
+| IdP: supervised issuance for each target, with overseer notices and a documented intervention bound; measuring the bound is a deployment requirement | Supervised issuance | Step 4's supervised-issuance check | | | |
+| API or MCP server: per-action oversight, with the decision bound to the call and made by the server, not the client | Approval of actions | Step 4's per-action check | | | |
 | RAS and API: a shared token identifier, not itself a credential, retained at both | Opaque access tokens | Trace one opaque-token action back to its exact grant ([audit evidence](#audit-evidence)) | | | |
 
 ### Interoperability
@@ -719,13 +729,14 @@ will meet there:
 | Platform connector → IdP | | Registration, binding, and association as separate permissions | |
 | Lifecycle sender → receiver | | Provisioning, disablement, and events | |
 | Gateway's RAS → IdP → target RAS | | One continuation, end to end | |
+| IdP → approval channel | | One deferred request, from approval to the grant | |
 
 Pin each test to the draft revisions used, either the published -NN
 revision or the editor's copy commit, and to the product versions. A
 result against one revision is not evidence for the next. The core's
-negative tests ("Renewal and Negative Tests"), the continuation
-profile's ("Negative Tests"), and the lifecycle profile's ("Acceptance
-Checklist") supply further cases.
+negative tests ("Renewal and Negative Tests"), the continuation and
+oversight profiles' ("Negative Tests"), and the lifecycle profile's
+("Acceptance Checklist") supply further cases.
 
 ## Runbooks: stop and restore
 
@@ -1135,6 +1146,14 @@ gateway continued the request, the onward grant replaces `grant-1`; its
 `continuation_via` names the gateway, which the target's access tokens
 carry where the target supports path disclosure, and the IdP's hop
 records lead back to the root grant and its authorization.
+
+Where a person approved the grant under the [oversight
+profile][oversight], the IdP's issuance decision also records the
+approval: the approver, how the approver authenticated, the decision
+and its time, and the approved authority. No claim in the grant records
+an approval. The IdP can include `txn` to join the grant to that record,
+but the RAS and API treat it only as a correlation identifier. Like the
+rest of the trace, this record is a deployment convention.
 
 Record these identifiers in the IdP's issuance records and in each
 resource domain's access records, and use the Agent Principal as the

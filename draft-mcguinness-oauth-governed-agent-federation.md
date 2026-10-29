@@ -182,7 +182,10 @@ withdrawing it from all of them.
 What an enterprise needs instead is a principal it can authorize once,
 audit across resources, and disable in one place. That principal's
 identity does not change when the agent moves between platforms or
-rotates credentials.
+rotates credentials. Disabling it at the IdP stops new grants; reaching
+authority that resource domains have already issued takes a
+provisioning or signaling contract, such as {{AGENT-LIFECYCLE}}
+({{status-changes}}).
 
 Existing OAuth mechanisms authenticate clients and carry actors. They do
 not resolve different client and workload identities to one governed

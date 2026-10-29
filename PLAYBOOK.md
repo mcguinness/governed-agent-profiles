@@ -650,9 +650,10 @@ to deferral when it asks for `files.write`. The oversight profile's
 * **Containment:** a pending request holds no grant. Disabling the
   agent or withdrawing Alice's Delegation Authorization prevents
   issuance if the change still holds when the IdP re-checks at
-  resolution. It does not cancel the request, so a request approved
-  after the agent is re-enabled still yields `grant-2`. The client
-  cancels its own request by revoking the deferral code. A deployment
+  resolution. The profile does not require it to cancel the request:
+  a request that remains pending and passes every check after the agent
+  is re-enabled can still yield `grant-2`. The client cancels its own
+  request by revoking the deferral code. A deployment
   that wants disablement to cancel pending requests at once adds that
   as a deployment requirement and tests it separately. Once issued,
   `grant-2` is contained like `grant-1`.
@@ -821,12 +822,12 @@ stay revoked, and ended continuation chains stay ended.
   at the IdP cannot clear a Local Suspension, so each resource owner
   explicitly lifts the suspensions recorded for this incident, leaving
   in place any that predated it. Clients obtain new grants, and
-  restoration is verified by fresh access in each domain. Disablement
-  does not cancel requests held for approval under the [oversight
-  profile][oversight]: a root request approved after re-enabling still
-  issues its grant, while a pending continuation fails because its
-  chain ended. Before re-enabling, have approvers deny pending requests
-  that should not proceed.
+  restoration is verified by fresh access in each domain. A root
+  request held for approval under the [oversight profile][oversight]
+  may survive the disablement: if it remains pending and all checks
+  pass after re-enabling, it can still issue a grant. A pending
+  continuation fails, because its chain ended. Before re-enabling,
+  deny or cancel pending requests that must not proceed.
 * **Completion evidence:** the IdP's change record; each domain's
   applied status and time; the failed test exchange and redemption; any
   pending domain, with its containment; and, on recovery, each

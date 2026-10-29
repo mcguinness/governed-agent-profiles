@@ -2039,10 +2039,11 @@ normalization.<a href="#section-6.3-4.4.1" class="pilcrow">¶</a></p>
 it is within every authority entry whose target entry it matches:
 each requested scope value is in the entry's scope set, if the entry
 has one; and, if the entry has authorization details, the request
-carries authorization details, each within a recorded detail of the
-same type under that type's rules. A request without authorization
-details is not within such an entry, even when its scope is, since
-its grant would carry the scope without the limit the details
+carries a non-empty <code>authorization_details</code> array, each of whose
+details is within a recorded detail of the same type under that
+type's rules. A request without authorization details, or with an
+empty array, is not within such an entry, even when its scope is,
+since its grant would carry the scope without the limit the details
 express.<a href="#section-6.3-4.5.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-6.3-4.6">
@@ -2496,7 +2497,7 @@ both chain types:<a href="#section-6.6-1" class="pilcrow">¶</a></p>
 </td>
             </tr>
             <tr>
-              <td class="text-left" rowspan="1" colspan="1">The same sources permit the target but not the requested authorization details, or a restriction's authority entry has authorization details and the request has none, or has details the IdP cannot evaluate against it (<a href="#restrictions" class="auto internal xref">Section 6.3</a>)</td>
+              <td class="text-left" rowspan="1" colspan="1">The same sources permit the target but not the requested authorization details, or a restriction's authority entry has authorization details and the request has none, has an empty array, or has details the IdP cannot evaluate against it (<a href="#restrictions" class="auto internal xref">Section 6.3</a>)</td>
               <td class="text-left" rowspan="1" colspan="1">9</td>
               <td class="text-left" rowspan="1" colspan="1">
                 <code>invalid_authorization_details</code>
@@ -2837,8 +2838,11 @@ without prompting a new root grant (<a href="#gateway-reuse" class="auto interna
 whose gateway or client continues from durable task state sets the
 window to the task's needs, as in <a href="#walkthrough-scheduled" class="auto internal xref">Appendix A.7</a>. This
 document sets no default. Lengthening the window does not extend the
-deadlines of hops already issued, so a task that outgrows its window
-needs a new chain.<a href="#section-11.1-1.1.1" class="pilcrow">¶</a></p>
+deadlines of hops already issued, so it cannot restore continuation
+from a hop whose deadline has passed. Continuation can still proceed
+from a later hop within its own deadline; a task with no such hop,
+such as the scheduled variant once H0's deadline passes, needs a new
+chain.<a href="#section-11.1-1.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-11.1-1.2">
             <p id="section-11.1-1.2.1"><strong>Agent sessions:</strong> A working agent obtains a new WAG at least as
@@ -3817,6 +3821,12 @@ that anchors the chain also ends it (<span><a href="https://datatracker.ietf.org
 </td>
               <td class="text-left" rowspan="1" colspan="1">IdP</td>
               <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>invalid_authorization_details</code>; no grant carries <code>files.read</code> without the folder limit</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">The same authority entry; the request has <code>scope</code> <code>files.read</code> and <code>authorization_details</code> <code>[]</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">IdP</td>
+              <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>invalid_authorization_details</code>; an empty array does not satisfy the folder limit</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">The authority entry for the requested resource has authorization details, and the request carries details of a type whose comparison the IdP does not implement</td>

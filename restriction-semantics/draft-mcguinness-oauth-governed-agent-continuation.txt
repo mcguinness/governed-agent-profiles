@@ -652,11 +652,12 @@ Table of Contents
       it is within every authority entry whose target entry it matches:
       each requested scope value is in the entry's scope set, if the
       entry has one; and, if the entry has authorization details, the
-      request carries authorization details, each within a recorded
-      detail of the same type under that type's rules.  A request
-      without authorization details is not within such an entry, even
-      when its scope is, since its grant would carry the scope without
-      the limit the details express.
+      request carries a non-empty authorization_details array, each of
+      whose details is within a recorded detail of the same type under
+      that type's rules.  A request without authorization details, or
+      with an empty array, is not within such an entry, even when its
+      scope is, since its grant would carry the scope without the limit
+      the details express.
 
    *  *Unevaluable:* If the IdP cannot determine that requested
       authorization details are within an authority entry, for example
@@ -993,7 +994,8 @@ Table of Contents
     | restriction's authority  |      |                               |
     | entry has authorization  |      |                               |
     | details and the request  |      |                               |
-    | has none, or has details |      |                               |
+    | has none, has an empty   |      |                               |
+    | array, or has details    |      |                               |
     | the IdP cannot evaluate  |      |                               |
     | against it (Section 6.3) |      |                               |
     +--------------------------+------+-------------------------------+
@@ -1294,8 +1296,11 @@ Table of Contents
       gateway or client continues from durable task state sets the
       window to the task's needs, as in Appendix A.7.  This document
       sets no default.  Lengthening the window does not extend the
-      deadlines of hops already issued, so a task that outgrows its
-      window needs a new chain.
+      deadlines of hops already issued, so it cannot restore
+      continuation from a hop whose deadline has passed.  Continuation
+      can still proceed from a later hop within its own deadline; a task
+      with no such hop, such as the scheduled variant once H0's deadline
+      passes, needs a new chain.
 
    *  *Agent sessions:* A working agent obtains a new WAG at least as
       often as its gateway access token expires, since WAG redemption
@@ -2148,6 +2153,11 @@ A.8.  Negative Tests
    |the request has scope       |       |invalid_authorization_details;|
    |files.read and no           |       |no grant carries files.read   |
    |authorization_details       |       |without the folder limit      |
+   +----------------------------+-------+------------------------------+
+   |The same authority entry;   |IdP    |HTTP 400,                     |
+   |the request has scope       |       |invalid_authorization_details;|
+   |files.read and              |       |an empty array does not       |
+   |authorization_details []    |       |satisfy the folder limit      |
    +----------------------------+-------+------------------------------+
    |The authority entry for the |IdP    |HTTP 400,                     |
    |requested resource has      |       |invalid_authorization_details |

@@ -342,6 +342,7 @@ to retirement.
 | An agent reaches tools through an MCP gateway | Continuation, with the gateway as continuing client; per-tool policy optional | [Through a gateway](#through-a-gateway) |
 | Scheduled work runs after the user signs out | Continuation from a chain anchored to a refresh-token grant, where the IdP claims grant-anchored continuation | [Scheduled work](#scheduled-work) |
 | A platform runs many agents behind one client | A workload-identity input that distinguishes its agents; the existing platform JWT for generic shared-client interoperability | [A shared platform client](#a-shared-platform-client) |
+| A person approves an agent's request before a sensitive grant issues | Oversight: deferred governed issuance at the IdP, an approval channel, and a client that opts in and waits | [Approval before a write](#approval-before-a-write) |
 | A platform hosts agents that use only its own resources | Registration through SCIM management, with no binding or association; the platform applies the IdP's decisions under lifecycle | [Registration-only branch](#registration-only-branch) |
 
 Both recipes use the architecture's example and the identifiers of the
@@ -611,6 +612,51 @@ core's [AWS example][core-aws-example] shows the input.
   with `invalid_grant`, with no retry from the client's authentication
   or another credential class; and a token the client holds for
   `agent-42` is not reused for another agent with the same scope.
+
+#### Approval before a write
+
+`agent-42` may read Alice's files without asking, but policy requires
+Alice to approve before it writes them. Add [human
+oversight](#human-oversight) to the delegated recipe: Alice's Delegation
+Authorization also permits `files.write`, only with her approval; Alice
+is the approver and authenticates through CIBA on her authenticator;
+the maximum pending lifetime is one hour; and `analysis-client` opts in
+to deferral when it asks for `files.write`. The oversight profile's
+[walkthrough][oversight-walkthrough] shows the messages.
+
+1. The client sends the recipe's token exchange with `scope=files.write`,
+   `completion_mode=deferred`, and a proof of its DPoP key. The IdP
+   completes every check, finds that Alice must approve, and returns
+   `authorization_pending` with a deferral code, `expires_in` 3600, and
+   `interval` 5. Alice's ID Token expires in 65 minutes, so the hour
+   fits within it.
+2. Alice receives "agent-42 (client analysis-client) asks to write files
+   in acme-data", authenticates, and approves.
+3. The client polls with the deferral code and the same key. The IdP
+   checks the agent, its binding and association, Alice's Delegation
+   Authorization, and Alice again, and issues ID-JAG `grant-2` with
+   scope `files.write`, valid for 300 seconds from that moment.
+4. The client redeems `grant-2` as in the recipe.
+
+* **Extra tests:** a request for `files.write` without
+  `completion_mode=deferred` fails with `actor_unauthorized`; when Alice
+  denies, the next poll returns `access_denied`, and the client does not
+  retry under another client or as self-acting access; and when
+  `agent-42` is disabled before Alice approves, the next poll returns
+  `access_denied`.
+* **Containment:** a pending request holds no grant, so disabling the
+  agent or withdrawing Alice's Delegation Authorization ends it at the
+  next poll with nothing else to revoke. The client cancels its own
+  request by revoking the deferral code. Once issued, `grant-2` is
+  contained like `grant-1`.
+* **Evidence:** the IdP's issuance record for `grant-2` also holds the
+  approval: Alice as approver, how she authenticated, her decision and
+  its time, and the approved authority ([audit
+  evidence](#audit-evidence)).
+* **Limitations:** a wait longer than Alice's ID Token allows needs a
+  subject credential that expires later, such as a refresh token. The
+  RAS and API see an ordinary grant and cannot tell that Alice approved
+  it.
 
 ## Vendor evidence
 
@@ -1112,6 +1158,7 @@ tooling can rely on.
 [core-aws-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#aws-example
 [continuation]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
 [continuation-scheduled]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#walkthrough-scheduled
+[oversight-walkthrough]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#walkthrough
 [lifecycle]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
 [management]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html
 [guide-authzen]: IMPLEMENTERS-GUIDE.md#authorization-decisions-with-authzen

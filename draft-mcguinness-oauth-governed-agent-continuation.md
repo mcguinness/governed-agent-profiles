@@ -1043,8 +1043,11 @@ intend.
   whose gateway or client continues from durable task state sets the
   window to the task's needs, as in {{walkthrough-scheduled}}. This
   document sets no default. Lengthening the window does not extend the
-  deadlines of hops already issued, so a task that outgrows its window
-  needs a new chain.
+  deadlines of hops already issued, so it cannot restore continuation
+  from a hop whose deadline has passed. Continuation can still proceed
+  from a later hop within its own deadline; a task with no such hop,
+  such as the scheduled variant once H0's deadline passes, needs a new
+  chain.
 * **Agent sessions:** A working agent obtains a new WAG at least as
   often as its gateway access token expires, since WAG redemption
   yields no refresh token, so a deployment sets the idle timeout longer

@@ -65,6 +65,7 @@ that the later steps test:
 | Token validation at the API | Introspection on each request, cached introspection, or offline JWT validation | How soon a revocation at the RAS reaches the API: at the next check, when the cache entry ends, or at token expiry ("Resource Enforcement and Delay" in the [lifecycle profile][lifecycle]) |
 | Creating agent records at the RAS | Provisioned in advance, or created just in time from a validated grant where resource policy enables it | Whether the first redemption needs provisioning to have run; without a record, the RAS denies it |
 | Keeping agent records current | Lifecycle provisioning and reconciliation, another supported signal, or local administration only | How the RAS learns that the agent was disabled. A grant does not carry the IdP's administrative status, so without lifecycle integration, any record learns of it only through local action or another signal |
+| Oversight | Human out of the loop, under standing authorization only; human in the loop, with approval before issuance, approval of actions, or both; or human on the loop, with supervised issuance for a target | Whether clients opt in to deferral and wait for a decision; who approves, and how they authenticate; and, for supervised issuance, who oversees and the intervention bound documented for each target. Policy selects the mode for each agent, user, client, target, and authority; a client's opt-in never does |
 | Federation | Federated, or registration only, for a platform-hosted agent that uses only its platform's own resources | Registration-only agents follow the [registration-only branch](#registration-only-branch) |
 
 The two record choices are independent. Under the lifecycle profile, a
@@ -83,8 +84,8 @@ to a team:
 
 | Team | Owns |
 |---|---|
-| Identity (IAM) | Agent Principals and owners; Identity Bindings; Client Associations; Delegation and Agent Authorizations; Continuation Associations; IdP issuance policy; the authority of SCIM connectors |
-| Resource and application owners | Local agent principals and their eligibility; actor-gate policy; access-token protection per client and resource; Local Suspension; per-action policy |
+| Identity (IAM) | Agent Principals and owners; Identity Bindings; Client Associations; Delegation and Agent Authorizations; Continuation Associations; IdP issuance policy, including oversight modes and the approvers for issuance; the authority of SCIM connectors |
+| Resource and application owners | Local agent principals and their eligibility; actor-gate policy; access-token protection per client and resource; Local Suspension; per-action policy and its approvers |
 | Platform engineering | Agent OAuth clients and their keys; workload credentials; the SCIM connector |
 | Security operations | Signals into the IdP and policy decision points; running the containment runbooks; incident records |
 
@@ -220,6 +221,50 @@ token, the local principal stands for the agent.
   change. The drafts define no cache rule; this is a deployment
   requirement.
 
+#### Human oversight
+
+Where a person must approve a request before its grant issues, see each
+grant as it issues, or approve an action, deploy the [oversight
+profile][oversight] ([guide][guide-oversight]). Configure the mode in
+IdP issuance policy, usually as a condition of the Delegation or Agent
+Authorization, at the IdP directly: the SCIM management profile has no
+attribute for it. For approval before issuance, designate approvers and
+the authentication each needs, choose an approval channel, set a
+maximum pending lifetime, and have the client opt in with
+`completion_mode=deferred` and a DPoP proof. For supervised issuance,
+give overseers each grant's issuer, `jti`, and context, and document how
+long each intervention takes to reach the target. For approval of
+actions, the API or MCP server holds the call until an approver decides.
+
+*Exit checks:*
+* Where policy requires approval, a request without
+  `completion_mode=deferred` fails with `actor_unauthorized` for
+  delegated issuance or `invalid_target` for self-acting issuance, and
+  neither a grant nor a deferred response is returned.
+* The approver authenticates at the strength policy requires and sees
+  the agent, the user, the client, the target, and the authority as the
+  IdP resolved them, with any text from the agent marked as the
+  agent's. A decision sent by the client or the agent is not accepted.
+* A poll that proves another key fails with `invalid_dpop_proof`, and a
+  poll after the grant was delivered fails with `invalid_grant`.
+* An agent disabled while its request is pending gets `access_denied`
+  at the next poll, even after approval.
+* Approving narrower authority yields a grant with only that authority,
+  and an approval does not carry over to the next request with the same
+  context.
+* Except for a continuation, a pending request ends no later than the
+  subject credential expires, or a platform JWT that bounds the grant.
+* Where supervised issuance is claimed for a target, each grant's issuer,
+  `jti`, request context, and issuance time reach an overseer no later
+  than the client receives the grant, and an intervention from the
+  [runbooks](#runbooks-stop-and-restore) stops the target accepting the
+  authority within the documented intervention bound. The drafts require
+  the bound to be documented; measuring it is a deployment requirement.
+* Where an API holds actions for approval, a confirmation shown only in
+  the client does not release a held call, a tool annotation does not
+  lower the mode, a call with changed arguments needs a new decision,
+  and an approved call stays within the token's scope and tenant.
+
 ### 5. Operate, review, and retire
 
 * **Roll out.** Extend from the pilot until every production agent has
@@ -231,6 +276,10 @@ token, the local principal stands for the agent.
     access.
   * Client Associations and dedicated-client bindings, by client.
   * Continuation Associations, by gateway.
+  * Oversight policies, by target: which requests wait for approval,
+    how many expire unanswered, and which approvals are routine enough
+    to become standing authorization through a reviewed change to the
+    Delegation or Agent Authorization.
   * Agent Principals without an owner, or with no grant issued for a
     defined period.
 * **Respond.** Stop and restore access with the
@@ -1067,3 +1116,5 @@ tooling can rely on.
 [management]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html
 [guide-authzen]: IMPLEMENTERS-GUIDE.md#authorization-decisions-with-authzen
 [guide-risk]: IMPLEMENTERS-GUIDE.md#risk-signals
+[guide-oversight]: IMPLEMENTERS-GUIDE.md#human-oversight
+[oversight]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html

@@ -866,6 +866,7 @@ Host: gateway.example
 Authorization: DPoP GW_ACCESS_TOKEN
 DPoP: GW_TOOL_PROOF
 Content-Type: application/json
+Accept: application/json, text/event-stream
 MCP-Protocol-Version: 2026-07-28
 Mcp-Method: tools/call
 Mcp-Name: read_file
@@ -1077,6 +1078,7 @@ Host: gateway.example
 Authorization: DPoP GW_ACCESS_TOKEN
 DPoP: GW_TOOL_PROOF_2
 Content-Type: application/json
+Accept: application/json, text/event-stream
 MCP-Protocol-Version: 2026-07-28
 Mcp-Method: tools/call
 Mcp-Name: write_file
@@ -1171,10 +1173,21 @@ Content-Type: application/json
 }
 ```
 
-The agent polls the task with `tasks/get`, sent to the same endpoint
-with `Mcp-Method: tasks/get`:
+The agent polls the task with `tasks/get` and a fresh proof of K. Over
+HTTP, the task identifier also goes in `Mcp-Name`, so that intermediaries
+route the poll to the server instance that holds the task:
 
-```json
+```http
+POST /mcp HTTP/1.1
+Host: gateway.example
+Authorization: DPoP GW_ACCESS_TOKEN
+DPoP: GW_TOOL_PROOF_3
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: tasks/get
+Mcp-Name: task-w1
+
 {
   "jsonrpc": "2.0",
   "id": 8,
@@ -1255,8 +1268,8 @@ scene 4. The decoded onward grant:
 ### The write completes
 
 The gateway redeems `gw-grant-3` as in scene 5, writes the file, and
-completes the task. The agent's next `tasks/get` returns the tool's
-result (excerpt; the [MCP tasks extension][mcp-tasks] defines the full
+completes the task. The agent's next `tasks/get`, sent the same way
+with a fresh proof, returns the tool's result (excerpt; the [MCP tasks extension][mcp-tasks] defines the full
 shape):
 
 ```json

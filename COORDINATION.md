@@ -25,7 +25,7 @@ Identification-00, Client Attester Endorsement-00, and WISE draft 03.
 | WAG | Registration of the WAG token type and JWT type, and alignment on protection, linking, and subject presentation (`wag-gaps`) | The WAG token type and JWT type remain provisional values |
 | ID-JAG | Bound-grant example aligned with the normative `jwt-bearer` grant type, and grant-confirmation errors separated from RFC 9449 proof errors (below) | Confirmation checks are applied to `jwt-bearer` here |
 | Actor Profile | A reusable principal-resolution extension point separating credential validation, identity mapping, and actor construction | The mapping is defined locally in `actor-construction` |
-| COAZ-MCP | A trusted agent identity: from `act` for delegated tokens and the subject for self-acting tokens, supplied or verified by the enforcement point, never from a declared mapping or `client_id` (below) | Governed deployments configure their enforcement points themselves; this profile defines no AuthZEN mapping |
+| AuthZEN OAuth mapping profile (planned; openid/authzen issue 788) | Governed-profile requirements for the represented subject, the issuer-qualified agent, the client, and the path, all taken from the validated token; COAZ-MCP, the token issuance and exchange profiles, and ARAP are to build on it (below) | Governed enforcement points supply these themselves (`policy-services`); this profile defines no AuthZEN mapping |
 | Deferred Token Response | A statement that the token returned after a deferral keeps the originating request's subject, actor, and client; deferral of `jwt-bearer` redemption | The oversight profile requires this for governed issuance; deferred redemption at the RAS stays an open item there |
 | AuthZEN profiles (ARAP and its Actor Delegation Profile, AROP, Token Issuance, Token Exchange) | One identity model: the (`iss`, `sub`) actor supplied by the enforcement point, the client kept separate, a self-acting agent as the subject, gateways outside `act`, and the resolved agent available to issuance and approval (below) | Each enforcement point maps each profile into the governed model |
 
@@ -163,8 +163,11 @@ Profile support does not advertise support for this composition.
 `policy-services` lets an API delegate evaluation to a policy decision
 service, names AuthZEN as one optional interface, and defines no
 mapping. The service must keep the user, the issuer-qualified Agent
-Principal, and the OAuth client distinct, and the client identifier
-must not stand in for the actor (`actor-authorization`).
+Principal, and the OAuth client distinct; the API takes them from the
+validated access token, or an authenticated introspection response,
+and trusted configuration, never from request attributes; and the
+client identifier must not stand in for the actor
+(`actor-authorization`).
 
 AuthZEN Authorization API 1.0 defines a subject with `type`, `id`, and
 `properties`, and no member for an actor acting on behalf of a subject.
@@ -183,22 +186,26 @@ and it verifies only `subject.id` against the token (Section 8). A
 declared mapping could therefore supply another agent's identity in
 `context.agent` and obtain an actor-gate decision for that agent.
 
-Suggested change for the OpenID AuthZEN working group:
+The OpenID AuthZEN working group decided this question on 2026-10-08,
+in its [closing comment on issue
+612](https://github.com/openid/authzen/issues/612#issuecomment-6068842002);
+pull request 667, which proposed a trusted `context.agent`, closed with
+it. COAZ-MCP will not define a trust-anchored `context.agent`. The
+validated token's claims, such as `client_id` and `act`, are the
+authoritative source; policies that need the actor reason over them;
+and deployment-specific `context` values "carry no trust semantics from
+the binding". That is the rule `policy-services` states, so the change
+these notes suggested for COAZ-MCP is answered and was not filed.
 
-* The enforcement point supplies or verifies the agent identity, like
-  `subject.id`, from the validated access token: from `act` (`iss` and
-  `sub`) for delegated tokens, and as the subject for tokens with no
-  user, such as those derived from a WAG. The case follows the token
-  population configured for the resource, not the presence of `act`.
-* `client_id` stays a separate attribute and never stands in for the
-  agent.
-* A declared mapping does not supply or override these attributes.
-
-A reusable vocabulary for these context members belongs in COAZ-MCP,
-not in these profiles, whose examples are illustrations only. Not yet
-filed. The implementer's guide ("Authorization decisions with AuthZEN")
-shows the enforcement point's inputs and the default mapping as a
-counter-example.
+The decision moves the mapping of "the represented subject, the client
+as principal, the current delegated actor, and actor chains" into a
+separate OAuth mapping profile, on which COAZ-MCP, the token issuance
+and exchange profiles, and ARAP are to build ([issue
+788](https://github.com/openid/authzen/issues/788)). A reusable
+vocabulary for these members belongs there, not in these profiles,
+whose examples are illustrations only. The implementer's guide
+("Authorization decisions with AuthZEN") shows the enforcement point's
+inputs and COAZ-MCP's default mapping as a counter-example.
 
 #### Convergence across AuthZEN profiles
 
@@ -213,7 +220,12 @@ OAuth token, and each places the agent differently:
 
 The implementer's guide compares them with the governed model ("One
 identity model across AuthZEN profiles"). A shared field is not enough
-on its own. These profiles need the same identity model:
+on its own. The OAuth mapping profile (issue 788) is where these
+profiles are to converge. That issue covers the representation of
+security tokens in AuthZEN requests generally, and its mapping and
+trust model are still open, so the items below are requirements of the
+governed profiles, stated without member names, not rules for every
+OAuth deployment. These profiles need the same identity model:
 
 * **One actor identifier.** Each profile identifies the agent by the
   (`iss`, `sub`) pair of Actor Profile, as the Actor Delegation Profile
@@ -222,7 +234,8 @@ on its own. These profiles need the same identity model:
 * **Supplied by the enforcement point.** The agent comes from the
   validated token or a verified chain, never from a declared mapping or
   request input. The Actor Delegation Profile already requires this for
-  `client.actor`, and COAZ-MCP should do the same (above).
+  `client.actor`, and the working group's COAZ-MCP decision reaches the
+  same rule (above).
 * **A self-acting agent is the subject.** For a token established
   through trusted context as governed self-acting access, the subject
   represents the agent. The absence of `act` alone does not establish
@@ -255,8 +268,9 @@ on its own. These profiles need the same identity model:
   resolution, the Client Association, or the delegation. AROP should
   require the completed token to preserve both.
 
-Requests to the OpenID AuthZEN working group and to the Mission
-profile's editors. Not yet filed.
+The identity items are governed-profile requirements for the OAuth
+mapping profile; the rest are requests to the OpenID AuthZEN working
+group and, for the Mission profile, to its editors. Not yet filed.
 
 ### Deferred Compositions
 

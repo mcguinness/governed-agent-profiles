@@ -734,7 +734,7 @@ an example here is not a promise of interoperability:
 | The companion profiles: inputs, continuation, SCIM management, OAuth client management, and lifecycle | Defined protocol behavior ([specification map](#specification-map-and-glossary)) |
 | Grant-derived revocation of one ID-JAG | Optional capability with defined requirements, in the lifecycle profile |
 | An external policy decision service | Optional capability with defined requirements: "Optional Policy Services" in the core |
-| An AuthZEN or COAZ-MCP message mapping | Unresolved composition: the core names AuthZEN as one interface and defines no mapping ([below](#authorization-decisions-with-authzen)) |
+| An AuthZEN or COAZ-MCP message mapping | Unresolved composition: the core names AuthZEN as one interface and defines no mapping; the AuthZEN working group plans an OAuth mapping profile ([below](#authorization-decisions-with-authzen)) |
 | AuthZEN Token Issuance or Token Exchange profiles at the IdP | Unresolved composition: compatible with the core's issuance authorization, which a decision can narrow but not broaden, but the profiles carry no resolved Agent Principal |
 | Transaction Tokens inside a resource domain | Illustrative deployment composition, in the [implementer's guide](IMPLEMENTERS-GUIDE.md#transaction-tokens-inside-a-resource-domain) |
 | Credential brokers | Illustrative deployment composition ([below](#credential-brokers)) |
@@ -753,7 +753,7 @@ calls into AuthZEN requests. The drafts define no AuthZEN mapping.
 Whatever the PDP, the enforcement point keeps the user, the
 issuer-qualified Agent Principal, the OAuth client, the tenant, and the
 token's authority distinct, and a permit never widens the token
-("Optional Policy Services" in the core). Two points need care:
+("Optional Policy Services" in the core). Three points need care:
 
 * **Where the agent comes from.** COAZ-MCP's default puts the agent in
   `context.agent`, "typically `$token.?client_id`". For a governed
@@ -762,19 +762,25 @@ token's authority distinct, and a permit never widens the token
   takes the agent from the validated `act`; self-acting access uses the
   correlated local subject. The enforcement point selects the case by
   the token population configured for the resource, not by whether
-  `act` is present.
+  `act` is present. The AuthZEN working group has decided that COAZ-MCP
+  will not define a trusted agent member: policies that need the actor
+  reason over the validated token's claims.
 * **Who supplies it.** COAZ-MCP treats attributes from a tool's declared
   mapping as untrusted and verifies only the subject identifier against
-  the token. The enforcement point therefore supplies or verifies the
-  agent, client, tenant, and token constraints from the validated token
-  and trusted configuration; a declared mapping cannot override them.
+  the token. The core therefore requires the enforcement point to take
+  the user, agent, client, tenant, and token constraints from the
+  validated token, or an authenticated introspection response, and
+  trusted configuration; a declared mapping cannot supply or override
+  them.
 * **One identity model across profiles.** COAZ-MCP, ARAP, AROP, Token
   Issuance, and the Mission AuthZEN profile each place the agent
   somewhere different. A governed token gives them one model: in a
   delegated chain, a single actor that is also the agent the IdP
   authorized to act for the user; the client kept separate; for a token
   that trusted context establishes as self-acting, the agent as the
-  subject; and gateways in `continuation_via` rather than `act`.
+  subject; and gateways in `continuation_via` rather than `act`. The
+  working group plans an OAuth mapping profile on which COAZ-MCP, the
+  token issuance and exchange profiles, and ARAP are to build.
 
 The implementer's guide has the [integration points, use cases, and
 worked requests](IMPLEMENTERS-GUIDE.md#authorization-decisions-with-authzen),

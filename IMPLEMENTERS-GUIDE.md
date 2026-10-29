@@ -685,7 +685,9 @@ drafts](ARCHITECTURE.md#beyond-these-drafts).
 ### Inputs the enforcement point supplies
 
 The enforcement point builds the protected part of each request from the
-validated access token and trusted configuration:
+validated access token, or an authenticated introspection response, and
+trusted configuration, as [Optional Policy Services][policy-services]
+requires:
 
 | Attribute | Delegated access | Self-acting access | Source |
 |---|---|---|---|
@@ -706,7 +708,11 @@ declared mapping produces, other than the verified subject identifier,
 as untrusted input (Section 11.4 of COAZ-MCP). A declared mapping
 therefore must not supply or override the attributes in the table, and
 policy must not grant identity or privilege on the strength of
-attributes it supplies.
+attributes it supplies. The AuthZEN working group reached the same
+rule for COAZ-MCP: policies that need the actor reason over the
+validated token's claims, and deployment-specific `context` values
+carry no trust semantics from the binding ([coordination
+notes](COORDINATION.md)).
 
 ### One identity model across AuthZEN profiles
 
@@ -776,8 +782,9 @@ be implemented today: an enforcement point can map each profile's
 request into this model, and policy can be written against the model
 rather than any one profile's members. The issuance and approval
 protocols cannot; mapping fields does not compose them, and they remain
-unresolved. [COORDINATION.md](COORDINATION.md) records the
-changes proposed to the profiles.
+unresolved. [COORDINATION.md](COORDINATION.md) records the governed
+requirements for the OAuth mapping profile the AuthZEN working group
+plans, and the changes proposed to the other profiles.
 
 A client that holds tokens for several tools or resources keeps each
 under the context of [Client Token Reuse][client-token-reuse]: agent,
@@ -789,11 +796,13 @@ context.
 
 The requests below illustrate those rules. Subject types and context
 member names are illustrations, not a convention; the profiles leave a
-reusable convention to COAZ-MCP ([coordination
-notes](COORDINATION.md)). In each request, the enforcement point
-supplies the subject and every `context` member from the validated token
-and trusted configuration; the tool's declared mapping supplies only
-`action` and `resource` from the call.
+reusable convention to the OAuth mapping profile the AuthZEN working
+group plans ([coordination notes](COORDINATION.md)). In each request,
+the enforcement point supplies the subject and every `context` member
+from the validated token and trusted configuration; the tool's declared
+mapping supplies only `action` and `resource` from the call. The
+`context` members are trustworthy because the enforcement point
+supplies them, not because a binding defines them.
 
 #### Delegated access at an MCP gateway
 

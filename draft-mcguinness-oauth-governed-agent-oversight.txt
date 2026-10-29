@@ -683,11 +683,12 @@ Table of Contents
    for each tool call it serves.  It realizes the modes as follows.
 
    *  *Holding a call.* A server that requires a person to decide on a
-      call holds it as an MCP task, reporting working or input_required
-      until the approver decides ([MCP]).  [MCP-SEP-2848] proposes a
-      standard extension in which a requestable denial returns a task
-      that stays working while the approval resolves out of band, with
-      an access request service under [ARAP] behind it.
+      call holds it as a task under the MCP tasks extension [MCP-TASKS],
+      which the client declares on the request, reporting working or
+      input_required until the approver decides.  [MCP-SEP-2848]
+      proposes a standard extension in which a requestable denial
+      returns a task that stays working while the approval resolves out
+      of band, with an access request service under [ARAP] behind it.
 
    *  *Reaching the user.* URL-mode elicitation can take the user to an
       approval page while the user is present.  [MCP] requires the
@@ -928,6 +929,12 @@ Table of Contents
               McGuinness, K., "SEP-2848: Asynchronous Approval for Tool
               Calls", <https://github.com/modelcontextprotocol/
               modelcontextprotocol/pull/2848>.
+
+   [MCP-TASKS]
+              Model Context Protocol, "Tasks Extension, Revision
+              2026-07-28", 28 July 2026,
+              <https://tasks.extensions.modelcontextprotocol.io/
+              specification/2026-07-28/tasks>.
 
    [MISSION-APPROVAL]
               McGuinness, K., "Mission Deferred Approval for OAuth 2.0",

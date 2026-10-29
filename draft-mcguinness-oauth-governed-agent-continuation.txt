@@ -119,8 +119,9 @@ Table of Contents
      12.2.  The Continuing Client Is Not an Actor
      12.3.  Attribution Through an Intermediary
      12.4.  Self-Acting Chains
-     12.5.  Governance Events End the Chain
-     12.6.  Disablement Windows
+     12.5.  Induced Continuation
+     12.6.  Governance Events End the Chain
+     12.7.  Disablement Windows
    13. Privacy Considerations
    14. IANA Considerations
    15. References
@@ -166,6 +167,20 @@ Table of Contents
    authorizes access to the next resource.  The agent's own client can
    continue a chain in the same way, as for scheduled work after the
    user signs out (Appendix A.7).
+
+   OAuth Identity and Authorization Chaining Across Domains
+   [ID-CHAINING] offers another route: an authorization server in the
+   gateway's domain issues a JWT authorization grant that the next
+   domain's authorization server accepts.  In that topology, each target
+   trusts the gateway-domain authorization servers whose grants it
+   accepts, and Identity Chaining does not require consulting the
+   governing IdP at each hop.  This profile does: continuation returns
+   to the IdP, which the target already trusts for governed grants and
+   which applies the agent's current authorization and governance state
+   at each hop.  The gateway's domain contributes the CAI's attestation
+   that its RAS accepted the originating grant, that the resulting
+   authorization remains active and eligible for continuation, and that
+   the continuing client is associated with it (Section 5.4 of [ICA]).
 
    The onward grant names the Agent Principal and acting relationship of
    the chain's root grant, and for delegated access the same user.  The
@@ -1286,7 +1301,21 @@ Table of Contents
    session active, until the absolute expiration or the credential's
    revocation (Section 9).
 
-12.5.  Governance Events End the Chain
+12.5.  Induced Continuation
+
+   An agent induced to misuse its authority ("Misuse by an Authorized
+   Agent" in [FEDERATION]) can ask a gateway to continue its request to
+   any target its chain permits.  The scope of the agent's access token
+   at the gateway does not limit that authority, as [ICA] notes for
+   incoming access-token scopes.  The chain authorization, the agent's
+   current Delegation or Agent Authorization, and the continuing
+   client's Continuation Association bound each onward grant instead
+   (Section 6.3), and the target applies its own authorization.  A
+   deployment that needs onward authority narrower than the agent's
+   authorization records narrower restrictions in the chain
+   authorization or the Continuation Association.
+
+12.6.  Governance Events End the Chain
 
    The root's Identity Binding, Client Association, and credential are
    the chain's only link between the agent and an authenticated client.
@@ -1295,7 +1324,7 @@ Table of Contents
    chain stays ended, as in Section 6.2 of [ICA], and reactivation
    permits new decisions only, as in [FEDERATION].
 
-12.6.  Disablement Windows
+12.7.  Disablement Windows
 
    Issued onward grants and downstream access tokens, including those a
    gateway has cached, remain usable after a chain ends until they
@@ -1456,11 +1485,25 @@ Table of Contents
               Authorization", n.d.,
               <https://github.com/modelcontextprotocol/ext-
               auth/blob/main/specification/stable/enterprise-managed-
+              authorization/2026-07-28/enterprise-managed-
               authorization.mdx>.
 
    [GUIDE]    McGuinness, K., "Implementer's Guide for Governed Agent
               Federation", <https://github.com/mcguinness/governed-
               agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md>.
+
+   [ID-CHAINING]
+              Schwenkschuster, A., Kasselman, P., Burgin, K., Jenkins,
+              M. J., Campbell, B., and A. Parecki, "OAuth Identity and
+              Authorization Chaining Across Domains", Work in Progress,
+              Internet-Draft, draft-ietf-oauth-identity-chaining-17, 19
+              July 2026, <https://datatracker.ietf.org/doc/html/draft-
+              ietf-oauth-identity-chaining-17>.
+
+   [MCP]      Model Context Protocol, "Model Context Protocol
+              Specification, Revision 2026-07-28", 28 July 2026,
+              <https://modelcontextprotocol.io/
+              specification/2026-07-28>.
 
    [RFC6755]  Campbell, B. and H. Tschofenig, "An IETF URN Sub-Namespace
               for OAuth", RFC 6755, DOI 10.17487/RFC6755, October 2012,
@@ -1560,6 +1603,14 @@ A.1.  Root Grant and Gateway Access Token
    The agent calls a tool with this token and a proof of K.  The gateway
    validates both, enforces the actor gate for agent-42 acting for
    Alice, and routes the call to the file service in acme-data.
+
+   [MCP] has MCP clients send access tokens with the Bearer scheme and
+   defines no DPoP usage, so this walkthrough assumes that the agent's
+   client and the gateway also support DPoP for this hop.  With a
+   bearer-only MCP client, GatewayRAS issues a bearer access token, and
+   the hop is eligible for continuation only where resource policy
+   permits continuation from bearer access tokens for analysis-gw and
+   the gateway resource (Section 4).
 
 A.2.  Assertion
 

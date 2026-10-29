@@ -2010,8 +2010,10 @@ each tool call it serves. It realizes the modes as follows.<a href="#section-7-1
 <ul class="normal">
 <li class="normal" id="section-7-2.1">
           <p id="section-7-2.1.1"><strong>Holding a call.</strong> A server that requires a person to decide on a
-call holds it as an MCP task, reporting <code>working</code> or <code>input_required</code>
-until the approver decides (<span>[<a href="#MCP" class="cite xref">MCP</a>]</span>). <span>[<a href="#MCP-SEP-2848" class="cite xref">MCP-SEP-2848</a>]</span> proposes a
+call holds it as a task under the MCP tasks extension
+<span>[<a href="#MCP-TASKS" class="cite xref">MCP-TASKS</a>]</span>, which the client declares on the request, reporting
+<code>working</code> or <code>input_required</code> until the approver decides.
+<span>[<a href="#MCP-SEP-2848" class="cite xref">MCP-SEP-2848</a>]</span> proposes a
 standard extension in which a requestable denial returns a task that
 stays <code>working</code> while the approval resolves out of band, with an
 access request service under <span>[<a href="#ARAP" class="cite xref">ARAP</a>]</span> behind it.<a href="#section-7-2.1.1" class="pilcrow">¶</a></p>
@@ -2315,6 +2317,10 @@ polling response carries no personal data.<a href="#section-10-1" class="pilcrow
 <dt id="MCP-SEP-2848">[MCP-SEP-2848]</dt>
         <dd>
 <span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"SEP-2848: Asynchronous Approval for Tool Calls"</span>, <span>&lt;<a href="https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2848">https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2848</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="MCP-TASKS">[MCP-TASKS]</dt>
+        <dd>
+<span class="refAuthor">Model Context Protocol</span>, <span class="refTitle">"Tasks Extension, Revision 2026-07-28"</span>, <time datetime="2026-07-28" class="refDate">28 July 2026</time>, <span>&lt;<a href="https://tasks.extensions.modelcontextprotocol.io/specification/2026-07-28/tasks">https://tasks.extensions.modelcontextprotocol.io/specification/2026-07-28/tasks</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="MISSION-APPROVAL">[MISSION-APPROVAL]</dt>
         <dd>

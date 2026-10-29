@@ -176,8 +176,9 @@ Table of Contents
      11.4.  Bearer Workload Evidence
      11.5.  Dedicated-Client Key Compromise
      11.6.  Credential Authority and Key Isolation
-     11.7.  Authorization Changes and Revocation
-     11.8.  External Approval
+     11.7.  Misuse by an Authorized Agent
+     11.8.  Authorization Changes and Revocation
+     11.9.  External Approval
    12. Privacy Considerations
    13. IANA Considerations
      13.1.  ID-JAG Grant Profile URIs
@@ -217,7 +218,10 @@ Table of Contents
    What an enterprise needs instead is a principal it can authorize
    once, audit across resources, and disable in one place.  That
    principal's identity does not change when the agent moves between
-   platforms or rotates credentials.
+   platforms or rotates credentials.  Disabling it at the IdP stops new
+   grants; reaching authority that resource domains have already issued
+   takes a provisioning or signaling contract, such as [AGENT-LIFECYCLE]
+   (Section 11.8).
 
    Existing OAuth mechanisms authenticate clients and carry actors.
    They do not resolve different client and workload identities to one
@@ -800,7 +804,10 @@ Table of Contents
 
 4.1.1.  Relationship to Base Specifications
 
-   Existing OAuth mechanisms leave three relationships open:
+   [ID-JAG] profiles OAuth Identity and Authorization Chaining Across
+   Domains [ID-CHAINING]: an IdP that resource domains trust issues the
+   JWT authorization grant.  Existing OAuth mechanisms leave three
+   relationships open:
 
    1.  How different client and workload identities resolve to the same
        governed principal.  [ATTEST] and [SPIFFE-OAUTH] authenticate
@@ -988,7 +995,7 @@ Table of Contents
       revoked names.
 
    Disabling an Identity Binding or the Agent Principal in response is
-   IdP policy (Section 11.7): an agent can have other valid bindings.
+   IdP policy (Section 11.8): an agent can have other valid bindings.
 
 4.7.  Token Endpoint Errors
 
@@ -1414,7 +1421,7 @@ Table of Contents
    *Disabling:* An Identity Binding can be disabled independently of the
    Agent Principal and its other bindings.  A disabled binding MUST NOT
    authorize new grant issuance.  Disabling a binding does not itself
-   revoke outstanding tokens; their treatment follows Section 11.7.
+   revoke outstanding tokens; their treatment follows Section 11.8.
 
    *Client Association:* Before issuing a governed grant, the IdP MUST
    verify that a Client Association permits the authenticated client to
@@ -1476,7 +1483,7 @@ Table of Contents
    with actor_unauthorized for delegated issuance or invalid_target for
    self-acting issuance.  It MUST NOT discard that condition or treat a
    shorter grant lifetime as enforcing it.  Revocation follows
-   Section 11.7.
+   Section 11.8.
 
 5.5.  Common Grant Claims, Lifetime, and Response
 
@@ -1999,7 +2006,7 @@ Table of Contents
    (Section 3.6.4).  Creation does not substitute for propagating
    disablement, because a grant does not carry the IdP's administrative
    status.  Without provisioning, the RAS learns of disablement only
-   through local action or another signal (Section 11.7).
+   through local action or another signal (Section 11.8).
    [AGENT-LIFECYCLE], not this document, defines provisioning and
    reconciliation of a created record for resource domains that conform
    to it.
@@ -2784,7 +2791,7 @@ Table of Contents
    Dedicated-client resolution alone does not.  A normalized Agent
    Principal identity does not imply uniform runtime assurance.
    Authentication-key revocation and binding disablement affect
-   subsequent issuance under Section 5.4 and Section 11.7.
+   subsequent issuance under Section 5.4 and Section 11.8.
 
 11.6.  Credential Authority and Key Isolation
 
@@ -2798,7 +2805,50 @@ Table of Contents
    and key custody as well as identity mapping.  Sharing the grant proof
    key across components widens its exposure ([GUIDE]).
 
-11.7.  Authorization Changes and Revocation
+11.7.  Misuse by an Authorized Agent
+
+   This profile establishes which agent acts, for whom, and under what
+   authorization.  It does not establish that the agent uses that
+   authority as intended.  Content the agent processes, such as a
+   document, a tool result, or another agent's output, can carry
+   instructions that lead it to request or use authority it holds for a
+   purpose its user or owner did not intend (prompt injection).  The
+   resulting requests are authenticated and authorized, so the checks of
+   this profile pass.
+
+   The profile limits that exposure without detecting it:
+
+   *  A grant carries one resource and the authority that the Delegation
+      or Agent Authorization permits (Section 5.2).  For delegated
+      access, the RAS and the API enforce the actor gate
+      (Section 3.6.4); for self-acting access, they enforce the agent's
+      own permissions.  Narrow authorizations limit what an induced
+      request can obtain.
+
+   *  Detection alone changes no authorization state: the agent can keep
+      obtaining grants until its authorization is withdrawn or it is
+      disabled.  After further issuance and renewal are blocked, token
+      lifetimes and revocation enforcement determine how long previously
+      issued authority remains usable (Section 11.8).
+
+   *  Every grant names the Agent Principal, and every access token
+      carries it or the local principal correlated with it, so a
+      resource domain can attribute, investigate, and disable one agent
+      without affecting other agents behind the same client.
+
+   *  [CONTINUATION] bounds each onward grant by the chain authorization
+      and the continuing client's Continuation Association, and
+      [OVERSIGHT] lets policy require a person's decision before
+      sensitive authority issues.
+
+   It does not distinguish an induced request from an intended one,
+   inspect content, or constrain how authority is used within its scope.
+   Those controls belong to the agent's runtime, its platform, and
+   resource policy, including decisions on individual actions.  Evidence
+   about an agent's software or configuration can inform policy; it does
+   not establish that the agent behaves safely.
+
+11.8.  Authorization Changes and Revocation
 
    Cross-system disablement needs a provisioning and signaling contract.
    [AGENT-LIFECYCLE] profiles one; conformance to this document does not
@@ -2890,7 +2940,7 @@ Table of Contents
    authorization.  Proof of key possession does not establish account
    ownership, and link removal does not revoke outstanding tokens.
 
-11.8.  External Approval
+11.9.  External Approval
 
    External approval MUST NOT replace credential validation, identity
    resolution, Client Association, or delegation authorization.  A
@@ -3146,6 +3196,7 @@ Table of Contents
               Authorization", n.d.,
               <https://github.com/modelcontextprotocol/ext-
               auth/blob/main/specification/stable/enterprise-managed-
+              authorization/2026-07-28/enterprise-managed-
               authorization.mdx>.
 
    [AUTHZEN]  OpenID Foundation, "Authorization API 1.0", n.d.,
@@ -3174,6 +3225,14 @@ Table of Contents
               assertion-02, 8 September 2026,
               <https://datatracker.ietf.org/doc/html/draft-mcguinness-
               oauth-id-continuation-assertion-02>.
+
+   [ID-CHAINING]
+              Schwenkschuster, A., Kasselman, P., Burgin, K., Jenkins,
+              M. J., Campbell, B., and A. Parecki, "OAuth Identity and
+              Authorization Chaining Across Domains", Work in Progress,
+              Internet-Draft, draft-ietf-oauth-identity-chaining-17, 19
+              July 2026, <https://datatracker.ietf.org/doc/html/draft-
+              ietf-oauth-identity-chaining-17>.
 
    [OVERSIGHT]
               McGuinness, K., "Human Oversight Profile for Governed
@@ -3861,7 +3920,7 @@ B.3.  Excluded Compositions
     | issuance              | including continuation, in [OVERSIGHT] |
     +-----------------------+----------------------------------------+
     | Asynchronous approval | External approval follows              |
-    | with [AROP]           | Section 11.8, Section 3.6.3, and       |
+    | with [AROP]           | Section 11.9, Section 3.6.3, and       |
     |                       | Section 5.4                            |
     +-----------------------+----------------------------------------+
     | Continuation with     | Defined for governed grants, including |

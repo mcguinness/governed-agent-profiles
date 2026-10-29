@@ -1293,10 +1293,13 @@ the governance events that end it.<a href="#section-abstract-2" class="pilcrow">
                 <p id="section-toc.1-1.12.2.4.1"><a href="#section-12.4" class="auto internal xref">12.4</a>.  <a href="#name-self-acting-chains" class="internal xref">Self-Acting Chains</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.5">
-                <p id="section-toc.1-1.12.2.5.1"><a href="#section-12.5" class="auto internal xref">12.5</a>.  <a href="#name-governance-events-end-the-c" class="internal xref">Governance Events End the Chain</a></p>
+                <p id="section-toc.1-1.12.2.5.1"><a href="#section-12.5" class="auto internal xref">12.5</a>.  <a href="#name-induced-continuation" class="internal xref">Induced Continuation</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.6">
-                <p id="section-toc.1-1.12.2.6.1"><a href="#section-12.6" class="auto internal xref">12.6</a>.  <a href="#name-disablement-windows" class="internal xref">Disablement Windows</a></p>
+                <p id="section-toc.1-1.12.2.6.1"><a href="#section-12.6" class="auto internal xref">12.6</a>.  <a href="#name-governance-events-end-the-c" class="internal xref">Governance Events End the Chain</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.7">
+                <p id="section-toc.1-1.12.2.7.1"><a href="#section-12.7" class="auto internal xref">12.7</a>.  <a href="#name-disablement-windows" class="internal xref">Disablement Windows</a></p>
 </li>
             </ul>
 </li>
@@ -1406,7 +1409,20 @@ user, checks that the gateway may continue for that agent, and
 authorizes access to the next resource. The agent's own client can
 continue a chain in the same way, as for scheduled work after the user
 signs out (<a href="#walkthrough-scheduled" class="auto internal xref">Appendix A.7</a>).<a href="#section-1-2" class="pilcrow">¶</a></p>
-<p id="section-1-3">The onward grant names the Agent Principal and acting relationship of
+<p id="section-1-3">OAuth Identity and Authorization Chaining Across Domains
+<span>[<a href="#ID-CHAINING" class="cite xref">ID-CHAINING</a>]</span> offers another route: an authorization server in the
+gateway's domain issues a JWT authorization grant that the next
+domain's authorization server accepts. In that topology, each target
+trusts the gateway-domain authorization servers whose grants it
+accepts, and Identity Chaining does not require consulting the
+governing IdP at each hop. This profile does: continuation returns to
+the IdP, which the target already trusts for governed grants and which
+applies the agent's current authorization and governance state at each
+hop. The gateway's domain contributes the CAI's attestation that its
+RAS accepted the originating grant, that the resulting authorization
+remains active and eligible for continuation, and that the continuing
+client is associated with it (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.4" class="relref">Section 5.4</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>).<a href="#section-1-3" class="pilcrow">¶</a></p>
+<p id="section-1-4">The onward grant names the Agent Principal and acting relationship of
 the chain's root grant, and for delegated access the same user. The
 continuing client, typically a gateway, is its client, not an added
 actor, and a separate claim, <code>continuation_via</code>, discloses the gateways
@@ -1418,7 +1434,7 @@ Continuation Association, the IdP's permission for a client to continue
 an agent's chains; extends <span>[<a href="#ICA" class="cite xref">ICA</a>]</span> to self-acting chains, anchored to an
 agent session; and ends chains on governance events.
 <a href="#relationship-to-ica" class="auto internal xref">Appendix B</a> lists each change to <span>[<a href="#ICA" class="cite xref">ICA</a>]</span> and
-<span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>.<a href="#section-1-3" class="pilcrow">¶</a></p>
+<span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>.<a href="#section-1-4" class="pilcrow">¶</a></p>
 <div id="overview">
 <section id="section-1.1">
         <h3 id="name-protocol-overview">
@@ -2835,31 +2851,49 @@ active, until the absolute expiration or the credential's revocation
 (<a href="#chain-ending" class="auto internal xref">Section 9</a>).<a href="#section-12.4-2" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="security-chain-basis">
+<div id="security-induced">
 <section id="section-12.5">
-        <h3 id="name-governance-events-end-the-c">
-<a href="#section-12.5" class="section-number selfRef">12.5. </a><a href="#name-governance-events-end-the-c" class="section-name selfRef">Governance Events End the Chain</a>
+        <h3 id="name-induced-continuation">
+<a href="#section-12.5" class="section-number selfRef">12.5. </a><a href="#name-induced-continuation" class="section-name selfRef">Induced Continuation</a>
         </h3>
-<p id="section-12.5-1">The root's Identity Binding, Client Association, and credential are the
+<p id="section-12.5-1">An agent induced to misuse its authority ("Misuse by an Authorized
+Agent" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>) can ask a gateway to continue its request to
+any target its chain permits. The scope of the agent's access token at
+the gateway does not limit that authority, as <span>[<a href="#ICA" class="cite xref">ICA</a>]</span> notes for
+incoming access-token scopes. The chain authorization, the agent's
+current Delegation or Agent Authorization, and the continuing client's
+Continuation Association bound each onward grant instead
+(<a href="#continuation-validation" class="auto internal xref">Section 6.3</a>), and the target applies its own
+authorization. A deployment that needs onward authority narrower than
+the agent's authorization records narrower restrictions in the chain
+authorization or the Continuation Association.<a href="#section-12.5-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="security-chain-basis">
+<section id="section-12.6">
+        <h3 id="name-governance-events-end-the-c">
+<a href="#section-12.6" class="section-number selfRef">12.6. </a><a href="#name-governance-events-end-the-c" class="section-name selfRef">Governance Events End the Chain</a>
+        </h3>
+<p id="section-12.6-1">The root's Identity Binding, Client Association, and credential are the
 chain's only link between the agent and an authenticated client. When
 any is withdrawn, the chain has no current basis, even if another
 binding resolves the same agent for new issuance. An ended chain stays
 ended, as in <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-6.2" class="relref">Section 6.2</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>, and reactivation permits new
-decisions only, as in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>.<a href="#section-12.5-1" class="pilcrow">¶</a></p>
+decisions only, as in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>.<a href="#section-12.6-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="security-disablement">
-<section id="section-12.6">
+<section id="section-12.7">
         <h3 id="name-disablement-windows">
-<a href="#section-12.6" class="section-number selfRef">12.6. </a><a href="#name-disablement-windows" class="section-name selfRef">Disablement Windows</a>
+<a href="#section-12.7" class="section-number selfRef">12.7. </a><a href="#name-disablement-windows" class="section-name selfRef">Disablement Windows</a>
         </h3>
-<p id="section-12.6-1">Issued onward grants and downstream access tokens, including those a
+<p id="section-12.7-1">Issued onward grants and downstream access tokens, including those a
 gateway has cached, remain usable after a chain ends until they expire
 or their revocation is applied. A refresh token that a target RAS
 issues under "Optional RAS Refresh Tokens" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> extends
 access further; a deployment that relies on chain ending configures its
 targets not to issue refresh tokens to continuing clients, so that
-renewal is another continuation.<a href="#section-12.6-1" class="pilcrow">¶</a></p>
+renewal is another continuation.<a href="#section-12.7-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -3025,11 +3059,19 @@ WAGs. Errors are those of <span>[<a href="#RFC6749" class="cite xref">RFC6749</a
 <dd class="break"></dd>
 <dt id="EMA">[EMA]</dt>
         <dd>
-<span class="refAuthor">Model Context Protocol</span>, <span class="refTitle">"Enterprise-Managed Authorization"</span>, <span>n.d.</span>, <span>&lt;<a href="https://github.com/modelcontextprotocol/ext-auth/blob/main/specification/stable/enterprise-managed-authorization.mdx">https://github.com/modelcontextprotocol/ext-auth/blob/main/specification/stable/enterprise-managed-authorization.mdx</a>&gt;</span>. </dd>
+<span class="refAuthor">Model Context Protocol</span>, <span class="refTitle">"Enterprise-Managed Authorization"</span>, <span>n.d.</span>, <span>&lt;<a href="https://github.com/modelcontextprotocol/ext-auth/blob/main/specification/stable/enterprise-managed-authorization/2026-07-28/enterprise-managed-authorization.mdx">https://github.com/modelcontextprotocol/ext-auth/blob/main/specification/stable/enterprise-managed-authorization/2026-07-28/enterprise-managed-authorization.mdx</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="GUIDE">[GUIDE]</dt>
         <dd>
 <span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Implementer's Guide for Governed Agent Federation"</span>, <span>&lt;<a href="https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md">https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="ID-CHAINING">[ID-CHAINING]</dt>
+        <dd>
+<span class="refAuthor">Schwenkschuster, A.</span>, <span class="refAuthor">Kasselman, P.</span>, <span class="refAuthor">Burgin, K.</span>, <span class="refAuthor">Jenkins, M. J.</span>, <span class="refAuthor">Campbell, B.</span>, and <span class="refAuthor">A. Parecki</span>, <span class="refTitle">"OAuth Identity and Authorization Chaining Across Domains"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-identity-chaining-17</span>, <time datetime="2026-07-19" class="refDate">19 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-chaining-17">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-chaining-17</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="MCP">[MCP]</dt>
+        <dd>
+<span class="refAuthor">Model Context Protocol</span>, <span class="refTitle">"Model Context Protocol Specification, Revision 2026-07-28"</span>, <time datetime="2026-07-28" class="refDate">28 July 2026</time>, <span>&lt;<a href="https://modelcontextprotocol.io/specification/2026-07-28">https://modelcontextprotocol.io/specification/2026-07-28</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC6755">[RFC6755]</dt>
         <dd>
@@ -3144,6 +3186,13 @@ H0, and issues <code>GW_ACCESS_TOKEN</code>, DPoP-bound and carrying H0:<a href=
 <p id="appendix-A.1-5">The agent calls a tool with this token and a proof of K. The gateway
 validates both, enforces the actor gate for <code>agent-42</code> acting for
 Alice, and routes the call to the file service in <code>acme-data</code>.<a href="#appendix-A.1-5" class="pilcrow">¶</a></p>
+<p id="appendix-A.1-6"><span>[<a href="#MCP" class="cite xref">MCP</a>]</span> has MCP clients send access tokens with the <code>Bearer</code> scheme and
+defines no DPoP usage, so this walkthrough assumes that the agent's
+client and the gateway also support DPoP for this hop. With a
+bearer-only MCP client, GatewayRAS issues a bearer access token, and
+the hop is eligible for continuation only where resource policy permits
+continuation from bearer access tokens for <code>analysis-gw</code> and the
+gateway resource (<a href="#root-redemption" class="auto internal xref">Section 4</a>).<a href="#appendix-A.1-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="walkthrough-assertion">

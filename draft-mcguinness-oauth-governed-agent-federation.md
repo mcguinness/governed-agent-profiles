@@ -2381,12 +2381,16 @@ authenticated and authorized, so the checks of this profile pass.
 The profile limits that exposure without detecting it:
 
 * A grant carries one resource and the authority that the Delegation
-  or Agent Authorization permits ({{issuance-request}}), and the actor
-  gate applies at the RAS and the API ({{actor-authorization}}).
-  Narrow authorizations limit what an induced request can obtain.
-* Short grant and access-token lifetimes, and RAS refresh tokens only
-  by explicit policy ({{ras-refresh}}), bound how long induced use can
-  continue after it is detected.
+  or Agent Authorization permits ({{issuance-request}}). For delegated
+  access, the RAS and the API enforce the actor gate
+  ({{actor-authorization}}); for self-acting access, they enforce the
+  agent's own permissions. Narrow authorizations limit what an induced
+  request can obtain.
+* Detection alone changes no authorization state: the agent can keep
+  obtaining grants until its authorization is withdrawn or it is
+  disabled. After further issuance and renewal are blocked, token
+  lifetimes and revocation enforcement determine how long previously
+  issued authority remains usable ({{status-changes}}).
 * Every grant names the Agent Principal, and every access token carries
   it or the local principal correlated with it, so a resource domain
   can attribute, investigate, and disable one agent without affecting

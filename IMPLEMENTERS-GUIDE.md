@@ -429,7 +429,7 @@ flowchart LR
 | Each action | API or MCP gateway | Whether this user and agent may perform this operation on this object | [Optional Policy Services][policy-services] and [Delegated Actor Authorization][actor-authorization] | AuthZEN evaluation; [COAZ-MCP][COAZ-MCP] for MCP tool calls |
 | Redemption | RAS | Whether to issue an access token under local user, actor, client, tenant, and resource policy | Grant Redemption at the RAS; the core states its policy-service rules for the API | AuthZEN evaluation |
 | Issuance | IdP | Decisions that depend on tool arguments or business objects, which the IdP need not interpret | Authorization Relationships: resource-domain evaluation, locally or through a trusted policy service | A resource-domain PDP; the AuthZEN Token Issuance profile is not yet composed with governed issuance ([below](#one-identity-model-across-authzen-profiles)) |
-| Requestable denial | API | Whether the agent can ask for more access | External Approval; asynchronous approval with AROP is an excluded composition | ARAP for the request; AROP for completion as a token |
+| Requestable denial | API | Whether the agent can ask for more access | External Approval; per-action oversight in the oversight profile; asynchronous approval with AROP is an excluded composition | ARAP for the request; AROP for completion as a token |
 
 ### Use cases
 
@@ -453,8 +453,9 @@ flowchart LR
    ARAP lets the enforcement point submit an access request and
    re-evaluate after approval. A resource-local approval can satisfy an
    additional condition within the token's authority but cannot expand
-   it. Approval that completes as a new token through AROP is not yet
-   composed with governed ID-JAG issuance.
+   it. A new governed grant after approval comes from deferred issuance
+   under the [oversight profile][OVERSIGHT]; approval that completes as
+   a token through AROP is not yet composed with governed issuance.
 
 Risk signals and approved work are further inputs; see [Platform-hosted
 agents](ARCHITECTURE.md#platform-hosted-agents) and [Beyond these
@@ -543,11 +544,11 @@ Four differences matter for governed deployments:
   resolved, which, for a dedicated client, is not the requesting
   client. Likewise, AROP completes an approved request as an access
   token, but says nothing about keeping the originating grant's
-  subject and actor. The core defers asynchronous approval, and its
-  [External Approval][external-approval] constraints define no
-  AROP-to-governed-issuance flow. A future composition of either
-  profile with governed issuance would need to preserve governed
-  identity resolution and authorization checks.
+  subject and actor. The [oversight profile][OVERSIGHT] defines
+  deferred governed issuance but not AROP, whose approval deadline
+  bounds tokens the RAS issues. A future composition of either profile
+  with governed issuance would need to preserve governed identity
+  resolution and authorization checks.
 
 Two things are different here. The request projections in the table can
 be implemented today: an enforcement point can map each profile's
@@ -835,7 +836,8 @@ agent cannot use the token directly.
 * **Approval.** CB4A's human and MFA approval tiers can be an additional
   condition on issuance at the IdP; they never replace identity
   resolution or delegation authorization ([External
-  Approval][external-approval]). Approval that completes as a token
+  Approval][external-approval]). Approval before issuance follows the
+  [oversight profile][OVERSIGHT]; approval that completes as a token
   through ARAP and AROP is an [excluded
   composition][excluded-compositions].
 * **Revocation.** CB4A revokes individual leases on anomaly signals.
@@ -1092,6 +1094,7 @@ resource domain provisioned for `agent-58` applies the deletion under
 [aws-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#aws-example
 [excluded-compositions]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#excluded-compositions
 [CONTINUATION]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
+[OVERSIGHT]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html
 [ICA]: https://www.ietf.org/archive/id/draft-mcguinness-oauth-id-continuation-assertion-02.html
 [cont-scope]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#scope-boundaries
 [cont-gateway]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#gateway-reuse

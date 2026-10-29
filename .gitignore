@@ -30,3 +30,5 @@ report.xml
 draft-mcguinness-scim-agent-federation.xml
 
 draft-mcguinness-scim-oauth-client-management.xml
+__pycache__/
+/.venv-conformance/

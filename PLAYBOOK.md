@@ -65,6 +65,7 @@ that the later steps test:
 | Token validation at the API | Introspection on each request, cached introspection, or offline JWT validation | How soon a revocation at the RAS reaches the API: at the next check, when the cache entry ends, or at token expiry ("Resource Enforcement and Delay" in the [lifecycle profile][lifecycle]) |
 | Creating agent records at the RAS | Provisioned in advance, or created just in time from a validated grant where resource policy enables it | Whether the first redemption needs provisioning to have run; without a record, the RAS denies it |
 | Keeping agent records current | Lifecycle provisioning and reconciliation, another supported signal, or local administration only | How the RAS learns that the agent was disabled. A grant does not carry the IdP's administrative status, so without lifecycle integration, any record learns of it only through local action or another signal |
+| Oversight | Human out of the loop, under standing authorization only; human in the loop, with approval before issuance, approval of actions, or both; or human on the loop, with supervised issuance for a target | Whether clients opt in to deferral and wait for a decision; who approves, and how they authenticate; and, for supervised issuance, who oversees and the intervention bound documented for each target. Policy selects the mode for each agent, user, client, target, and authority; a client's opt-in never does |
 | Federation | Federated, or registration only, for a platform-hosted agent that uses only its platform's own resources | Registration-only agents follow the [registration-only branch](#registration-only-branch) |
 
 The two record choices are independent. Under the lifecycle profile, a
@@ -83,8 +84,8 @@ to a team:
 
 | Team | Owns |
 |---|---|
-| Identity (IAM) | Agent Principals and owners; Identity Bindings; Client Associations; Delegation and Agent Authorizations; Continuation Associations; IdP issuance policy; the authority of SCIM connectors |
-| Resource and application owners | Local agent principals and their eligibility; actor-gate policy; access-token protection per client and resource; Local Suspension; per-action policy |
+| Identity (IAM) | Agent Principals and owners; Identity Bindings; Client Associations; Delegation and Agent Authorizations; Continuation Associations; IdP issuance policy, including oversight modes and the approvers for issuance; the authority of SCIM connectors |
+| Resource and application owners | Local agent principals and their eligibility; actor-gate policy; access-token protection per client and resource; Local Suspension; per-action policy and its approvers |
 | Platform engineering | Agent OAuth clients and their keys; workload credentials; the SCIM connector |
 | Security operations | Signals into the IdP and policy decision points; running the containment runbooks; incident records |
 
@@ -220,6 +221,53 @@ token, the local principal stands for the agent.
   change. The drafts define no cache rule; this is a deployment
   requirement.
 
+#### Human oversight
+
+Where a person must approve a request before its grant issues, see each
+grant as it issues, or approve an action, deploy the [oversight
+profile][oversight] ([guide][guide-oversight]). Configure the mode in
+IdP issuance policy, usually as a condition of the Delegation or Agent
+Authorization, at the IdP directly: the SCIM management profile has no
+attribute for it. For approval before issuance, designate approvers and
+the authentication each needs, choose an approval channel, set a
+maximum pending lifetime, and have the client opt in with
+`completion_mode=deferred` and a DPoP proof. For supervised issuance,
+give overseers each grant's issuer, `jti`, and context, and document how
+long each intervention takes to reach the target. For approval of
+actions, the API or MCP server holds the call until an approver decides.
+
+*Exit checks:*
+* Where policy requires approval, a request without
+  `completion_mode=deferred` fails with `actor_unauthorized` for
+  delegated issuance or `invalid_target` for self-acting issuance, and
+  neither a grant nor a deferred response is returned.
+* The approver authenticates at the strength policy requires and sees
+  the agent, the user, the client, the target, and the authority as the
+  IdP resolved them, with any text from the agent marked as the
+  agent's. A decision sent by the client or the agent is not accepted.
+* A poll that proves another key fails with `invalid_dpop_proof`, and a
+  poll after the grant was delivered fails with `invalid_grant`.
+* When an agent is disabled while its request is pending and the
+  approver then approves, the next poll returns `access_denied` and no
+  grant issues. Polls before the decision still return
+  `authorization_pending`: the IdP re-checks at resolution, and the
+  profile does not require disablement to cancel a pending request.
+* Approving narrower authority yields a grant with only that authority,
+  and an approval does not carry over to the next request with the same
+  context.
+* Except for a continuation, a pending request ends no later than the
+  subject credential expires, or a platform JWT that bounds the grant.
+* Where supervised issuance is claimed for a target, each grant's issuer,
+  `jti`, request context, and issuance time reach an overseer no later
+  than the client receives the grant, and an intervention from the
+  [runbooks](#runbooks-stop-and-restore) stops the target accepting the
+  authority within the documented intervention bound. The drafts require
+  the bound to be documented; measuring it is a deployment requirement.
+* Where an API holds actions for approval, a confirmation shown only in
+  the client does not release a held call, a tool annotation does not
+  lower the mode, a call with changed arguments needs a new decision,
+  and an approved call stays within the token's scope and tenant.
+
 ### 5. Operate, review, and retire
 
 * **Roll out.** Extend from the pilot until every production agent has
@@ -231,6 +279,10 @@ token, the local principal stands for the agent.
     access.
   * Client Associations and dedicated-client bindings, by client.
   * Continuation Associations, by gateway.
+  * Oversight policies, by target: which requests wait for approval,
+    how many expire unanswered, and which approvals are routine enough
+    to become standing authorization through a reviewed change to the
+    Delegation or Agent Authorization.
   * Agent Principals without an owner, or with no grant issued for a
     defined period.
 * **Respond.** Stop and restore access with the
@@ -293,6 +345,7 @@ to retirement.
 | An agent reaches tools through an MCP gateway | Continuation, with the gateway as continuing client; per-tool policy optional | [Through a gateway](#through-a-gateway) |
 | Scheduled work runs after the user signs out | Continuation from a chain anchored to a refresh-token grant, where the IdP claims grant-anchored continuation | [Scheduled work](#scheduled-work) |
 | A platform runs many agents behind one client | A workload-identity input that distinguishes its agents; the existing platform JWT for generic shared-client interoperability | [A shared platform client](#a-shared-platform-client) |
+| A person approves an agent's request before a sensitive grant issues | Oversight: deferred governed issuance at the IdP, an approval channel, and a client that opts in and waits | [Approval before granting write access](#approval-before-granting-write-access) |
 | A platform hosts agents that use only its own resources | Registration through SCIM management, with no binding or association; the platform applies the IdP's decisions under lifecycle | [Registration-only branch](#registration-only-branch) |
 
 Both recipes use the architecture's example and the identifiers of the
@@ -563,6 +616,55 @@ core's [AWS example][core-aws-example] shows the input.
   or another credential class; and a token the client holds for
   `agent-42` is not reused for another agent with the same scope.
 
+#### Approval before granting write access
+
+`agent-42` may read Alice's files without asking, but policy requires
+Alice to approve before it writes them. Add [human
+oversight](#human-oversight) to the delegated recipe: Alice's Delegation
+Authorization also permits `files.write`, only with her approval; Alice
+is the approver and authenticates through CIBA on her authenticator;
+the maximum pending lifetime is one hour; and `analysis-client` opts in
+to deferral when it asks for `files.write`. The oversight profile's
+[walkthrough][oversight-walkthrough] shows the messages.
+
+1. The client sends the recipe's token exchange with `scope=files.write`,
+   `completion_mode=deferred`, and a proof of its DPoP key. The IdP
+   completes every check, finds that Alice must approve, and returns
+   `authorization_pending` with a deferral code, `expires_in` 3600, and
+   `interval` 5. Alice's ID Token expires in 65 minutes, so the hour
+   fits within it.
+2. Alice receives "agent-42 (client analysis-client) asks to write files
+   in acme-data", authenticates, and approves.
+3. The client polls with the deferral code and the same key. The IdP
+   checks the agent, its binding and association, Alice's Delegation
+   Authorization, and Alice again, and issues ID-JAG `grant-2` with
+   scope `files.write`, valid for 300 seconds from that moment.
+4. The client redeems `grant-2` as in the recipe.
+
+* **Extra tests:** a request for `files.write` without
+  `completion_mode=deferred` fails with `actor_unauthorized`; when Alice
+  denies, the next poll returns `access_denied`, and the client does not
+  retry under another client or as self-acting access; and when
+  `agent-42` is disabled while the request is pending and Alice then
+  approves, the next poll returns `access_denied` and no grant issues.
+* **Containment:** a pending request holds no grant. Disabling the
+  agent or withdrawing Alice's Delegation Authorization prevents
+  issuance if the change still holds when the IdP re-checks at
+  resolution. It does not cancel the request, so a request approved
+  after the agent is re-enabled still yields `grant-2`. The client
+  cancels its own request by revoking the deferral code. A deployment
+  that wants disablement to cancel pending requests at once adds that
+  as a deployment requirement and tests it separately. Once issued,
+  `grant-2` is contained like `grant-1`.
+* **Evidence:** the IdP's issuance record for `grant-2` also holds the
+  approval: Alice as approver, how she authenticated, her decision and
+  its time, and the approved authority ([audit
+  evidence](#audit-evidence)).
+* **Limitations:** a wait longer than Alice's ID Token allows needs a
+  subject credential that expires later, such as a refresh token. The
+  RAS and API see an ordinary grant and cannot tell that Alice approved
+  it.
+
 ## Vendor evidence
 
 Ask vendors for conformance claims, which name the profile, the role,
@@ -578,7 +680,11 @@ the second is bound). For continuation, each role claims delegated or
 self-acting continuation; a continuation-aware RAS lists
 `urn:ietf:params:oauth:grant-profile:governed-agent-continuation`, and
 an IdP that supports delegated continuation advertises
-`identity_continuation_supported`.
+`identity_continuation_supported`. The oversight profile defines no
+profile URI or metadata: an IdP claims deferred governed issuance,
+deferred continuation, or supervised issuance for a target; a client
+claims deferred governed issuance; and an API claims per-action
+oversight.
 
 ### Capability worksheet
 
@@ -607,6 +713,12 @@ are for the evaluator.
 | API or gateway: an external policy decision point, with the agent identity taken from the validated token and never from `client_id` or a tool's declared mapping | Delegated per-action policy | Step 4's policy checks | | | |
 | API or gateway: behavior when the policy decision point is unreachable: failing closed with `-32603` under COAZ-MCP, and otherwise a configured choice per action class (a deployment requirement) | Delegated per-action policy | Step 4's unreachable-PDP check | | | |
 | API or gateway: decision cache lifetime, and invalidation when a disablement or revocation is applied (a deployment requirement) | Delegated per-action policy | Step 4's cached-decision check | | | |
+| IdP: deferred governed issuance, in Deferred Token Response's polling mode, with DPoP on every deferred request and the governed checks again at resolution | Approval before issuance | Step 4's oversight checks; the approval variation's tests | | | |
+| Client: deferred governed issuance: the opt-in with DPoP, polling with the same key, and no retry of a denied request another way | Approval before issuance | The approval variation's transaction | | | |
+| IdP: an approval channel that authenticates designated approvers at the strength policy requires and shows the request as the IdP resolved it (the drafts define no channel) | Approval before issuance | Step 4's approver check | | | |
+| IdP: deferred continuation, holding the assertion's replay reservation while the request is pending | Approval before issuance, with gateways | A continuation held for approval and then issued; the same assertion presented again while pending is rejected | | | |
+| IdP: supervised issuance for each target, with overseer notices and a documented intervention bound; measuring the bound is a deployment requirement | Supervised issuance | Step 4's supervised-issuance check | | | |
+| API or MCP server: per-action oversight, with the decision bound to the call and made by the server, not the client | Approval of actions | Step 4's per-action check | | | |
 | RAS and API: a shared token identifier, not itself a credential, retained at both | Opaque access tokens | Trace one opaque-token action back to its exact grant ([audit evidence](#audit-evidence)) | | | |
 
 ### Interoperability
@@ -624,13 +736,14 @@ will meet there:
 | Platform connector → IdP | | Registration, binding, and association as separate permissions | |
 | Lifecycle sender → receiver | | Provisioning, disablement, and events | |
 | Gateway's RAS → IdP → target RAS | | One continuation, end to end | |
+| IdP → approval channel | | One deferred request, from approval to the grant | |
 
 Pin each test to the draft revisions used, either the published -NN
 revision or the editor's copy commit, and to the product versions. A
 result against one revision is not evidence for the next. The core's
-negative tests ("Renewal and Negative Tests"), the continuation
-profile's ("Negative Tests"), and the lifecycle profile's ("Acceptance
-Checklist") supply further cases.
+negative tests ("Renewal and Negative Tests"), the continuation and
+oversight profiles' ("Negative Tests"), and the lifecycle profile's
+("Acceptance Checklist") supply further cases.
 
 ## Runbooks: stop and restore
 
@@ -708,7 +821,12 @@ stay revoked, and ended continuation chains stay ended.
   at the IdP cannot clear a Local Suspension, so each resource owner
   explicitly lifts the suspensions recorded for this incident, leaving
   in place any that predated it. Clients obtain new grants, and
-  restoration is verified by fresh access in each domain.
+  restoration is verified by fresh access in each domain. Disablement
+  does not cancel requests held for approval under the [oversight
+  profile][oversight]: a root request approved after re-enabling still
+  issues its grant, while a pending continuation fails because its
+  chain ended. Before re-enabling, have approvers deny pending requests
+  that should not proceed.
 * **Completion evidence:** the IdP's change record; each domain's
   applied status and time; the failed test exchange and redemption; any
   pending domain, with its containment; and, on recovery, each
@@ -1041,6 +1159,14 @@ gateway continued the request, the onward grant replaces `grant-1`; its
 carry where the target supports path disclosure, and the IdP's hop
 records lead back to the root grant and its authorization.
 
+Where a person approved the grant under the [oversight
+profile][oversight], the IdP's issuance decision also records the
+approval: the approver, how the approver authenticated, the decision
+and its time, and the approved authority. No claim in the grant records
+an approval. The IdP can include `txn` to join the grant to that record,
+but the RAS and API treat it only as a correlation identifier. Like the
+rest of the trace, this record is a deployment convention.
+
 Record these identifiers in the IdP's issuance records and in each
 resource domain's access records, and use the Agent Principal as the
 key that joins them with security telemetry.
@@ -1063,7 +1189,10 @@ tooling can rely on.
 [core-aws-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#aws-example
 [continuation]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
 [continuation-scheduled]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#walkthrough-scheduled
+[oversight-walkthrough]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#walkthrough
 [lifecycle]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
 [management]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html
 [guide-authzen]: IMPLEMENTERS-GUIDE.md#authorization-decisions-with-authzen
 [guide-risk]: IMPLEMENTERS-GUIDE.md#risk-signals
+[guide-oversight]: IMPLEMENTERS-GUIDE.md#human-oversight
+[oversight]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html

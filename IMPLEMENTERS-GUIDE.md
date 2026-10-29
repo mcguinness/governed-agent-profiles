@@ -3,7 +3,8 @@
 This guide is non-normative. It accompanies [OAuth 2.0 Profile for
 Governed Agent Federation][core] (the core profile), [Agent Resolution
 Input Profiles for Governed Agent Federation][INPUTS], [Identity
-Continuation Profile for Governed Agent Federation][CONTINUATION], and
+Continuation Profile for Governed Agent Federation][CONTINUATION],
+[Human Oversight Profile for Governed Agent Federation][OVERSIGHT], and
 [Governed Agent Lifecycle Profile for SCIM and OAuth][AGENT-LIFECYCLE].
 Those documents define every requirement, and they govern wherever this
 guide differs
@@ -18,6 +19,7 @@ profile that defines them.
 * [Federation configuration](#federation-configuration)
 * [Distributed platforms and key use](#distributed-platforms-and-key-use)
 * [Continuation through gateways](#continuation-through-gateways)
+* [Human oversight](#human-oversight)
 * [Transaction Tokens inside a resource domain](#transaction-tokens-inside-a-resource-domain)
 * [Sub-agents and orchestrators](#sub-agents-and-orchestrators)
 * [Authorization decisions with AuthZEN](#authorization-decisions-with-authzen)
@@ -279,6 +281,128 @@ The CAI's placement gives these topologies:
 each request, and [Implementation Considerations][cont-implementation]
 covers continuation-window and agent-session sizing.
 
+## Human oversight
+
+The [oversight profile][OVERSIGHT] adds a person to governed access.
+With a human in the loop, an approver decides on the exact request
+before a grant issues or an action executes. With a human on the loop,
+grants issue at once, and an overseer can see each one and end it.
+Without the profile, the core issues grants under standing
+authorization alone, which the profile calls human out of the loop.
+Policy selects the mode for each agent, acting relationship, user,
+client, target, and authority, usually as a condition of the
+Delegation or Agent Authorization; a client's opt-in to deferral never
+selects or lowers it ([Oversight Modes][ov-modes]).
+
+| Mode | Where | Mechanism | Suits |
+|---|---|---|---|
+| Human in the loop | IdP issuance, including continuation | [Deferred governed issuance][ov-deferred]: the IdP holds the token exchange under [Deferred Token Response][DTR] until an approver decides, then issues the grant the request would have produced | Authority whose misuse cannot be undone, such as writing, paying, or sharing outside the tenant |
+| Human in the loop | Each action at an API or MCP server | [Per-action oversight][ov-per-action]: the server holds the call until an approver decides on that call | A sensitive operation, object, or argument within authority the agent already holds |
+| Human on the loop | IdP issuance | [Supervised issuance][ov-supervised]: grants issue at once; overseers see each one and can end it | Work that cannot wait for a person, at a target where an intervention takes effect within a documented bound |
+| Human out of the loop | Every decision point | The core's standing authorization | Routine authority, certified periodically |
+
+Each decision point applies its own mode. An approval at the IdP does
+not satisfy a resource domain that requires a person to decide on an
+action, and no claim in the grant tells the RAS that anyone approved.
+
+A deployment that uses oversight adds this configuration to the
+[federation configuration](#federation-configuration):
+
+| Party | Configuration |
+|---|---|
+| IdP | The mode in issuance policy, configured at the IdP directly, since the SCIM management profile has no attribute for it; the approvers each policy designates, and the authentication strength each requires; an approval channel, such as [CIBA] with a `binding_message` that describes the request; a maximum pending lifetime for each policy; Deferred Token Response in polling mode, with deferral codes bound to the client and its DPoP key; for supervised issuance, the overseers and the channel that gives them each grant's issuer, `jti`, request context, and issuance time |
+| Client | `completion_mode=deferred` and a DPoP proof on each request that can wait, whatever its authentication method; polling with the same key, no faster than the returned `interval` and slower after `slow_down`; stopping on `access_denied` or `expired_token`; cancelling by revoking the deferral code; never retrying a denied or expired request as self-acting access, under another client, or under a lower adoption profile |
+| Gateway | The client behavior above for its continuation exchanges; reporting the wait to the agent through its own interface, such as an MCP task |
+| API or MCP server | Per-action policy and its approvers; holding a call, or refusing it in a way the agent can request; an approval page that authenticates the approver and binds the decision to the call, its arguments, and the token's subject, agent, client, and tenant |
+| Overseers | Supervised-issuance notices, and the interventions of the [playbook's runbooks](PLAYBOOK.md#runbooks-stop-and-restore), each with a documented intervention bound |
+
+### How long a request can wait
+
+A pending request is IdP state, not a credential, and the grant it
+yields keeps the core's lifetime limits ([Deferring][ov-deferring]):
+
+* **Root issuance.** A pending request ends no later than the subject
+  credential expires, or any agent-resolution input that bounds the
+  grant, such as a platform JWT. ID Tokens are often short-lived, so a
+  wait of hours needs a subject credential that expires later, such as
+  a refresh token. An approval late in the window yields a shorter
+  grant.
+* **Continuation.** The pending request holds the Continuation
+  Assertion's replay reservation until the request ends, even past the
+  assertion's own expiry, so the assertion cannot be presented again
+  ([Continuation][ov-continuation]). The chain's limits count
+  continuations that have issued, so a continuation approved after a
+  limit was reached is refused at resolution; the gateway then needs a
+  new assertion and, where policy requires it, a new approval.
+* **Re-checks.** At resolution the IdP checks again that the agent is
+  active, the authorization still permits the approved authority, and
+  the user resolves as before; for root issuance, the binding and
+  association; and for a continuation, the chain and the Continuation
+  Association. A change that still holds then ends the request with
+  `access_denied` ([Resolution][ov-resolution]). Until then the request
+  stays pending: the profile does not require a change to cancel it.
+
+Approvers asked too often approve without reading ([Approval
+Fatigue][ov-fatigue]). Reserve the human in the loop for authority that
+warrants it, limit how many pending requests one agent can hold, and
+make routine approvals standing authorization through a reviewed change
+to the Delegation or Agent Authorization; approving a request never
+makes that change.
+
+### Approval at an MCP gateway
+
+`agent-42` calls a tool for Alice through an MCP gateway, and IdP policy
+requires Alice's approval before an onward grant with write authority
+issues for the tool's domain:
+
+1. The gateway validates the incoming request and obtains a
+   Continuation Assertion from its CAI. The CAI attests that the
+   gateway's RAS accepted the originating grant, its authorization
+   remains active and eligible for continuation, and the gateway is
+   associated with that authorization.
+2. The gateway sends the continuation exchange to the IdP with
+   `completion_mode=deferred` and a DPoP proof. The IdP performs every
+   continuation check, reserves the assertion, records the pending
+   request, and returns a deferred response.
+3. The gateway reports the wait to the agent through MCP, such as a
+   task that stays `working`.
+4. Alice sees the agent, the gateway as continuing client, the tool's
+   domain, and the authority, and approves.
+5. The gateway's next poll succeeds. The IdP checks the chain and the
+   gateway's Continuation Association again, counts the onward grant
+   against the chain's limits as it issues it, and returns an onward
+   grant naming `agent-42` and Alice, with the gateway as client.
+6. The gateway redeems the onward grant at the tool's RAS, calls the
+   tool, and completes the task.
+
+If Alice denies, or a check or limit fails at resolution, the poll
+returns `access_denied`. The gateway fails the task and does not call
+the tool with its own authority.
+
+### What oversight does not provide
+
+* **Approval visible downstream.** No claim in the grant records an
+  approval. An IdP can include `txn` to correlate the grant with its
+  approval record, but a RAS or API never treats it as evidence of
+  approval or as authority. A resource domain that needs a person
+  applies its own decision ([Resolution][ov-resolution]).
+* **Approval from the client.** A confirmation an MCP client shows its
+  user is client behavior, not an approval. A tool annotation such as
+  `destructiveHint` neither selects nor lowers a mode, though a
+  deployment can use its own classification of tools to require a
+  stricter one ([Model Context Protocol][ov-mcp]).
+* **Approval that completes as a token.** Deferral of redemption at the
+  RAS is an open item of the profile ([Open Items][ov-open-items]), and
+  asynchronous approval with AROP stays an [excluded
+  composition][excluded-compositions] of the core.
+* **Revoking one WAG.** Revoking a single WAG is deployment-specific, so
+  supervised self-acting issuance rests on withdrawing the Agent
+  Authorization, a Local Suspension, or disabling the agent.
+* **The approval channel.** The profile defines no approval channel,
+  overseer notice format, or multi-party approval. The channel's
+  authentication of the approver is what keeps an agent from approving
+  its own requests.
+
 ## Transaction Tokens inside a resource domain
 
 A resource domain often calls internal services to serve one request.
@@ -454,8 +578,9 @@ flowchart LR
    re-evaluate after approval. A resource-local approval can satisfy an
    additional condition within the token's authority but cannot expand
    it. A new governed grant after approval comes from deferred issuance
-   under the [oversight profile][OVERSIGHT]; approval that completes as
-   a token through AROP is not yet composed with governed issuance.
+   under the [oversight profile][OVERSIGHT] ([Human
+   oversight](#human-oversight)); approval that completes as a token
+   through AROP is not yet composed with governed issuance.
 
 Risk signals and approved work are further inputs; see [Platform-hosted
 agents](ARCHITECTURE.md#platform-hosted-agents) and [Beyond these
@@ -1095,6 +1220,18 @@ resource domain provisioned for `agent-58` applies the deletion under
 [excluded-compositions]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#excluded-compositions
 [CONTINUATION]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
 [OVERSIGHT]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html
+[ov-modes]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#modes
+[ov-deferred]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#deferred-issuance
+[ov-deferring]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#deferring
+[ov-resolution]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#resolution
+[ov-continuation]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#deferred-continuation
+[ov-supervised]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#supervised
+[ov-per-action]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#per-action
+[ov-mcp]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#mcp
+[ov-fatigue]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#security-fatigue
+[ov-open-items]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#open-items
+[DTR]: https://www.ietf.org/archive/id/draft-ietf-oauth-deferred-token-response-00.html
+[CIBA]: https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html
 [ICA]: https://www.ietf.org/archive/id/draft-mcguinness-oauth-id-continuation-assertion-02.html
 [cont-scope]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#scope-boundaries
 [cont-gateway]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#gateway-reuse

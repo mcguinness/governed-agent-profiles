@@ -729,7 +729,9 @@ are for the evaluator.
 A claim from each vendor does not show that the selected products work
 together. Test each boundary from [trust between
 parties](ARCHITECTURE.md#trust-between-parties) with the products that
-will meet there:
+will meet there, after exchanging the configuration the implementer's
+guide lists for it ([configuration exchanged between
+implementations](IMPLEMENTERS-GUIDE.md#configuration-exchanged-between-implementations)):
 
 | Boundary | Products | Test | Evidence |
 |---|---|---|---|

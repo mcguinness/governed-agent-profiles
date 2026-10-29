@@ -128,15 +128,18 @@ continue a chain in the same way, as for scheduled work after the user
 signs out ({{walkthrough-scheduled}}).
 
 OAuth Identity and Authorization Chaining Across Domains
-{{ID-CHAINING}} offers another route: the authorization server of the
+{{ID-CHAINING}} offers another route: an authorization server in the
 gateway's domain issues a JWT authorization grant that the next
-domain's authorization server accepts. Each target would then trust
-every gateway's authorization server, and the IdP that governs the
-agent would not take part in the decision. Continuation instead returns
-to the IdP, which the target already trusts for governed grants and
-which applies the agent's current authorization and governance state at
-each hop. The gateway's domain contributes only its attestation that it
-accepted the request ({{Section 5.4 of ICA}}).
+domain's authorization server accepts. In that topology, each target
+trusts the gateway-domain authorization servers whose grants it
+accepts, and Identity Chaining does not require consulting the
+governing IdP at each hop. This profile does: continuation returns to
+the IdP, which the target already trusts for governed grants and which
+applies the agent's current authorization and governance state at each
+hop. The gateway's domain contributes the CAI's attestation that its
+RAS accepted the originating grant, that the resulting authorization
+remains active and eligible for continuation, and that the continuing
+client is associated with it ({{Section 5.4 of ICA}}).
 
 The onward grant names the Agent Principal and acting relationship of
 the chain's root grant, and for delegated access the same user. The

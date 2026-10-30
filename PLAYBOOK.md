@@ -85,7 +85,7 @@ to a team:
 | Team | Owns |
 |---|---|
 | Identity (IAM) | Agent Principals and owners; Identity Bindings; Client Associations; Delegation and Agent Authorizations; Continuation Associations; IdP issuance policy, including oversight modes and the approvers for issuance; the authority of SCIM connectors |
-| Resource and application owners | Local agent principals and their eligibility; actor-gate policy; access-token protection per client and resource; Local Suspension; per-action policy and its approvers |
+| Resource and application owners | Local agent principals and their eligibility; actor-gate policy; access-token protection per client and resource; Local Suspension; per-action policy, policy for redemptions that wait for approval, and their approvers |
 | Platform engineering | Agent OAuth clients and their keys; workload credentials; the SCIM connector |
 | Security operations | Signals into the IdP and policy decision points; running the containment runbooks; incident records |
 
@@ -237,24 +237,31 @@ token, the local principal stands for the agent.
 
 #### Human oversight
 
-Where a person must approve a request before its grant issues, see each
-grant as it issues, or approve an action, deploy the [oversight
+Where a person must approve a request before its grant issues or before
+a RAS issues access, see each grant as it issues, or approve an action,
+deploy the [oversight
 profile][oversight] ([guide][guide-oversight]). Configure the mode in
 IdP issuance policy, usually as a condition of the Delegation or Agent
 Authorization, at the IdP directly: the SCIM management profile has no
 attribute for it. For approval before issuance, designate approvers and
 the authentication each needs, choose an approval channel, set a
 maximum pending lifetime, and have the client opt in with
-`completion_mode=deferred` and a DPoP proof. For supervised issuance,
+`completion_mode=deferred` and a DPoP proof. For approval before
+redemption, the resource owner sets which redemptions wait in RAS
+policy, designates approvers, and sets a maximum pending lifetime, and
+the client opts in on its redemption the same way. For supervised
+issuance,
 give overseers each grant's issuer, `jti`, and context, and document how
 long each intervention takes to reach the target. For approval of
 actions, the API or MCP server holds the call until an approver decides.
 
 *Exit checks:*
-* Where policy requires approval, a request without
-  `completion_mode=deferred` fails with `actor_unauthorized` for
-  delegated issuance or `invalid_target` for self-acting issuance, and
-  neither a grant nor a deferred response is returned.
+* Where policy requires approval, a request or redemption without
+  `completion_mode=deferred` fails with `actor_unauthorized` for a
+  delegated grant or `invalid_target` for a self-acting one, and nothing
+  is issued and no deferred response is returned.
+* For approval before redemption, the oversight profile's
+  deferred-redemption negative tests pass.
 * The approver authenticates at the strength policy requires and sees
   the agent, the user, the client, the target, and the authority as the
   IdP resolved them, with any text from the agent marked as the
@@ -755,6 +762,7 @@ implementations](IMPLEMENTERS-GUIDE.md#configuration-exchanged-between-implement
 | Lifecycle sender → receiver | | Provisioning, disablement, and events | |
 | Gateway's RAS → IdP → target RAS | | One continuation, end to end | |
 | IdP → approval channel | | One deferred request, from approval to the grant | |
+| RAS → approval channel | | One deferred redemption, from approval to the access token | |
 
 Pin each test to the draft revisions used, either the published -NN
 revision or the editor's copy commit, and to the product versions. A

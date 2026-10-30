@@ -626,8 +626,9 @@ never eligible for continuation: a CAI refuses to attest its tokens
   client is `analysis-gw`; at `https://ras.example/`, the gateway is
   `gateway-files`. Alice's Delegation Authorization covers
   `tools.invoke` at the gateway and, with tenant policy, permits
-  continuation, and the chain records no restrictions
-  ([continuation, Restrictions][cont-restrictions]). The IdP holds a
+  continuation. Neither the chain authorization nor the Continuation
+  Association records restrictions ([continuation,
+  Restrictions][cont-restrictions]). The IdP holds a
   Continuation Association for `tool-gateway` and trusts the gateway's
   RAS as a CAI ([continuation, Gateway Walkthrough][cont-walkthrough]),
   with a 15-minute continuation window.

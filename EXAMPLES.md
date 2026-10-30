@@ -52,10 +52,10 @@ operating steps and tests.
 
 At 12:01:03 on September 17, Alice, signed in to the client through the
 IdP, asks the agent to read `report-7`. The deployment uses the core's
-bound profile, so the grant is bound to the client's DPoP key K, and
-the API requires DPoP-bound access tokens. The IdP and the RAS already
-hold these records; [Provisioning with SCIM](#provisioning-with-scim)
-shows how SCIM can create some of them:
+bound profile rather than its unbound one, so the grant is bound to the
+client's DPoP key K, and the API requires DPoP-bound access tokens. The
+IdP and the RAS already hold these records; [Provisioning with
+SCIM](#provisioning-with-scim) shows how SCIM can create some of them:
 
 * at the IdP, an Identity Binding that resolves `analysis-client` to the
   active Agent Principal `agent-42`, and a Client Association that
@@ -65,10 +65,12 @@ shows how SCIM can create some of them:
   `files.read`;
 * at the IdP, the client registration association from
   `analysis-client` to its registration `analysis-api` at
-  `https://ras.example/`, which supplies each grant's `client_id`; and
+  `https://ras.example/`, which supplies each grant's `client_id`;
 * at the RAS, the registration `analysis-api`, and an active correlation
   of (`https://idp.example/`, `agent-42`) with the local principal
-  `service-principal-42`.
+  `service-principal-42`; and
+* at the RAS and the API, actor-gate policy that lets `agent-42` act
+  for Alice (`user-108`) in `acme-data`.
 
 ### Exchange Alice's ID Token for a grant
 
@@ -390,8 +392,9 @@ self-acting tokens avoids that contract.
 
 That completes the two basic access flows, one for each peer grant; an
 implementation supports one or both. The variations below are optional,
-and each says what it adds; [Incident and recovery](#incident-and-recovery) shows how
-disablement and revocation stop access.
+and each says what it adds; [Incident and
+recovery](#incident-and-recovery) shows how disablement and revocation
+stop access.
 
 ## Optional variations
 

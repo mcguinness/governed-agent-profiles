@@ -925,7 +925,10 @@ are illustrations, not a convention):
   "context": {
     "agent": {"iss": "https://idp.example/", "sub": "agent-42"},
     "client": "analysis-gw",
-    "scope": "tools.invoke"
+    "constraints": {
+      "scope": "tools.invoke",
+      "aud": "https://gateway.example/mcp"
+    }
   }
 }
 ```
@@ -1006,6 +1009,12 @@ grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Atoken-exchange
 
 The IdP checks the chain, the Continuation Association for
 `tool-gateway`, the target, and Alice's Delegation Authorization. It
+also checks that the request arrives before H0's deadline: the time the
+IdP issued H0, 12:01:03, plus its continuation window ([continuation,
+Governed Chain Authorization][cont-window]). This deployment chooses a
+15-minute window, which covers the root grant's 300-second redemption
+window and the gateway's 600-second access token ([continuation,
+Identity Provider][cont-impl-idp]), so H0's deadline is 12:16:03. It
 performs no agent resolution: the agent comes from the chain. The
 onward ID-JAG names the same agent and user, with the gateway as client:
 
@@ -1159,8 +1168,9 @@ grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Atoken-exchange
 &completion_mode=deferred
 ```
 
-The IdP performs every continuation check, reserves the assertion
-against replay, records the pending request, and defers:
+The IdP performs every continuation check, including that the request
+arrives before H0's 12:16:03 deadline, reserves the assertion against
+replay, records the pending request, and defers:
 
 ```http
 HTTP/1.1 400 Bad Request
@@ -1178,7 +1188,10 @@ Cache-Control: no-store
 The reservation lasts until the request ends, even past the
 assertion's two-minute lifetime, so the assertion cannot be presented
 again. Passing the chain's limits now reserves no capacity; the IdP
-counts them again when the grant issues.
+counts them again when the grant issues. The deadline limits only when
+a continuation can be requested, so the onward grant can still issue
+after 12:16:03 if Alice approves within the request's 15-minute pending
+lifetime.
 
 The gateway answers the agent's call with a task:
 
@@ -1400,6 +1413,11 @@ schedule:  daily at 06:00 UTC
 status:    active
 ```
 
+Every run continues from H0, so the deployment sets the continuation
+window to the task's duration, not to the gateway's 15 minutes
+([continuation, One-Time Setup][cont-scheduled-setup]). The profile
+leaves where a deployment configures each window to the deployment.
+
 ### Each run
 
 At 06:00 UTC on September 18, with Alice signed out, the platform's
@@ -1436,10 +1454,12 @@ Its `sub`, `act`, and `client_id` are those of scene 2's grant, so the
 file service processes it as before. Its `auth_time` is still Alice's
 sign-in of the previous day. No user credential was retained.
 
-If Alice withdraws her Delegation Authorization for `agent-42`, the next
-run fails with `invalid_continuation`, and her delegations to other
-agents continue. Revoking the refresh-token grant that anchors the chain
-also ends it.
+Once H0's deadline passes, the next run fails with `invalid_grant`, and
+the task needs a new chain, anchored as at setup ([continuation,
+Identity Provider][cont-impl-idp]). If Alice withdraws her Delegation
+Authorization for `agent-42`, the next run fails with
+`invalid_continuation`, and her delegations to other agents continue.
+Revoking the refresh-token grant that anchors the chain also ends it.
 
 ## 8. Incident
 
@@ -1552,7 +1572,11 @@ The IdP returns `204 No Content` with ETag `W/"a3"`. No grant issues
 for `agent-42` through any binding or client: a fresh exchange fails
 with the same `invalid_grant` response, because no active Agent
 Principal resolves. The agent's continuation chains end, so the
-gateway's next continuation fails with `invalid_continuation`.
+gateway's next continuation fails with `invalid_continuation`. The
+gateway then rejects the agent's request with HTTP 401 `invalid_token`,
+as the continuation profile recommends, so that the agent's client
+obtains a new root grant ([continuation, Gateway
+Requirements][cont-gateway]).
 
 The disablement reaches the RAS in one of two ways ([lifecycle, Disable
 and Re-enable][life-example]). The provisioning connector can apply it
@@ -1597,8 +1621,10 @@ Or the IdP's provisioning source, where the agent is
 
 The RAS then retrieves the source Agent, observes `active: false`, and
 applies the same change. Either way, before reporting success the RAS
-blocks new redemption and refresh for the agent and revokes its
-sessions, so introspection of `access-1` returns `"active": false` as
+blocks new redemption and refresh for the agent, so a grant naming
+`agent-42` fails there with `invalid_grant` ([core, Redemption
+Errors][core-redemption-errors]), and revokes its sessions, so
+introspection of `access-1` returns `"active": false` as
 above.
 
 ### Re-enable
@@ -1646,6 +1672,7 @@ invent one:
 [core-walkthrough]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#walkthrough
 [core-client-assertion]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#client-assertion-example
 [core-redemption]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#redemption-example
+[core-redemption-errors]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#redemption-errors
 [core-wag]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#wag-example
 [core-inputs]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#input-variants
 [inputs-examples]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html#input-variants
@@ -1658,6 +1685,9 @@ invent one:
 [cont-two-gateways]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#walkthrough-two-gateways
 [cont-scheduled-setup]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#walkthrough-scheduled-setup
 [cont-scheduled-run]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#walkthrough-scheduled-run
+[cont-gateway]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#gateway-reuse
+[cont-window]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#governed-chain-authorization
+[cont-impl-idp]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#implementation-idp
 [life-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#example
 [life-signals]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#signal-examples
 [life-platform]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#platform-example

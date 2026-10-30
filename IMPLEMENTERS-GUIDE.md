@@ -291,9 +291,9 @@ suite](conformance/README.md) and how far they go:
 | Which IdP namespaces the RAS may assert in `act` ([Access at the Resource Server][api-processing]) | API trust configuration | Agents of `https://idp.example/` | No | Positive path: P3 |
 | How the API tells the governed delegated population apart ([Profile Applicability][api-applicability]) | Agreed | Client `analysis-api` with the `acme-data` audience | No; the core defines no in-band discriminator | Direct: N18. Positive path for a separate self-acting registration, with minted tokens: S08 |
 | Where the tenant is carried | Agreed | The tenant-specific resource URI as `aud` | No | Direct: N17 |
-| Access-token protection and scopes per resource | API, to the RAS | DPoP; `files.read` | Protected Resource Metadata, where the API publishes it | Direct for key binding: N19. Scope untested |
+| Access-token protection and scopes per resource | API, to the RAS | DPoP; `files.read` | Protected Resource Metadata, where the API publishes it | Direct for key binding: N19. Scope, against the reference's policy service: S07 (`insufficient_scope`) |
 | How the API enforces the actor gate: direct evaluation, or reliance on validated RAS authorization with sufficient scope and freshness. The RAS enforces the gate in either case | Agreed | The API evaluates the gate directly | No | Direct: N20 at the API, N16 at the RAS |
-| Whether the API delegates evaluation to a policy service, which then receives the user, agent, client, tenant, and token constraints only from the validated token or introspection response ([Optional Policy Services][policy-services]) | API | No policy service | No | Direct against the reference, whose policy service the suite controls: S02 to S07, S09, S11, and for the error selection order, S14 to S19. Positive path: S01, S08, S10 |
+| Whether the API delegates evaluation to a policy service, which then receives the user, agent, client, tenant, and token constraints only from the validated token or introspection response and from trusted configuration ([Optional Policy Services][policy-services]) | API | No policy service | No | Direct against the reference, whose policy service the suite controls: S02 to S07, S09, S11, and for the error selection order, S14 to S19. Positive path: S01, S08, S10 |
 | How fresh authorization must be: introspection caching and the disablement delay | Agreed | Offline JWT validation; 600 s tokens | No | Untested |
 
 ### Choices to agree
@@ -309,10 +309,6 @@ names neither choice:
 | Re-redeeming a bound grant | Once, or again under explicit policy with a fresh proof | Once |
 | Clock skew and DPoP proof age | A few minutes; DPoP server nonces optional | 60 s each; no nonces |
 | Grant lifetime | The configured limit, recommended at most five minutes | 300 s |
-| Error codes the core does not fix | A RAS's actor-gate denial; a missing or disabled agent record at the RAS | `actor_unauthorized`; `invalid_grant` |
-
-The last row is a gap, not a choice; the conformance suite lists it among
-its [draft questions](conformance/README.md#draft-questions-found-while-implementing).
 
 Optional capabilities add their own exchanges: continuation adds the
 configuration in [Continuation through
@@ -496,9 +492,11 @@ the tool with its own authority.
   [deferred redemption][ov-redemption] completes an approval as an
   access token, which AROP can realize. At the IdP, asynchronous
   approval with AROP stays an [excluded
-  composition][excluded-compositions] of the core, and continuation
-  from a deferred redemption is an open item of the profile ([Open
-  Items][ov-open-items]).
+  composition][excluded-compositions] of the core. Continuation from a
+  deferred redemption is refused: the RAS does not record that
+  authorization as eligible ([Refresh and
+  Continuation][ov-redemption-refresh]). Whether a later revision could
+  permit it is an [open item][ov-open-items] of the profile.
 * **Revoking one WAG.** Revoking a single WAG is deployment-specific, so
   supervised self-acting issuance rests on withdrawing the Agent
   Authorization, a Local Suspension, or disabling the agent.
@@ -657,7 +655,7 @@ flowchart LR
 | Each action | API or MCP gateway | Whether this user and agent may perform this operation on this object | [Optional Policy Services][policy-services] and [Delegated Actor Authorization][actor-authorization]; the conformance suite's S cases try substituting each identity from request attributes | AuthZEN evaluation; [COAZ-MCP][COAZ-MCP] for MCP tool calls |
 | Redemption | RAS | Whether to issue an access token under local user, actor, client, tenant, and resource policy | Grant Redemption at the RAS; the core states its policy-service rules for the API, and [deferred redemption][ov-redemption] builds evaluations only from the redemption's resolved values | AuthZEN evaluation; ARAP and AROP when RAS policy requires approval |
 | Issuance | IdP | Decisions that depend on tool arguments or business objects, which the IdP need not interpret | Authorization Relationships: resource-domain evaluation, locally or through a trusted policy service | A resource-domain PDP; the AuthZEN Token Issuance profile is not yet composed with governed issuance ([below](#one-identity-model-across-authzen-profiles)) |
-| Requestable denial | API | Whether the agent can ask for more access | External Approval; per-action oversight in the oversight profile; at the RAS, deferred redemption; AROP at the IdP is an excluded composition | ARAP for the request; AROP for completion as a token at the RAS |
+| Requestable denial | API | Whether the agent can ask for more access | External Approval; per-action oversight in the oversight profile. A RAS that refuses a redemption does not reveal whether approval could be obtained ([Redemption Opt-In][ov-redemption-opt-in]), and AROP at the IdP is an excluded composition | ARAP for the request |
 
 ### Use cases
 
@@ -815,7 +813,8 @@ member names are illustrations, not a convention; the profiles leave a
 reusable convention to the OAuth mapping profile the AuthZEN working
 group plans ([coordination notes](COORDINATION.md)). In each request,
 the enforcement point supplies the subject and every `context` member
-from the validated token and trusted configuration; the tool's declared
+from the validated token and trusted configuration, with the token's
+`scope` and audience grouped as `constraints`; the tool's declared
 mapping supplies only `action` and `resource` from the call. The
 `context` members are trustworthy because the enforcement point
 supplies them, not because a binding defines them.
@@ -847,7 +846,10 @@ The agent calls a `read_file` tool with the argument
     "agent": {"iss": "https://idp.example/", "sub": "agent-42"},
     "client": "analysis-api",
     "tenant": "acme-data",
-    "scope": "files.read"
+    "constraints": {
+      "scope": "files.read",
+      "aud": "https://api.example/tenants/acme-data/"
+    }
   }
 }
 ~~~
@@ -866,6 +868,7 @@ and carries no `act` (excerpt):
 {
   "iss": "https://ras.example/",
   "sub": "service-principal-42",
+  "aud": "https://api.example/tenants/acme-data/",
   "client_id": "analysis-api",
   "scope": "files.read"
 }
@@ -879,7 +882,10 @@ and carries no `act` (excerpt):
   "context": {
     "client": "analysis-api",
     "tenant": "acme-data",
-    "scope": "files.read"
+    "constraints": {
+      "scope": "files.read",
+      "aud": "https://api.example/tenants/acme-data/"
+    }
   }
 }
 ~~~
@@ -897,6 +903,7 @@ path disclosure (excerpt):
 ~~~ json
 {
   "sub": "user-108",
+  "aud": "https://api.example/tenants/acme-data/",
   "client_id": "data-files",
   "scope": "files.read",
   "act": {"iss": "https://idp.example/", "sub": "agent-42"},
@@ -920,7 +927,10 @@ path disclosure (excerpt):
       {"iss": "https://data-gateway.example/", "sub": "data-gateway"}
     ],
     "tenant": "acme-data",
-    "scope": "files.read"
+    "constraints": {
+      "scope": "files.read",
+      "aud": "https://api.example/tenants/acme-data/"
+    }
   }
 }
 ~~~
@@ -1363,6 +1373,8 @@ resource domain provisioned for `agent-58` applies the deletion under
 [ov-open-items]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#open-items
 [ov-redemption]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#deferred-redemption
 [ov-recovery]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#redemption-recovery
+[ov-redemption-opt-in]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#redemption-opt-in
+[ov-redemption-refresh]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#redemption-refresh
 [DTR]: https://www.ietf.org/archive/id/draft-ietf-oauth-deferred-token-response-00.html
 [CIBA]: https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html
 [ICA]: https://www.ietf.org/archive/id/draft-mcguinness-oauth-id-continuation-assertion-02.html

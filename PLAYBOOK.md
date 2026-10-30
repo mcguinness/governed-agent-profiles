@@ -85,7 +85,7 @@ to a team:
 | Team | Owns |
 |---|---|
 | Identity (IAM) | Agent Principals and owners; Identity Bindings; Client Associations; Delegation and Agent Authorizations; Continuation Associations; IdP issuance policy, including oversight modes and the approvers for issuance; the authority of SCIM connectors |
-| Resource and application owners | Local agent principals and their eligibility; actor-gate policy; access-token protection per client and resource; Local Suspension; per-action policy and its approvers |
+| Resource and application owners | Local agent principals and their eligibility; actor-gate policy; access-token protection per client and resource; Local Suspension; per-action policy, policy for redemptions that wait for approval, and their approvers |
 | Platform engineering | Agent OAuth clients and their keys; workload credentials; the SCIM connector |
 | Security operations | Signals into the IdP and policy decision points; running the containment runbooks; incident records |
 
@@ -179,8 +179,11 @@ agent, with the gateway as client. Permit continuation in tenant policy
 and in the Delegation or Agent Authorization; make the gateway's
 authorization server continuation-aware; sender-constrain the
 gateway's access tokens unless policy permits continuation from bearer
-tokens; give each gateway a Continuation Association; and make sure
-target authorization servers support DPoP at their token endpoints.
+tokens; give each gateway a Continuation Association; set the
+continuation window, which the profile requires to be finite, long
+enough for the tokens each gateway or task continues from (the profile
+does not say where the window is configured); and make sure target
+authorization servers support DPoP at their token endpoints.
 MCP clients send bearer tokens, so an MCP gateway needs that bearer
 policy unless its clients also support DPoP.
 
@@ -192,6 +195,9 @@ policy unless its clients also support DPoP.
   authority.
 * An agent disabled and re-enabled between continuations has its chain
   ended (`invalid_continuation`); a new root grant is needed.
+* A continuation requested after the hop's deadline fails with
+  `invalid_grant`, and one from a continuing client that the chain
+  authorization's restriction excludes fails with `unauthorized_client`.
 
 #### An external policy decision point
 
@@ -209,15 +215,22 @@ token, the local principal stands for the agent.
 * The enforcement point, not a tool's declared mapping, supplies the
   agent identity the policy decision point sees: from `act` for a
   delegated token and the subject for a self-acting one, never
-  `client_id`. Treating the mapping this way is a deployment rule.
+  `client_id`. The core requires this: request attributes never supply
+  or override the identities ([core, Optional Policy
+  Services][core-policy-services]).
 * A permit never widens the token's scope or tenant.
-* With the policy decision point unreachable, requests fail as the
-  selected integration requires. A COAZ-MCP enforcement point fails
-  closed and returns JSON-RPC error `-32603`. Only where the selected
-  integration permits a fallback does each class of action behave as
-  configured, denying or applying local policy; the drafts define no
-  behavior, so the playbook requires that choice to be made per class
-  and tested.
+* The API reports actor denial, insufficient token authority, other
+  denial, and incomplete evaluation according to the core's selection
+  order ([core, Error Responses][core-resource-errors]).
+* With the policy decision point unreachable, the API performs no
+  operation that needs the decision and reports no denial: it answers
+  HTTP 503, normally with `Retry-After`, unless a failure is established
+  and no unfinished check ranks earlier than it in the selection order.
+  A COAZ-MCP enforcement point fails closed and returns JSON-RPC error
+  `-32603`; the drafts do not yet say how that composes with the core's
+  503. Whether a local fallback policy can stand in for the unreachable
+  service is also unsettled, so test the 503 and do not count a
+  fallback as completing the check (a deployment requirement).
 * A decision cached before the agent was disabled, or before its grant
   was revoked, is not reused once the enforcement point has applied the
   change. The drafts define no cache rule; this is a deployment
@@ -225,40 +238,62 @@ token, the local principal stands for the agent.
 
 #### Human oversight
 
-Where a person must approve a request before its grant issues, see each
-grant as it issues, or approve an action, deploy the [oversight
+Where a person must approve a request before its grant issues or before
+a RAS issues access, see each grant as it issues, or approve an action,
+deploy the [oversight
 profile][oversight] ([guide][guide-oversight]). Configure the mode in
 IdP issuance policy, usually as a condition of the Delegation or Agent
 Authorization, at the IdP directly: the SCIM management profile has no
 attribute for it. For approval before issuance, designate approvers and
 the authentication each needs, choose an approval channel, set a
 maximum pending lifetime, and have the client opt in with
-`completion_mode=deferred` and a DPoP proof. For supervised issuance,
+`completion_mode=deferred` and a DPoP proof. For approval before
+redemption, the resource owner sets which redemptions wait in RAS
+policy, designates approvers, and sets a maximum pending lifetime, and
+the client opts in on its redemption the same way. For supervised
+issuance,
 give overseers each grant's issuer, `jti`, and context, and document how
 long each intervention takes to reach the target. For approval of
 actions, the API or MCP server holds the call until an approver decides.
 
 *Exit checks:*
-* Where policy requires approval, a request without
-  `completion_mode=deferred` fails with `actor_unauthorized` for
-  delegated issuance or `invalid_target` for self-acting issuance, and
-  neither a grant nor a deferred response is returned.
+* Where policy requires approval, a request or redemption without
+  `completion_mode=deferred` fails with `actor_unauthorized` for a
+  delegated grant or `invalid_target` for a self-acting one, and nothing
+  is issued and no deferred response is returned.
 * The approver authenticates at the strength policy requires and sees
   the agent, the user, the client, the target, and the authority as the
-  IdP resolved them, with any text from the agent marked as the
-  agent's. A decision sent by the client or the agent is not accepted.
+  deferring server resolved them, the IdP for issuance and the RAS for
+  redemption, with any text from the agent marked as the agent's. A
+  decision sent by the client or the agent is not accepted.
 * A poll that proves another key fails with `invalid_dpop_proof`, and a
-  poll after the grant was delivered fails with `invalid_grant`.
+  poll after the grant or access token was delivered fails with
+  `invalid_grant`.
 * When an agent is disabled while its request is pending and the
-  approver then approves, the next poll returns `access_denied` and no
-  grant issues. Polls before the decision still return
-  `authorization_pending`: the IdP re-checks at resolution, and the
-  profile does not require disablement to cancel a pending request.
-* Approving narrower authority yields a grant with only that authority,
-  and an approval does not carry over to the next request with the same
-  context.
-* Except for a continuation, a pending request ends no later than the
-  subject credential expires, or a platform JWT that bounds the grant.
+  approver then approves, the next poll returns `access_denied` and
+  nothing issues. Polls before the decision still return
+  `authorization_pending`: the deferring server re-checks at
+  resolution, and the profile does not require disablement to cancel a
+  pending request.
+* Approving narrower authority yields a grant or access token with only
+  that authority, and an approval does not carry over to another
+  request with the same context.
+* For approval before issuance: except for a continuation, a pending
+  request ends no later than the subject credential expires, or a
+  platform JWT that bounds the grant.
+* For approval before redemption, which the RAS resolves into an access
+  token, not a grant:
+  * The pending redemption ends no later than the maximum pending
+    lifetime and the absolute authorization expiration that the RAS
+    set when it accepted the grant. The grant's `exp` limits only that
+    acceptance.
+  * While the redemption is pending, the same grant presented again by
+    the same client, with the opt-in, a fresh proof of the same key, and
+    the same request, returns the same deferral code, even after the
+    grant's `exp`; the approval then still issues the access token.
+  * The access token expires no later than the approval expiry, any
+    enforcement deadline, and the absolute authorization expiration.
+  * The oversight profile's deferred-redemption negative tests pass.
 * Where supervised issuance is claimed for a target, each grant's issuer,
   `jti`, request context, and issuance time reach an overseer no later
   than the client receives the grant, and an intervention from the
@@ -714,7 +749,7 @@ are for the evaluator.
 | IdP, gateway, and the gateway's RAS: continuation, with the gateway's RAS, or an issuer trusted for it, as Continuation Assertion Issuer; the target RAS, with DPoP at its token endpoint and, where policy requires it, path disclosure | Gateways | Step 4's continuation checks, and the continuation profile's negative tests | | | |
 | IdP: grant-anchored continuation | Scheduled work | The scheduled-work variation's test | | | |
 | API or gateway: an external policy decision point, with the agent identity taken from the validated token and never from `client_id` or a tool's declared mapping | Delegated per-action policy | Step 4's policy checks | | | |
-| API or gateway: behavior when the policy decision point is unreachable: failing closed with `-32603` under COAZ-MCP, and otherwise a configured choice per action class (a deployment requirement) | Delegated per-action policy | Step 4's unreachable-PDP check | | | |
+| API or gateway: behavior when the policy decision point is unreachable: no operation, and HTTP 503 unless a failure is established and no unfinished check ranks earlier than it; `-32603` under COAZ-MCP, whose composition with the 503 is unsettled | Delegated per-action policy | Step 4's unreachable-PDP check | | | |
 | API or gateway: decision cache lifetime, and invalidation when a disablement or revocation is applied (a deployment requirement) | Delegated per-action policy | Step 4's cached-decision check | | | |
 | IdP: deferred governed issuance, in Deferred Token Response's polling mode, with DPoP on every deferred request and the governed checks again at resolution | Approval before issuance | Step 4's oversight checks; the approval variation's tests | | | |
 | Client: deferred governed issuance: the opt-in with DPoP, polling with the same key, and no retry of a denied request another way | Approval before issuance | The approval variation's transaction | | | |
@@ -743,13 +778,17 @@ implementations](IMPLEMENTERS-GUIDE.md#configuration-exchanged-between-implement
 | Lifecycle sender → receiver | | Provisioning, disablement, and events | |
 | Gateway's RAS → IdP → target RAS | | One continuation, end to end | |
 | IdP → approval channel | | One deferred request, from approval to the grant | |
+| RAS → approval channel | | One deferred redemption, from approval to the access token | |
 
 Pin each test to the draft revisions used, either the published -NN
 revision or the editor's copy commit, and to the product versions. A
 result against one revision is not evidence for the next. The core's
 negative tests ("Renewal and Negative Tests"), the continuation and
 oversight profiles' ("Negative Tests"), and the lifecycle profile's
-("Acceptance Checklist") supply further cases.
+("Acceptance Checklist") supply further cases. The [conformance
+suite](conformance/README.md) runs many of them through an adapter; its
+"Test control" column says what control of the implementation each
+case needs.
 
 ## Runbooks: stop and restore
 
@@ -1193,6 +1232,8 @@ tooling can rely on.
 [core]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
 [core-walkthrough]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#walkthrough
 [core-aws-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#aws-example
+[core-policy-services]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#policy-services
+[core-resource-errors]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#resource-errors
 [continuation]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
 [continuation-scheduled]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#walkthrough-scheduled
 [oversight-walkthrough]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#walkthrough

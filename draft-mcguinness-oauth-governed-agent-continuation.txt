@@ -518,7 +518,9 @@ Table of Contents
    redeemed without a DPoP proof, as governed agent access permits.  A
    hop therefore remains sender-constrained from the RAS to the
    continuing client unless policy accepts the exposure that Section 9.1
-   of [ICA] describes.
+   of [ICA] describes.  An authorization from a deferred redemption is
+   not eligible under any policy ("Refresh and Continuation" in
+   [OVERSIGHT]).
 
    The CAI's attestation establishes that the RAS accepted the hop, not
    that the gateway authorized the request, which the gateway does as
@@ -1583,6 +1585,13 @@ Table of Contents
 
 15.2.  Informative References
 
+   [OVERSIGHT]
+              McGuinness, K., "Human Oversight Profile for Governed
+              Agent Federation", Work in Progress, Internet-Draft,
+              draft-mcguinness-oauth-governed-agent-oversight,
+              <https://mcguinness.github.io/governed-agent-profiles/
+              draft-mcguinness-oauth-governed-agent-oversight.html>.
+
    [AGENT-LIFECYCLE]
               McGuinness, K., "Governed Agent Lifecycle Profile for SCIM
               and OAuth", Work in Progress, Internet-Draft, draft-
@@ -2197,6 +2206,13 @@ A.8.  Negative Tests
    |GatewayRAS issues a bearer  |       |                              |
    |access token, and no policy |       |                              |
    |permits continuation from it|       |                              |
+   +----------------------------+-------+------------------------------+
+   |GatewayRAS deferred the root|CAI    |HTTP 400, invalid_request; the|
+   |redemption until an approver|       |authorization is not eligible |
+   |decided ([OVERSIGHT]), and  |       |for continuation              |
+   |the gateway presents the    |       |                              |
+   |resulting access token, or  |       |                              |
+   |one refreshed from it       |       |                              |
    +----------------------------+-------+------------------------------+
    |The gateway redeems the     |Target |HTTP 400, invalid_grant       |
    |onward ID-JAG without a     |RAS    |                              |

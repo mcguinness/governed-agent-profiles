@@ -2239,22 +2239,30 @@ Table of Contents
    In addition to Section 4.7 and the checks of Section 6.2, the RAS
    uses these errors:
 
-         +======================================+===============+
-         | Failure                              | Error         |
-         +======================================+===============+
-         | Invalid ID-JAG                       | invalid_grant |
-         +--------------------------------------+---------------+
-         | Unbound grant whose (iss, jti) the   | invalid_grant |
-         | RAS already accepted                 |               |
-         +--------------------------------------+---------------+
-         | WAG whose sub has no authorized      | invalid_grant |
-         | correlation at the RAS               |               |
-         +--------------------------------------+---------------+
-         | Invalid WAG, including one without   | invalid_grant |
-         | typ wag+jwt or one that contains act |               |
-         +--------------------------------------+---------------+
+      +======================================+======================+
+      | Failure                              | Error                |
+      +======================================+======================+
+      | Invalid ID-JAG                       | invalid_grant        |
+      +--------------------------------------+----------------------+
+      | Unbound grant whose (iss, jti) the   | invalid_grant        |
+      | RAS already accepted                 |                      |
+      +--------------------------------------+----------------------+
+      | WAG whose sub has no authorized      | invalid_grant        |
+      | correlation at the RAS               |                      |
+      +--------------------------------------+----------------------+
+      | Invalid WAG, including one without   | invalid_grant        |
+      | typ wag+jwt or one that contains act |                      |
+      +--------------------------------------+----------------------+
+      | Current RAS policy refuses a valid   | actor_unauthorized   |
+      | ID-JAG's delegation, including under | under Actor Profile, |
+      | the actor gate (Section 3.6.4)       | with HTTP 400        |
+      +--------------------------------------+----------------------+
+      | Current RAS policy refuses a valid   | invalid_target       |
+      | WAG for the agent, client, tenant,   |                      |
+      | or resource (Section 6.5)            |                      |
+      +--------------------------------------+----------------------+
 
-                       Table 18: Redemption errors
+                        Table 18: Redemption errors
 
 7.  Access at the Resource Server
 
@@ -2957,9 +2965,9 @@ Table of Contents
    within the presented token's authority.  It MUST NOT expand that
    authority or override token validity or tenant restrictions.  Access
    beyond that authority requires new authorization through an
-   applicable protocol.  Approval before issuance follows [OVERSIGHT];
-   other asynchronous approval composition is deferred under
-   Appendix B.3.
+   applicable protocol.  Approval before issuance or redemption follows
+   [OVERSIGHT]; other asynchronous approval composition is deferred
+   under Appendix B.3.
 
 12.  Privacy Considerations
 
@@ -3937,52 +3945,65 @@ B.3.  Excluded Compositions
 
    This document does not define the following compositions:
 
-    +=======================+========================================+
-    | Composition           | Boundary in this document              |
-    +=======================+========================================+
-    | Approval before       | Defined for governed issuance,         |
-    | issuance              | including continuation, in [OVERSIGHT] |
-    +-----------------------+----------------------------------------+
-    | Asynchronous approval | External approval follows              |
-    | with [AROP]           | Section 11.9, Section 3.6.3, and       |
-    |                       | Section 5.4                            |
-    +-----------------------+----------------------------------------+
-    | Continuation with     | Defined for governed grants, including |
-    | [ICA]                 | through gateways, in [CONTINUATION];   |
-    |                       | renewal without continuation follows   |
-    |                       | Section 8                              |
-    +-----------------------+----------------------------------------+
-    | General WIMSE WIT/WIC | Only the SPIFFE forms in [INPUTS] are  |
-    | inputs                | defined                                |
-    +-----------------------+----------------------------------------+
-    | Instance context in   | The RAS conveys only an instance it    |
-    | an ID-JAG or WAG, or  | validated (Section 6.6); workload      |
-    | preserved across      | evidence resolves the agent, and a     |
-    | domains, under        | shared workload identity does not      |
-    | [INSTANCE]            | distinguish replicas [SPIFFE-CONCEPTS] |
-    +-----------------------+----------------------------------------+
-    | Mutual-TLS-bound ID-  | Bound grants use DPoP; mutual TLS can  |
-    | JAG                   | protect access tokens (Section 6.7)    |
-    +-----------------------+----------------------------------------+
-    | Authorization details | Scope is required; the scope-free mode |
-    | without scope         | of [RFC9396] is not defined            |
-    +-----------------------+----------------------------------------+
-    | Grant key transition  | A bound grant is redeemed with proof   |
-    |                       | of its own key (Section 4.4); no       |
-    |                       | transition to another key is defined   |
-    +-----------------------+----------------------------------------+
-    | Portable              | ID-JAG exp limits redemption only;     |
-    | authorization         | downstream lifetimes follow RAS policy |
-    | deadlines             | (Section 3.6.3)                        |
-    +-----------------------+----------------------------------------+
-    | User access tokens as | Subjects follow Section 5.6.2;         |
-    | subjects, as in       | accepting an access token needs        |
-    | deployed on-behalf-of | eligibility, audience, resolution,     |
-    | (OBO) flows such as   | sender-constraint, and authority rules |
-    | [AWS-AGENTCORE-OBO]   | coordinated with ID-JAG                |
-    +-----------------------+----------------------------------------+
+   +=====================+=============================================+
+   | Composition         | Boundary in this document                   |
+   +=====================+=============================================+
+   | Approval before     | Defined for governed issuance,              |
+   | issuance or         | including continuation, and for             |
+   | redemption          | governed redemption at the RAS, in          |
+   |                     | [OVERSIGHT]                                 |
+   +---------------------+---------------------------------------------+
+   | Asynchronous        | At the RAS, defined for deferred            |
+   | approval with       | redemption in [OVERSIGHT], without          |
+   | [AROP]              | continuation from the resulting             |
+   |                     | authorization; at the IdP, external         |
+   |                     | approval follows Section 11.9,              |
+   |                     | Section 3.6.3, and Section 5.4              |
+   +---------------------+---------------------------------------------+
+   | Continuation with   | Defined for governed grants,                |
+   | [ICA]               | including through gateways, in              |
+   |                     | [CONTINUATION]; renewal without             |
+   |                     | continuation follows Section 8              |
+   +---------------------+---------------------------------------------+
+   | General WIMSE WIT/  | Only the SPIFFE forms in [INPUTS]           |
+   | WIC inputs          | are defined                                 |
+   +---------------------+---------------------------------------------+
+   | Instance context in | The RAS conveys only an instance it         |
+   | an ID-JAG or WAG,   | validated (Section 6.6); workload           |
+   | or preserved across | evidence resolves the agent, and a          |
+   | domains, under      | shared workload identity does not           |
+   | [INSTANCE]          | distinguish replicas                        |
+   |                     | [SPIFFE-CONCEPTS]                           |
+   +---------------------+---------------------------------------------+
+   | Mutual-TLS-bound    | Bound grants use DPoP; mutual TLS           |
+   | ID-JAG              | can protect access tokens                   |
+   |                     | (Section 6.7), except after a               |
+   |                     | deferred redemption, which                  |
+   |                     | [OVERSIGHT] requires to be DPoP-            |
+   |                     | bound                                       |
+   +---------------------+---------------------------------------------+
+   | Authorization       | Scope is required; the scope-free           |
+   | details without     | mode of [RFC9396] is not defined            |
+   | scope               |                                             |
+   +---------------------+---------------------------------------------+
+   | Grant key           | A bound grant is redeemed with              |
+   | transition          | proof of its own key (Section 4.4);         |
+   |                     | no transition to another key is             |
+   |                     | defined                                     |
+   +---------------------+---------------------------------------------+
+   | Portable            | ID-JAG exp limits redemption only;          |
+   | authorization       | downstream lifetimes follow RAS             |
+   | deadlines           | policy (Section 3.6.3)                      |
+   +---------------------+---------------------------------------------+
+   | User access tokens  | Subjects follow Section 5.6.2;              |
+   | as subjects, as in  | accepting an access token needs             |
+   | deployed on-behalf- | eligibility, audience, resolution,          |
+   | of (OBO) flows such | sender-constraint, and authority            |
+   | as                  | rules coordinated with ID-JAG               |
+   | [AWS-AGENTCORE-OBO] |                                             |
+   +---------------------+---------------------------------------------+
 
-                     Table 28: Excluded compositions
+                      Table 28: Excluded compositions
 
 Appendix C.  Document History
 

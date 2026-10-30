@@ -4404,6 +4404,17 @@ RAS uses these errors:<a href="#section-6.9-1" class="pilcrow">¶</a></p>
                 <code>invalid_grant</code>
 </td>
             </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Current RAS policy refuses a valid ID-JAG's delegation, including under the actor gate (<a href="#actor-authorization" class="auto internal xref">Section 3.6.4</a>)</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>actor_unauthorized</code> under Actor Profile, with HTTP 400</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Current RAS policy refuses a valid WAG for the agent, client, tenant, or resource (<a href="#wag-redemption" class="auto internal xref">Section 6.5</a>)</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>invalid_target</code>
+</td>
+            </tr>
           </tbody>
         </table>
 </section>
@@ -5333,9 +5344,9 @@ resource-local approval can satisfy an additional policy condition
 within the presented token's authority. It <span class="bcp14">MUST NOT</span> expand that
 authority or override token validity or tenant restrictions. Access
 beyond that authority requires new authorization through an applicable
-protocol. Approval before issuance follows <span>[<a href="#OVERSIGHT" class="cite xref">OVERSIGHT</a>]</span>; other
-asynchronous approval composition is deferred under
-<a href="#excluded-compositions" class="auto internal xref">Appendix B.3</a>.<a href="#section-11.9-1" class="pilcrow">¶</a></p>
+protocol. Approval before issuance or redemption follows
+<span>[<a href="#OVERSIGHT" class="cite xref">OVERSIGHT</a>]</span>; other asynchronous approval composition is deferred
+under <a href="#excluded-compositions" class="auto internal xref">Appendix B.3</a>.<a href="#section-11.9-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -6441,14 +6452,14 @@ X.509-SVID authentication a self-acting path; and<a href="#appendix-B.2.1-2.4.1"
           </thead>
           <tbody>
             <tr>
-              <td class="text-left" rowspan="1" colspan="1">Approval before issuance</td>
-              <td class="text-left" rowspan="1" colspan="1">Defined for governed issuance, including continuation, in <span>[<a href="#OVERSIGHT" class="cite xref">OVERSIGHT</a>]</span>
+              <td class="text-left" rowspan="1" colspan="1">Approval before issuance or redemption</td>
+              <td class="text-left" rowspan="1" colspan="1">Defined for governed issuance, including continuation, and for governed redemption at the RAS, in <span>[<a href="#OVERSIGHT" class="cite xref">OVERSIGHT</a>]</span>
 </td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Asynchronous approval with <span>[<a href="#AROP" class="cite xref">AROP</a>]</span>
 </td>
-              <td class="text-left" rowspan="1" colspan="1">External approval follows <a href="#external-approval" class="auto internal xref">Section 11.9</a>, <a href="#authorization-lifetime" class="auto internal xref">Section 3.6.3</a>, and <a href="#issuance-authorization" class="auto internal xref">Section 5.4</a>
+              <td class="text-left" rowspan="1" colspan="1">At the RAS, defined for deferred redemption in <span>[<a href="#OVERSIGHT" class="cite xref">OVERSIGHT</a>]</span>, without continuation from the resulting authorization; at the IdP, external approval follows <a href="#external-approval" class="auto internal xref">Section 11.9</a>, <a href="#authorization-lifetime" class="auto internal xref">Section 3.6.3</a>, and <a href="#issuance-authorization" class="auto internal xref">Section 5.4</a>
 </td>
             </tr>
             <tr>
@@ -6469,7 +6480,7 @@ X.509-SVID authentication a self-acting path; and<a href="#appendix-B.2.1-2.4.1"
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Mutual-TLS-bound ID-JAG</td>
-              <td class="text-left" rowspan="1" colspan="1">Bound grants use DPoP; mutual TLS can protect access tokens (<a href="#access-token-protection" class="auto internal xref">Section 6.7</a>)</td>
+              <td class="text-left" rowspan="1" colspan="1">Bound grants use DPoP; mutual TLS can protect access tokens (<a href="#access-token-protection" class="auto internal xref">Section 6.7</a>), except after a deferred redemption, which <span>[<a href="#OVERSIGHT" class="cite xref">OVERSIGHT</a>]</span> requires to be DPoP-bound</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Authorization details without scope</td>

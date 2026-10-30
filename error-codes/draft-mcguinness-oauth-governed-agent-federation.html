@@ -2648,7 +2648,8 @@ the applicable input profile. <a href="#issuance-errors" class="auto internal xr
 </td>
             </tr>
             <tr>
-              <td class="text-left" rowspan="1" colspan="1">Unacceptable requested scope, invalid scope reduction, or no non-empty scope can be issued</td>
+              <td class="text-left" rowspan="1" colspan="1">Unacceptable requested scope, invalid scope reduction, or no non-empty scope can be issued, except where <a href="#issuance-authorization" class="auto internal xref">Section 5.4</a> assigns <code>actor_unauthorized</code>
+</td>
               <td class="text-left" rowspan="1" colspan="1">
                 <code>invalid_scope</code>
 </td>
@@ -4662,12 +4663,15 @@ can succeed. The challenge uses the selected scheme without an <code>error</code
 attribute, and a <code>Bearer</code> challenge carries <code>realm</code>. A response body is
 application-specific but <span class="bcp14">MUST NOT</span> convey <code>actor_unauthorized</code> or
 <code>insufficient_scope</code>.<a href="#section-7.6-5" class="pilcrow">¶</a></p>
-<p id="section-7.6-6">If the API cannot complete an authorization evaluation, for example
-because a policy service is unreachable or returns a decision the API
-cannot interpret, it <span class="bcp14">MUST NOT</span> perform the operation and <span class="bcp14">MUST NOT</span> report
-a denial from this table. It responds with HTTP status code 503
-(Service Unavailable) (<span><a href="https://rfc-editor.org/rfc/rfc9110#section-15.6.4" class="relref">Section 15.6.4</a> of [<a href="#RFC9110" class="cite xref">RFC9110</a>]</span>) and <span class="bcp14">SHOULD</span> include
-a <code>Retry-After</code> header field (<span><a href="https://rfc-editor.org/rfc/rfc9110#section-10.2.3" class="relref">Section 10.2.3</a> of [<a href="#RFC9110" class="cite xref">RFC9110</a>]</span>).<a href="#section-7.6-6" class="pilcrow">¶</a></p>
+<p id="section-7.6-6">If a check cannot complete, for example because a policy service is
+unreachable or returns a decision the API cannot interpret, the API
+<span class="bcp14">MUST NOT</span> perform the operation. If it has established a failure and no
+check that did not complete comes earlier in this table, it reports that
+failure as the table selects. Otherwise it <span class="bcp14">MUST NOT</span> report a denial
+from this table: it responds with HTTP status code 503 (Service
+Unavailable) (<span><a href="https://rfc-editor.org/rfc/rfc9110#section-15.6.4" class="relref">Section 15.6.4</a> of [<a href="#RFC9110" class="cite xref">RFC9110</a>]</span>) and <span class="bcp14">SHOULD</span> include a
+<code>Retry-After</code> header field (<span><a href="https://rfc-editor.org/rfc/rfc9110#section-10.2.3" class="relref">Section 10.2.3</a> of [<a href="#RFC9110" class="cite xref">RFC9110</a>]</span>). Evaluation
+order therefore does not change the response.<a href="#section-7.6-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -6162,6 +6166,17 @@ last column is the required result. Token endpoint errors follow
                 <td class="text-left" rowspan="1" colspan="1">The API delegates evaluation to a policy service, which cannot be reached</td>
                 <td class="text-left" rowspan="1" colspan="1">API</td>
                 <td class="text-left" rowspan="1" colspan="1">HTTP 503; no operation performed and no denial reported</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">The policy service denies <code>agent-42</code> under the actor gate, and its evaluation of Alice's own permissions cannot complete</td>
+                <td class="text-left" rowspan="1" colspan="1">API</td>
+                <td class="text-left" rowspan="1" colspan="1">HTTP 403, <code>actor_unauthorized</code>; no unfinished check comes earlier</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">The policy service cannot complete the actor gate, and Alice has no permission on <code>report-7</code>
+</td>
+                <td class="text-left" rowspan="1" colspan="1">API</td>
+                <td class="text-left" rowspan="1" colspan="1">HTTP 503; the unfinished actor gate could come earlier than the user's denial</td>
               </tr>
               <tr>
                 <td class="text-left" rowspan="1" colspan="1">Platform JWT variant (<a href="#aws-example" class="auto internal xref">Appendix A.2.1</a>): Alice's access tokens for <code>agent-42</code> and for another agent carry the same <code>client_id</code>, and the API's policy permits only <code>agent-42</code>

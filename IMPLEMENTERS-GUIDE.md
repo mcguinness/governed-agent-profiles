@@ -9,8 +9,8 @@ Continuation Profile for Governed Agent Federation][CONTINUATION],
 Those documents define every requirement, and they govern wherever this
 guide differs
 from them. Nothing here is needed to implement them; the guide explains
-the flows, collects the configuration a deployment needs, and records
-deployment tradeoffs. The [architecture overview](ARCHITECTURE.md) explains
+the flows and collects the configuration a deployment needs. The
+[architecture overview](ARCHITECTURE.md) explains
 the problem, the principles, and how the drafts fit together. Section
 names link to the editor's copy of the profile that defines them.
 
@@ -46,7 +46,6 @@ capabilities follow, each naming the roles that build it.
 
 * [Sub-agents and orchestrators](#sub-agents-and-orchestrators)
 * [Credential brokers](#credential-brokers)
-* [Adoption tradeoffs](#adoption-tradeoffs)
 
 ## Primer: two grants, one identity model
 
@@ -735,8 +734,8 @@ the OAuth client distinct, and supplies the tenant and token constraints
 AuthZEN mapping. This chapter shows where a PDP fits, the use cases, the
 inputs an enforcement point must supply itself, and illustrative
 requests in the [AuthZEN Authorization API 1.0][AUTHZEN] format. The
-[architecture overview](ARCHITECTURE.md#authorization-decisions-with-authzen)
-summarizes the points that need care.
+[architecture overview](ARCHITECTURE.md#policy-decision-services)
+states the core's rules for any policy service.
 
 ### Integration points
 
@@ -1429,22 +1428,6 @@ agent cannot use the token directly.
     deployment-specific. These profiles define no selective WAG
     revocation.
 
-## Adoption tradeoffs
-
-The profile's security controls carry these deployment costs. The
-threats behind them are in the core profile's [Security
-Considerations][security].
-
-| Requirement | Benefit | Cost |
-|---|---|---|
-| Dedicated-client resolution as the common mode | Reuses deployed client authentication and registered keys | One Agent Principal per client identity; proves registered-client identity, not independent runtime or workload provenance |
-| Optional native JWT-SVID input ([INPUTS]) | Reuses SPIFFE issuance, client authentication, and trust-domain validation | Bearer evidence; issuer-bound presenter proof needs another supported input |
-| Bound profile: DPoP at both token endpoints; grant bound to the grant proof key | A stolen ID-JAG cannot be redeemed without the key | Every client holds and proves a key |
-| Bound grants: same key for issuance and redemption | No key-transition protocol to secure | A broker that obtains bound grants also redeems them ([Distributed platforms and key use](#distributed-platforms-and-key-use)) |
-| Access-token context as JWT claims or introspection ([Optional Opaque Access Tokens and Introspection][introspection]) | The API reads `act`, `scope`, and `cnf` from the token or authenticated introspection | Opaque tokens add an introspection round trip and a freshness policy |
-| Actor-aware API processing | The actor gate is enforced where access happens | APIs parse `act` and consult the gate on delegated paths |
-| Sender-constrained access tokens by default | Token theft is contained | Resources without DPoP or mutual TLS need explicit configuration for bearer use |
-
 [core]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
 [INPUTS]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html
 [AGENT-LIFECYCLE]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
@@ -1478,7 +1461,6 @@ Considerations][security].
 [client-metadata]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#client-metadata
 [idp-subject-resolution]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#idp-subject-resolution
 [ras-refresh]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#ras-refresh
-[security]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#security
 [status-changes]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#status-changes
 [walkthrough]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#walkthrough
 [aws-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#aws-example

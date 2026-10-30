@@ -4,8 +4,8 @@
 
 Web Authorization Protocol                                 K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                         29 October 2026
-Expires: 2 May 2027
+Intended status: Standards Track                         30 October 2026
+Expires: 3 May 2027
 
 
             OAuth 2.0 Profile for Governed Agent Federation
@@ -67,7 +67,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 2 May 2027.
+   This Internet-Draft will expire on 3 May 2027.
 
 Copyright Notice
 
@@ -2350,6 +2350,15 @@ Table of Contents
    *  Supply the tenant and token constraints needed to evaluate the
       requested operation.
 
+   *  Take the user, the Agent Principal, the OAuth client, the tenant,
+      and the token constraints that it supplies only from the access
+      token validated under Section 7.2, or from an authenticated
+      introspection response (Section 6.8), and from trusted
+      configuration, including the API's own resolution of those
+      identities to local principals.  Attributes derived from the
+      request, such as from a tool call's arguments, never supply or
+      override them.
+
    For a self-acting token, the local principal stands for the Agent
    Principal.  [AUTHZEN] is one optional evaluation interface.  This
    profile defines no mapping to it.  A policy permit does not override
@@ -3572,6 +3581,21 @@ A.1.5.  Renewal and Negative Tests
    |                               |         | or under another        |
    |                               |         | credential class        |
    |                               |         | (Section 5.3.5)         |
+   +-------------------------------+---------+-------------------------+
+   | The API delegates evaluation  | API     | HTTP 403,               |
+   | to a policy service; an       |         | actor_unauthorized;     |
+   | attribute derived from the    |         | the evaluation uses     |
+   | request names agent-77 as the |         | agent-42 from the       |
+   | agent, and policy permits     |         | validated act           |
+   | agent-77 but not agent-42     |         | (Section 7.5)           |
+   +-------------------------------+---------+-------------------------+
+   | Platform JWT variant          | API     | HTTP 403,               |
+   | (Appendix A.2.1): Alice's     |         | actor_unauthorized for  |
+   | access tokens for agent-42    |         | the other agent; the    |
+   | and for another agent carry   |         | client identifier does  |
+   | the same client_id, and the   |         | not stand in for the    |
+   | API's policy permits only     |         | agent (Section 3.6.4)   |
+   | agent-42                      |         |                         |
    +-------------------------------+---------+-------------------------+
 
                        Table 23: Negative test cases

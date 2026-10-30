@@ -14,7 +14,9 @@ Claims][core-scope], under the bound profile, as
 
 It also holds tests of the oversight companion's deferred redemption at
 the reference RAS ([Deferred redemption at the
-RAS](#deferred-redemption-at-the-ras)).
+RAS](#deferred-redemption-at-the-ras)), and of the core's Optional
+Policy Services, self-acting access and introspection at the reference
+API ([Policy services at the API](#policy-services-at-the-api)).
 
 The drafts define every requirement. The suite tests a subset of them,
 and passing it is evidence for that subset only, not a conformance claim.
@@ -22,6 +24,7 @@ and passing it is evidence for that subset only, not a conformance claim.
 * [Run](#run)
 * [Cases](#cases)
 * [Deferred redemption at the RAS](#deferred-redemption-at-the-ras)
+* [Policy services at the API](#policy-services-at-the-api)
 * [What the suite does not cover](#what-the-suite-does-not-cover)
 * [Running against another implementation](#running-against-another-implementation)
 * [Configuration the reference assumes](#configuration-the-reference-assumes)
@@ -104,14 +107,27 @@ servers listen on localhost. A reader can lay the output beside
 | D20 | RAS | An agent whose correlation changes to another local principal while pending gets `access_denied` at the poll after approval | oversight: Redemption Resolution; core: Agent Principal Correlation | Require approval; change the agent's local principal at the RAS; approve |
 | D21 | RAS | After an unbound grant's deferred redemption, raising the client's minimum to the bound profile makes the next refresh fail with `invalid_grant` | oversight: Refresh and Continuation; core: Optional RAS Refresh Tokens (step 3) | Require approval; permit refresh; set the governed profile; approve |
 | D22 | RAS | A refresh with another key is rejected and the next refresh still succeeds; a refresh rejected on re-evaluation ends the authorization, so restoring the actor gate does not revive it | oversight: Refresh and Continuation (ending the refresh authorization) | Require approval; permit refresh; approve; close and reopen the actor gate |
+| S01 | API | Through the policy service, the positive path's read succeeds, and the evaluation names the user `user-108` as subject, the agent from `act`, the client `analysis-api`, the tenant `acme-data`, and `files.read` in the token constraints | core: Optional Policy Services; Delegated Access | Turn on the policy service; set its permits; read its evaluations |
+| S02 | API | A request attribute naming `agent-77`, which policy permits instead of `agent-42`, fails with 403 `actor_unauthorized`, not `insufficient_scope` | core: Optional Policy Services; negative-test row for a policy service; Error Responses | Turn on the policy service; set its permits |
+| S03 | API | When policy permits only `agent-42`, another agent's access token with the same `client_id` fails with 403 `actor_unauthorized`, and `agent-42`'s succeeds | core: Delegated Actor Authorization; negative-test row for the platform JWT variant's policy | Turn on the policy service; set its permits; mint an access token |
+| S04 | API | A request attribute naming another user, whom policy permits instead, is rejected without the file's data | core: Optional Policy Services | Turn on the policy service; set its permits |
+| S05 | API | A request attribute naming another OAuth client, `other-api`, which policy permits instead, is rejected without the file's data | core: Optional Policy Services | Turn on the policy service; set its permits |
+| S06 | API | With an `acme-data` token on the `acme-data` path, a request attribute naming tenant `beta-data`, which policy permits instead, is rejected without the file's data | core: Optional Policy Services; Token Validation (Tenant) | Turn on the policy service; set its permits |
+| S07 | API | With a `files.read` token, a request attribute naming `files.admin`, which policy requires, is rejected without the file's data | core: Optional Policy Services | Turn on the policy service; set its permits |
+| S08 | API | A self-acting token is served with the API's actor gate closed, and through the policy service, whose evaluation has the local agent principal as subject and names no user | core: Self-Acting Access; Optional Policy Services; Profile Applicability | Mint an access token; close the actor gate at the API; turn on the policy service; set its permits; read its evaluations |
+| S09 | API | For a self-acting token, a request attribute naming `service-principal-77`, which policy permits instead, is rejected without the file's data | core: Optional Policy Services; Self-Acting Access | Mint an access token; turn on the policy service; set its permits |
+| S10 | API | An opaque DPoP-bound token is introspected and served, and the evaluation takes the user, the unchanged `act` and the client from the introspection response | core: Optional Opaque Access Tokens and Introspection; Optional Policy Services | Mint an opaque token; turn on the policy service; set its permits; read its evaluations |
+| S11 | API | For an opaque token, a request attribute naming `agent-77`, which policy permits instead, fails with 403 `actor_unauthorized` | core: Optional Policy Services; Optional Opaque Access Tokens and Introspection | Mint an opaque token; turn on the policy service; set its permits |
+| S12 | API | An introspection response with `active` false fails with 401 `invalid_token` | core: Optional Opaque Access Tokens and Introspection; RFC 7662 Section 2.2 | Mint an opaque token |
+| S13 | API | A delegated-population introspection response without `act` fails with 401 `invalid_token` | core: Optional Opaque Access Tokens and Introspection; Profile Applicability | Mint an opaque token; have the RAS leave `act` out of introspection |
 
 The "negative-test row" sources are the rows of the core's "Renewal and
 Negative Tests" table. N15 asserts only that no token issues, because
 the drafts fix no error code for it; the runner prints the code it
 observed. N16 asserts `actor_unauthorized`, which the core's Redemption
-Errors assigns when RAS policy refuses a valid ID-JAG's delegation. The time cases use an hour, well beyond the few
-minutes of skew the core contemplates, so they do not depend on one
-implementation's tolerance.
+Errors assigns when RAS policy refuses a valid ID-JAG's delegation. The
+time cases use an hour, well beyond the few minutes of skew the core
+contemplates, so they do not depend on one implementation's tolerance.
 
 The suite fails a case only for a departure from a requirement. A
 departure from a recommendation, such as a grant longer than five
@@ -119,7 +135,7 @@ minutes or a resource challenge without an `error` parameter, is
 printed as a note.
 
 Every negative case, P2 and D02 name the reference check they exercise
-(`CHECKS` in [reference.py](reference.py)). With `--vacuity`, all 43
+(`CHECKS` in [reference.py](reference.py)). With `--vacuity`, all 56
 fail with their check switched off. Twenty-three N cases fail because
 the server then accepts the request. P2 fails because the access token
 then carries a rewritten `act`. N11 fails because the RAS returns
@@ -140,6 +156,21 @@ The D cases fail without their check in these ways:
   pending redemptions for one grant (D16).
 
 D09 is a positive case and names no check.
+
+The S cases fail without their check because the API then serves the
+file (HTTP 200):
+
+* S02, S04 to S07, S09 and S11 (`api.policy_source`): the request
+  attribute replaces the token's value in the evaluation, and policy
+  permits that value;
+* S03 (`api.agent_from_token`): the API takes the agent from the client
+  registration, so the other agent's token is evaluated as `agent-42`;
+* S12 (`api.introspection_active`): the API reads the members of an
+  inactive response;
+* S13 (`api.introspection_act`): without `act`, the API applies no
+  actor gate, as if the token were self-acting.
+
+S01, S08 and S10 are positive cases and name no check.
 
 ## Deferred redemption at the RAS
 
@@ -194,8 +225,90 @@ Some cases depend on choices made for the reference:
 * D08 uses an unbound grant. For a bound grant, a proof of another key
   already fails Grant Protection, so the recovery match would not be
   what refuses it.
-* D11 asserts `authorization_pending`, as Approval Binding says. See
-  draft question 6.
+* D11 asserts `authorization_pending`, as Approval Binding says.
+
+## Policy services at the API
+
+The S cases test the core's Optional Policy Services at the reference
+API: when the API delegates authorization evaluation to a policy
+decision service, it takes the user, the Agent Principal, the OAuth
+client, the tenant and the token constraints only from the validated
+access token or an authenticated introspection response, and trusted
+configuration. Attributes derived from the request never supply or
+override them. S02 and S03 are the core's negative-test rows for the
+API's policy: the request attribute naming `agent-77`, and the platform
+JWT variant's two agents with one `client_id`. The other cases cover
+each member, self-acting access, and introspection.
+
+**Test fixtures.** The policy service and the API's introspection
+caller are test fixtures under the suite's control. The policy service
+runs in the API's process. When test control turns it on, it replaces
+the API's own user-permission and actor-gate evaluation; token
+validation, DPoP, applicability, the tenant check and the token's scope
+still run first, so a permit never overrides the token's constraints.
+Test control sets its permits and reads the evaluation requests it
+received. The S cases are reference-implementation tests, not black-box
+conformance cases, and passing them claims nothing about a real policy
+decision point integration.
+
+**Evaluation requests.** The API's request follows the implementer's
+guide's [illustrative AuthZEN
+requests](../IMPLEMENTERS-GUIDE.md#illustrative-requests): `subject`,
+`action` and `resource`, with `agent`, `client`, `tenant` and
+`constraints` (`scope` and `aud`) in `context`. For self-acting access
+the subject is the local agent principal and there is no `agent`
+member. The drafts define no AuthZEN mapping; this shape is the
+reference's own.
+
+**Request attributes.** The API accepts the query parameters `agent`,
+`user`, `client_id`, `tenant` and `scope` on a file read. They stand in
+for a tool call's arguments; the drafts define no such parameters. The
+API passes every query parameter to the policy service unchanged, in
+`context.request` and nowhere else.
+
+**Self-acting tokens.** The API configures a separate client
+registration, `analysis-agent-client`, as the self-acting population for
+the `acme-data` resource, as Profile Applicability permits. Its tokens
+name the local agent principal `service-principal-42` as `sub` and carry
+no `act`. The RAS mints them through test control; the reference has no
+WAG issuance or redemption.
+
+**Introspection.** The RAS answers RFC 7662 introspection at
+`/introspect` to a caller that authenticates with HTTP Basic, and
+rejects any other caller with 401 `invalid_client`. The API holds its
+own credential, generated at start, and calls the RAS over HTTP at the
+RAS's localhost transport whenever the presented token is not a JWS.
+The RAS mints opaque tokens only through test control. The API treats
+the response as validated claims: it rejects `active` false, applies
+applicability and the `act` requirement, binds the DPoP proof to
+`cnf.jkt`, and takes the tenant from `aud`. Nothing caches a response,
+and the suite tests no freshness limit.
+
+Some cases depend on choices made for the reference:
+
+* For a delegated token, the reference maps every policy denial to HTTP
+  403 `actor_unauthorized`, because one decision does not say whether
+  the user's authority or the actor gate failed. For a self-acting
+  token, it returns HTTP 403 with `forbidden` in the body and a DPoP
+  challenge without an `error` parameter. S04 to S07 and S09 assert
+  only a rejection without the file's data, since the core fixes no
+  status or code for these denials, and the runner prints what it
+  observed; see draft questions 6 to 8.
+* S03 mints the other agent's token, for `agent-43`, with the same
+  `client_id` as `agent-42`'s. It stands for the platform JWT variant's
+  shared client.
+* S08 first reads with the API's own evaluation and its actor gate for
+  `agent-42` closed, to show that no actor gate applies, and then reads
+  through the policy service.
+* For S12, the RAS returns the token's members with `active` false.
+  RFC 7662 Section 2.2 discourages that but permits it, and it gives an
+  API that ignores `active` something to accept. For an unknown or
+  expired token, the RAS returns only `active`.
+* S12 and S13 test introspection processing and leave the policy
+  service off.
+* `api.introspection_auth` is not a check. An API that stopped
+  authenticating would be refused by the RAS on every introspection, so
+  no case could observe it accepting an unauthenticated response.
 
 ## What the suite does not cover
 
@@ -204,10 +317,16 @@ The suite tests nothing outside the path above, including:
 * governed agent access with unbound grants, except as the setup for N10
   and D08;
 * existing platform JWTs and the inputs of the inputs draft;
-* self-acting access with WAG, including deferred WAG redemption and the
-  removal of a pending WAG redemption's correlation;
-* introspection, opaque access tokens, and RAS refresh tokens other than
-  those from a deferred redemption;
+* WAG issuance and redemption, including deferred WAG redemption and
+  the removal of a pending WAG redemption's correlation; self-acting
+  access at the API is covered only with minted tokens (S08 and S09);
+* introspection beyond the API's processing in S10 to S13: the RAS's
+  own introspection responses, caching and freshness limits,
+  `authorization_details`, certificate-bound tokens, and opaque tokens
+  issued by a redemption;
+* a real policy decision point, and policy services at the IdP or the
+  RAS;
+* RAS refresh tokens other than those from a deferred redemption;
 * DPoP server nonces, mutual TLS (including the refusal to defer for a
   resource configured for mutual-TLS access tokens), and bearer access
   tokens;
@@ -233,7 +352,11 @@ another IdP, RAS or API:
    N17 needs a second tenant in which the user and the agent also have
    rights. D10 and D11 need `second_agent`, another agent the RAS
    correlates and lets act for the user; D12 needs `extra_scope`, a
-   scope beyond `scope` the RAS can require approval for.
+   scope beyond `scope` the RAS can require approval for. The S cases
+   need `tenant` and `other_tenant`, the Target Tenants of the two
+   resources, and `self_acting_client_id` and `self_acting_sub`, a
+   registration the API configures as the self-acting population for
+   `resource` and the local agent principal its tokens name.
 2. Implement `suite.Adapter` for the deployment. Every case needs
    `id_token`; the "Test control" column lists the other capabilities.
    A case whose capability the deployment cannot provide can be skipped
@@ -242,7 +365,10 @@ another IdP, RAS or API:
    `authorization_lifetime`, `client_profile`), the Access Request
    Service hooks `tasks`, `approve`, `deny`, `revoke`, `shorten` and
    `substitute`, and `advance_clock`, which must advance every server's
-   clock. The `Adapter` docstring defines each one.
+   clock. The S cases use `set` on the API (`policy_service`,
+   `actor_gate`) and on the RAS (`introspection_omit_act`), the policy
+   service hooks `set_policy` and `evaluations`, `mint_access_token`,
+   and `mint_opaque_token`. The `Adapter` docstring defines each one.
 3. Call `suite.run_case` for each case in `suite.CASES`.
 
 `disable_check` exists only for the reference implementation's vacuity
@@ -260,12 +386,16 @@ implementations](../IMPLEMENTERS-GUIDE.md#configuration-exchanged-between-implem
 | Choice | The reference's choice | Drafts' text |
 |---|---|---|
 | How the API tells the governed delegated population apart | Trusted configuration keyed by the access token's `client_id` and audience | core: Profile Applicability ("no in-band discriminator") |
+| How the API tells the self-acting population apart | A separate client identifier, `analysis-agent-client`, configured at the API as the self-acting population for the `acme-data` resource; the RAS mints its tokens through test control | core: Profile Applicability (separate client registrations) |
 | Where the tenant is carried | The tenant-specific resource URI, as the access token's audience | core: Access Token Issuance and Response (the default) |
 | Client registration association | One RAS registration, `analysis-api`, for the dedicated IdP client `analysis-client` | core: Issuance Prerequisites |
 | Actor gate | An explicit entry of user, agent issuer, agent and tenant, at both the RAS and the API | core: Delegated Actor Authorization ("not a protocol object") |
 | Delegation Authorization | Agent, user, client and resource, with a scope set; a request is narrowed to it, and a request with no overlap fails with `invalid_scope` | core: Delegation Authorization; Issuance Authorization |
 | Re-redeeming a bound grant | Not accepted: each grant is redeemed once | core: Common Grant Validation (MAY accept again under explicit policy) |
-| Access tokens | JWT access tokens validated at the API, 600 s, no introspection, no refresh token except after a deferred redemption | core: Token Validation; Optional RAS Refresh Tokens |
+| Access tokens | JWT access tokens validated at the API, 600 s, no refresh token except after a deferred redemption; opaque tokens only through test control | core: Token Validation; Optional RAS Refresh Tokens |
+| Introspection | RFC 7662 at the RAS, for opaque tokens; the API authenticates with HTTP Basic, calls over HTTP, and caches nothing | core: Optional Opaque Access Tokens and Introspection |
+| Policy service | Off unless test control turns it on; in-process, replacing the API's own evaluation; permits set by test control | core: Optional Policy Services |
+| API denials | A delegated token: HTTP 403 `actor_unauthorized` for a closed actor gate and for every policy-service denial, and HTTP 403 with `forbidden` in the body for the user's own permissions. A self-acting token: HTTP 403, `forbidden` in the body, and a DPoP challenge without an `error` parameter | core: Error Responses; Self-Acting Access |
 | Approval at the RAS | Not required unless test control names the scopes that need it; the Access Request Service is in-process and test-controlled | oversight: Redemption Opt-In; Approval Binding |
 | Deferral lifetimes | Maximum pending lifetime 3600 s; absolute authorization expiration 8 h after acceptance; polling interval 5 s | oversight: Deferring a Redemption |
 | Refresh after a deferred redemption | Only where test control permits it; bound to the client and the DPoP key, not rotated | core: Optional RAS Refresh Tokens; oversight: Refresh and Continuation |
@@ -307,5 +437,30 @@ that settled it.
    when no proof is presented. An implementation that applies
    access-token protection first returns a different error. The core
    could say that grant protection is checked first.
+6. **The API's error for a user-authority denial.** Delegated Actor
+   Authorization requires the API to enforce both the user's authority
+   and the actor gate. Error Responses fixes HTTP 403
+   `actor_unauthorized` only for the denial of a valid actor identity,
+   and a policy service's one decision may not say which failed. The
+   reference returns `actor_unauthorized` for every policy-service
+   denial of a delegated token, including S04's. Its own
+   user-permission denial, without a policy service, is HTTP 403 with
+   `forbidden` in the body and no challenge.
+7. **The API's error for a self-acting denial.** Self-Acting Access
+   applies the agent's own permissions and no actor gate, and the core
+   fixes no error for a denial. `actor_unauthorized` names an actor, and
+   the Issuance Errors table avoids it for self-acting issuance because
+   no actor is asserted; `insufficient_scope` would tell the client that
+   more scope could help. The reference returns HTTP 403 with
+   `forbidden`, which is not a registered error code, in the body, and
+   a DPoP challenge without an `error` parameter (S09).
+8. **The API's error for a client, tenant or constraint policy
+   denial.** When policy denies a valid token for its OAuth client, its
+   tenant or its scope, rather than its agent, the core fixes no error.
+   A token tenant that differs from the operation's tenant is HTTP 401
+   `invalid_token`, but that is a token-context failure, not a policy
+   decision, and `insufficient_scope` would misstate a policy that
+   requires more than the operation's scope. The reference returns HTTP
+   403 `actor_unauthorized` for a delegated token (S05 to S07).
 
 [core-scope]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#scope

@@ -4,8 +4,8 @@ Test-only. State is in memory, keys are generated at start, there is no
 TLS, and nothing persists. The servers exist so the conformance suite has
 a first implementation to run against; they implement only what scene 2
 exercises: a dedicated client using private_key_jwt, an ID Token subject,
-bound governed agent access (DPoP at both token endpoints), JWT access
-tokens validated at the API, no introspection.
+bound governed agent access (DPoP at both token endpoints), and JWT access
+tokens validated at the API.
 
 The RAS also implements the oversight companion's Deferred Redemption for
 an ID-JAG: when its policy requires approval for a scope, a redemption
@@ -13,6 +13,15 @@ that opts in with completion_mode=deferred and a DPoP proof is held for an
 approver's decision (DTR), and completed from a test-controlled Access
 Request Service. Only that path issues refresh tokens, and only when
 test control permits them. No WAG, no CAI, and no mutual TLS.
+
+For the core's Optional Policy Services, the API can hand its
+authorization decision to a test-controlled policy service, in place of
+its own user-permission and actor-gate evaluation. It also accepts
+self-acting tokens for a separate client registration, which the RAS
+mints only through test control, and opaque tokens, which it introspects
+at the RAS over HTTP with its own credential. The RAS mints opaque
+tokens only through test control. Nothing caches an introspection
+response.
 
 Every check the negative cases exercise has a name (see CHECKS). The
 runner's vacuity mode switches one off to show that the case that cites
@@ -23,14 +32,17 @@ A third-party implementation supplies its own adapter instead. Each
 server's clock can be advanced by test control, so time-dependent cases
 never sleep; with no advance, it is the system clock.
 """
+import base64
 import copy
 import hashlib
 import json
 import secrets
 import threading
 import time
+import urllib.error
+import urllib.request
 import uuid
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, quote_plus, unquote_plus, urlencode
 from wsgiref.simple_server import WSGIRequestHandler, make_server
 
 import jws
@@ -56,6 +68,13 @@ RAS_ISSUER = "https://ras.example/"
 API_BASE = "https://api.example"
 RESOURCE = "https://api.example/tenants/acme-data/"
 OTHER_RESOURCE = "https://api.example/tenants/beta-data/"
+SELF_ACTING_CLIENT = "analysis-agent-client"   # the self-acting population's registration
+INTROSPECTION_CLIENT = "api-introspector"      # the API's credential at the RAS
+
+# Query parameters on GET /tenants/{t}/files/{name}. They stand in for a tool
+# call's arguments; the drafts define no such parameters. A conforming API
+# passes them to its policy service only in context.request.
+REQUEST_ATTRIBUTES = ("agent", "user", "client_id", "tenant", "scope")
 
 CHECKS = {
     "idp.client_assertion_audience": "client assertion aud is the IdP issuer only",
@@ -106,6 +125,12 @@ CHECKS = {
     "api.require_act": "a governed delegated token carries a valid act",
     "api.tenant": "the token's tenant matches the requested tenant",
     "api.actor_gate": "API policy permits the agent to act for the user",
+    "api.policy_source": "the policy evaluation takes the user, agent, client, tenant and token "
+                         "constraints from the token or introspection and trusted configuration, "
+                         "never from request attributes",
+    "api.agent_from_token": "the API takes the agent from act, not from the client registration",
+    "api.introspection_active": "an introspection response with active false is rejected",
+    "api.introspection_act": "a delegated-population introspection response carries a valid act",
 }
 
 
@@ -550,14 +575,19 @@ class RAS(Server):
     With approval required by RAS policy, a redemption that opts in is
     deferred (oversight: Deferred Redemption) and completed by polling;
     refresh tokens issue only from that path.
+
+    The RAS also answers RFC 7662 introspection at /introspect for opaque
+    tokens that test control mints, to a caller that authenticates with
+    HTTP Basic (RFC 6749 Section 2.3.1).
     """
 
     ARS_OPS = ("tasks", "approve", "deny", "revoke", "shorten", "substitute")
 
-    def __init__(self, client_keys, idp_public_key):
+    def __init__(self, client_keys, idp_public_key, introspection_clients=None):
         self.issuer, self.token_endpoint = RAS_ISSUER, RAS_ISSUER + "token"
         self.key, self.kid = jws.new_rsa_key(), "ras-key-1"
         self.client_keys, self.idp_public_key = client_keys, idp_public_key
+        self.introspection_clients = dict(introspection_clients or {})
         super().__init__()
 
     def reset(self):
@@ -584,6 +614,9 @@ class RAS(Server):
         self.pending_by_digest, self.pending_by_code = {}, {}
         self.refresh_tokens = {}
         self.ars = AccessRequestService()
+        # Introspection: opaque token -> the stored response members.
+        self.opaque_tokens = {}
+        self.introspection_omit_act = False   # test control: leave act out of every response
 
     def control_op(self, op, body):
         if op == "set":
@@ -605,9 +638,22 @@ class RAS(Server):
                 self.max_pending_lifetime = int(value)
             elif what == "authorization_lifetime":
                 self.authorization_lifetime = int(value)
+            elif what == "introspection_omit_act":
+                self.introspection_omit_act = bool(value)
             else:
                 raise OAuthError("invalid_request", 404, "unknown setting")
             return {}
+        if op == "mint_opaque_token":
+            # An opaque access token and the members introspection returns for
+            # it. A record minted with active false is returned as stored, with
+            # its members (see introspect).
+            now = int(self.now())
+            record = {"active": True, "iss": self.issuer, "iat": now,
+                      "exp": now + ACCESS_TOKEN_LIFETIME, "token_type": "DPoP"}
+            record.update(body["claims"])
+            token = secrets.token_urlsafe(32)
+            self.opaque_tokens[token] = record
+            return {"access_token": token}
         if op == "mint_access_token":
             now = int(self.now())
             claims = {"iss": self.issuer, "iat": now, "exp": now + ACCESS_TOKEN_LIFETIME,
@@ -620,8 +666,11 @@ class RAS(Server):
         return super().control_op(op, body)
 
     def handle(self, environ, start_response):
-        if environ.get("PATH_INFO") != "/token" or environ["REQUEST_METHOD"] != "POST":
+        path = environ.get("PATH_INFO")
+        if path not in ("/token", "/introspect") or environ["REQUEST_METHOD"] != "POST":
             return _respond(start_response, 404, {"error": "not_found"})
+        if path == "/introspect":
+            return _respond(start_response, 200, self.introspect(environ))
         form = _form(environ)
         grant_type = form.get("grant_type")
         if grant_type == [JWT_BEARER]:
@@ -725,6 +774,29 @@ class RAS(Server):
         self.accepted_grants[grant_key] = claims["exp"] + SKEW
         return {"access_token": token, "token_type": "DPoP",
                 "expires_in": ACCESS_TOKEN_LIFETIME, "scope": scope}
+
+    def introspect(self, environ):
+        """RFC 7662 introspection for an authenticated caller; no caching or freshness."""
+        scheme, _, credentials = environ.get("HTTP_AUTHORIZATION", "").partition(" ")
+        try:
+            client_id, _, secret = base64.b64decode(credentials, validate=True) \
+                .decode("utf-8").partition(":")
+            client_id, secret = unquote_plus(client_id), unquote_plus(secret)
+        except ValueError:
+            client_id = secret = None
+        expected = self.introspection_clients.get(client_id)
+        if scheme.lower() != "basic" or expected is None or \
+                not secrets.compare_digest(secret.encode(), expected.encode()):
+            raise OAuthError("invalid_client", 401, challenge='Basic realm="introspection"')
+        form = _form(environ)
+        record = self.opaque_tokens.get(_one(form, "token"))
+        if record is None or record.get("exp", 0) + SKEW < self.now():
+            # Unknown or expired: no other members (RFC 7662 Section 2.2).
+            return {"active": False}
+        response = copy.deepcopy(record)
+        if self.introspection_omit_act:
+            response.pop("act", None)
+        return response
 
     def replay_refused(self, grant_key):
         """Whether an accepted grant is refused; a deferral-consumed one through switchable checks."""
@@ -976,31 +1048,119 @@ class RAS(Server):
         return act
 
 
+# The policy service's permits when test control enables it: the positive
+# path, and its self-acting equivalent.
+DEFAULT_PERMITS = [
+    {"subject": "user-108", "agent": {"iss": IDP_ISSUER, "sub": "agent-42"},
+     "client": "analysis-api", "tenant": "acme-data", "action": "read", "scope": "files.read"},
+    {"subject": "service-principal-42", "agent": None, "client": SELF_ACTING_CLIENT,
+     "tenant": "acme-data", "action": "read", "scope": "files.read"},
+]
+
+
+class PolicyService:
+    """A test-controlled policy decision service, called by the API in-process.
+
+    The API's evaluation request follows the implementer's guide's
+    illustrative AuthZEN requests: subject, action and resource, with the
+    agent, client, tenant, token constraints and the request's own
+    attributes in context. The drafts define no AuthZEN mapping; this
+    shape is the reference's.
+
+        {"subject": {"type": "user" or "agent", "id": ...},
+         "action": {"name": "read"},
+         "resource": {"type": "file", "id": ...},
+         "context": {"agent": {"iss": ..., "sub": ...},   delegated access only
+                     "client": ..., "tenant": ...,
+                     "constraints": {"scope": ..., "aud": ...},
+                     "request": {...}}}                    request attributes, verbatim
+
+    A permit entry names subject (the subject's id), agent ({iss, sub} for
+    delegated access, or None for self-acting access, where the subject is
+    the agent), client, tenant, action, and scope, a value the token
+    constraints' scope must include. The service permits a request that
+    matches an entry, and records every request it receives.
+    """
+
+    def __init__(self, permits):
+        self.permits, self.evaluations = copy.deepcopy(permits), []
+
+    def evaluate(self, request):
+        self.evaluations.append(copy.deepcopy(request))
+        context = request["context"]
+        scope = str(context["constraints"].get("scope") or "").split()
+        for permit in self.permits:
+            if permit.get("subject") == request["subject"].get("id") and \
+                    permit.get("agent") == context.get("agent") and \
+                    permit.get("client") == context.get("client") and \
+                    permit.get("tenant") == context.get("tenant") and \
+                    permit.get("action", "read") == request["action"].get("name") and \
+                    permit.get("scope") in scope:
+                return {"decision": True}
+        return {"decision": False}
+
+
+def _valid_act(act, namespaces):
+    """One act object with non-empty iss and sub, no nesting, in a trusted namespace."""
+    return isinstance(act, dict) and "act" not in act and \
+        isinstance(act.get("iss"), str) and bool(act["iss"]) and \
+        isinstance(act.get("sub"), str) and bool(act["sub"]) and act["iss"] in namespaces
+
+
 class API(Server):
-    """Access at the Resource Server for DPoP-bound JWT access tokens (RFC 9068)."""
+    """Access at the Resource Server for DPoP-bound access tokens.
+
+    JWT access tokens are validated under RFC 9068. An opaque token is
+    introspected at the RAS (RFC 7662) with the API's own credential, and
+    the response is treated as validated claims. Applicability comes from
+    trusted client and resource configuration: a delegated population and,
+    for a separate registration, a self-acting one.
+    """
 
     def __init__(self, ras_public_key):
         self.ras_public_key = ras_public_key
+        # Set by start(): (endpoint, client_id, secret) for introspection at the RAS.
+        self.introspection = None
         super().__init__()
 
     def reset(self):
         super().reset()
         self.trusted_ras = {RAS_ISSUER: {"key": self.ras_public_key, "namespaces": {IDP_ISSUER}}}
         self.resource_tenants = {RESOURCE: "acme-data", OTHER_RESOURCE: "beta-data"}
+        # A separate client registration distinguishes the self-acting
+        # population (core: Profile Applicability).
         self.populations = {("analysis-api", RESOURCE): "delegated",
-                            ("analysis-api", OTHER_RESOURCE): "delegated"}
+                            ("analysis-api", OTHER_RESOURCE): "delegated",
+                            (SELF_ACTING_CLIENT, RESOURCE): "self-acting"}
         self.permissions = {("user-108", "acme-data"): {"read"},
                             ("user-108", "beta-data"): {"read"}}
         self.actor_gate = {(IDP_ISSUER, "agent-42", "user-108", "acme-data"),
                            (IDP_ISSUER, "agent-42", "user-108", "beta-data")}
+        # Self-acting access: the agent's own permissions, by local principal.
+        self.agent_permissions = {("service-principal-42", "acme-data"): {"read"}}
+        # The agent a client registration usually acts as. Only an API with
+        # api.agent_from_token switched off uses it, in place of act: the
+        # dedicated-client assumption that a shared client breaks.
+        self.client_agents = {"analysis-api": {"iss": IDP_ISSUER, "sub": "agent-42"}}
         self.files = {("acme-data", "report-7"): b"region,revenue\nnorth,1200\nsouth,950\n",
                       ("beta-data", "report-9"): b"region,revenue\neast,700\n"}
+        # Optional Policy Services: off unless test control enables it.
+        self.policy_service = False
+        self.policy = PolicyService(DEFAULT_PERMITS)
 
     def control_op(self, op, body):
         if op == "set" and body["what"] == "actor_gate":
             entry = (IDP_ISSUER, "agent-42", "user-108", "acme-data")
             (self.actor_gate.add if body["value"] else self.actor_gate.discard)(entry)
             return {}
+        if op == "set" and body["what"] == "policy_service":
+            self.policy_service = bool(body["value"])
+            return {}
+        if op == "policy":
+            self.policy.permits = copy.deepcopy(body["permits"])
+            return {}
+        if op == "evaluations":
+            return {"evaluations": copy.deepcopy(self.policy.evaluations)}
         return super().control_op(op, body)
 
     def handle(self, environ, start_response):
@@ -1010,12 +1170,70 @@ class API(Server):
                 parts[0] != "tenants" or parts[2] != "files":
             return _respond(start_response, 404, {"error": "not_found"})
         tenant, name = parts[1], parts[3]
+        # Request-derived attributes, standing in for a tool call's arguments.
+        attributes = {k: v[0] if len(v) == 1 else v for k, v in
+                      parse_qs(environ.get("QUERY_STRING", ""), keep_blank_values=True).items()}
         invalid = OAuthError("invalid_token", 401,
                              challenge='DPoP error="invalid_token", algs="ES256"')
         scheme, _, token = environ.get("HTTP_AUTHORIZATION", "").partition(" ")
         if scheme != "DPoP" or not token:
             raise OAuthError("invalid_request", 401, challenge='DPoP algs="ES256"')
-        # Token validation (RFC 9068) under trusted RAS configuration.
+        # Token validation (RFC 9068), or introspection for an opaque token.
+        introspected = token.count(".") != 2
+        claims, ras = self.introspect(token, invalid) if introspected else \
+            self.validate_jwt(token, invalid)
+        # Protection: DPoP proof, ath, and key binding.
+        jkt = self.validate_dpop(environ, "GET", API_BASE + path, access_token=token, status=401)
+        cnf = claims.get("cnf") if isinstance(claims.get("cnf"), dict) else {}
+        if jkt is None or (cnf.get("jkt") != jkt and self.on("api.key_binding")):
+            raise invalid
+        # Applicability: the configured population for this client and
+        # audience, never the presence or absence of act.
+        aud = claims.get("aud")
+        aud = aud[0] if isinstance(aud, list) and len(aud) == 1 else aud
+        population = self.populations.get((claims.get("client_id"), aud))
+        act = claims.get("act")
+        if population == "delegated":
+            if self.on("api.introspection_act" if introspected else "api.require_act") and \
+                    not _valid_act(act, ras["namespaces"]):
+                raise invalid
+        elif population == "self-acting":
+            if act is not None:   # a governed self-acting token has no act
+                raise invalid
+        else:
+            raise invalid
+        # Tenant from token context only.
+        token_tenant = self.resource_tenants.get(aud)
+        if token_tenant is None or (token_tenant != tenant and self.on("api.tenant")):
+            raise invalid
+        # Authority: the token's scope, which no policy permit overrides.
+        if "files.read" not in str(claims.get("scope", "")).split():
+            raise OAuthError("insufficient_scope", 403,
+                             challenge='DPoP error="insufficient_scope", scope="files.read", algs="ES256"')
+        agent = self.agent_identity(population, claims, act)
+        if self.policy_service:
+            # The policy service replaces the local evaluation below.
+            request = self.evaluation_request(population, claims, agent, aud, token_tenant,
+                                              name, attributes)
+            if self.policy.evaluate(request).get("decision") is not True:
+                raise self.denial(population)
+        elif population == "delegated":
+            user = claims.get("sub")
+            if "read" not in self.permissions.get((user, tenant), set()):
+                return _respond(start_response, 403, {"error": "forbidden"})
+            if agent is not None and self.on("api.actor_gate") and \
+                    (agent["iss"], agent["sub"], user, tenant) not in self.actor_gate:
+                raise self.denial(population)
+        elif "read" not in self.agent_permissions.get((claims.get("sub"), tenant), set()):
+            # Self-acting access: the agent's own permissions; no actor gate.
+            raise self.denial(population)
+        data = self.files.get((tenant, name))
+        if data is None:
+            return _respond(start_response, 404, {"error": "not_found"})
+        return _respond(start_response, 200, data, content_type="text/csv")
+
+    def validate_jwt(self, token, invalid):
+        """RFC 9068 validation under trusted RAS configuration; returns (claims, RAS)."""
         try:
             header, unverified, _, _ = jws.decode(token)
             ras = self.trusted_ras.get(unverified.get("iss"))
@@ -1027,42 +1245,109 @@ class API(Server):
         if not _time_valid(claims, require_iat=True, check_future=self.on("api.token_time"),
                            now=self.now()):
             raise invalid
-        # Protection: DPoP proof, ath, and key binding.
-        jkt = self.validate_dpop(environ, "GET", API_BASE + path, access_token=token, status=401)
-        cnf = claims.get("cnf") if isinstance(claims.get("cnf"), dict) else {}
-        if jkt is None or (cnf.get("jkt") != jkt and self.on("api.key_binding")):
+        return claims, ras
+
+    def introspect(self, token, invalid):
+        """Authenticated RFC 7662 introspection at the RAS; returns (response, RAS).
+
+        The core's Optional Opaque Access Tokens and Introspection. The
+        response stands in for validated claims; nothing caches it.
+        """
+        if self.introspection is None:
             raise invalid
-        # Applicability: the configured population for this client and audience.
-        aud = claims.get("aud")
-        aud = aud[0] if isinstance(aud, list) and len(aud) == 1 else aud
-        if self.populations.get((claims.get("client_id"), aud)) != "delegated":
+        endpoint, client_id, secret = self.introspection
+        credentials = base64.b64encode(
+            f"{quote_plus(client_id)}:{quote_plus(secret)}".encode()).decode()
+        req = urllib.request.Request(endpoint, data=urlencode({"token": token}).encode(),
+                                     method="POST",
+                                     headers={"Authorization": "Basic " + credentials,
+                                              "Content-Type": "application/x-www-form-urlencoded",
+                                              "Accept": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                body = json.loads(resp.read())
+        except (urllib.error.URLError, ValueError):
             raise invalid
-        act = claims.get("act")
-        if self.on("api.require_act"):
-            if not isinstance(act, dict) or "act" in act or \
-                    not isinstance(act.get("iss"), str) or not act["iss"] or \
-                    not isinstance(act.get("sub"), str) or not act["sub"] or \
-                    act["iss"] not in ras["namespaces"]:
-                raise invalid
-        # Tenant from token context only.
-        token_tenant = self.resource_tenants.get(aud)
-        if token_tenant is None or (token_tenant != tenant and self.on("api.tenant")):
+        if not isinstance(body, dict):
             raise invalid
-        # Authority: scope, user permission, actor gate.
-        if "files.read" not in str(claims.get("scope", "")).split():
-            raise OAuthError("insufficient_scope", 403,
-                             challenge='DPoP error="insufficient_scope", scope="files.read", algs="ES256"')
-        user = claims.get("sub")
-        if "read" not in self.permissions.get((user, tenant), set()):
-            return _respond(start_response, 403, {"error": "forbidden"})
-        if isinstance(act, dict) and self.on("api.actor_gate") and \
-                (act.get("iss"), act.get("sub"), user, tenant) not in self.actor_gate:
-            raise OAuthError("actor_unauthorized", 403,
-                             challenge='DPoP error="actor_unauthorized", algs="ES256"')
-        data = self.files.get((tenant, name))
-        if data is None:
-            return _respond(start_response, 404, {"error": "not_found"})
-        return _respond(start_response, 200, data, content_type="text/csv")
+        if body.get("active") is not True and self.on("api.introspection_active"):
+            raise invalid
+        if body.get("iss", RAS_ISSUER) != RAS_ISSUER:
+            raise invalid
+        # exp is optional in RFC 7662; where present it is enforced, as are iat and nbf.
+        now, exp = self.now(), body.get("exp")
+        if exp is not None and (not isinstance(exp, int) or exp + SKEW < now):
+            raise invalid
+        if self.on("api.token_time"):
+            for value in (body.get("iat"), body.get("nbf")):
+                if value is not None and (not isinstance(value, int) or value > now + SKEW):
+                    raise invalid
+        return body, self.trusted_ras[RAS_ISSUER]
+
+    def agent_identity(self, population, claims, act):
+        """The issuer-qualified agent for delegated access; None for self-acting access."""
+        if population != "delegated":
+            return None
+        if not self.on("api.agent_from_token"):
+            # Non-conforming: the client registration stands in for the agent.
+            return copy.deepcopy(self.client_agents.get(claims.get("client_id")))
+        return {"iss": act["iss"], "sub": act["sub"]} if isinstance(act, dict) else None
+
+    def evaluation_request(self, population, claims, agent, aud, tenant, name, attributes):
+        """The policy evaluation request (see PolicyService).
+
+        The subject, agent, client, tenant and token constraints come from
+        the validated token or introspection response and trusted
+        configuration (core: Optional Policy Services). The request's own
+        attributes go only in context.request.
+        """
+        # For self-acting access, the local principal stands for the Agent Principal.
+        subject = {"type": "user" if population == "delegated" else "agent",
+                   "id": claims.get("sub")}
+        context = {"client": claims.get("client_id"), "tenant": tenant,
+                   "constraints": {"scope": claims.get("scope"), "aud": aud},
+                   "request": copy.deepcopy(attributes)}
+        if population == "delegated":
+            context["agent"] = copy.deepcopy(agent)
+        request = {"subject": subject, "action": {"name": "read"},
+                   "resource": {"type": "file", "id": name}, "context": context}
+        if not self.on("api.policy_source"):
+            # Non-conforming: request attributes supply or override the
+            # identity, tenant and constraint members.
+            given = {k: v for k, v in attributes.items()
+                     if k in REQUEST_ATTRIBUTES and isinstance(v, str)}
+            if "user" in given and population == "delegated":
+                subject["id"] = given["user"]
+            if "agent" in given:
+                if population == "delegated":
+                    context["agent"] = dict(context.get("agent") or {"iss": IDP_ISSUER},
+                                            sub=given["agent"])
+                else:
+                    subject["id"] = given["agent"]
+            if "client_id" in given:
+                context["client"] = given["client_id"]
+            if "tenant" in given:
+                context["tenant"] = given["tenant"]
+            if "scope" in given:
+                context["constraints"]["scope"] = given["scope"]
+        return request
+
+    @staticmethod
+    def denial(population):
+        """403 for a valid token that local policy or the policy service denies.
+
+        Delegated access: actor_unauthorized (core: Error Responses). The
+        reference uses it for every policy-service denial of a delegated
+        token, because the decision does not say whether the user's
+        authority or the actor gate failed. Self-acting access: no actor
+        is asserted, and the core fixes no code; the reference returns
+        "forbidden" in the body, as for its local user-permission denial,
+        with a DPoP challenge that carries no error parameter.
+        """
+        if population == "delegated":
+            return OAuthError("actor_unauthorized", 403,
+                              challenge='DPoP error="actor_unauthorized", algs="ES256"')
+        return OAuthError("forbidden", 403, challenge='DPoP algs="ES256"')
 
 
 class _QuietHandler(WSGIRequestHandler):
@@ -1080,8 +1365,13 @@ def serve(app):
 def start(client_keys):
     """Start the three reference servers; return their transport base URLs."""
     idp = IdP({"analysis-client": client_keys["analysis-client"].public_key()})
+    # The API's introspection credential at the RAS, generated at start.
+    secret = secrets.token_urlsafe(32)
     ras = RAS({cid: client_keys[cid].public_key() for cid in ("analysis-api", "other-api")},
-              idp.key.public_key())
+              idp.key.public_key(), {INTROSPECTION_CLIENT: secret})
     api = API(ras.key.public_key())
     servers = {name: serve(app) for name, app in (("idp", idp), ("ras", ras), ("api", api))}
-    return {name: url for name, (_, url) in servers.items()}, [s for s, _ in servers.values()]
+    urls = {name: url for name, (_, url) in servers.items()}
+    # The API introspects over HTTP at the RAS's transport.
+    api.introspection = (urls["ras"] + "/introspect", INTROSPECTION_CLIENT, secret)
+    return urls, [s for s, _ in servers.values()]

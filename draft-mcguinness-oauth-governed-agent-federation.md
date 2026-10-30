@@ -2863,6 +2863,10 @@ last column is the required result. Token endpoint errors follow
 | Nonce retry with a fresh DPoP proof reuses the consumed `analysis-auth-1` assertion | IdP | HTTP 400, `invalid_client`; regenerate `client_assertion` |
 | Identity Binding disabled | IdP | HTTP 400, `invalid_grant`; successful authentication does not resolve the agent |
 | Client Association for `analysis-client` disabled | IdP | HTTP 400, `actor_unauthorized`; no ID-JAG |
+| Alice's Delegation Authorization for `agent-42` permits `files.read`, and the client requests `files.write` | IdP | HTTP 400, `invalid_scope`; the authorization applies, and its scope ceiling excludes the request |
+| The Delegation Authorization permits `files.read files.write`, policy categorically prohibits `agent-42` from `files.write`, and the client requests `files.write` | IdP | HTTP 400, `actor_unauthorized` ({{issuance-authorization}}) |
+| The grant's `scope` claim is missing, empty, or not a string | RAS | HTTP 400, `invalid_grant` ({{redemption-common}}) |
+| The RAS has no authorized correlation for `agent-42`, or `agent-42` is disabled there | RAS | HTTP 400, `invalid_grant`, not `actor_unauthorized` ({{redemption-errors}}) |
 | Bound governed agent access required; grant has no `cnf` | RAS | HTTP 400, `invalid_grant`; no fallback to governed agent access |
 | Grant has `cnf.jkt`; redemption omits the proof | RAS | HTTP 400, `invalid_grant`; grant binding enforced |
 | Access token used in another tenant where Alice and the agent also have permissions, with a fresh valid proof | API | HTTP 401, `invalid_token`; no operation performed |

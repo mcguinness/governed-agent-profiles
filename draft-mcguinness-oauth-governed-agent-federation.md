@@ -2327,6 +2327,41 @@ cited are met.
   opaque tokens. A credential change alone need not invalidate cached
   tokens when the governed principal and authorization context remain
   the same.
+* **Recovering from errors:** An error establishes only what the
+  sections that assign it define:
+  * `invalid_client`: a consumed client assertion is replaced by one
+    with a fresh `jti`, as the retry rule of {{client-assertion-input}}
+    requires. An unknown client, a wrong key, or an unsupported method
+    needs configuration, not a retry.
+  * `invalid_grant`: after correcting what it can detect itself, such as
+    a missing proof or a grant addressed to another server, a client
+    can make one recovery attempt with the same identity, client, and
+    credential class: a fresh subject credential and agent-resolution
+    input at the IdP, or a new grant at the RAS. The code does not say
+    which check failed ({{security-errors}}), and renewal cannot repair
+    a disabled binding, a missing proof, or a malformed grant.
+  * `invalid_scope`: the client corrects the requested scope using
+    authority it knows is permitted. Reducing a request helps only if
+    what remains is permitted.
+  * `invalid_target`: covers an unresolved target or tenant, a missing
+    client registration association, and the refusals of self-acting
+    issuance, including an unenforceable approval condition.
+  * `actor_unauthorized`: another actor credential or grant path might
+    succeed ({{Section 8.2 of ACTOR-PROFILE}}); the same request will
+    not.
+  * At an API, `insufficient_scope` calls for a token with more
+    authority, which can need a new governed grant; a 403 whose
+    challenge has no `error` attribute has no token-level remedy; and a
+    503 can be retried after any `Retry-After` interval
+    ({{resource-errors}}).
+
+  Apart from the `invalid_client` and `invalid_grant` attempts above
+  and a 503, a client does not retry the unchanged request
+  automatically. A later change in policy or authorization makes a new
+  request a new decision. {{discovery}} forbids retrying at a lower
+  profile, {{actor-inputs}} forbids falling back from rejected
+  evidence to authentication context, and {{issuance-authorization}}
+  forbids falling back from delegated to self-acting access.
 
 # Security Considerations {#security}
 
@@ -2364,7 +2399,10 @@ Distinguishing `invalid_grant` from `actor_unauthorized`
 ({{issuance-errors}}) reveals that an actor was resolved but denied, but
 not which binding-resolution check failed. That disclosure reaches even
 a holder of stolen bearer evidence who passes the request's other
-authentication.
+authentication. At the RAS, `actor_unauthorized` ({{redemption-errors}})
+tells an authenticated client holding a valid grant that its
+delegation was refused, not why; an uncorrelated or ineligible agent
+gets `invalid_grant`, as at the IdP.
 
 ## Bearer Workload Evidence {#security-bearer-evidence}
 

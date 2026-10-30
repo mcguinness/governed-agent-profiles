@@ -492,9 +492,11 @@ the tool with its own authority.
   [deferred redemption][ov-redemption] completes an approval as an
   access token, which AROP can realize. At the IdP, asynchronous
   approval with AROP stays an [excluded
-  composition][excluded-compositions] of the core, and continuation
-  from a deferred redemption is an open item of the profile ([Open
-  Items][ov-open-items]).
+  composition][excluded-compositions] of the core. Continuation from a
+  deferred redemption is refused: the RAS does not record that
+  authorization as eligible ([Refresh and
+  Continuation][ov-redemption-refresh]). Whether a later revision could
+  permit it is an [open item][ov-open-items] of the profile.
 * **Revoking one WAG.** Revoking a single WAG is deployment-specific, so
   supervised self-acting issuance rests on withdrawing the Agent
   Authorization, a Local Suspension, or disabling the agent.
@@ -1359,6 +1361,7 @@ resource domain provisioned for `agent-58` applies the deletion under
 [ov-open-items]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#open-items
 [ov-redemption]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#deferred-redemption
 [ov-recovery]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#redemption-recovery
+[ov-redemption-refresh]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#redemption-refresh
 [DTR]: https://www.ietf.org/archive/id/draft-ietf-oauth-deferred-token-response-00.html
 [CIBA]: https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html
 [ICA]: https://www.ietf.org/archive/id/draft-mcguinness-oauth-id-continuation-assertion-02.html

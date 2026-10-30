@@ -966,8 +966,14 @@ Table of Contents
    evaluation returns becomes the enforcement deadline for every later
    token and for the refresh authorization.  An access token issued on
    refresh expires no later than the approval expiry, any enforcement
-   deadline, and the absolute authorization expiration.  Access after a
-   rejected refresh needs a new grant, since this one is consumed.
+   deadline, and the absolute authorization expiration.  When the RAS
+   rejects a refresh after authenticating the client and its proof,
+   under this paragraph or under "Optional RAS Refresh Tokens" in
+   [FEDERATION], it MUST end the refresh authorization, so that a later
+   change in policy or approval does not revive it.  A request that
+   fails client authentication or proof does not end it.  Access after
+   an ended refresh authorization needs a new grant, since this one is
+   consumed.
 
    The RAS MUST NOT record an authorization from a deferred redemption
    as eligible for continuation ("Root Redemption at the Gateway's RAS"
@@ -1524,106 +1530,135 @@ A.5.  Deferred Redemption
 
    Each case changes this variant as stated; all other checks succeed.
 
-   +=============================+=========+==========================+
-   | Changed condition           | Checked | Required result          |
-   |                             | by      |                          |
-   +=============================+=========+==========================+
-   | The redemption omits        | RAS     | HTTP 400,                |
-   | completion_mode=deferred    |         | actor_unauthorized; no   |
-   |                             |         | token and no deferred    |
-   |                             |         | response                 |
-   +-----------------------------+---------+--------------------------+
-   | The resource is configured  | RAS     | HTTP 400,                |
-   | for mutual-TLS access       |         | actor_unauthorized; no   |
-   | tokens                      |         | deferral                 |
-   +-----------------------------+---------+--------------------------+
-   | A poll proves another key   | RAS     | HTTP 400,                |
-   |                             |         | invalid_dpop_proof       |
-   +-----------------------------+---------+--------------------------+
-   | The grant's exp passes      | RAS     | The access token issues  |
-   | while the redemption is     |         | at the next poll         |
-   | pending, and the steward    |         |                          |
-   | then approves               |         |                          |
-   +-----------------------------+---------+--------------------------+
-   | The maximum pending         | RAS     | expires_in was at most   |
-   | lifetime is 24 hours, and   |         | eight hours; HTTP 400,   |
-   | the steward approves nine   |         | expired_token; no token  |
-   | hours after receipt         |         |                          |
-   +-----------------------------+---------+--------------------------+
-   | Local Suspension of         | RAS     | HTTP 400, access_denied  |
-   | agent-42 while the          |         | at the next poll; no     |
-   | redemption is pending, and  |         | token                    |
-   | the steward then approves   |         |                          |
-   +-----------------------------+---------+--------------------------+
-   | Grant-derived revocation of | RAS     | HTTP 400, access_denied  |
-   | the ID-JAG arrives while    |         | at the next poll         |
-   | the redemption is pending,  |         |                          |
-   | at a participating RAS      |         |                          |
-   +-----------------------------+---------+--------------------------+
-   | The steward denies, and the | RAS     | HTTP 400, access_denied; |
-   | client presents the grant   |         | then invalid_grant       |
-   | again                       |         |                          |
-   +-----------------------------+---------+--------------------------+
-   | While the redemption is     | RAS     | HTTP 400, invalid_grant  |
-   | pending, the client         |         |                          |
-   | presents the grant without  |         |                          |
-   | completion_mode             |         |                          |
-   +-----------------------------+---------+--------------------------+
-   | After the grant's exp, the  | RAS     | The same deferral code,  |
-   | client repeats the          |         | with the remaining       |
-   | redemption with the same    |         | expires_in               |
-   | grant, key, opt-in, and     |         |                          |
-   | parameters                  |         |                          |
-   +-----------------------------+---------+--------------------------+
-   | The repeated redemption     | RAS     | HTTP 400,                |
-   | reuses the DPoP proof of    |         | invalid_dpop_proof       |
-   | the first                   |         |                          |
-   +-----------------------------+---------+--------------------------+
-   | After a successful token    | RAS     | HTTP 400, invalid_grant  |
-   | response, the client        |         |                          |
-   | repeats the redemption      |         |                          |
-   +-----------------------------+---------+--------------------------+
-   | Two identical redemptions   | RAS     | One pending governed     |
-   | arrive together             |         | redemption and one       |
-   |                             |         | approval request; both   |
-   |                             |         | responses carry its      |
-   |                             |         | deferral code            |
-   +-----------------------------+---------+--------------------------+
-   | While the redemption is     | RAS     | A separate pending       |
-   | pending, agent-43 redeems   |         | governed redemption and  |
-   | its own ID-JAG through the  |         | approval request;        |
-   | same client, for the same   |         | approving the first      |
-   | user, resource, and scope   |         | issues nothing for it    |
-   +-----------------------------+---------+--------------------------+
-   | The access request service  | RAS     | The second stays pending |
-   | returns the first           |         | (authorization_pending); |
-   | redemption's approval for   |         | no token                 |
-   | the second's approval       |         |                          |
-   | request                     |         |                          |
-   +-----------------------------+---------+--------------------------+
-   | The approval expires in one | RAS     | The access token expires |
-   | hour, a refresh token       |         | within the approval      |
-   | issues, and the client      |         | expiry; HTTP 400,        |
-   | refreshes after the         |         | invalid_grant on refresh |
-   | approval expiry             |         |                          |
-   +-----------------------------+---------+--------------------------+
-   | The approval is revoked ten | RAS     | HTTP 400, invalid_grant  |
-   | minutes into its hour, and  |         |                          |
-   | the client then refreshes   |         |                          |
-   +-----------------------------+---------+--------------------------+
-   | A deferred WAG redemption   | RAS     | An access token with the |
-   | is approved                 |         | local agent principal as |
-   |                             |         | sub, no act, and no      |
-   |                             |         | refresh token            |
-   +-----------------------------+---------+--------------------------+
-   | The gateway exchanges at    | CAI     | HTTP 400,                |
-   | the CAI an access token     |         | invalid_request; the     |
-   | from a deferred redemption, |         | authorization is not     |
-   | or one refreshed from it    |         | eligible for             |
-   |                             |         | continuation             |
-   +-----------------------------+---------+--------------------------+
+   +==============================+=========+==========================+
+   | Changed condition            | Checked | Required result          |
+   |                              | by      |                          |
+   +==============================+=========+==========================+
+   | The redemption omits         | RAS     | HTTP 400,                |
+   | completion_mode=deferred     |         | actor_unauthorized; no   |
+   |                              |         | token and no deferred    |
+   |                              |         | response                 |
+   +------------------------------+---------+--------------------------+
+   | The resource is              | RAS     | HTTP 400,                |
+   | configured for mutual-       |         | actor_unauthorized; no   |
+   | TLS access tokens            |         | deferral                 |
+   +------------------------------+---------+--------------------------+
+   | A poll proves another        | RAS     | HTTP 400,                |
+   | key                          |         | invalid_dpop_proof       |
+   +------------------------------+---------+--------------------------+
+   | The grant's exp passes       | RAS     | The access token issues  |
+   | while the redemption is      |         | at the next poll         |
+   | pending, and the steward     |         |                          |
+   | then approves                |         |                          |
+   +------------------------------+---------+--------------------------+
+   | The maximum pending          | RAS     | expires_in was at most   |
+   | lifetime is 24 hours,        |         | eight hours; HTTP 400,   |
+   | and the steward approves     |         | expired_token; no token  |
+   | nine hours after receipt     |         |                          |
+   +------------------------------+---------+--------------------------+
+   | Local Suspension of          | RAS     | HTTP 400, access_denied  |
+   | agent-42 while the           |         | at the next poll; no     |
+   | redemption is pending,       |         | token                    |
+   | and the steward then         |         |                          |
+   | approves                     |         |                          |
+   +------------------------------+---------+--------------------------+
+   | While the redemption is      | RAS     | HTTP 400, access_denied  |
+   | pending, agent-42's          |         | at the next poll; no     |
+   | correlation changes to       |         | token                    |
+   | another local agent          |         |                          |
+   | principal, and the           |         |                          |
+   | steward then approves        |         |                          |
+   +------------------------------+---------+--------------------------+
+   | Grant-derived revocation     | RAS     | HTTP 400, access_denied  |
+   | of the ID-JAG arrives        |         | at the next poll         |
+   | while the redemption is      |         |                          |
+   | pending, at a                |         |                          |
+   | participating RAS            |         |                          |
+   +------------------------------+---------+--------------------------+
+   | The steward denies, and      | RAS     | HTTP 400, access_denied; |
+   | the client presents the      |         | then invalid_grant       |
+   | grant again                  |         |                          |
+   +------------------------------+---------+--------------------------+
+   | While the redemption is      | RAS     | HTTP 400, invalid_grant  |
+   | pending, the client          |         |                          |
+   | presents the grant           |         |                          |
+   | without completion_mode      |         |                          |
+   +------------------------------+---------+--------------------------+
+   | After the grant's exp,       | RAS     | The same deferral code,  |
+   | the client repeats the       |         | with the remaining       |
+   | redemption with the same     |         | expires_in               |
+   | grant, key, opt-in, and      |         |                          |
+   | parameters                   |         |                          |
+   +------------------------------+---------+--------------------------+
+   | The repeated redemption      | RAS     | HTTP 400,                |
+   | reuses the DPoP proof of     |         | invalid_dpop_proof       |
+   | the first                    |         |                          |
+   +------------------------------+---------+--------------------------+
+   | After a successful token     | RAS     | HTTP 400, invalid_grant  |
+   | response, the client         |         |                          |
+   | repeats the redemption       |         |                          |
+   +------------------------------+---------+--------------------------+
+   | Two identical                | RAS     | One pending governed     |
+   | redemptions arrive           |         | redemption and one       |
+   | together                     |         | approval request; both   |
+   |                              |         | responses carry its      |
+   |                              |         | deferral code            |
+   +------------------------------+---------+--------------------------+
+   | While the redemption is      | RAS     | A separate pending       |
+   | pending, agent-43            |         | governed redemption and  |
+   | redeems its own ID-JAG       |         | approval request;        |
+   | through the same client,     |         | approving the first      |
+   | for the same user,           |         | issues nothing for it    |
+   | resource, and scope          |         |                          |
+   +------------------------------+---------+--------------------------+
+   | The access request           | RAS     | The second stays pending |
+   | service returns the          |         | (authorization_pending); |
+   | first redemption's           |         | no token                 |
+   | approval for the             |         |                          |
+   | second's approval            |         |                          |
+   | request                      |         |                          |
+   +------------------------------+---------+--------------------------+
+   | The approval expires in      | RAS     | The access token expires |
+   | one hour, a refresh          |         | within the approval      |
+   | token issues, and the        |         | expiry; HTTP 400,        |
+   | client refreshes after       |         | invalid_grant on refresh |
+   | the approval expiry          |         |                          |
+   +------------------------------+---------+--------------------------+
+   | The approval is revoked      | RAS     | HTTP 400, invalid_grant  |
+   | ten minutes into its         |         |                          |
+   | hour, and the client         |         |                          |
+   | then refreshes               |         |                          |
+   +------------------------------+---------+--------------------------+
+   | The grant had no cnf and     | RAS     | HTTP 400, invalid_grant  |
+   | the client's minimum was     |         | ("Optional RAS Refresh   |
+   | governed agent access;       |         | Tokens" in [FEDERATION]) |
+   | after a refresh token        |         |                          |
+   | issues, the minimum          |         |                          |
+   | becomes bound governed       |         |                          |
+   | agent access, and the        |         |                          |
+   | client refreshes             |         |                          |
+   +------------------------------+---------+--------------------------+
+   | A refresh is rejected        | RAS     | HTTP 400, invalid_grant; |
+   | because the actor gate       |         | the rejection ended the  |
+   | no longer permits agent-     |         | refresh authorization    |
+   | 42; the gate is              |         |                          |
+   | restored, and the client     |         |                          |
+   | refreshes again with the     |         |                          |
+   | same refresh token           |         |                          |
+   +------------------------------+---------+--------------------------+
+   | A deferred WAG               | RAS     | An access token with the |
+   | redemption is approved       |         | local agent principal as |
+   |                              |         | sub, no act, and no      |
+   |                              |         | refresh token            |
+   +------------------------------+---------+--------------------------+
+   | The gateway exchanges at     | CAI     | HTTP 400,                |
+   | the CAI an access token      |         | invalid_request; the     |
+   | from a deferred              |         | authorization is not     |
+   | redemption, or one           |         | eligible for             |
+   | refreshed from it            |         | continuation             |
+   +------------------------------+---------+--------------------------+
 
-             Table 6: Deferred redemption negative test cases
+              Table 6: Deferred redemption negative test cases
 
 Appendix B.  Relationship to Other Specifications
 

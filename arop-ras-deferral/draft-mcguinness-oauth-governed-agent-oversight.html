@@ -2357,8 +2357,13 @@ passed, or if the evaluation denies. A shorter deadline that an
 evaluation returns becomes the enforcement deadline for every later
 token and for the refresh authorization. An access token issued on
 refresh expires no later than the approval expiry, any enforcement
-deadline, and the absolute authorization expiration. Access after a
-rejected refresh needs a new grant, since this one is consumed.<a href="#section-5.6-1" class="pilcrow">¶</a></p>
+deadline, and the absolute authorization expiration. When the RAS
+rejects a refresh after authenticating the client and its proof, under
+this paragraph or under "Optional RAS Refresh Tokens" in
+<span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>, it <span class="bcp14">MUST</span> end the refresh authorization, so that a later
+change in policy or approval does not revive it. A request that fails
+client authentication or proof does not end it. Access after an ended
+refresh authorization needs a new grant, since this one is consumed.<a href="#section-5.6-1" class="pilcrow">¶</a></p>
 <p id="section-5.6-2">The RAS <span class="bcp14">MUST NOT</span> record an authorization from a deferred redemption as
 eligible for continuation ("Root Redemption at the Gateway's RAS" in
 <span>[<a href="#CONTINUATION" class="cite xref">CONTINUATION</a>]</span>). This covers every access token issued for that
@@ -3092,6 +3097,11 @@ as eligible for continuation.<a href="#appendix-A.5-3" class="pilcrow">¶</a></p
               <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>access_denied</code> at the next poll; no token</td>
             </tr>
             <tr>
+              <td class="text-left" rowspan="1" colspan="1">While the redemption is pending, <code>agent-42</code>'s correlation changes to another local agent principal, and the steward then approves</td>
+              <td class="text-left" rowspan="1" colspan="1">RAS</td>
+              <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>access_denied</code> at the next poll; no token</td>
+            </tr>
+            <tr>
               <td class="text-left" rowspan="1" colspan="1">Grant-derived revocation of the ID-JAG arrives while the redemption is pending, at a participating RAS</td>
               <td class="text-left" rowspan="1" colspan="1">RAS</td>
               <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>access_denied</code> at the next poll</td>
@@ -3152,6 +3162,16 @@ as eligible for continuation.<a href="#appendix-A.5-3" class="pilcrow">¶</a></p
               <td class="text-left" rowspan="1" colspan="1">RAS</td>
               <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>invalid_grant</code>
 </td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">The grant had no <code>cnf</code> and the client's minimum was governed agent access; after a refresh token issues, the minimum becomes bound governed agent access, and the client refreshes</td>
+              <td class="text-left" rowspan="1" colspan="1">RAS</td>
+              <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>invalid_grant</code> ("Optional RAS Refresh Tokens" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>)</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">A refresh is rejected because the actor gate no longer permits <code>agent-42</code>; the gate is restored, and the client refreshes again with the same refresh token</td>
+              <td class="text-left" rowspan="1" colspan="1">RAS</td>
+              <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>invalid_grant</code>; the rejection ended the refresh authorization</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">A deferred WAG redemption is approved</td>

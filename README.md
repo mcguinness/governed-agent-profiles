@@ -14,10 +14,10 @@ and revocation is all or nothing.
 ## How it works
 
 Three parties decide. The enterprise IdP identifies the agent and
-authorizes a grant naming it; the resource domain's authorization
-server (RAS) decides what access to issue; and the API enforces that
-access. The agent's OAuth client carries the grant between them. The
-grant depends on whom the agent acts for:
+authorizes a grant naming it; the resource domain's authorization server
+(RAS) decides what access to issue; and the API enforces that access
+with its own checks. The agent's OAuth client carries the grant between
+them. The grant depends on whom the agent acts for:
 
 | The agent acts | Grant | The resource domain sees |
 |---|---|---|
@@ -62,9 +62,9 @@ addresses:
 | A person to approve, or to observe and end, an agent's grants, redemptions, and actions | [Human Oversight Profile][oversight] ([source](draft-mcguinness-oauth-governed-agent-oversight.md)) | OAuth |
 
 The draft names link to the editor's copies. All seven are individual
-drafts under development. The core and the input profiles reference
-each other normatively and are published together; an implementation
-that claims none of the optional inputs needs only the core.
+drafts under development. An implementation that claims none of the
+optional inputs needs only the core; the core and the input profiles
+reference each other normatively and are published together.
 
 ## Where to start
 

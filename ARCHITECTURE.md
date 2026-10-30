@@ -664,7 +664,7 @@ details of each row follow it.
 | Lifecycle delivery is delayed or lost | Continue on the last applied state | Decided on the last applied state | Reconciliation with the source |
 | The RAS has no record for the agent | Unaffected for agents already correlated | Denied, unless just-in-time correlation applies | Provisioning, or just-in-time correlation |
 | Introspection is unavailable at the API | Requests that need a check fail | Unaffected at the RAS | Requests succeed once it returns |
-| A policy decision service is unavailable | The API performs no operation that needs the decision and answers HTTP 503, not a denial, unless it has established a failure ranked earlier than every unfinished check | An IdP issuance decision that depends on the service cannot be made | Retry after any `Retry-After` interval; decisions resume once it returns |
+| A policy decision service is unavailable | The API performs no operation that needs the decision and answers HTTP 503, not a denial, unless a failure is established and no unfinished check ranks earlier than it | An IdP issuance decision that depends on the service cannot be made | Retry after any `Retry-After` interval; decisions resume once it returns |
 | A continuation is refused | Issued tokens keep their lifetimes | No onward grant; after `invalid_continuation`, no further continuation of that chain | A new root grant, or a different request |
 
 **The IdP is unavailable.** The outage prevents new IdP-issued grants:
@@ -707,10 +707,10 @@ check cannot authorize a request. Cached active responses stay usable
 within the cache policy.
 
 **A policy decision service is unavailable.** An API whose check
-cannot complete does not perform the operation. Unless it has already
-established a failure that the core's selection order ranks earlier
-than every unfinished check, it reports no denial and answers HTTP 503,
-normally with `Retry-After` ([core, Error Responses][core-resource-errors]).
+cannot complete does not perform the operation. Unless a failure is
+established and no unfinished check ranks earlier than it in the core's
+selection order, it reports no denial and answers HTTP 503, normally
+with `Retry-After` ([core, Error Responses][core-resource-errors]).
 A COAZ-MCP enforcement point fails closed and returns an error of its
 own; the drafts do not yet say how that composes with the core's 503.
 Whether local policy can stand in for the unavailable service is not

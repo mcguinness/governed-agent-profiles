@@ -769,7 +769,10 @@ revision or the editor's copy commit, and to the product versions. A
 result against one revision is not evidence for the next. The core's
 negative tests ("Renewal and Negative Tests"), the continuation and
 oversight profiles' ("Negative Tests"), and the lifecycle profile's
-("Acceptance Checklist") supply further cases.
+("Acceptance Checklist") supply further cases. The [conformance
+suite](conformance/README.md) runs many of them through an adapter; its
+"Test control" column says what control of the implementation each
+case needs.
 
 ## Runbooks: stop and restore
 

@@ -254,7 +254,7 @@ suite](conformance/README.md) and how far they go:
 | The client's OpenID Connect registration, so ID Tokens name it as audience | IdP | ID Token `aud` `analysis-client` | No | Direct: N05 |
 | Token exchange for ID-JAG, and the resolution mode: the dedicated client's own authentication, with no actor token | Agreed; IdP configures | Authentication-context resolution | Token exchange and ID-JAG support only; the mode is configuration ([Agent Resolution Input Validation][actor-inputs]) | Positive path: P1 |
 | The minimum profile for this client and target: bound, with DPoP at issuance | Agreed | `urn:ietf:params:oauth:grant-profile:id-jag-agent-federation`; DPoP `ES256` | DPoP algorithms only; the minimum is configuration ([Profile Applicability and Downgrade Prevention][discovery]) | Direct: N03 |
-| The targets the client may request: RAS issuer as `audience`, one resource per grant, and scopes | IdP | `https://ras.example/`; `https://api.example/tenants/acme-data/`; `files.read` | No | Direct for one resource: N04. Positive path: P1 |
+| The targets the client may request: RAS issuer as `audience`, one resource per grant, and scopes | IdP | `https://ras.example/`; `https://api.example/tenants/acme-data/`; `files.read` | No | Direct for one resource: N04. Direct for scope beyond the delegation: N25 (`invalid_scope`) and N28 (a categorical prohibition, `actor_unauthorized`). Positive path: P1 |
 
 ### IdP and RAS
 
@@ -267,7 +267,7 @@ suite](conformance/README.md) and how far they go:
 | Resources the RAS serves, and each one's Target Tenant | RAS, to the IdP | `https://api.example/tenants/acme-data/` in `acme-data` | No | Direct for resource matching: N14. Positive path: P1, P2 |
 | Client registration association: each IdP client's registration at the RAS, which becomes the grant's `client_id` ([Issuance Prerequisites][flow-configuration]) | RAS, to the IdP | `analysis-client` to `analysis-api` | No | Direct: N13 |
 | The minimum profile per client and resource, enforced at redemption | Agreed | `urn:ietf:params:oauth:grant-profile:id-jag-agent-federation` | No; the minimum is configuration | Direct for grant binding: N10, N11, N12 |
-| Agent records: the (IdP issuer, agent identifier) pairs the RAS correlates, provisioned in advance or created just in time ([Agent Principal Correlation][agent-correlation]) | IdP or its connector, to the RAS | (`https://idp.example/`, `agent-42`) to `service-principal-42` | No | Direct: N15 |
+| Agent records: the (IdP issuer, agent identifier) pairs the RAS correlates, provisioned in advance or created just in time ([Agent Principal Correlation][agent-correlation]) | IdP or its connector, to the RAS | (`https://idp.example/`, `agent-42`) to `service-principal-42` | No | Direct: N15 for a disabled agent and N27 for an uncorrelated one, both `invalid_grant` |
 | What opens the actor gate at the RAS for an agent and a user ([Delegated Actor Authorization][actor-authorization]) | RAS policy, agreed with the IdP's operator | An entry for `agent-42` and `user-108` in `acme-data` | No | Direct: N16 |
 
 ### Client and RAS
@@ -293,7 +293,7 @@ suite](conformance/README.md) and how far they go:
 | Where the tenant is carried | Agreed | The tenant-specific resource URI as `aud` | No | Direct: N17 |
 | Access-token protection and scopes per resource | API, to the RAS | DPoP; `files.read` | Protected Resource Metadata, where the API publishes it | Direct for key binding: N19. Scope untested |
 | How the API enforces the actor gate: direct evaluation, or reliance on validated RAS authorization with sufficient scope and freshness. The RAS enforces the gate in either case | Agreed | The API evaluates the gate directly | No | Direct: N20 at the API, N16 at the RAS |
-| Whether the API delegates evaluation to a policy service, which then receives the user, agent, client, tenant, and token constraints only from the validated token or introspection response ([Optional Policy Services][policy-services]) | API | No policy service | No | Direct against the reference, whose policy service the suite controls: S02 to S07, S09, S11. Positive path: S01, S08, S10 |
+| Whether the API delegates evaluation to a policy service, which then receives the user, agent, client, tenant, and token constraints only from the validated token or introspection response ([Optional Policy Services][policy-services]) | API | No policy service | No | Direct against the reference, whose policy service the suite controls: S02 to S07, S09, S11, and for the error selection order, S14 to S17. Positive path: S01, S08, S10 |
 | How fresh authorization must be: introspection caching and the disablement delay | Agreed | Offline JWT validation; 600 s tokens | No | Untested |
 
 ### Choices to agree

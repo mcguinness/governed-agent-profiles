@@ -4382,6 +4382,15 @@ representation and any effective <code>authorization_details</code> required by
 <span><a href="https://rfc-editor.org/rfc/rfc8705#section-3.2" class="relref">Section 3.2</a> of [<a href="#RFC8705" class="cite xref">RFC8705</a>]</span>.<a href="#section-6.8-2.3.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
+<p id="section-6.8-3">An introspection call that does not return a JSON object with a boolean
+<code>active</code> member does not complete token validation. That includes a
+transport failure, a timeout, and an error response from the
+introspection endpoint (<span><a href="https://rfc-editor.org/rfc/rfc7662#section-2.3" class="relref">Section 2.3</a> of [<a href="#RFC7662" class="cite xref">RFC7662</a>]</span>), including one that
+rejects the API's own credentials: none says anything about the token,
+so <a href="#resource-errors" class="auto internal xref">Section 7.6</a> applies. A response with <code>active</code> set to false,
+or an active response that fails <a href="#api-validation" class="auto internal xref">Section 7.2</a>, establishes that
+the token is invalid. A cached active response used within the limits
+of <a href="#api-validation" class="auto internal xref">Section 7.2</a> completes the check.<a href="#section-6.8-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="redemption-errors">
@@ -4663,9 +4672,10 @@ can succeed. The challenge uses the selected scheme without an <code>error</code
 attribute, and a <code>Bearer</code> challenge carries <code>realm</code>. A response body is
 application-specific but <span class="bcp14">MUST NOT</span> convey <code>actor_unauthorized</code> or
 <code>insufficient_scope</code>.<a href="#section-7.6-5" class="pilcrow">¶</a></p>
-<p id="section-7.6-6">If a check cannot complete, for example because a policy service is
-unreachable or returns a decision the API cannot interpret, the API
-<span class="bcp14">MUST NOT</span> perform the operation. If it has established a failure and no
+<p id="section-7.6-6">If a check cannot complete, for example because a policy service or
+the introspection endpoint (<a href="#introspection" class="auto internal xref">Section 6.8</a>) is unreachable or returns
+a response the API cannot interpret, the API <span class="bcp14">MUST NOT</span> perform the
+operation. If it has established a failure and no
 check that did not complete comes earlier in this table, it reports that
 failure as the table selects. Otherwise it <span class="bcp14">MUST NOT</span> report a denial
 from this table: it responds with HTTP status code 503 (Service
@@ -6166,6 +6176,17 @@ last column is the required result. Token endpoint errors follow
                 <td class="text-left" rowspan="1" colspan="1">The API delegates evaluation to a policy service, which cannot be reached</td>
                 <td class="text-left" rowspan="1" colspan="1">API</td>
                 <td class="text-left" rowspan="1" colspan="1">HTTP 503; no operation performed and no denial reported</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">The access token is opaque, the API holds no usable cached introspection response for it, and the introspection endpoint cannot be reached or returns a response without a boolean <code>active</code>
+</td>
+                <td class="text-left" rowspan="1" colspan="1">API</td>
+                <td class="text-left" rowspan="1" colspan="1">HTTP 503; no operation performed, and not <code>invalid_token</code> (<a href="#introspection" class="auto internal xref">Section 6.8</a>)</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">The introspection endpoint cannot be reached, and the DPoP proof's <code>ath</code> does not match the access token</td>
+                <td class="text-left" rowspan="1" colspan="1">API</td>
+                <td class="text-left" rowspan="1" colspan="1">HTTP 401 for the proof; the unfinished token validation is in the same row, not earlier (<a href="#resource-errors" class="auto internal xref">Section 7.6</a>)</td>
               </tr>
               <tr>
                 <td class="text-left" rowspan="1" colspan="1">The policy service denies <code>agent-42</code> under the actor gate, and its evaluation of Alice's own permissions cannot complete</td>

@@ -180,9 +180,13 @@ class Client:
         return self.ras_token({"grant_type": "refresh_token", "refresh_token": refresh_token},
                               dpop_key)
 
-    def get(self, path, token, dpop_key="k", query=None):
-        """A read at the API; query goes in the URL, and not in htu (RFC 9449 Section 4.2)."""
-        proof = self.proof(dpop_key, "GET", self.cfg.api_base + path, access_token=token)
+    def get(self, path, token, dpop_key="k", query=None, proof_token=None):
+        """A read at the API; query goes in the URL, and not in htu (RFC 9449 Section 4.2).
+
+        proof_token, if given, is the token the proof's ath names instead of token.
+        """
+        proof = self.proof(dpop_key, "GET", self.cfg.api_base + path,
+                           access_token=proof_token or token)
         url = self.cfg.api_transport + path + ("?" + urlencode(query) if query else "")
         return http("GET", url, headers={"Authorization": f"DPoP {token}", "DPoP": proof})
 
@@ -213,7 +217,12 @@ class Adapter:
                                           max_pending_lifetime and
                                           authorization_lifetime (seconds),
                                           introspection_omit_act (leave act
-                                          out of every introspection response)
+                                          out of every introspection response),
+                                          introspection_unavailable ("error":
+                                          the endpoint answers HTTP 503;
+                                          "malformed": it answers 200 with a
+                                          body that is not a JSON object;
+                                          false: normal)
                                      api: actor_gate, policy_service (hand
                                           authorization to the policy
                                           service, in place of the API's own
@@ -1720,6 +1729,46 @@ def s19(ctx):
     check(data not in resp.body, "the response carried the file's data")
     if not resp.headers.get("Retry-After"):
         ctx.notes.append("no Retry-After header field (core: Error Responses SHOULD)")
+
+
+@case("S20", "API", "Answers HTTP 503, not invalid_token, when introspection cannot complete",
+      "core: Optional Opaque Access Tokens and Introspection; Error Responses (evaluation "
+      "that cannot complete); RFC 7662 Section 2.3",
+      needs=("mint_opaque_token", "set:ras.introspection_unavailable"),
+      defeats=("api.introspection_unavailable",))
+def s20(ctx):
+    token = ctx.adapter.mint_opaque_token(minted_token_claims(ctx))
+    data = file_data(ctx, token)
+    for mode in ("error", "malformed"):
+        ctx.adapter.set("ras", "introspection_unavailable", mode)
+        resp = ctx.client.get(ctx.cfg.read_path, token)
+        check(resp.status == 503,
+              f"{mode}: expected HTTP 503, got {resp} {challenge_of(resp)!r}")
+        check(data not in resp.body, f"{mode}: the response carried the file's data")
+        challenge = challenge_of(resp)
+        for code in ("invalid_token", "actor_unauthorized", "insufficient_scope"):
+            check(code not in challenge and code.encode() not in resp.body,
+                  f"{mode}: the response reports {code}: {resp} {challenge!r}")
+        if not resp.headers.get("Retry-After"):
+            ctx.notes.append(f"{mode}: no Retry-After header field (core: Error Responses SHOULD)")
+
+
+@case("S21", "API", "Reports an established proof failure, not 503, while introspection cannot "
+      "complete",
+      "core: Error Responses (evaluation that cannot complete); Token Validation; "
+      "RFC 9449 Section 4.3",
+      needs=("mint_opaque_token", "set:ras.introspection_unavailable"),
+      defeats=("api.established_failure",))
+def s21(ctx):
+    token = ctx.adapter.mint_opaque_token(minted_token_claims(ctx))
+    other = ctx.adapter.mint_opaque_token(minted_token_claims(ctx))
+    data = file_data(ctx, token)
+    ctx.adapter.set("ras", "introspection_unavailable", "error")
+    resp = ctx.client.get(ctx.cfg.read_path, token, proof_token=other)
+    check(resp.status == 401,
+          f"expected HTTP 401 for the proof, got {resp} {challenge_of(resp)!r}")
+    check(data not in resp.body, "the response carried the file's data")
+
 
 def run_case(c, cfg, adapter, disable=()):
     """Run one case from a reset deployment; return (passed, detail, notes)."""

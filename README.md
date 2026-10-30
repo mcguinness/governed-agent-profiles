@@ -83,8 +83,8 @@ that claims none of the optional inputs needs only the core.
   a vendor evidence worksheet, stop-and-restore runbooks, and an audit
   trace.
 * **[Implementer's guide](IMPLEMENTERS-GUIDE.md):** message flows for
-  both grants, what each role builds, configuration, and deployment
-  tradeoffs.
+  both grants, what each role builds, configuration, and the errors
+  each role returns.
 * **[End-to-end examples](EXAMPLES.md):** one delegated transaction and
   its self-acting counterpart, then optional variations (approval at
   issuance and at redemption, a gateway, a scheduled run), an incident,

@@ -664,7 +664,7 @@ details of each row follow it.
 | Lifecycle delivery is delayed or lost | Continue on the last applied state | Decided on the last applied state | Reconciliation with the source |
 | The RAS has no record for the agent | Unaffected for agents already correlated | Denied, unless just-in-time correlation applies | Provisioning, or just-in-time correlation |
 | Introspection is unavailable at the API | Requests that need a check fail | Unaffected at the RAS | Requests succeed once it returns |
-| A policy decision service is unavailable | Not defined by the drafts | Not defined; an IdP issuance decision that depends on the service cannot be made | Decisions resume once it returns |
+| A policy decision service is unavailable | The API performs no operation that needs the decision and answers HTTP 503, not a denial, unless an earlier-ranked failure is already established | An IdP issuance decision that depends on the service cannot be made | Retry after any `Retry-After` interval; decisions resume once it returns |
 | A continuation is refused | Issued tokens keep their lifetimes | No onward grant; after `invalid_continuation`, no further continuation of that chain | A new root grant, or a different request |
 
 **The IdP is unavailable.** The outage prevents new IdP-issued grants:
@@ -704,13 +704,17 @@ disablement.
 check cannot authorize a request. Cached active responses stay usable
 within the cache policy.
 
-**A policy decision service is unavailable.** The drafts define no
-behavior, but the selected integration may: a COAZ-MCP enforcement
-point fails closed and returns an error. Where the integration allows
-a choice, the resource domain denies or applies local policy, and
-neither can exceed the token's constraints. Where an IdP issuance
-decision depends on resource-domain evaluation through that service,
-the IdP cannot make it.
+**A policy decision service is unavailable.** An API whose check
+cannot complete does not perform the operation. Unless it has already
+established a failure that the core's selection order ranks earlier
+than every unfinished check, it reports no denial and answers HTTP 503,
+normally with `Retry-After` ([core, Error Responses][core-resource-errors]).
+A COAZ-MCP enforcement point fails closed and returns an error of its
+own; the drafts do not yet say how that composes with the core's 503.
+Whether local policy can stand in for the unavailable service is not
+settled either. Where an IdP issuance decision depends on
+resource-domain evaluation through that service, the IdP cannot make
+it.
 
 **A continuation is refused.** Ending a chain stops new continuations
 only; grants and tokens already issued keep their own lifetimes. After
@@ -968,6 +972,7 @@ What each draft needs from the specifications it depends on is in
 
 [core]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
 [core-walkthrough]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#walkthrough
+[core-resource-errors]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#resource-errors
 [core-wag-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#wag-example
 [core-aws-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#aws-example
 [inputs]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html

@@ -904,8 +904,7 @@ agent or another chain.
 * **Adds:** Alice's Delegation Authorization also permits `files.write`,
   only with her approval, so the IdP requires it before an onward grant
   with `files.write` issues; and the agent's client supports the MCP
-  tasks extension. The [guide][guide-gateway] describes this flow; the
-  messages below are new.
+  tasks extension. The messages below are new.
 
 At 12:05:30, the agent asks the gateway to write `report-7`.
 
@@ -1796,6 +1795,5 @@ invent one:
 [scim-dedicated]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html#dedicated-example
 [oc-cimd]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-oauth-client-management.html#example-admit-a-cimd-client
 [guide-authzen]: IMPLEMENTERS-GUIDE.md#illustrative-requests
-[guide-gateway]: IMPLEMENTERS-GUIDE.md#approval-at-an-mcp-gateway
 [guide-oversight]: IMPLEMENTERS-GUIDE.md#human-oversight
 [mcp-tasks]: https://tasks.extensions.modelcontextprotocol.io/specification/2026-07-28/tasks

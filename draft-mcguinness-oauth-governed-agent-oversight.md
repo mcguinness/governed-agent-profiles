@@ -609,7 +609,7 @@ when its own policy refuses a redemption ("Redemption Errors" in
 `invalid_target` for a WAG. The response therefore does not reveal
 that an approval could be obtained. A RAS that defers redemptions
 advertises `deferred_token_response_supported` in its own metadata
-({{Section 12.5 of DTR}}); the IdP's metadata says nothing about the
+({{Section 4.1 of DTR}}); the IdP's metadata says nothing about the
 RAS.
 
 ## Deferring a Redemption {#redemption-deferring}
@@ -655,7 +655,9 @@ redemption that outlives it. That section sets the expiration at
 issuance. Without deferral the two coincide; with deferral, a later
 start would extend reliance on one IdP decision by the pending time.
 Where the RAS already set an absolute authorization expiration for the
-grant, that expiration applies, and deferral does not extend it.
+grant, that expiration applies, and deferral does not extend it. If it
+has passed, the RAS does not defer: access beyond it requires a new
+grant, and the RAS rejects the redemption with `invalid_grant`.
 
 The RAS records a pending governed redemption bound to the values that
 the checks established:
@@ -763,14 +765,15 @@ the pending governed redemption ends.
 
 ## Redemption Resolution {#redemption-resolution}
 
-Before issuing a token in response to a poll, the RAS MUST re-evaluate
-the redemption under {{Section 10.7 of DTR}}, with the approval kept
-under {{redemption-approval}}, and MUST confirm that:
+Only an approval accepted under {{redemption-approval}} starts
+resolution; an approval for another approval request leaves the pending
+governed redemption pending. Before issuing a token in response to a
+poll, the RAS MUST re-evaluate the redemption under
+{{Section 10.7 of DTR}}, with the approval kept under
+{{redemption-approval}}, and MUST confirm that:
 
 * neither the approval's expiry nor any enforcement deadline has
-  passed. Only an approval accepted under {{redemption-approval}} starts
-  resolution; an approval for another approval request leaves the
-  pending governed redemption pending;
+  passed;
 * no applied disablement, correlation removal, local restriction, or
   Local Suspension affects the agent or, for an ID-JAG, the user
   ("Applied Disablement and Revocation" in {{FEDERATION}},

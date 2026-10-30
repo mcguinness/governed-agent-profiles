@@ -388,9 +388,9 @@ bilateral contract to tell the two token populations apart; the absence
 of `act` alone does not. A separate client registration or audience for
 self-acting tokens avoids that contract.
 
-That completes the core: two peer grants, of which an implementation
-supports one or both. The variations below are optional, and each says
-what it adds; [Incident and recovery](#incident-and-recovery) shows how
+That completes the two basic access flows, one for each peer grant; an
+implementation supports one or both. The variations below are optional,
+and each says what it adds; [Incident and recovery](#incident-and-recovery) shows how
 disablement and revocation stop access.
 
 ## Optional variations

@@ -1571,7 +1571,11 @@ The IdP returns `204 No Content` with ETag `W/"a3"`. No grant issues
 for `agent-42` through any binding or client: a fresh exchange fails
 with the same `invalid_grant` response, because no active Agent
 Principal resolves. The agent's continuation chains end, so the
-gateway's next continuation fails with `invalid_continuation`.
+gateway's next continuation fails with `invalid_continuation`. The
+gateway then rejects the agent's request with HTTP 401 `invalid_token`,
+as the continuation profile recommends, so that the agent's client
+obtains a new root grant ([continuation, Gateway
+Requirements][cont-gateway]).
 
 The disablement reaches the RAS in one of two ways ([lifecycle, Disable
 and Re-enable][life-example]). The provisioning connector can apply it
@@ -1616,8 +1620,10 @@ Or the IdP's provisioning source, where the agent is
 
 The RAS then retrieves the source Agent, observes `active: false`, and
 applies the same change. Either way, before reporting success the RAS
-blocks new redemption and refresh for the agent and revokes its
-sessions, so introspection of `access-1` returns `"active": false` as
+blocks new redemption and refresh for the agent, so a grant naming
+`agent-42` fails there with `invalid_grant` ([core, Redemption
+Errors][core-redemption-errors]), and revokes its sessions, so
+introspection of `access-1` returns `"active": false` as
 above.
 
 ### Re-enable
@@ -1665,6 +1671,7 @@ invent one:
 [core-walkthrough]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#walkthrough
 [core-client-assertion]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#client-assertion-example
 [core-redemption]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#redemption-example
+[core-redemption-errors]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#redemption-errors
 [core-wag]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#wag-example
 [core-inputs]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#input-variants
 [inputs-examples]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html#input-variants
@@ -1677,6 +1684,7 @@ invent one:
 [cont-two-gateways]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#walkthrough-two-gateways
 [cont-scheduled-setup]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#walkthrough-scheduled-setup
 [cont-scheduled-run]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#walkthrough-scheduled-run
+[cont-gateway]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#gateway-reuse
 [cont-window]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#governed-chain-authorization
 [cont-impl-idp]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#implementation-idp
 [life-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#example

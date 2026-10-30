@@ -88,9 +88,10 @@ that claims none of the optional inputs needs only the core.
 * **[End-to-end examples](EXAMPLES.md):** one agent from registration
   through delegated and self-acting access, approval, a gateway, a
   scheduled run, and an incident, with the messages on the wire.
-* **[Conformance suite](conformance/README.md):** executable positive
-  and negative tests for the mandatory delegated path, with a test-only
-  reference IdP, RAS and API.
+* **[Conformance suite](conformance/README.md):** executable cases for
+  the mandatory delegated path, deferred redemption at the RAS, and an
+  API's policy service, with a test-only reference IdP, RAS and API.
+  Each case lists the control of the implementation it needs.
 * **[Coordination notes](COORDINATION.md):** what the drafts need from the
   specifications they depend on.
 

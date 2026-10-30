@@ -144,6 +144,9 @@ tests, and these common checks:
   `invalid_grant`.
 * An access token presented in another tenant, even with a valid proof,
   is rejected with HTTP 401 `invalid_token`.
+* Where the API introspects opaque tokens, a request made while the
+  introspection endpoint is unreachable gets HTTP 503, not 401
+  `invalid_token`.
 
 ### 4. Add capabilities when needed
 

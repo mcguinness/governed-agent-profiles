@@ -26,8 +26,8 @@ Identification-00, Client Attester Endorsement-00, and WISE draft 03.
 | ID-JAG | Bound-grant example aligned with the normative `jwt-bearer` grant type, and grant-confirmation errors separated from RFC 9449 proof errors (below) | Confirmation checks are applied to `jwt-bearer` here |
 | Actor Profile | A reusable principal-resolution extension point separating credential validation, identity mapping, and actor construction | The mapping is defined locally in `actor-construction` |
 | AuthZEN OAuth mapping profile (planned; openid/authzen issue 788) | Governed-profile requirements for the represented subject, the issuer-qualified agent, the client, and the path, all taken from the validated token; COAZ-MCP, the token issuance and exchange profiles, and ARAP are to build on it (below) | Governed enforcement points supply these themselves (`policy-services`); this profile defines no AuthZEN mapping |
-| Deferred Token Response | A statement that the token returned after a deferral carries the identities the authorization server resolved from the originating request | The oversight profile requires this for governed issuance; deferred redemption at the RAS stays an open item there |
-| AuthZEN profiles (ARAP and its Actor Delegation Profile, AROP, Token Issuance, Token Exchange) | The mapping profile's identity model; the resolved agent as a mandatory issuance-decision input; an approval bound to the governed request and its resolved identities; an approval deadline that bounds only what the approving server issues (below) | Each enforcement point maps each profile into the governed model; asynchronous approval with AROP stays an excluded composition |
+| Deferred Token Response | A statement that the token returned after a deferral carries the identities the authorization server resolved from the originating request | The oversight profile requires this for governed issuance and for deferred redemption at the RAS |
+| AuthZEN profiles (ARAP and its Actor Delegation Profile, AROP, Token Issuance, Token Exchange) | The mapping profile's identity model; the resolved agent as a mandatory issuance-decision input; an approval bound to the governed request and its resolved identities; an approval deadline that bounds only what the approving server issues (below) | Each enforcement point maps each profile into the governed model; the oversight profile profiles AROP at the RAS, without continuation, and AROP at the IdP stays an excluded composition |
 
 #### WAG
 
@@ -283,7 +283,8 @@ OAuth deployment. These profiles need the same identity model:
   replaces identity resolution, the Client Association, or the
   delegation. AROP should state this; naming the JWT bearer grant
   (RFC 7523) as an originating grant would make the mapping
-  explicit.
+  explicit. The oversight companion already requires it for deferred
+  redemption at the RAS (`redemption-deferring`).
 * **Approval binds the governed request.** ARAP binds an approval to
   the Subject, Resource, Action, and authorization-relevant Context of
   the denied evaluation, but its default comparison excludes
@@ -310,6 +311,16 @@ OAuth deployment. These profiles need the same identity model:
   between that approval and the redeemed grant, which nothing defines.
   ARAP should say that its bound applies to the credentials the PEP
   itself issues.
+* **The approval deadline and exchange.** AROP bounds every token
+  "obtained by exchange" by `approved_until`, without saying where the
+  exchange happens. Continuation exchanges an access token at the CAI,
+  then the resulting assertion at the IdP, which authorizes the onward
+  grant on its own. AROP should say that `approved_until` bounds the
+  credentials the deferring server itself issues, and whether an
+  onward grant authorized independently derives from the approval.
+  Until it does, the oversight companion makes an authorization from a
+  deferred redemption ineligible for continuation
+  (`redemption-refresh`), and AROP at the IdP stays excluded.
 
 The identity items are governed-profile requirements for the OAuth
 mapping profile; the rest are requests to the OpenID AuthZEN working
@@ -352,12 +363,12 @@ exclusion does not prevent the independently supported uses listed here.
 
 | Composition | Boundary in this document |
 |---|---|
-| Approval before issuance | Defined for governed issuance, including continuation, in the oversight companion (`OVERSIGHT`, below) |
-| Asynchronous approval with `AROP` | No approval transport or completion flow; external approval remains subject to `external-approval` and the lifetime limits in `authorization-lifetime` |
+| Approval before issuance or redemption | Defined for governed issuance, including continuation, and for governed redemption at the RAS, in the oversight companion (`OVERSIGHT`, below) |
+| Asynchronous approval with `AROP` | At the RAS, defined for deferred redemption in the oversight companion, without continuation from the resulting authorization; at the IdP, external approval remains subject to `external-approval` and the lifetime limits in `authorization-lifetime` |
 | Continuation with `ICA` | Defined for governed grants in the continuation companion (`CONTINUATION`, below); renewal without continuation follows `continuing-access` |
 | General WIMSE WIT/WIC inputs | WIT-SVID and X.509-SVID resolution is defined in `spiffe-input` of `INPUTS`; non-SPIFFE credentials need an explicit OAuth presentation and proof composition |
 | Instance context carried in an ID-JAG or WAG, or preserved across domains, under `INSTANCE` | The RAS conveys only an instance it validated (`access-token-response`); instances resolve the agent only through a managed-installation binding (`agent-evidence` of `INPUTS`). Preservation would need this profile to define provenance and association under Section 7.4 of `INSTANCE` |
-| Mutual-TLS-bound ID-JAG | Bound grants use DPoP. Mutual TLS remains available for access-token protection under `access-token-protection` |
+| Mutual-TLS-bound ID-JAG | Bound grants use DPoP. Mutual TLS remains available for access-token protection under `access-token-protection`, except after a deferred redemption, which the oversight companion requires to be DPoP-bound |
 | Rich Authorization Requests without scope | This profile requires meaningful scope alongside any authorization details; it does not define the scope-free mode permitted by `RFC9396` |
 
 ### Operational Dependencies
@@ -395,7 +406,7 @@ the nearest mechanism here, not an equivalent.
 | CB4A element | Nearest counterpart here | Difference |
 |---|---|---|
 | Policy decision point before credential issuance | IdP issuance authorization (Delegation or Agent Authorization), optionally through an AuthZEN PDP | None in role; CB4A also scores behavior against baselines |
-| Human and MFA approval tiers | An additional issuance condition (`external-approval`), or approval before issuance under the oversight profile | Approval completes as a governed grant through Deferred Token Response; completion as a token through ARAP and AROP is an excluded composition (`excluded-compositions`) |
+| Human and MFA approval tiers | An additional issuance condition (`external-approval`), or approval before issuance under the oversight profile | Approval completes as a governed grant through Deferred Token Response, or, at the RAS, as an access token through deferred redemption, which AROP can realize; AROP at the IdP is an excluded composition (`excluded-compositions`) |
 | Credential delivery point minting, for a target that accepts governed grants | The IdP grant, redeemed at the target's RAS for an access token | No vaulted credential; the target sees the agent |
 | Proxy gateway, for a target that accepts governed grants | Continuation through a gateway | No credential injection; the onward grant names the same agent |
 | Envelope target: service, action, resource, scope | Token exchange `audience`, `resource`, `scope`, `authorization_details` | None |
@@ -648,16 +659,34 @@ and client authorization only.
 DTR says nothing about which identities the token returned after a
 deferral carries; the companion requires the grant to keep the
 request's Agent Principal, acting relationship, user, and client
-(`resolution`). DTR does not name `jwt-bearer`, but its abstract lets
-any OAuth grant use it and its introduction names assertion-based
-grants such as ID-JAG, so DTR does not prevent deferring a redemption
-at the RAS. That deferral stays an open item because the governed
-redemption rules for a pending request are not yet defined (below).
+(`resolution`).
+
+The companion also profiles DTR for the redemption of an ID-JAG or a
+WAG at the RAS (`deferred-redemption`), which DTR's introduction and
+Section 8.2 anticipate for ID-JAG. There it narrows DTR further. A
+deferred grant is accepted once, so the parallel request without
+`completion_mode` that Section 8.2 suggests fails
+(`redemption-deferring`). The RAS does not defer where configuration
+selects mutual-TLS access tokens, since Section 10.1 requires the
+issued token to be DPoP-bound to the request's key
+(`redemption-opt-in`). A lost deferred response is recovered with the
+same grant and key (`redemption-recovery`).
+
+Two questions for DTR, not yet filed:
+
+* whether a grant profile's replay rules can forbid the parallel
+  request of Section 8.2, as the companion does; and
+* whether the originating-grant preconditions that Section 10.7
+  re-evaluates include the grant's own expiration when the client does
+  not present the grant again. The companion checks the grant's `exp`
+  on receipt (`redemption-deferring`) and records the question as an
+  open item.
 
 ### AROP
 
-The companion does not compose AROP, and the core keeps asynchronous
-approval with AROP among its excluded compositions. AROP bounds every
+The companion profiles AROP's token issuance completion at the RAS and
+not at the IdP. At the IdP, the core keeps asynchronous approval with
+AROP among its excluded compositions. AROP bounds every
 token issued under an approval by `approved_until`, including refresh
 tokens and tokens obtained by exchange, and requires a refresh or
 exchange after that time to fail. When the IdP defers governed
@@ -667,20 +696,32 @@ enforcing a downstream condition (the core's `issuance-authorization`),
 so a composition at the IdP cannot meet AROP's bound.
 
 AROP's Deferred Token Response binding already names deferral by the
-RAS when an agent redeems an ID-JAG. Deferral at the RAS, which issues
-the tokens AROP bounds, is the likely composition and is the
-companion's first open item. It would be a separate approval, bounding
-the authority the RAS issues; it would not carry an approval made at
-the IdP. Besides the grant's `exp` and the replay record that the open
-item names, it needs:
+RAS when an agent redeems an ID-JAG. The RAS issues the tokens AROP
+bounds, so the companion composes AROP there (`deferred-redemption`).
+The approval is the RAS's own: it bounds the authority the RAS issues
+and carries nothing from an approval at the IdP. The companion adopts
+AROP's re-evaluation at issuance and at every refresh, its bound on
+every token the RAS issues, and its single redemption of the deferral
+code. It narrows AROP in five places:
 
-* the identities resolved at receipt and bound to the pending request
-  ("Approval keeps the resolved identities" above);
-* a replay record kept until the grant's acceptance window has passed,
-  not only until the request ends, since a request can complete while
-  the grant could still be presented; and
-* a sender constraint for the pending request when the grant has no
-  `cnf`.
+* the identities are resolved at receipt and bound to the pending
+  redemption ("Approval keeps the resolved identities" above);
+* each approval is bound to one pending redemption and kept unchanged,
+  and AROP's idempotent submission, which compares the client and the
+  requested authority but not the agent, is replaced by recovery with
+  the same grant and key (`redemption-approval`,
+  `redemption-recovery`);
+* the grant is accepted once, and its replay record is kept until the
+  grant's acceptance window has passed, not only until the request
+  ends;
+* a DPoP proof is required, so the deferral code has a sender
+  constraint when the grant has no `cnf`; and
+* the agent is the issuer-qualified `act` for an ID-JAG, or the
+  subject for a WAG, never `context.client_id`.
+
+The companion makes the resulting authorization ineligible for
+continuation, since AROP's bound reaches tokens obtained by exchange
+("The approval deadline and exchange" above).
 
 AROP still cites `draft-gerber-oauth-deferred-token-response`; the
 "Convergence across AuthZEN profiles" note above records the requests.
@@ -688,9 +729,12 @@ AROP still cites `draft-gerber-oauth-deferred-token-response`; the
 ### ARAP
 
 The companion names ARAP as one way to route an approval and defines
-no composition with it. Using ARAP for a governed pending request needs
-the approval-binding contract described in "Convergence across AuthZEN
-profiles" above. ARAP's default completion re-evaluates access with
+no composition with it. Using ARAP for a governed pending request at the
+IdP needs the approval-binding contract described in "Convergence
+across AuthZEN profiles" above. At the RAS, the companion binds each
+approval to the one pending redemption it was requested for and keeps
+ARAP's `approval` object unchanged (`redemption-approval`), so deferred
+redemption does not depend on ARAP's comparison. ARAP's default completion re-evaluates access with
 the approval; at a governed IdP, that decision would be one more check
 at resolution, not a replacement for the re-checks `resolution`
 requires.
@@ -718,11 +762,11 @@ per-action realization the companion describes.
 
 ### Open Items
 
-The companion's open items (`open-items`) are deferred redemption at
-the RAS, where AROP could compose, an attribute for the oversight mode
-in the SCIM management
-profile, a Shared Signals event for supervised-issuance notices, and
-duplicate pending requests.
+The companion's open items (`open-items`) are AROP at the IdP and
+continuation from a deferred redemption, an attribute for the
+oversight mode in the SCIM management profile, a Shared Signals event
+for supervised-issuance notices, duplicate pending requests at the
+IdP, and DTR's originating-grant preconditions.
 
 ## Family Structure
 

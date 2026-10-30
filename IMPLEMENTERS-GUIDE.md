@@ -279,7 +279,8 @@ suite](conformance/README.md) and how far they go:
 | Before starting the path, the client verifies that the RAS advertises a profile meeting the configured minimum, supports the JWT bearer grant, and offers compatible access-token protection ([Capability Discovery][capability-discovery]) | RAS advertises; client verifies | `authorization_grant_profiles_supported` includes `urn:ietf:params:oauth:grant-profile:id-jag-agent-federation`; `grant_types_supported` includes `urn:ietf:params:oauth:grant-type:jwt-bearer` | Yes | Untested: the suite does not retrieve metadata |
 | DPoP at the token endpoint, proven with the grant's key | RAS | `ES256`; the same key K | DPoP algorithms | Direct: N11, N12 |
 | Access-token protection per resource ([Access-Token Protection][access-token-protection]) | Agreed with the resource | DPoP | `token_type` in the response, which does not tell mutual TLS from bearer | Positive path: P2 |
-| Refresh tokens ([Optional RAS Refresh Tokens][ras-refresh]) | RAS policy | None | No | Untested: P2 notes a refresh token but does not fail |
+| Refresh tokens ([Optional RAS Refresh Tokens][ras-refresh]) | RAS policy | None | No | Direct after a deferred redemption, against the reference: D13, D14, D15. Otherwise untested: P2 notes a refresh token but does not fail |
+| Deferred redemption ([Deferred Redemption][ov-redemption]): whether RAS policy can hold a redemption for approval; the opt-in with DPoP; polling and recovery with the same key | RAS policy; client opts in | None; scene 2 has no approval at the RAS | `deferred_token_response_supported` | Direct against the reference, whose Access Request Service the suite controls: D01 to D19. Untested: WAG deferral, mutual-TLS resources, continuation ineligibility, grant-derived revocation while pending |
 
 ### RAS and API
 
@@ -393,13 +394,15 @@ selects or lowers it ([Oversight Modes][ov-modes]).
 | Mode | Where | Mechanism | Suits |
 |---|---|---|---|
 | Human in the loop | IdP issuance, including continuation | [Deferred governed issuance][ov-deferred]: the IdP holds the token exchange under [Deferred Token Response][DTR] until an approver decides, then issues the grant the request would have produced | Authority whose misuse cannot be undone, such as writing, paying, or sharing outside the tenant |
+| Human in the loop | RAS redemption | [Deferred redemption][ov-redemption]: the RAS holds the redemption under Deferred Token Response until an approver that RAS policy designates decides, then issues the access token the redemption would have produced, bounded by the approval's expiry; the authorization is not eligible for continuation | A resource domain that approves each agent's access itself, such as a data steward approving an agent's first access to a tenant |
 | Human in the loop | Each action at an API or MCP server | [Per-action oversight][ov-per-action]: the server holds the call until an approver decides on that call | A sensitive operation, object, or argument within authority the agent already holds |
 | Human on the loop | IdP issuance | [Supervised issuance][ov-supervised]: grants issue at once; overseers see each one and can end it | Work that cannot wait for a person, at a target where an intervention takes effect within a documented bound |
 | Human out of the loop | Every decision point | The core's standing authorization | Routine authority, certified periodically |
 
 Each decision point applies its own mode. An approval at the IdP does
-not satisfy a resource domain that requires a person to decide on an
-action, and no claim in the grant tells the RAS that anyone approved.
+not satisfy a RAS that requires its own approval for a redemption, or a
+resource domain that requires a person to decide on an action, and no
+claim in the grant tells the RAS that anyone approved.
 
 A deployment that uses oversight adds this configuration to the
 [federation configuration](#federation-configuration):
@@ -407,7 +410,8 @@ A deployment that uses oversight adds this configuration to the
 | Party | Configuration |
 |---|---|
 | IdP | The mode in issuance policy, configured at the IdP directly, since the SCIM management profile has no attribute for it; the approvers each policy designates, and the authentication strength each requires; an approval channel, such as [CIBA] with a `binding_message` that describes the request; a maximum pending lifetime for each policy; Deferred Token Response in polling mode, with deferral codes bound to the client and its DPoP key; for supervised issuance, the overseers and the channel that gives them each grant's issuer, `jti`, request context, and issuance time |
-| Client | `completion_mode=deferred` and a DPoP proof on each request that can wait, whatever its authentication method; polling with the same key, no faster than the returned `interval` and slower after `slow_down`; stopping on `access_denied` or `expired_token`; cancelling by revoking the deferral code; never retrying a denied or expired request as self-acting access, under another client, or under a lower adoption profile |
+| RAS, for deferred redemption | The mode in RAS policy, and the approvers it designates; an approval channel, such as an access request service under [ARAP], with one access request for each pending redemption and the approval kept unchanged; a maximum pending lifetime and an absolute authorization expiration that starts when the grant is accepted; no deferral for a resource configured for mutual-TLS access tokens; the accepted grant, or its digest, kept for recovery; the resulting authorization never eligible for continuation |
+| Client | `completion_mode=deferred` and a DPoP proof on each request that can wait, whatever its authentication method; polling with the same key, no faster than the returned `interval` and slower after `slow_down`; stopping on `access_denied` or `expired_token`; cancelling by revoking the deferral code; never retrying a denied or expired request as self-acting access, under another client, or under a lower adoption profile; after losing a deferred redemption's response, repeating the redemption with the same grant, a fresh proof of the same key, and the same parameters ([Recovery][ov-recovery]) |
 | Gateway | The client behavior above for its continuation exchanges; reporting the wait to the agent through its own interface, such as an MCP task |
 | API or MCP server | Per-action policy and its approvers; holding a call, or refusing it in a way the agent can request; an approval page that authenticates the approver and binds the decision to the call, its arguments, and the token's subject, agent, client, and tenant |
 | Overseers | Supervised-issuance notices, and the interventions of the [playbook's runbooks](PLAYBOOK.md#runbooks-stop-and-restore), each with a documented intervention bound |
@@ -487,10 +491,13 @@ the tool with its own authority.
   `destructiveHint` neither selects nor lowers a mode, though a
   deployment can use its own classification of tools to require a
   stricter one ([Model Context Protocol][ov-mcp]).
-* **Approval that completes as a token.** Deferral of redemption at the
-  RAS is an open item of the profile ([Open Items][ov-open-items]), and
-  asynchronous approval with AROP stays an [excluded
-  composition][excluded-compositions] of the core.
+* **Approval that completes as a token at the IdP.** At the RAS,
+  [deferred redemption][ov-redemption] completes an approval as an
+  access token, which AROP can realize. At the IdP, asynchronous
+  approval with AROP stays an [excluded
+  composition][excluded-compositions] of the core, and continuation
+  from a deferred redemption is an open item of the profile ([Open
+  Items][ov-open-items]).
 * **Revoking one WAG.** Revoking a single WAG is deployment-specific, so
   supervised self-acting issuance rests on withdrawing the Agent
   Authorization, a Local Suspension, or disabling the agent.
@@ -647,9 +654,9 @@ flowchart LR
 | Point | Enforcement point | What is decided | Hook in the profiles | AuthZEN fit |
 |---|---|---|---|---|
 | Each action | API or MCP gateway | Whether this user and agent may perform this operation on this object | [Optional Policy Services][policy-services] and [Delegated Actor Authorization][actor-authorization] | AuthZEN evaluation; [COAZ-MCP][COAZ-MCP] for MCP tool calls |
-| Redemption | RAS | Whether to issue an access token under local user, actor, client, tenant, and resource policy | Grant Redemption at the RAS; the core states its policy-service rules for the API | AuthZEN evaluation |
+| Redemption | RAS | Whether to issue an access token under local user, actor, client, tenant, and resource policy | Grant Redemption at the RAS; the core states its policy-service rules for the API, and [deferred redemption][ov-redemption] builds evaluations only from the redemption's resolved values | AuthZEN evaluation; ARAP and AROP when RAS policy requires approval |
 | Issuance | IdP | Decisions that depend on tool arguments or business objects, which the IdP need not interpret | Authorization Relationships: resource-domain evaluation, locally or through a trusted policy service | A resource-domain PDP; the AuthZEN Token Issuance profile is not yet composed with governed issuance ([below](#one-identity-model-across-authzen-profiles)) |
-| Requestable denial | API | Whether the agent can ask for more access | External Approval; per-action oversight in the oversight profile; asynchronous approval with AROP is an excluded composition | ARAP for the request; AROP for completion as a token |
+| Requestable denial | API | Whether the agent can ask for more access | External Approval; per-action oversight in the oversight profile; at the RAS, deferred redemption; AROP at the IdP is an excluded composition | ARAP for the request; AROP for completion as a token at the RAS |
 
 ### Use cases
 
@@ -675,8 +682,10 @@ flowchart LR
    additional condition within the token's authority but cannot expand
    it. A new governed grant after approval comes from deferred issuance
    under the [oversight profile][OVERSIGHT] ([Human
-   oversight](#human-oversight)); approval that completes as a token
-   through AROP is not yet composed with governed issuance.
+   oversight](#human-oversight)). At the RAS, an approval completes as
+   an access token through the profile's [deferred
+   redemption][ov-redemption]; completion through AROP at the IdP is
+   not yet composed with governed issuance.
 
 Risk signals and approved work are further inputs; see [Platform-hosted
 agents](ARCHITECTURE.md#platform-hosted-agents) and [Beyond these
@@ -776,8 +785,9 @@ Four differences matter for governed deployments:
   literal `sub`. ARAP's default approval comparison leaves out the
   actor, and an approval deadline bounds only what the approving
   server issues. The [oversight profile][OVERSIGHT] defines deferred
-  governed issuance but not AROP. A composition of these profiles with
-  governed issuance would need the resolved agent as a mandatory
+  governed issuance, and profiles AROP only at the RAS, for deferred
+  redemption, where it binds each approval to one pending redemption.
+  A composition of these profiles with governed issuance would need the resolved agent as a mandatory
   decision input, an approval bound to the governed request and its
   resolved identities, and the governed identity resolution and
   authorization checks preserved.
@@ -1072,9 +1082,10 @@ agent cannot use the token directly.
   condition on issuance at the IdP; they never replace identity
   resolution or delegation authorization ([External
   Approval][external-approval]). Approval before issuance follows the
-  [oversight profile][OVERSIGHT]; approval that completes as a token
-  through ARAP and AROP is an [excluded
-  composition][excluded-compositions].
+  [oversight profile][OVERSIGHT]. At the target's RAS, approval
+  completes as an access token through the profile's [deferred
+  redemption][ov-redemption]; through ARAP and AROP at the IdP, it is
+  an [excluded composition][excluded-compositions].
 * **Revocation.** CB4A revokes individual leases on anomaly signals.
   These profiles provide different scopes:
   * For ID-JAG-derived access, the lifecycle profile's optional
@@ -1349,6 +1360,8 @@ resource domain provisioned for `agent-58` applies the deletion under
 [ov-mcp]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#mcp
 [ov-fatigue]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#security-fatigue
 [ov-open-items]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#open-items
+[ov-redemption]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#deferred-redemption
+[ov-recovery]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#redemption-recovery
 [DTR]: https://www.ietf.org/archive/id/draft-ietf-oauth-deferred-token-response-00.html
 [CIBA]: https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html
 [ICA]: https://www.ietf.org/archive/id/draft-mcguinness-oauth-id-continuation-assertion-02.html

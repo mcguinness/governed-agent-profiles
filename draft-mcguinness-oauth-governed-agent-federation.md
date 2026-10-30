@@ -1853,6 +1853,10 @@ validation failure MUST NOT trigger a weaker mode.
   any DPoP proof, including the grant proof required below.
 
 A proof never selects a protection that configuration does not permit.
+The RAS selects access-token protection only after the checks of
+{{grant-protection}} succeed, so a bound grant redeemed without its
+proof fails with `invalid_grant` whatever protection the resource
+requires.
 
 | Selected protection | Access token |
 |---|---|

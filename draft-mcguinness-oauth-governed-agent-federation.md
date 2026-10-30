@@ -1281,8 +1281,14 @@ Agent Authorization ({{agent-authorization}}).
 Issuance and denial follow these rules:
 
 * The IdP MAY narrow scope, reflecting the result in the grant and
-  response under {{RFC8693}}. It MUST return `invalid_scope` if no scope
-  can be granted.
+  response under {{RFC8693}}. If no scope can be granted for delegated
+  issuance, it MUST reject with `actor_unauthorized` when no applicable
+  Delegation Authorization covers the agent, user, client, and target,
+  or when policy categorically prohibits the agent for the requested
+  scope, and otherwise with `invalid_scope`, as when an applicable
+  authorization's scope ceiling excludes the request
+  ({{Section 6.6.2 of ACTOR-PROFILE}}). For self-acting issuance, it
+  MUST return the errors of {{issuance-errors}}.
 * The IdP MUST NOT issue by dropping a required actor or binding,
   substituting an external identifier for the Agent Principal, or
   weakening proof requirements.
@@ -1570,7 +1576,9 @@ In addition to {{errors}}, the IdP uses these errors:
 | Invalid subject or agent-resolution credential, or disallowed inbound actor chain | `invalid_grant` |
 | Absent, disabled, or ambiguous Identity Binding, or no active Agent Principal can be resolved | `invalid_grant` |
 | Governance Tenant cannot be resolved unambiguously from trusted identity and configuration context | `invalid_grant` |
-| Resolved Agent Principal, but no Client Association permits the selected binding for delegated issuance, or delegation is unauthorized | `actor_unauthorized` under Actor Profile, with HTTP 400 |
+| Resolved Agent Principal, but no Client Association permits the selected binding for delegated issuance | `actor_unauthorized` under Actor Profile, with HTTP 400 |
+| No applicable Delegation Authorization covers the agent, user, client, and target, or policy categorically prohibits the agent for the requested scope ({{issuance-authorization}}) | `actor_unauthorized` |
+| An applicable Delegation Authorization's scope ceiling excludes the requested scope | `invalid_scope` |
 | Approval requires a downstream lifetime condition that the selected composition cannot enforce, in delegated issuance ({{issuance-authorization}}) | `actor_unauthorized` |
 {: title="Identity resolution and delegation errors"}
 

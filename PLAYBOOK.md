@@ -179,8 +179,10 @@ agent, with the gateway as client. Permit continuation in tenant policy
 and in the Delegation or Agent Authorization; make the gateway's
 authorization server continuation-aware; sender-constrain the
 gateway's access tokens unless policy permits continuation from bearer
-tokens; give each gateway a Continuation Association; and make sure
-target authorization servers support DPoP at their token endpoints.
+tokens; give each gateway a Continuation Association; set the
+continuation window, which the profile requires to be finite, to what
+each gateway or task needs; and make sure target authorization servers
+support DPoP at their token endpoints.
 MCP clients send bearer tokens, so an MCP gateway needs that bearer
 policy unless its clients also support DPoP.
 
@@ -192,6 +194,9 @@ policy unless its clients also support DPoP.
   authority.
 * An agent disabled and re-enabled between continuations has its chain
   ended (`invalid_continuation`); a new root grant is needed.
+* A continuation requested after the hop's deadline fails with
+  `invalid_grant`, and one from a continuing client that the chain
+  authorization's restriction excludes fails with `unauthorized_client`.
 
 #### An external policy decision point
 

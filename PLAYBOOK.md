@@ -261,24 +261,39 @@ actions, the API or MCP server holds the call until an approver decides.
   `completion_mode=deferred` fails with `actor_unauthorized` for a
   delegated grant or `invalid_target` for a self-acting one, and nothing
   is issued and no deferred response is returned.
-* For approval before redemption, the oversight profile's
-  deferred-redemption negative tests pass.
 * The approver authenticates at the strength policy requires and sees
   the agent, the user, the client, the target, and the authority as the
-  IdP resolved them, with any text from the agent marked as the
-  agent's. A decision sent by the client or the agent is not accepted.
+  deferring server resolved them, the IdP for issuance and the RAS for
+  redemption, with any text from the agent marked as the agent's. A
+  decision sent by the client or the agent is not accepted.
 * A poll that proves another key fails with `invalid_dpop_proof`, and a
-  poll after the grant was delivered fails with `invalid_grant`.
+  poll after the grant or access token was delivered fails with
+  `invalid_grant`.
 * When an agent is disabled while its request is pending and the
-  approver then approves, the next poll returns `access_denied` and no
-  grant issues. Polls before the decision still return
-  `authorization_pending`: the IdP re-checks at resolution, and the
-  profile does not require disablement to cancel a pending request.
-* Approving narrower authority yields a grant with only that authority,
-  and an approval does not carry over to the next request with the same
-  context.
-* Except for a continuation, a pending request ends no later than the
-  subject credential expires, or a platform JWT that bounds the grant.
+  approver then approves, the next poll returns `access_denied` and
+  nothing issues. Polls before the decision still return
+  `authorization_pending`: the deferring server re-checks at
+  resolution, and the profile does not require disablement to cancel a
+  pending request.
+* Approving narrower authority yields a grant or access token with only
+  that authority, and an approval does not carry over to another
+  request with the same context.
+* For approval before issuance: except for a continuation, a pending
+  request ends no later than the subject credential expires, or a
+  platform JWT that bounds the grant.
+* For approval before redemption, which the RAS resolves into an access
+  token, not a grant:
+  * The pending redemption ends no later than the maximum pending
+    lifetime and the absolute authorization expiration that the RAS
+    set when it accepted the grant. The grant's `exp` limits only that
+    acceptance.
+  * While the redemption is pending, the same grant presented again by
+    the same client, with the opt-in, a fresh proof of the same key, and
+    the same request, returns the same deferral code, even after the
+    grant's `exp`; the approval then still issues the access token.
+  * The access token expires no later than the approval expiry, any
+    enforcement deadline, and the absolute authorization expiration.
+  * The oversight profile's deferred-redemption negative tests pass.
 * Where supervised issuance is claimed for a target, each grant's issuer,
   `jti`, request context, and issuance time reach an overseer no later
   than the client receives the grant, and an intervention from the

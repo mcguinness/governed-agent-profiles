@@ -2049,12 +2049,15 @@ attribute, and a `Bearer` challenge carries `realm`. A response body is
 application-specific but MUST NOT convey `actor_unauthorized` or
 `insufficient_scope`.
 
-If the API cannot complete an authorization evaluation, for example
-because a policy service is unreachable or returns a decision the API
-cannot interpret, it MUST NOT perform the operation and MUST NOT report
-a denial from this table. It responds with HTTP status code 503
-(Service Unavailable) ({{Section 15.6.4 of RFC9110}}) and SHOULD include
-a `Retry-After` header field ({{Section 10.2.3 of RFC9110}}).
+If a check cannot complete, for example because a policy service is
+unreachable or returns a decision the API cannot interpret, the API
+MUST NOT perform the operation. If it has established a failure and no
+check that did not complete comes earlier in this table, it reports that
+failure as the table selects. Otherwise it MUST NOT report a denial
+from this table: it responds with HTTP status code 503 (Service
+Unavailable) ({{Section 15.6.4 of RFC9110}}) and SHOULD include a
+`Retry-After` header field ({{Section 10.2.3 of RFC9110}}). Evaluation
+order therefore does not change the response.
 
 # Continuing Access and Authorization Changes {#continuing-access}
 
@@ -2880,6 +2883,8 @@ last column is the required result. Token endpoint errors follow
 | The actor gate permits `agent-42`, and the operation needs `files.write`, which the access token lacks | API | HTTP 403, `insufficient_scope` |
 | The actor gate permits `agent-42`, the token's scope covers the read, and Alice has no permission on `report-7` | API | HTTP 403 with a challenge that carries no `error` attribute |
 | The API delegates evaluation to a policy service, which cannot be reached | API | HTTP 503; no operation performed and no denial reported |
+| The policy service denies `agent-42` under the actor gate, and its evaluation of Alice's own permissions cannot complete | API | HTTP 403, `actor_unauthorized`; no unfinished check comes earlier |
+| The policy service cannot complete the actor gate, and Alice has no permission on `report-7` | API | HTTP 503; the unfinished actor gate could come earlier than the user's denial |
 | Platform JWT variant ({{aws-example}}): Alice's access tokens for `agent-42` and for another agent carry the same `client_id`, and the API's policy permits only `agent-42` | API | HTTP 403, `actor_unauthorized` for the other agent; the client identifier does not stand in for the agent ({{actor-authorization}}) |
 {: title="Negative test cases"}
 

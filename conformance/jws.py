@@ -135,9 +135,12 @@ def dpop_proof(key, htm, htu, access_token=None, iat=None, jti=None):
     return sign({"typ": "dpop+jwt", "jwk": public_jwk(key)}, payload, key)
 
 
-def client_assertion(key, client_id, audience, lifetime=60, jti=None, extra=None):
-    """An RFC 7523 private_key_jwt assertion with iss = sub = client_id."""
-    now = int(time.time())
+def client_assertion(key, client_id, audience, lifetime=60, jti=None, extra=None, now=None):
+    """An RFC 7523 private_key_jwt assertion with iss = sub = client_id.
+
+    now overrides the current time, for a client whose clock a test advances.
+    """
+    now = int(time.time()) if now is None else int(now)
     claims = {"iss": client_id, "sub": client_id, "aud": audience, "iat": now,
               "exp": now + lifetime, "jti": jti or uuid.uuid4().hex}
     claims.update(extra or {})

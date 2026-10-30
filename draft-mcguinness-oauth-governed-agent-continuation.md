@@ -45,6 +45,14 @@ normative:
   RFC9110:
   RFC9396:
 informative:
+  OVERSIGHT:
+    title: "Human Oversight Profile for Governed Agent Federation"
+    author:
+      - name: Karl McGuinness
+    date: false
+    seriesinfo:
+      Internet-Draft: draft-mcguinness-oauth-governed-agent-oversight
+    target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html
   AGENT-LIFECYCLE:
     title: "Governed Agent Lifecycle Profile for SCIM and OAuth"
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
@@ -433,7 +441,9 @@ continuation from bearer access tokens for that client and resource.
 The usual case is an unbound root grant redeemed without a DPoP proof,
 as governed agent access permits. A hop therefore remains
 sender-constrained from the RAS to the continuing client unless policy
-accepts the exposure that {{Section 9.1 of ICA}} describes.
+accepts the exposure that {{Section 9.1 of ICA}} describes. An
+authorization from a deferred redemption is not eligible under any
+policy ("Refresh and Continuation" in {{OVERSIGHT}}).
 
 The CAI's attestation establishes that the RAS accepted the hop, not
 that the gateway authorized the request, which the gateway does as the
@@ -1722,6 +1732,7 @@ Each case changes the stated conditions; all other checks succeed.
 | The Continuation Association for `tool-gateway` requires path disclosure, and `https://ras.example/` is not established to support it | IdP | HTTP 400, `invalid_target`; the IdP does not issue a grant whose path the target would discard |
 | The continuation used the chain's last permitted hop, its response was lost, and the gateway repeats the request with the same assertion | IdP | Where the IdP offers idempotent retry, HTTP 200 with the same onward grant; limits do not apply to recovery |
 | Governed agent access: the root ID-JAG has no `cnf`, the agent's client redeems it without a DPoP proof, GatewayRAS issues a bearer access token, and no policy permits continuation from it | CAI | HTTP 400, `invalid_request`; the authorization is not eligible for continuation |
+| GatewayRAS deferred the root redemption until an approver decided ({{OVERSIGHT}}), and the gateway presents the resulting access token, or one refreshed from it | CAI | HTTP 400, `invalid_request`; the authorization is not eligible for continuation |
 | The gateway redeems the onward ID-JAG without a proof of G | Target RAS | HTTP 400, `invalid_grant` |
 | The gateway's source hop has passed its continuation window while the agent's access token at the gateway is still accepted | IdP, then gateway | HTTP 400, `invalid_grant`; the gateway fails the agent's request with an error of its own API, not with HTTP 401 `invalid_token` |
 | Tenant policy lengthens the continuation window after the gateway's source hop was issued, and the gateway requests a continuation after the hop's original deadline | IdP | HTTP 400, `invalid_grant`; lengthening the window does not extend a hop's deadline |

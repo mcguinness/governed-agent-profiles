@@ -5,16 +5,28 @@ TLS, and nothing persists. The servers exist so the conformance suite has
 a first implementation to run against; they implement only what scene 2
 exercises: a dedicated client using private_key_jwt, an ID Token subject,
 bound governed agent access (DPoP at both token endpoints), JWT access
-tokens validated at the API, no refresh, no introspection.
+tokens validated at the API, no introspection.
+
+The RAS also implements the oversight companion's Deferred Redemption for
+an ID-JAG: when its policy requires approval for a scope, a redemption
+that opts in with completion_mode=deferred and a DPoP proof is held for an
+approver's decision (DTR), and completed from a test-controlled Access
+Request Service. Only that path issues refresh tokens, and only when
+test control permits them. No WAG, no CAI, and no mutual TLS.
 
 Every check the negative cases exercise has a name (see CHECKS). The
 runner's vacuity mode switches one off to show that the case that cites
 it fails without it.
 
 Each server also exposes POST /_test/<op> for the test-control adapter.
-A third-party implementation supplies its own adapter instead.
+A third-party implementation supplies its own adapter instead. Each
+server's clock can be advanced by test control, so time-dependent cases
+never sleep; with no advance, it is the system clock.
 """
+import copy
+import hashlib
 import json
+import secrets
 import threading
 import time
 import uuid
@@ -27,9 +39,14 @@ SKEW = 60          # seconds of clock skew allowed on time claims
 DPOP_WINDOW = 60   # seconds a DPoP proof's iat may differ from now
 GRANT_LIFETIME = 300
 ACCESS_TOKEN_LIFETIME = 600
+MAX_PENDING_LIFETIME = 3600         # a deferred redemption's longest pending time
+AUTHORIZATION_LIFETIME = 8 * 3600   # absolute authorization expiration, from receipt
+POLL_INTERVAL = 5
 
 TOKEN_EXCHANGE = "urn:ietf:params:oauth:grant-type:token-exchange"
 JWT_BEARER = "urn:ietf:params:oauth:grant-type:jwt-bearer"
+DEFERRED_GRANT = "urn:ietf:params:oauth:grant-type:deferred"
+REFRESH_GRANT = "refresh_token"
 ID_JAG_TYPE = "urn:ietf:params:oauth:token-type:id-jag"
 ID_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:id_token"
 ASSERTION_TYPE = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
@@ -61,6 +78,29 @@ CHECKS = {
     "ras.agent_eligibility": "the correlated agent record exists and is active",
     "ras.actor_gate": "RAS policy permits the agent to act for the user",
     "ras.actor_preservation": "act is copied unchanged into the access token",
+    "ras.proof_replay": "a DPoP proof jti is not reused at the RAS",
+    "ras.approval_gate": "a redemption RAS policy requires approval for issues nothing without one",
+    "ras.absolute_expiration": "the absolute authorization expiration set at receipt bounds "
+                               "expires_in and every token",
+    "ras.deferral_key_binding": "a poll proves the key the deferral code is bound to",
+    "ras.code_single_use": "a deferral code is redeemed by at most one token response",
+    "ras.grant_consumed": "a deferred redemption consumes the grant; another presentation "
+                          "fails with invalid_grant",
+    "ras.single_pending": "identical deferred redemptions share one pending redemption and task",
+    "ras.recovery_match": "recovery needs the same client, key, opt-in and request parameters",
+    "ras.recovery_window": "recovery ends when the pending redemption is redeemed or ends",
+    "ras.recovery_no_extension": "recovery never resets the pending deadline",
+    "ras.task_per_redemption": "each pending redemption opens its own access request",
+    "ras.approval_binding": "an approval completes only the task opened for that redemption",
+    "ras.approval_narrowing": "the issued scope is the approved, possibly narrowed, scope",
+    "ras.approval_deadline": "no token outlives approved_until; a later refresh fails",
+    "ras.approval_reevaluation": "resolution and every refresh re-evaluate the kept approval",
+    "ras.enforcement_deadline": "a shorter approved_until from re-evaluation bounds later tokens",
+    "ras.resolution_recheck": "resolution and refresh re-check the agent, actor gate and user",
+    "ras.correlation_continuity": "resolution and refresh require the agent's correlation to the "
+                                  "same local principal",
+    "ras.refresh_profile": "refresh enforces the current minimum profile against the accepted one",
+    "ras.refresh_ends": "a refresh rejected on re-evaluation ends the refresh authorization",
     "api.key_binding": "the DPoP proof key matches the token's cnf.jkt",
     "api.token_time": "access token iat and nbf are not in the future",
     "api.require_act": "a governed delegated token carries a valid act",
@@ -74,6 +114,14 @@ class OAuthError(Exception):
         super().__init__(error)
         self.error, self.status = error, status
         self.description, self.challenge = description, challenge
+
+
+class Deferred(Exception):
+    """A DTR deferred or pending response, sent as HTTP 400 with these members."""
+
+    def __init__(self, body):
+        super().__init__(body.get("error"))
+        self.body = body
 
 
 def _respond(start_response, status, body, headers=None, content_type="application/json"):
@@ -102,13 +150,13 @@ def _one(form, name, error="invalid_request"):
     return values[0]
 
 
-def _time_valid(claims, require_iat, check_future=True):
+def _time_valid(claims, require_iat, check_future=True, now=None):
     """exp not passed; iat, where required or present, and nbf not after now plus skew.
 
     RFC 7519 Section 4.1.5 for nbf, RFC 7523 Section 3 for assertions and grants,
     and the core's Time, Replay, and Key Validation for iat.
     """
-    now = time.time()
+    now = time.time() if now is None else now
     exp, iat, nbf = claims.get("exp"), claims.get("iat"), claims.get("nbf")
     if not isinstance(exp, int) or exp + SKEW < now:
         return False
@@ -148,12 +196,20 @@ class Server:
     def on(self, check):
         return check not in self.disabled
 
+    def now(self):
+        """The server's clock: the system clock plus any test-control advance."""
+        return time.time() + self.offset
+
     def reset(self):
         self.disabled = set()
+        self.offset = 0
         self.assertion_replay, self.proof_replay = {}, {}
 
     def __call__(self, environ, start_response):
         path = environ.get("PATH_INFO", "")
+        # One request at a time: every check-then-record sequence in a
+        # handler, such as accepting a grant and recording its pending
+        # redemption, runs in this critical section.
         try:
             with self.lock:
                 if path.startswith("/_test/"):
@@ -161,6 +217,8 @@ class Server:
                     return _respond(start_response, 200,
                                     self.control(path[len("/_test/"):], body) or {})
                 return self.handle(environ, start_response)
+        except Deferred as deferred:
+            return _respond(start_response, 400, deferred.body)
         except OAuthError as err:
             body = {"error": err.error}
             if err.description:
@@ -171,6 +229,9 @@ class Server:
     def control(self, op, body):
         if op == "reset":
             self.reset()
+        elif op == "clock":
+            self.offset += int(body["advance"])
+            return {"offset": self.offset}
         elif op == "disable_check":
             if body["name"] not in CHECKS:
                 raise OAuthError("invalid_request", description="unknown check")
@@ -197,7 +258,7 @@ class Server:
             _, claims = jws.verify(assertion, clients[client_id]["key"], "RS256")
         except ValueError:
             raise OAuthError("invalid_client")
-        now = time.time()
+        now = self.now()
         if claims.get("sub") != client_id:
             raise OAuthError("invalid_client")
         if self.on(f"{check_prefix}.client_assertion_audience") and \
@@ -205,7 +266,7 @@ class Server:
             raise OAuthError("invalid_client", description="aud must be the issuer")
         jti = claims.get("jti")
         if not jti or not _time_valid(claims, require_iat=False, check_future=self.on(
-                f"{check_prefix}.client_assertion_time")):
+                f"{check_prefix}.client_assertion_time"), now=now):
             raise OAuthError("invalid_client")
         exp, key = claims["exp"], (client_id, jti)
         if key in self.assertion_replay and self.assertion_replay[key] > now and \
@@ -214,8 +275,13 @@ class Server:
         self.assertion_replay[key] = exp + SKEW
         return client_id
 
-    def validate_dpop(self, environ, method, htu, access_token=None, status=400):
-        """RFC 9449 Section 4.3 proof checks; returns the key thumbprint or None."""
+    def validate_dpop(self, environ, method, htu, access_token=None, status=400,
+                      check_prefix=None):
+        """RFC 9449 Section 4.3 proof checks; returns the key thumbprint or None.
+
+        With check_prefix, vacuity mode can switch off the replay check as
+        "<prefix>.proof_replay"; without it, the replay check always applies.
+        """
         proof = environ.get("HTTP_DPOP")
         if proof is None:
             return None
@@ -230,11 +296,12 @@ class Server:
             jws.verify(proof, key, "ES256")
         except (ValueError, KeyError):
             raise bad
-        now = time.time()
+        now = self.now()
         iat = payload.get("iat")
+        replay_on = check_prefix is None or self.on(f"{check_prefix}.proof_replay")
         if payload.get("htm") != method or payload.get("htu") != htu or \
                 not isinstance(iat, int) or abs(iat - now) > DPOP_WINDOW or \
-                not payload.get("jti") or payload["jti"] in self.proof_replay:
+                not payload.get("jti") or (payload["jti"] in self.proof_replay and replay_on):
             raise bad
         if access_token is not None and payload.get("ath") != jws.ath(access_token):
             raise bad
@@ -267,14 +334,14 @@ class IdP(Server):
 
     def control_op(self, op, body):
         if op == "id_token":
-            now = int(time.time())
+            now = int(self.now())
             claims = {"iss": self.issuer, "sub": body.get("user", "alice"),
                       "aud": body.get("aud", "analysis-client"), "iat": now,
                       "exp": now + int(body.get("lifetime", 3900))}
             claims.update(body.get("claims", {}))
             return {"id_token": jws.sign({"typ": "JWT", "kid": self.kid}, claims, self.key)}
         if op == "mint_grant":
-            now = int(time.time())
+            now = int(self.now())
             claims = {"iss": self.issuer, "aud": RAS_ISSUER, "iat": now,
                       "exp": now + GRANT_LIFETIME, "jti": uuid.uuid4().hex}
             claims.update(body["claims"])
@@ -355,7 +422,7 @@ class IdP(Server):
         granted = [s for s in requested if delegation is None or s in delegation]
         if not granted:
             raise OAuthError("invalid_scope")
-        now = int(time.time())
+        now = int(self.now())
         exp = min(now + GRANT_LIFETIME, id_token_exp)
         claims = {"iss": self.issuer, "sub": ras_sub, "aud": audience, "iat": now,
                   "exp": exp, "jti": uuid.uuid4().hex, "client_id": downstream_client,
@@ -377,7 +444,7 @@ class IdP(Server):
         audiences = aud if isinstance(aud, list) else [aud]
         if claims.get("iss") != self.issuer or claims.get("sub") not in self.users or \
                 not _time_valid(claims, require_iat=True,
-                                check_future=self.on("idp.id_token_time")):
+                                check_future=self.on("idp.id_token_time"), now=self.now()):
             raise OAuthError("invalid_grant")
         if client_id not in audiences and self.on("idp.id_token_audience"):
             raise OAuthError("invalid_grant")
@@ -396,8 +463,96 @@ class IdP(Server):
         return binding_id, binding["agent"]
 
 
+class AccessRequestService:
+    """A test-controlled Access Request Service inside the RAS (ARAP).
+
+    The RAS opens one task per pending redemption and asks for that task's
+    result. Test control decides tasks. An approval is a complete object,
+    {id, approved_until, approved_at} and an optional state, and is never
+    rewritten. Test control can also revoke an approval, have the next
+    re-evaluation of an approval return a shorter approved_until, and have
+    the service answer one task's status with another task's result.
+    """
+
+    def __init__(self):
+        self.tasks, self.revoked, self.shorter, self.substitutions = {}, set(), {}, {}
+
+    def open(self, request):
+        task_id = "task-" + uuid.uuid4().hex[:12]
+        self.tasks[task_id] = {"id": task_id, "status": "pending", "request": request}
+        return task_id
+
+    def cancel(self, task_id):
+        task = self.tasks.get(task_id)
+        if task is not None and task["status"] == "pending":
+            task["status"] = "cancelled"
+
+    def status(self, task_id):
+        """The result for a task, naming the task it belongs to, as a copy."""
+        task = self.tasks.get(self.substitutions.get(task_id, task_id))
+        if task is None:
+            return {"task": task_id, "status": "pending"}
+        result = {"task": task["id"], "status": task["status"]}
+        for name in ("approval", "scope"):
+            if task.get(name) is not None:
+                result[name] = copy.deepcopy(task[name])
+        return result
+
+    def reevaluate(self, approval):
+        """Re-evaluation with the approval unchanged: (valid, the approved_until it returns)."""
+        if approval.get("id") in self.revoked or approval.get("id") not in \
+                {t.get("approval", {}).get("id") for t in self.tasks.values()}:
+            return False, approval["approved_until"]
+        return True, self.shorter.pop(approval["id"], approval["approved_until"])
+
+    def control(self, op, body, now):
+        if op == "tasks":
+            return {"tasks": [{"id": t["id"], "status": t["status"],
+                               "user": t["request"]["user"],
+                               "agent_iss": t["request"]["agent"]["iss"],
+                               "agent": t["request"]["agent"]["sub"],
+                               "client_id": t["request"]["client_id"],
+                               "resource": t["request"]["resource"],
+                               "scope": t["request"]["scope"]} for t in self.tasks.values()]}
+        task = self.tasks.get(body.get("task"))
+        if task is None:
+            raise OAuthError("invalid_request", 404, "unknown task")
+        if op == "approve":
+            if task["status"] != "pending":
+                return {"status": task["status"]}
+            approval = {"id": "approval-" + uuid.uuid4().hex[:12],
+                        "approved_until": int(body["approved_until"]), "approved_at": int(now)}
+            if "state" in body:
+                approval["state"] = body["state"]
+            task.update(status="approved", approval=approval, scope=body.get("scope"))
+            return {"approval": approval}
+        if op == "deny":
+            if task["status"] == "pending":
+                task["status"] = "denied"
+        elif op in ("revoke", "shorten"):
+            approval = task.get("approval")
+            if approval is None:
+                raise OAuthError("invalid_request", 404, "task has no approval")
+            if op == "revoke":
+                self.revoked.add(approval["id"])
+            else:
+                self.shorter[approval["id"]] = int(body["approved_until"])
+        elif op == "substitute":
+            if body.get("with") not in self.tasks:
+                raise OAuthError("invalid_request", 404, "unknown task")
+            self.substitutions[task["id"]] = body["with"]
+        return {}
+
+
 class RAS(Server):
-    """Grant Redemption at the RAS for an ID-JAG, issuing DPoP-bound JWT access tokens."""
+    """Grant Redemption at the RAS for an ID-JAG, issuing DPoP-bound JWT access tokens.
+
+    With approval required by RAS policy, a redemption that opts in is
+    deferred (oversight: Deferred Redemption) and completed by polling;
+    refresh tokens issue only from that path.
+    """
+
+    ARS_OPS = ("tasks", "approve", "deny", "revoke", "shorten", "substitute")
 
     def __init__(self, client_keys, idp_public_key):
         self.issuer, self.token_endpoint = RAS_ISSUER, RAS_ISSUER + "token"
@@ -412,39 +567,90 @@ class RAS(Server):
         self.trusted_idps = {IDP_ISSUER: self.idp_public_key}
         self.resources = {RESOURCE: {"tenant": "acme-data", "protection": "dpop"}}
         self.user_links = {(IDP_ISSUER, "acme-data", "alice-ras"): "user-108"}
-        self.agents = {(IDP_ISSUER, "agent-42"): {"local": "service-principal-42", "active": True}}
-        self.actor_gate = {("user-108", IDP_ISSUER, "agent-42", "acme-data")}
+        # agent-43 is a second agent for the same user, used by the deferral
+        # cases that need two pending redemptions through one client.
+        self.agents = {(IDP_ISSUER, "agent-42"): {"local": "service-principal-42", "active": True},
+                       (IDP_ISSUER, "agent-43"): {"local": "service-principal-43", "active": True}}
+        self.actor_gate = {("user-108", IDP_ISSUER, "agent-42", "acme-data"),
+                           ("user-108", IDP_ISSUER, "agent-43", "acme-data")}
         self.accepted_grants = {}
+        # Deferred redemption (oversight: Deferred Redemption).
+        self.approval_required = set()   # scopes whose redemption RAS policy holds for approval
+        self.refresh_permitted = False   # refresh tokens for approved standing access
+        self.max_pending_lifetime = MAX_PENDING_LIFETIME
+        self.authorization_lifetime = AUTHORIZATION_LIFETIME
+        self.authorization_expirations = {}   # (iss, jti) -> absolute authorization expiration
+        self.deferred_grants = set()           # (iss, jti) a deferred redemption consumed
+        self.pending_by_digest, self.pending_by_code = {}, {}
+        self.refresh_tokens = {}
+        self.ars = AccessRequestService()
 
     def control_op(self, op, body):
         if op == "set":
             what, value = body["what"], body["value"]
             if what == "agent_active":
                 self.agents[(IDP_ISSUER, "agent-42")]["active"] = value
+            elif what == "agent_local":
+                self.agents[(IDP_ISSUER, "agent-42")]["local"] = value
             elif what == "actor_gate":
                 entry = ("user-108", IDP_ISSUER, "agent-42", "acme-data")
                 (self.actor_gate.add if value else self.actor_gate.discard)(entry)
+            elif what == "client_profile":
+                self.clients["analysis-api"]["profile"] = value
+            elif what == "approval_required":
+                self.approval_required = set(value or ())
+            elif what == "refresh_permitted":
+                self.refresh_permitted = bool(value)
+            elif what == "max_pending_lifetime":
+                self.max_pending_lifetime = int(value)
+            elif what == "authorization_lifetime":
+                self.authorization_lifetime = int(value)
             else:
                 raise OAuthError("invalid_request", 404, "unknown setting")
             return {}
         if op == "mint_access_token":
-            now = int(time.time())
+            now = int(self.now())
             claims = {"iss": self.issuer, "iat": now, "exp": now + ACCESS_TOKEN_LIFETIME,
                       "jti": uuid.uuid4().hex}
             claims.update(body["claims"])
             return {"access_token": jws.sign({"typ": body.get("typ", "at+jwt"),
                                               "kid": self.kid}, claims, self.key)}
+        if op in self.ARS_OPS:
+            return self.ars.control(op, body, self.now())
         return super().control_op(op, body)
 
     def handle(self, environ, start_response):
         if environ.get("PATH_INFO") != "/token" or environ["REQUEST_METHOD"] != "POST":
             return _respond(start_response, 404, {"error": "not_found"})
         form = _form(environ)
-        if form.get("grant_type") != [JWT_BEARER]:
+        grant_type = form.get("grant_type")
+        if grant_type == [JWT_BEARER]:
+            body = self.redeem(environ, form)
+        elif grant_type == [DEFERRED_GRANT]:
+            body = self.poll(environ, form)
+        elif grant_type == [REFRESH_GRANT]:
+            body = self.refresh(environ, form)
+        else:
             raise OAuthError("unsupported_grant_type")
+        return _respond(start_response, 200, body)
+
+    def redeem(self, environ, form):
         client_id = self.authenticate_client(form, self.clients, self.issuer, "ras")
-        jkt = self.validate_dpop(environ, "POST", self.token_endpoint)
-        claims = self.validate_grant(_one(form, "assertion"))
+        jkt = self.validate_dpop(environ, "POST", self.token_endpoint, check_prefix="ras")
+        assertion = _one(form, "assertion")
+        deferred = form.get("completion_mode") == ["deferred"]
+        # Recovery (oversight: Recovery) matches the byte-identical grant
+        # before validating it again, so it works after the grant's exp.
+        # Client authentication and the DPoP proof, with their replay
+        # checks, have already run.
+        digest = hashlib.sha256(assertion.encode("utf-8")).hexdigest()
+        pending = self.pending_by_digest.get(digest) if self.on("ras.single_pending") else None
+        if pending is not None:
+            if self.recovers(pending, form, client_id, jkt, deferred):
+                raise Deferred(self.deferred_body(pending))
+            if self.on("ras.grant_consumed"):
+                raise OAuthError("invalid_grant", description="grant consumed by a deferred redemption")
+        claims = self.validate_grant(assertion)
         if claims.get("client_id") != client_id and self.on("ras.client_id"):
             raise OAuthError("invalid_grant", description="client_id mismatch")
         act = self.validate_act(claims)
@@ -460,10 +666,11 @@ class RAS(Server):
                 raise OAuthError("invalid_grant", description="proof required")
             if jkt is not None and jkt != cnf["jkt"] and self.on("ras.proof_key_match"):
                 raise OAuthError("invalid_grant", description="proof key mismatch")
-        # Replay: this reference accepts each grant once, bound or not, and
-        # records a grant as accepted only when it issues an access token.
-        grant_key, now = (claims["iss"], claims["jti"]), time.time()
-        if self.accepted_grants.get(grant_key, 0) > now:
+        # Replay: this reference accepts each grant once, bound or not. It
+        # records a grant as accepted when it issues an access token, or
+        # when it defers the redemption.
+        grant_key, now = (claims["iss"], claims["jti"]), self.now()
+        if self.accepted_grants.get(grant_key, 0) > now and self.replay_refused(grant_key):
             raise OAuthError("invalid_grant", description="grant already redeemed")
         # Authority.
         resource = claims.get("resource")
@@ -496,6 +703,15 @@ class RAS(Server):
         if (user, act["iss"], act["sub"], config["tenant"]) not in self.actor_gate and \
                 self.on("ras.actor_gate"):
             raise OAuthError("actor_unauthorized")
+        # Approval required by RAS policy (oversight: Redemption Opt-In). The
+        # RAS defers only with the opt-in, a DPoP proof, and DPoP access-token
+        # protection; otherwise it refuses with its refusal error (core:
+        # Redemption Errors), before access-token protection is considered.
+        if self.on("ras.approval_gate") and set(scope.split()) & self.approval_required:
+            if not deferred or jkt is None or config["protection"] != "dpop":
+                raise OAuthError("actor_unauthorized", description="RAS policy requires approval")
+            raise Deferred(self.defer(form, digest, grant_key, claims, client_id, jkt, act,
+                                      user, config, resource, scope, now))
         if config["protection"] == "dpop" and jkt is None:
             raise OAuthError("invalid_request", description="DPoP-bound access token required")
         issued_act = dict(act)
@@ -507,9 +723,230 @@ class RAS(Server):
                         "cnf": {"jkt": jkt}}
         token = jws.sign({"typ": "at+jwt", "kid": self.kid}, token_claims, self.key)
         self.accepted_grants[grant_key] = claims["exp"] + SKEW
-        return _respond(start_response, 200, {"access_token": token, "token_type": "DPoP",
-                                              "expires_in": ACCESS_TOKEN_LIFETIME,
-                                              "scope": scope})
+        return {"access_token": token, "token_type": "DPoP",
+                "expires_in": ACCESS_TOKEN_LIFETIME, "scope": scope}
+
+    def replay_refused(self, grant_key):
+        """Whether an accepted grant is refused; a deferral-consumed one through switchable checks."""
+        if grant_key in self.deferred_grants:
+            return self.on("ras.grant_consumed") and self.on("ras.single_pending")
+        return True
+
+    @staticmethod
+    def request_params(form):
+        return tuple(tuple(form.get(name, [])) for name in
+                     ("resource", "scope", "authorization_details"))
+
+    def defer(self, form, digest, grant_key, claims, client_id, jkt, act, user, config,
+              resource, scope, now):
+        """Deferring a Redemption: every receipt check has passed.
+
+        The grant's acceptance and the pending redemption are recorded in
+        one critical section (Server.__call__ holds the lock), so identical
+        requests yield one pending redemption and one task.
+        """
+        # Absolute authorization expiration, set at receipt. One already set
+        # for the grant governs; this reference accepts each grant once, so
+        # none exists here unless a vacuity switch lets a consumed grant in.
+        abs_exp = self.authorization_expirations.setdefault(
+            grant_key, int(now) + self.authorization_lifetime)
+        lifetime = self.max_pending_lifetime
+        if self.on("ras.absolute_expiration"):
+            lifetime = min(lifetime, abs_exp - now)
+        if lifetime <= 0:
+            raise OAuthError("invalid_grant", description="absolute authorization expiration")
+        pending = {"code": secrets.token_urlsafe(24), "digest": digest, "grant_key": grant_key,
+                   "grant_sub": claims["sub"], "client_id": client_id, "jkt": jkt,
+                   "params": self.request_params(form), "user": user,
+                   "agent": (act["iss"], act["sub"]), "act": copy.deepcopy(act),
+                   # The local principal the agent correlated to at receipt,
+                   # and the profile under which the grant was accepted.
+                   "agent_local": (self.agents.get((act["iss"], act["sub"])) or {}).get("local"),
+                   "profile": "bound" if claims.get("cnf") is not None else "governed",
+                   "tenant": config["tenant"], "resource": resource, "scope": scope,
+                   "abs_exp": abs_exp, "deadline": now + lifetime, "state": "pending"}
+        # The replay record lasts until the later of the request's end and
+        # the grant's acceptance window plus skew.
+        self.accepted_grants[grant_key] = max(claims["exp"] + SKEW, pending["deadline"])
+        self.deferred_grants.add(grant_key)
+        pending["task"] = self.open_task(pending)
+        self.pending_by_digest[digest] = self.pending_by_code[pending["code"]] = pending
+        return self.deferred_body(pending)
+
+    def open_task(self, pending):
+        """One access request per pending redemption, from its bound values (Approval Binding)."""
+        ad = pending["params"][2]
+        if not self.on("ras.task_per_redemption"):
+            # AROP's idempotent submission applied across redemptions: the
+            # same client, resource, scope and authorization_details reuse a
+            # task, whichever agent asks.
+            for other in self.pending_by_code.values():
+                if other["state"] == "pending" and other["params"][2] == ad and \
+                        (other["client_id"], other["resource"], other["scope"]) == \
+                        (pending["client_id"], pending["resource"], pending["scope"]):
+                    return other["task"]
+        return self.ars.open({"user": pending["user"], "agent": pending["act"],
+                              "client_id": pending["client_id"], "tenant": pending["tenant"],
+                              "resource": pending["resource"], "scope": pending["scope"],
+                              "authorization_details": list(ad)})
+
+    def deferred_body(self, pending):
+        return {"error": "authorization_pending", "deferral_code": pending["code"],
+                "expires_in": max(0, int(pending["deadline"] - self.now())),
+                "interval": POLL_INTERVAL}
+
+    def expire_if_due(self, pending):
+        if pending["state"] == "pending" and self.now() >= pending["deadline"]:
+            pending["state"] = "expired"
+            self.ars.cancel(pending["task"])
+
+    def recovers(self, pending, form, client_id, jkt, deferred):
+        """Recovery: the same client, a fresh proof of the same key, the opt-in, the same parameters."""
+        self.expire_if_due(pending)
+        if pending["state"] != "pending" and self.on("ras.recovery_window"):
+            return False
+        if pending["client_id"] != client_id:
+            return False
+        if self.on("ras.recovery_match") and (
+                jkt != pending["jkt"] or not deferred or
+                self.request_params(form) != pending["params"]):
+            return False
+        if not self.on("ras.recovery_no_extension"):
+            now = self.now()
+            pending["deadline"] = now + min(self.max_pending_lifetime, pending["abs_exp"] - now)
+        return True
+
+    def poll(self, environ, form):
+        """A poll with a deferral code (DTR), resolved under Redemption Resolution."""
+        client_id = self.authenticate_client(form, self.clients, self.issuer, "ras")
+        jkt = self.validate_dpop(environ, "POST", self.token_endpoint, check_prefix="ras")
+        pending = self.pending_by_code.get(_one(form, "deferral_code"))
+        if pending is None or pending["client_id"] != client_id:
+            raise OAuthError("invalid_grant", description="unknown deferral code")
+        if jkt is None or (jkt != pending["jkt"] and self.on("ras.deferral_key_binding")):
+            raise OAuthError("invalid_dpop_proof", description="not the deferral code's key")
+        if pending["state"] == "redeemed" and self.on("ras.code_single_use"):
+            raise OAuthError("invalid_grant", description="deferral code already redeemed")
+        if pending["state"] == "denied":
+            raise OAuthError("access_denied")
+        self.expire_if_due(pending)
+        if pending["state"] == "expired":
+            raise OAuthError("expired_token")
+        result = self.ars.status(pending["task"])
+        # Approval Binding: a result for another task completes nothing, and
+        # the redemption stays pending.
+        if result["task"] != pending["task"] and self.on("ras.approval_binding"):
+            raise Deferred({"error": "authorization_pending"})
+        if result["status"] == "pending":
+            raise Deferred({"error": "authorization_pending"})
+        if result["status"] != "approved":
+            pending["state"] = "denied"
+            raise OAuthError("access_denied")
+        approval, now = result["approval"], self.now()
+        failure, enforcement = self.reevaluate(pending, approval, None, now)
+        scope = pending["scope"].split()
+        if result.get("scope") and self.on("ras.approval_narrowing"):
+            # An approval narrows the request and never widens it.
+            scope = [s for s in scope if s in result["scope"].split()]
+            failure = failure or (None if scope else "approval covers no requested scope")
+        if failure:
+            pending["state"] = "denied"
+            raise OAuthError("access_denied", description=failure)
+        auth = {name: pending[name] for name in
+                ("client_id", "jkt", "user", "grant_key", "grant_sub", "agent", "act",
+                 "agent_local", "profile", "tenant", "resource", "abs_exp")}
+        auth.update(scope=" ".join(scope), approval=copy.deepcopy(approval),
+                    enforcement=enforcement)
+        token, exp = self.authorized_token(auth, now)
+        pending["state"] = "redeemed"
+        body = {"access_token": token, "token_type": "DPoP",
+                "expires_in": exp - int(now),
+                "scope": auth["scope"]}
+        if self.refresh_permitted:
+            # DPoP-bound to the redemption key and bound to the client; it
+            # keeps the complete approval object and the absolute expiration.
+            refresh_token = secrets.token_urlsafe(32)
+            self.refresh_tokens[refresh_token] = auth
+            body["refresh_token"] = refresh_token
+        return body
+
+    def reevaluate(self, auth, approval, enforcement, now):
+        """Re-evaluate with the kept approval; return (failure or None, enforcement deadline)."""
+        valid, returned_until = self.ars.reevaluate(approval)
+        if not valid and self.on("ras.approval_reevaluation"):
+            return "approval revoked", enforcement
+        if approval["approved_until"] <= now and self.on("ras.approval_deadline"):
+            return "approval expired", enforcement
+        if returned_until < approval["approved_until"] and self.on("ras.enforcement_deadline"):
+            # Kept apart from the approval object, which is never rewritten.
+            enforcement = returned_until if enforcement is None else min(enforcement,
+                                                                         returned_until)
+        if enforcement is not None and enforcement <= now:
+            return "enforcement deadline passed", enforcement
+        if self.on("ras.resolution_recheck"):
+            agent = self.agents.get(auth["agent"])
+            if agent is None or not agent["active"]:
+                return "agent not eligible", enforcement
+            if agent["local"] != auth["agent_local"] and \
+                    self.on("ras.correlation_continuity"):
+                # A changed link does not transfer the delegation.
+                return "agent correlation changed", enforcement
+            if (auth["user"], *auth["agent"], auth["tenant"]) not in self.actor_gate:
+                return "actor gate", enforcement
+            if self.user_links.get((auth["grant_key"][0], auth["tenant"],
+                                    auth["grant_sub"])) != auth["user"]:
+                return "user resolution changed", enforcement
+        return None, enforcement
+
+    def authorized_token(self, auth, now):
+        """An access token for an approved authorization, within every deadline."""
+        exp = now + ACCESS_TOKEN_LIFETIME
+        if self.on("ras.approval_deadline"):
+            exp = min(exp, auth["approval"]["approved_until"])
+        if auth["enforcement"] is not None:
+            exp = min(exp, auth["enforcement"])
+        if self.on("ras.absolute_expiration"):
+            exp = min(exp, auth["abs_exp"])
+        exp = int(exp)
+        claims = {"iss": self.issuer, "sub": auth["user"], "aud": auth["resource"],
+                  "iat": int(now), "exp": exp, "jti": uuid.uuid4().hex,
+                  "client_id": auth["client_id"], "scope": auth["scope"],
+                  "act": copy.deepcopy(auth["act"]), "cnf": {"jkt": auth["jkt"]}}
+        return jws.sign({"typ": "at+jwt", "kid": self.kid}, claims, self.key), exp
+
+    def refresh(self, environ, form):
+        """Refresh after a deferred redemption (Refresh and Continuation; core ras-refresh)."""
+        client_id = self.authenticate_client(form, self.clients, self.issuer, "ras")
+        jkt = self.validate_dpop(environ, "POST", self.token_endpoint, check_prefix="ras")
+        auth = self.refresh_tokens.get(_one(form, "refresh_token"))
+        if auth is None or auth["client_id"] != client_id:
+            raise OAuthError("invalid_grant", description="unknown refresh token")
+        if jkt is None or jkt != auth["jkt"]:
+            raise OAuthError("invalid_grant", description="refresh token bound to another key")
+        if "resource" in form and form["resource"] != [auth["resource"]]:
+            raise OAuthError("invalid_target")
+        # The client and its key are authenticated; a rejection from here on
+        # ends the refresh authorization (Refresh and Continuation), so a
+        # later change back cannot revive it. A failed client
+        # authentication or proof above never ends it.
+        now, failure = self.now(), None
+        if self.clients[client_id]["profile"] == "bound" and auth["profile"] != "bound" and \
+                self.on("ras.refresh_profile"):
+            # core ras-refresh step 3: a proof at redemption does not upgrade
+            # an authorization accepted under governed agent access.
+            failure = "minimum profile no longer met"
+        elif now >= auth["abs_exp"] and self.on("ras.absolute_expiration"):
+            failure = "absolute authorization expiration"
+        else:
+            failure, auth["enforcement"] = self.reevaluate(auth, auth["approval"],
+                                                           auth["enforcement"], now)
+        if failure:
+            if self.on("ras.refresh_ends"):
+                self.refresh_tokens.pop(_one(form, "refresh_token"), None)
+            raise OAuthError("invalid_grant", description=failure)
+        token, exp = self.authorized_token(auth, now)
+        return {"access_token": token, "token_type": "DPoP", "expires_in": exp - int(now),
+                "scope": auth["scope"]}
 
     def validate_grant(self, assertion):
         """ID-JAG validation (ID-JAG Section 4.4.1, RFC 7523 Section 3)."""
@@ -524,7 +961,8 @@ class RAS(Server):
         except ValueError:
             raise OAuthError("invalid_grant")
         if not _single_audience(claims.get("aud"), self.issuer) or not claims.get("jti") or \
-                not _time_valid(claims, require_iat=True, check_future=self.on("ras.grant_time")):
+                not _time_valid(claims, require_iat=True, check_future=self.on("ras.grant_time"),
+                                now=self.now()):
             raise OAuthError("invalid_grant")
         return claims
 
@@ -586,7 +1024,8 @@ class API(Server):
             _, claims = jws.verify(token, ras["key"], "RS256")
         except ValueError:
             raise invalid
-        if not _time_valid(claims, require_iat=True, check_future=self.on("api.token_time")):
+        if not _time_valid(claims, require_iat=True, check_future=self.on("api.token_time"),
+                           now=self.now()):
             raise invalid
         # Protection: DPoP proof, ath, and key binding.
         jkt = self.validate_dpop(environ, "GET", API_BASE + path, access_token=token, status=401)

@@ -128,8 +128,11 @@ decision. The document profiles OAuth Deferred Token Response so that
 an identity provider can hold a governed grant until a person decides,
 binds that decision to the resolved agent, user, client, target,
 authority, and proof key, and requires the grant that follows to be the
-one the request would have produced. It also describes how Model
-Context Protocol servers hold tool calls under these modes.
+one the request would have produced. A resource authorization server
+can likewise hold the redemption of a governed grant, binding the
+approval to that one redemption and bounding what it issues by the
+approval's expiry. The document also describes how Model Context
+Protocol servers hold tool calls under these modes.
 
 --- middle
 
@@ -164,6 +167,10 @@ it. It defines:
 * deferred governed issuance: the pending request, who may approve it,
   what an approval can change, and the checks and grant at resolution
   ({{deferred-issuance}});
+* deferred redemption: holding the redemption of a governed grant at
+  the RAS until an approver decides, the approval's binding to that
+  redemption, recovery, and the tokens that follow
+  ({{deferred-redemption}});
 * supervised issuance: what an IdP and a deployment must provide before
   claiming that a person can observe and end each grant
   ({{supervised}});
@@ -216,16 +223,17 @@ Client          IdP              Alice            RAS
 ## Scope {#scope}
 
 This document covers governed grant issuance at the IdP, including
-continuation ({{CONTINUATION}}), and oversight of individual actions at
-an API. It does not cover:
+continuation ({{CONTINUATION}}), governed grant redemption at the RAS,
+and oversight of individual actions at an API. It does not cover:
 
 * approval of a task, which Mission-Bound Authorization addresses
   ({{MISSION-APPROVAL}});
 * multi-party approval or the provenance of an approver's authority;
 * the approval channel or its user interface;
 * the format or transport of notices to overseers;
-* deferral of grant redemption at the RAS, or completion of an approved
-  access request as a token under {{AROP}} ({{open-items}}).
+* completion of an approved access request as a token under {{AROP}}
+  at the IdP, or continuation from an authorization whose redemption
+  was deferred ({{open-items}}).
 
 This document defines no new token format, claim, error code, grant
 type, or request parameter.
@@ -251,7 +259,8 @@ Oversight mode:
   not involved per request (human out of the loop) ({{modes}}).
 
 Approver:
-: A person who decides on a pending governed request or a held action,
+: A person who decides on a pending governed request, a pending
+  governed redemption, or a held action,
   acting within authority over it that the person held before the
   request. An agent, a client, a policy engine, or another automated
   system is not an approver.
@@ -273,6 +282,12 @@ Pending governed request:
   check of {{FEDERATION}} except an approver's decision. It holds the
   request's governed request context and is not a credential.
 
+Pending governed redemption:
+: RAS state for the redemption of a governed grant that passed every
+  check of {{FEDERATION}} except an approver's decision. It holds the
+  values those checks established ({{redemption-deferring}}) and is not
+  a credential.
+
 Intervention:
 : An action that ends or narrows authority already issued: grant-derived
   revocation, withdrawing or narrowing a Delegation or Agent
@@ -287,7 +302,7 @@ Intervention bound:
 
 | Mode | Who decides, and when | Issuance or execution waits for | Defined in |
 |---|---|---|---|
-| Human in the loop | An approver, before the grant issues or the action executes, on its governed request context or the action | The approver's decision | {{deferred-issuance}}, {{per-action}} |
+| Human in the loop | An approver, before the grant issues or the action executes, on its governed request context or the action | The approver's decision | {{deferred-issuance}}, {{deferred-redemption}}, {{per-action}} |
 | Human on the loop | No one before issuance; an overseer can observe each grant and intervene | Nothing | {{supervised}} |
 | Human out of the loop | No one per request; standing authorization applies | Nothing | {{FEDERATION}} |
 {: #modes-table title="Oversight modes"}
@@ -297,12 +312,13 @@ These rules apply to every mode:
 * **Policy selects the mode.** The IdP determines the mode for a
   governed request from trusted policy for the resolved agent, acting
   relationship, user, client, target, and requested authority, usually
-  as a condition of the Delegation or Agent Authorization. A request
+  as a condition of the Delegation or Agent Authorization; the RAS
+  determines it for a redemption from its own policy. A request
   parameter or the client's opt-in to deferral MUST NOT select a mode or
   lower one that policy requires.
 * **Each decision point applies its own mode.** IdP issuance, IdP
-  continuation, and the API's decision on an action each apply the mode
-  their policy requires. Oversight at one point does not satisfy
+  continuation, RAS redemption, and the API's decision on an action
+  each apply the mode their policy requires. Oversight at one point does not satisfy
   another: a resource domain that requires a person to decide on an
   action applies its own human-in-the-loop decision at the action
   ({{per-action}}), as the RAS decides anew under {{FEDERATION}}.
@@ -542,6 +558,305 @@ them atomically with issuing it, so that continuations pending together
 cannot exceed a limit. A request that would exceed a limit resolves to
 `access_denied`.
 
+# Deferred Redemption {#deferred-redemption}
+
+This section profiles {{DTR}} for the redemption of a governed grant at
+the RAS: an ID-JAG or a WAG under "Grant Redemption at the RAS" in
+{{FEDERATION}}, whether a root grant or an onward grant under
+{{CONTINUATION}}. The RAS holds the redemption until an approver
+decides, then issues what the redemption would have produced. This
+section covers deferral for an approver's decision only; deferral for
+another reason, such as a fraud review, is outside this document.
+
+The approval is the RAS's own. It bounds only what the RAS issues, an
+approval at the IdP does not satisfy it ({{modes}}), and it authorizes
+nothing at another server ({{redemption-refresh}}). A pending governed
+redemption moves through these steps, which the subsections define:
+
+| Event | RAS action | Result |
+|---|---|---|
+| Redemption with the opt-in | Completes every check except the approver's decision, accepts the grant, and opens one approval request ({{redemption-deferring}}) | Pending; deferred response |
+| The same redemption again | Matches the accepted grant ({{redemption-recovery}}) | The same deferral code |
+| Poll before a decision | Verifies the client and its key | `authorization_pending` or `slow_down` |
+| Approver decides | Records the decision for this pending redemption only ({{redemption-approval}}) | Pending until the next poll |
+| Poll after approval | Re-checks the redemption with the approval ({{redemption-resolution}}) | Access token, and any refresh token |
+| Poll after denial, or a re-check fails | Issues nothing | `access_denied` |
+| Client revokes the deferral code ({{Section 7 of DTR}}) | Ends the pending redemption | `access_denied` |
+| `expires_in` elapses | Issues nothing | `expired_token` |
+{: title="Steps of a pending governed redemption"}
+
+## Redemption Opt-In {#redemption-opt-in}
+
+A client that can wait for an approver includes `deferred` in the
+`completion_mode` parameter of its redemption request
+({{Section 4.1 of DTR}}). It MUST present a DPoP proof {{RFC9449}} on
+that request, whatever its client authentication method, as for
+deferred issuance ({{opt-in}}). For a grant that contains `cnf.jkt`,
+that proof is the grant proof.
+
+The RAS MUST NOT return a deferred response to a redemption request
+that does not include `deferred` or does not present a DPoP proof. It
+MUST NOT defer a redemption for a resource whose configuration selects
+mutual-TLS access tokens ("Access-Token Protection" in
+{{FEDERATION}}): {{Section 10.1 of DTR}} requires the token issued
+after a request with a DPoP proof to be bound to that proof's key, and
+that configuration applies mutual TLS regardless of any DPoP proof.
+
+When RAS policy requires approval and the RAS does not defer, it MUST
+NOT issue a token. It rejects the redemption with the error it returns
+when its own policy refuses a redemption ("Redemption Errors" in
+{{FEDERATION}}): `actor_unauthorized` for an ID-JAG and
+`invalid_target` for a WAG. The response therefore does not reveal
+that an approval could be obtained. A RAS that defers redemptions
+advertises `deferred_token_response_supported` in its own metadata
+({{Section 4.1 of DTR}}); the IdP's metadata says nothing about the
+RAS.
+
+## Deferring a Redemption {#redemption-deferring}
+
+Before returning a deferred response, the RAS MUST complete every check
+that {{FEDERATION}} requires for the redemption except the approver's
+decision:
+
+* **Both grants:** the proof and client, replay, and authority checks
+  of "Common Grant Validation" in {{FEDERATION}}, and the effective
+  eligibility of the agent and, for an ID-JAG, the user, including any
+  Local Suspension ({{AGENT-LIFECYCLE}}).
+* **ID-JAG:** ID-JAG validation, including the grant's time claims; the
+  actor; user resolution; correlation of the `act` agent; and the actor
+  gate ("Grant Validation" in {{FEDERATION}}).
+* **WAG:** validation of the grant, including its time claims and
+  `typ`; correlation of (`iss`, `sub`) to one local agent principal; and
+  RAS policy for the agent ("Self-Acting Redemption: WAG" in
+  {{FEDERATION}}).
+
+A redemption that fails a check is rejected as {{FEDERATION}} specifies
+and is not deferred. The client does not present the grant again, so
+its time claims are checked when the request is received; the grant's
+`exp` limits redemption, not later access ("Authorization Lifetime" in
+{{FEDERATION}}). This document thus reads the originating-grant
+preconditions that {{Section 10.7 of DTR}} re-evaluates as excluding
+the grant's own expiration ({{open-items}}).
+
+The RAS then accepts the grant. It MUST record the grant's (`iss`,
+`jti`) as accepted, whether or not the grant is bound, and MUST NOT
+accept the grant again for another redemption. This narrows the
+re-acceptance of a bound grant that "Common Grant Validation" in
+{{FEDERATION}} permits and the parallel request of
+{{Section 8.2 of DTR}}: one grant yields one outcome, and a denial
+cannot be bypassed by presenting the grant again. The RAS retains the
+record until the later of the pending redemption's end and the
+retention of "Time, Replay, and Key Validation" in {{FEDERATION}}.
+
+On acceptance, the RAS MUST set the absolute authorization expiration
+of "Optional RAS Refresh Tokens" in {{FEDERATION}}, whether or not it
+later issues a refresh token, and MUST NOT issue a token for the
+redemption that outlives it. That section sets the expiration at
+issuance. Without deferral the two coincide; with deferral, a later
+start would extend reliance on one IdP decision by the pending time.
+Where the RAS already set an absolute authorization expiration for the
+grant, that expiration applies, and deferral does not extend it. If it
+has passed, the RAS does not defer: access beyond it requires a new
+grant, and the RAS rejects the redemption with `invalid_grant`.
+
+The RAS records a pending governed redemption bound to the values that
+the checks established:
+
+* the authenticated client, the Target Tenant, the resource, and the
+  requested authority, including any `authorization_details` as
+  processed;
+* the proof key and the absolute authorization expiration;
+* for an ID-JAG, the resolved local user, the local agent principal for
+  `act`, the validated `act` object, and, where the RAS participates in
+  grant-derived revocation ({{AGENT-LIFECYCLE}}), the revocation key;
+* for a WAG, the local agent principal correlated from (`iss`, `sub`);
+  and
+* the grant as received, or a digest of it ({{redemption-recovery}}).
+
+The RAS MUST construct any authorization evaluation for the pending
+governed redemption only from these values, keeping the user, the
+agent, and the client distinct, as "Optional Policy Services" in
+{{FEDERATION}} requires of an API. For an ID-JAG, the agent is the
+issuer-qualified `act`; for a WAG, the agent is the subject. The client
+identifier never identifies the agent.
+
+The RAS returns the deferred response of {{Section 5.4 of DTR}}. It
+MUST bind the deferral code to the authenticated client and the key of
+the request's DPoP proof, and MUST reject a poll or cancellation that
+does not prove that key ({{Section 10.1 of DTR}}). It MUST set
+`expires_in` no greater than a configured maximum pending lifetime and
+so that the pending governed redemption ends no later than the absolute
+authorization expiration. An approval after that expiration therefore
+finds an expired request.
+
+## Approval Binding {#redemption-approval}
+
+The rules of {{approval}} apply with the RAS in place of the IdP and
+the values of {{redemption-deferring}} as the governed request context:
+approvers designated by RAS policy and authenticated at the strength it
+requires, never the client or an agent; the resolved values shown, with
+requester text shown as the requester's; approval of the request as
+shown or of narrower authority, never of a wider one; and time
+conditions enforced only on what the RAS issues.
+
+The RAS MUST bind each approval to one pending governed redemption:
+
+* **One approval request.** The RAS opens one approval request for each
+  pending governed redemption. It MUST NOT use one approval request for
+  two pending governed redemptions, including by treating a redemption
+  with the same client and requested authority as a duplicate of
+  another.
+* **Only its own approval.** The RAS MUST accept an approval only for
+  the approval request it opened for that pending governed redemption,
+  received over an authenticated channel or verified for integrity,
+  issuer, intended recipient, expiry, and binding. An approval for
+  another approval request completes nothing: the pending governed
+  redemption remains pending until its own approval, denial, or expiry.
+* **Kept unchanged.** The RAS MUST keep the approval as received,
+  including its identifier, its time values, and any state that the
+  approval channel attaches, or a reference that retrieves it exactly.
+  It MUST use that approval unchanged in every later evaluation. A
+  shorter deadline that a later evaluation returns is kept separately,
+  as an enforcement deadline, and does not modify the approval.
+
+The approval expiry is the latest time at which the approval channel
+states the approval remains valid.
+
+{{ARAP}} and {{AROP}} realize these rules. The approval request is an
+ARAP access request, the approval is ARAP's `approval` object, which
+ARAP carries unchanged into re-evaluation, the approval expiry is its
+`approved_until`, and completion is AROP's token issuance completion.
+AROP's idempotent submission compares the client and the requested
+authority but not the agent or the user; {{redemption-recovery}}
+replaces it.
+
+## Recovery {#redemption-recovery}
+
+A pending governed redemption is recoverable until a successful token
+response redeems its deferral code ({{Section 5.5.2 of DTR}}), or until
+it is denied, cancelled, or expires. The RAS cannot know whether a
+token response reached the client; a later poll for a redeemed code
+fails ({{Section 5.5.1 of DTR}}).
+
+While a pending governed redemption is recoverable, the RAS MUST return
+its deferral code, with the remaining `expires_in`, to a redemption
+request that presents:
+
+* the accepted grant, byte for byte, matched against the stored grant
+  or its digest;
+* authentication of the same client and a DPoP proof of the same key,
+  each fresh under its own replay rules;
+* `deferred` in `completion_mode`; and
+* the same `resource`, `scope`, and `authorization_details`.
+
+Recovery matches the stored grant and does not validate it again, so it
+succeeds after the grant's `exp`. It is not an acceptance, opens no
+approval request, and changes neither the maximum pending lifetime, the
+absolute authorization expiration, nor the approval expiry. The RAS
+MUST record an acceptance and its pending governed redemption
+atomically, so that identical requests received together create one
+pending governed redemption and one approval request. Recovery issues
+no token, so it cannot yield a second token while a poll succeeds.
+
+The RAS rejects any other presentation of an accepted grant under the
+replay rule of {{redemption-deferring}}, with `invalid_grant`. This
+includes a presentation without `deferred` and any presentation after
+the pending governed redemption ends.
+
+## Redemption Resolution {#redemption-resolution}
+
+Only an approval accepted under {{redemption-approval}} starts
+resolution; an approval for another approval request leaves the pending
+governed redemption pending. Before issuing a token in response to a
+poll, the RAS MUST re-evaluate the redemption under
+{{Section 10.7 of DTR}}, with the approval kept under
+{{redemption-approval}}, and MUST confirm that:
+
+* neither the approval's expiry nor any enforcement deadline has
+  passed;
+* no applied disablement, correlation removal, local restriction, or
+  Local Suspension affects the agent or, for an ID-JAG, the user
+  ("Applied Disablement and Revocation" in {{FEDERATION}},
+  {{AGENT-LIFECYCLE}});
+* for an ID-JAG, the user is active and resolves to the same local
+  user, the `act` agent correlates to the same local agent principal,
+  and the actor gate permits the relationship. An account-link change
+  does not substitute another user ("User Resolution and Linking" in
+  {{FEDERATION}}), and a changed agent link does not transfer the
+  delegation ("Agent Principal Correlation" in {{FEDERATION}});
+* for a WAG, (`iss`, `sub`) correlates to the same local agent
+  principal; and
+* current RAS policy permits the approved authority for the client,
+  Target Tenant, and resource.
+
+If any check fails, the RAS returns `access_denied` and issues no
+token, as {{Section 10.7 of DTR}} requires. A denial resolves to
+`access_denied`, and a pending governed redemption that outlives
+`expires_in` resolves to `expired_token` ({{Section 5.6 of DTR}}).
+Grant-derived revocation of the grant reaches "all redemptions" of it
+({{AGENT-LIFECYCLE}}), so a participating RAS ends the pending governed
+redemption when the event arrives, and the next poll gets
+`access_denied`. Other changes made at the IdP after receipt reach the
+RAS only through such signals or provisioning. The maximum pending
+lifetime bounds the rest, and an intervention bound ({{supervised}})
+counts it.
+
+On success, the RAS MUST issue what the redemption would have produced
+without deferral, for the approved authority:
+
+* the identities bound at receipt: for an ID-JAG, the local user as
+  subject and `act` unchanged ("Actor Preservation" in
+  {{FEDERATION}}); for a WAG, the local agent principal as subject and
+  no `act`;
+* an access token bound to the proof key ({{Section 10.1 of DTR}}),
+  with `iat` set at resolution and an expiration no later than the
+  approval expiry, any enforcement deadline, and the absolute
+  authorization expiration; and
+* the approved authority, which a narrower approval reduces; the
+  response's `scope` reports it.
+
+The successful polling response is the token response that the
+redemption would have returned ({{Section 5.5.2 of DTR}}); the JWT
+bearer grant defines no `issued_token_type`. The access token MAY carry
+`txn` for audit
+correlation, as a grant may ({{resolution}}); an API MUST NOT treat it
+as evidence of approval or as authority.
+
+## Refresh and Continuation {#redemption-refresh}
+
+A WAG redemption yields no refresh token ("Self-Acting Redemption: WAG"
+in {{FEDERATION}}), and an approval of a single use SHOULD NOT yield
+one. Otherwise, a refresh token for a deferred redemption follows
+"Optional RAS Refresh Tokens" in {{FEDERATION}}, with the absolute
+authorization expiration set on acceptance ({{redemption-deferring}}).
+The RAS MUST keep the approval with the refresh authorization. On every
+refresh, in addition to that section's processing, the RAS MUST
+evaluate the request again with the kept approval. It MUST reject the
+refresh with `invalid_grant` if the approval has expired or was
+revoked, cancelled, or superseded, if an enforcement deadline has
+passed, or if the evaluation denies. A shorter deadline that an
+evaluation returns becomes the enforcement deadline for every later
+token and for the refresh authorization. An access token issued on
+refresh expires no later than the approval expiry, any enforcement
+deadline, and the absolute authorization expiration. When the RAS
+rejects a refresh after authenticating the client and its proof, under
+this paragraph or under "Optional RAS Refresh Tokens" in
+{{FEDERATION}}, it MUST end the refresh authorization, so that a later
+change in policy or approval does not revive it. A request that fails
+client authentication or proof does not end it. Access after an ended
+refresh authorization needs a new grant, since this one is consumed.
+
+The RAS MUST NOT record an authorization from a deferred redemption as
+eligible for continuation ("Root Redemption at the Gateway's RAS" in
+{{CONTINUATION}}). This covers every access token issued for that
+authorization, including on refresh, and the deferred redemption of an
+onward grant as well as of a root grant. A CAI therefore refuses to
+attest such a token, as for any ineligible hop. Under {{AROP}}, the
+approval expiry also bounds tokens obtained by exchange. Continuation
+exchanges the access token at the CAI and the resulting assertion at
+the IdP, which issues an onward grant this document cannot bound
+({{open-items}}).
+
 # Supervised Issuance {#supervised}
 
 Under supervised issuance, the IdP issues governed grants without
@@ -647,11 +962,14 @@ Each claim below is optional and names the role that makes it:
 | IdP | Deferred governed issuance | {{deferred-issuance}}, except {{deferred-continuation}} |
 | IdP | Deferred continuation | {{deferred-continuation}}, with an IdP continuation claim under {{CONTINUATION}} |
 | IdP | Supervised issuance, per target | {{supervised}} |
+| RAS | Deferred redemption | {{deferred-redemption}} |
 | Client | Deferred governed issuance | {{opt-in}}; polling with the same key under {{DTR}}; the no-retry rule of {{resolution}} |
+| Client | Deferred redemption | {{redemption-opt-in}}; polling with the same key under {{DTR}}; recovery only as {{redemption-recovery}} defines |
 | API | Per-action oversight | {{per-action}} |
 {: title="Conformance claims"}
 
-A claim of deferred governed issuance requires the polling mode of
+A claim of deferred governed issuance or deferred redemption requires
+the polling mode of
 {{DTR}}; callback notification ({{Section 6 of DTR}}) is optional. Each
 claim requires the realization of {{FEDERATION}} it applies to.
 
@@ -694,21 +1012,44 @@ its bindings and associations, its authorization, the user, and the
 chain at resolution ({{resolution}}), and the grant's lifetime starts
 then. The maximum pending lifetime, and for root issuance the
 expiration of the credentials the request presented ({{deferring}}),
-bound how old a request can be when it is approved.
+bound how old a request can be when it is approved. At the RAS, the
+re-checks of {{redemption-resolution}} and an absolute authorization
+expiration set when the grant is accepted ({{redemption-deferring}})
+do the same.
 
 ## Deferral Codes {#security-codes}
 
 A stolen deferral code could otherwise yield the grant after approval.
-The code is bound to the client and to a DPoP key ({{deferring}}), as
+The code is bound to the client and to a DPoP key ({{deferring}},
+{{redemption-deferring}}), as
 {{Section 10.1 of DTR}} requires for clients whose profile mandates
 DPoP, and the grant carries the same key.
+
+## Approval Binding at the RAS {#security-binding}
+
+An approval matched to a request by its attributes can complete another
+agent's request. {{ARAP}}'s comparison excludes the actor, and
+{{AROP}}'s idempotent submission compares only the client and the
+requested authority. The RAS opens one approval request for each pending
+governed redemption and accepts only that request's approval
+({{redemption-approval}}), so no comparison decides which redemption an
+approval completes.
+
+## Recovery {#security-recovery}
+
+Recovery returns a deferral code only to the client that authenticates
+afresh and proves the deferral's key, for the grant it presented
+({{redemption-recovery}}). A party that holds the grant but not the key
+gets `invalid_grant`, as for any consumed grant. Recovery cannot
+extend a pending governed redemption or the authority that follows it.
 
 ## Downgrade {#security-downgrade}
 
 A client that omits the opt-in, or retries a denied request another way,
 must not obtain the grant without the approval policy requires. Policy
 selects the mode, a request without the opt-in is refused rather than
-issued ({{opt-in}}), and a denied or expired request is not retried as
+issued ({{opt-in}}, {{redemption-opt-in}}), and a denied or expired
+request is not retried as
 self-acting access, under another client, or under a lower profile
 ({{resolution}}).
 
@@ -823,13 +1164,67 @@ Each case changes the walkthrough as stated; all other checks succeed.
 | A continuation is within every restriction when received and is deferred; while it is pending, Alice's Delegation Authorization or the Continuation Association is narrowed to exclude its target | IdP | HTTP 400, `access_denied` at the next poll; no grant. The narrowing comes from current authorization, since the chain authorization's restrictions are fixed |
 {: title="Negative test cases"}
 
+## Deferred Redemption {#walkthrough-redemption}
+
+In this variant, the IdP issues the ID-JAG of the {{FEDERATION}}
+walkthrough without approval, and RAS policy for `acme-data` requires
+the tenant's data steward to approve each agent redemption for
+`files.read`. The client redeems the grant as in the {{FEDERATION}}
+walkthrough, adds `completion_mode=deferred`, and proves the key in the
+grant's `cnf.jkt`.
+
+The RAS completes the checks of "Grant Validation" in {{FEDERATION}}:
+it resolves `alice-ras` to `user-108`, correlates `agent-42`, and finds
+that the actor gate permits it. It accepts the grant, sets the absolute
+authorization expiration eight hours ahead, records the pending
+governed redemption, opens one approval request, and returns the
+deferred response with `expires_in` 3600. The steward approves through
+the RAS's access request service, with an approval expiry two hours
+ahead.
+
+The client polls the RAS as it polled the IdP
+({{walkthrough-resolution}}), proving the same key. The RAS re-checks
+`agent-42`, `user-108`, the actor gate, and the approval, and issues
+the access token of the {{FEDERATION}} walkthrough: `sub` `user-108`,
+`act` naming `agent-42`, `cnf.jkt` for the key, and an expiration
+within the approval expiry. The RAS does not record the authorization
+as eligible for continuation.
+
+Each case changes this variant as stated; all other checks succeed.
+
+| Changed condition | Checked by | Required result |
+|---|---|---|
+| The redemption omits `completion_mode=deferred` | RAS | HTTP 400, `actor_unauthorized`; no token and no deferred response |
+| The resource is configured for mutual-TLS access tokens | RAS | HTTP 400, `actor_unauthorized`; no deferral |
+| A poll proves another key | RAS | HTTP 400, `invalid_dpop_proof` |
+| The grant's `exp` passes while the redemption is pending, and the steward then approves | RAS | The access token issues at the next poll |
+| The maximum pending lifetime is 24 hours, and the steward approves nine hours after receipt | RAS | `expires_in` was at most eight hours; HTTP 400, `expired_token`; no token |
+| Local Suspension of `agent-42` while the redemption is pending, and the steward then approves | RAS | HTTP 400, `access_denied` at the next poll; no token |
+| While the redemption is pending, `agent-42`'s correlation changes to another local agent principal, and the steward then approves | RAS | HTTP 400, `access_denied` at the next poll; no token |
+| Grant-derived revocation of the ID-JAG arrives while the redemption is pending, at a participating RAS | RAS | HTTP 400, `access_denied` at the next poll |
+| The steward denies, and the client presents the grant again | RAS | HTTP 400, `access_denied`; then `invalid_grant` |
+| While the redemption is pending, the client presents the grant without `completion_mode` | RAS | HTTP 400, `invalid_grant` |
+| After the grant's `exp`, the client repeats the redemption with the same grant, key, opt-in, and parameters | RAS | The same deferral code, with the remaining `expires_in` |
+| The repeated redemption reuses the DPoP proof of the first | RAS | HTTP 400, `invalid_dpop_proof` |
+| After a successful token response, the client repeats the redemption | RAS | HTTP 400, `invalid_grant` |
+| Two identical redemptions arrive together | RAS | One pending governed redemption and one approval request; both responses carry its deferral code |
+| While the redemption is pending, `agent-43` redeems its own ID-JAG through the same client, for the same user, resource, and scope | RAS | A separate pending governed redemption and approval request; approving the first issues nothing for it |
+| The access request service returns the first redemption's approval for the second's approval request | RAS | The second stays pending (`authorization_pending`); no token |
+| The approval expires in one hour, a refresh token issues, and the client refreshes after the approval expiry | RAS | The access token expires within the approval expiry; HTTP 400, `invalid_grant` on refresh |
+| The approval is revoked ten minutes into its hour, and the client then refreshes | RAS | HTTP 400, `invalid_grant` |
+| The grant had no `cnf` and the client's minimum was governed agent access; after a refresh token issues, the minimum becomes bound governed agent access, and the client refreshes | RAS | HTTP 400, `invalid_grant` ("Optional RAS Refresh Tokens" in {{FEDERATION}}) |
+| A refresh is rejected because the actor gate no longer permits `agent-42`; the gate is restored, and the client refreshes again with the same refresh token | RAS | HTTP 400, `invalid_grant`; the rejection ended the refresh authorization |
+| A deferred WAG redemption is approved | RAS | An access token with the local agent principal as `sub`, no `act`, and no refresh token |
+| The gateway exchanges at the CAI an access token from a deferred redemption, or one refreshed from it | CAI | HTTP 400, `invalid_request`; the authorization is not eligible for continuation |
+{: title="Deferred redemption negative test cases"}
+
 # Relationship to Other Specifications {#relationships}
 
 | Specification | Relationship |
 |---|---|
-| {{DTR}} | Profiled for governed token exchange. Narrowed: DPoP on every deferred request; all governed checks before deferring and again at resolution; the grant keeps the request's agent, user, client, and key |
-| {{AROP}} | Not profiled. Its `approved_until` bounds every token issued under an approval, including those the RAS issues, which deferral at the IdP cannot enforce ({{open-items}}) |
-| {{ARAP}} | One way to route an approval; not required |
+| {{DTR}} | Profiled for governed token exchange and governed grant redemption. Narrowed: DPoP on every deferred request; all governed checks before deferring and again at resolution; the token keeps the request's agent, user, client, and key. At the RAS: a deferred grant is accepted once, the absolute authorization expiration starts on acceptance, and no deferral where mutual-TLS access tokens are configured |
+| {{AROP}} | Token issuance completion profiled at the RAS ({{deferred-redemption}}): the approval expiry bounds what the RAS issues, every refresh is evaluated again with the approval, recovery replaces idempotent submission, and the authorization is not eligible for continuation. Not profiled at the IdP, where `approved_until` would bound tokens the RAS issues ({{open-items}}) |
+| {{ARAP}} | One way to route an approval; at the RAS, its `approval` object is the approval kept unchanged ({{redemption-approval}}) |
 | {{ICA}} | A deferred continuation holds the assertion's replay reservation while pending, replacing one transition of {{Section 5.5.7.1 of ICA}}, and counts the limits of {{Section 6.3 of ICA}} when the onward grant issues ({{deferred-continuation}}) |
 | {{CIBA}} | One way to reach a user for a decision; not profiled |
 | {{MCP}} | Informative realization of per-action oversight ({{mcp}}) |
@@ -840,22 +1235,30 @@ Each case changes the walkthrough as stated; all other checks succeed.
 
 # Open Items {#open-items}
 
-1. **Deferred redemption at the RAS.** {{AROP}} lets the RAS defer
-   when an agent redeems a grant. {{DTR}} does not name the
-   `jwt-bearer` grant, and a deferred redemption needs rules for the
-   grant's `exp` and the RAS's replay record while pending. Deferral at
-   the RAS is also where {{AROP}} could compose with governed access:
-   the RAS issues the tokens that `approved_until` bounds, while at the
-   IdP that bound is a downstream condition the composition cannot
-   enforce ("Issuance Authorization" in {{FEDERATION}}).
+1. **AROP at the IdP, and continuation from a deferred redemption.**
+   At the IdP, {{AROP}}'s `approved_until` would bound tokens the RAS
+   issues, a downstream condition the composition cannot enforce
+   ("Issuance Authorization" in {{FEDERATION}}). From a deferred
+   redemption, continuation exchanges the access token at the CAI and
+   the resulting assertion at the IdP, and {{AROP}} does not say
+   whether an onward grant that the IdP authorizes on its own derives
+   from the approval. Both need {{AROP}} to state that the approval
+   expiry bounds what the deferring server issues. Continuation also
+   needs a rule for how that expiry meets the continuation window.
 2. **Administering the mode.** No attribute records the oversight mode
    on a Delegation or Agent Authorization in the SCIM management
    profile.
 3. **Overseer notices.** Whether a Shared Signals event should carry
    supervised-issuance notices.
-4. **Duplicate pending requests.** Whether the IdP should return the
-   existing pending request when the same governed request context is
-   requested again while one is pending.
+4. **Duplicate pending requests at the IdP.** Whether the IdP should
+   return the existing pending request when the same governed request
+   context is requested again while one is pending. At the RAS,
+   recovery settles this ({{redemption-recovery}}).
+5. **Originating-grant preconditions.** Whether the preconditions of
+   the originating grant that {{Section 10.7 of DTR}} re-evaluates
+   include the grant's own expiration when the client does not present
+   the grant again. {{redemption-deferring}} reads them as checked on
+   receipt.
 
 # Document History
 {:numbered="false"}

@@ -1894,6 +1894,8 @@ RAS uses these errors:
 | Unbound grant whose (`iss`, `jti`) the RAS already accepted | `invalid_grant` |
 | WAG whose `sub` has no authorized correlation at the RAS | `invalid_grant` |
 | Invalid WAG, including one without `typ` `wag+jwt` or one that contains `act` | `invalid_grant` |
+| Current RAS policy refuses a valid ID-JAG's delegation, including under the actor gate ({{actor-authorization}}) | `actor_unauthorized` under Actor Profile, with HTTP 400 |
+| Current RAS policy refuses a valid WAG for the agent, client, tenant, or resource ({{wag-redemption}}) | `invalid_target` |
 {: title="Redemption errors"}
 
 # Access at the Resource Server {#api-processing}
@@ -2474,9 +2476,9 @@ resource-local approval can satisfy an additional policy condition
 within the presented token's authority. It MUST NOT expand that
 authority or override token validity or tenant restrictions. Access
 beyond that authority requires new authorization through an applicable
-protocol. Approval before issuance follows {{OVERSIGHT}}; other
-asynchronous approval composition is deferred under
-{{excluded-compositions}}.
+protocol. Approval before issuance or redemption follows
+{{OVERSIGHT}}; other asynchronous approval composition is deferred
+under {{excluded-compositions}}.
 
 # Privacy Considerations {#privacy}
 
@@ -3008,12 +3010,12 @@ This document does not define the following compositions:
 
 | Composition | Boundary in this document |
 |---|---|
-| Approval before issuance | Defined for governed issuance, including continuation, in {{OVERSIGHT}} |
-| Asynchronous approval with {{AROP}} | External approval follows {{external-approval}}, {{authorization-lifetime}}, and {{issuance-authorization}} |
+| Approval before issuance or redemption | Defined for governed issuance, including continuation, and for governed redemption at the RAS, in {{OVERSIGHT}} |
+| Asynchronous approval with {{AROP}} | At the RAS, defined for deferred redemption in {{OVERSIGHT}}, without continuation from the resulting authorization; at the IdP, external approval follows {{external-approval}}, {{authorization-lifetime}}, and {{issuance-authorization}} |
 | Continuation with {{ICA}} | Defined for governed grants, including through gateways, in {{CONTINUATION}}; renewal without continuation follows {{continuing-access}} |
 | General WIMSE WIT/WIC inputs | Only the SPIFFE forms in {{INPUTS}} are defined |
 | Instance context in an ID-JAG or WAG, or preserved across domains, under {{INSTANCE}} | The RAS conveys only an instance it validated ({{access-token-response}}); workload evidence resolves the agent, and a shared workload identity does not distinguish replicas {{SPIFFE-CONCEPTS}} |
-| Mutual-TLS-bound ID-JAG | Bound grants use DPoP; mutual TLS can protect access tokens ({{access-token-protection}}) |
+| Mutual-TLS-bound ID-JAG | Bound grants use DPoP; mutual TLS can protect access tokens ({{access-token-protection}}), except after a deferred redemption, which {{OVERSIGHT}} requires to be DPoP-bound |
 | Authorization details without scope | Scope is required; the scope-free mode of {{RFC9396}} is not defined |
 | Grant key transition | A bound grant is redeemed with proof of its own key ({{grant-protection}}); no transition to another key is defined |
 | Portable authorization deadlines | ID-JAG `exp` limits redemption only; downstream lifetimes follow RAS policy ({{authorization-lifetime}}) |

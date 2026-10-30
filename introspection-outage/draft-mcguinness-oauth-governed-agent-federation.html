@@ -6178,7 +6178,7 @@ last column is the required result. Token endpoint errors follow
                 <td class="text-left" rowspan="1" colspan="1">HTTP 503; no operation performed and no denial reported</td>
               </tr>
               <tr>
-                <td class="text-left" rowspan="1" colspan="1">The access token is opaque, and the introspection endpoint cannot be reached or returns a response without a boolean <code>active</code>
+                <td class="text-left" rowspan="1" colspan="1">The access token is opaque, the API holds no usable cached introspection response for it, and the introspection endpoint cannot be reached or returns a response without a boolean <code>active</code>
 </td>
                 <td class="text-left" rowspan="1" colspan="1">API</td>
                 <td class="text-left" rowspan="1" colspan="1">HTTP 503; no operation performed, and not <code>invalid_token</code> (<a href="#introspection" class="auto internal xref">Section 6.8</a>)</td>

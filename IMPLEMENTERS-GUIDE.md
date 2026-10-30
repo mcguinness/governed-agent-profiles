@@ -287,12 +287,13 @@ suite](conformance/README.md) and how far they go:
 | Item | From | Scene 2 value | In metadata | Related cases |
 |---|---|---|---|---|
 | RAS issuer and access-token signing keys | RAS | `https://ras.example/`; JWT access tokens validated offline | Yes (`jwks_uri`) | Positive path: P3, P4 |
-| Introspection endpoint and the API's credentials for it, where access tokens are opaque ([Optional Opaque Access Tokens and Introspection][introspection]) | RAS | Not used | Introspection endpoint | Untested |
+| Introspection endpoint and the API's credentials for it, where access tokens are opaque ([Optional Opaque Access Tokens and Introspection][introspection]) | RAS | Not used | Introspection endpoint | Direct against the reference, without caching: S12 for an inactive token, S13 for a delegated response without `act`. Positive path: S10, S11 |
 | Which IdP namespaces the RAS may assert in `act` ([Access at the Resource Server][api-processing]) | API trust configuration | Agents of `https://idp.example/` | No | Positive path: P3 |
-| How the API tells the governed delegated population apart ([Profile Applicability][api-applicability]) | Agreed | Client `analysis-api` with the `acme-data` audience | No; the core defines no in-band discriminator | Direct: N18 |
+| How the API tells the governed delegated population apart ([Profile Applicability][api-applicability]) | Agreed | Client `analysis-api` with the `acme-data` audience | No; the core defines no in-band discriminator | Direct: N18. Positive path for a separate self-acting registration, with minted tokens: S08 |
 | Where the tenant is carried | Agreed | The tenant-specific resource URI as `aud` | No | Direct: N17 |
 | Access-token protection and scopes per resource | API, to the RAS | DPoP; `files.read` | Protected Resource Metadata, where the API publishes it | Direct for key binding: N19. Scope untested |
 | How the API enforces the actor gate: direct evaluation, or reliance on validated RAS authorization with sufficient scope and freshness. The RAS enforces the gate in either case | Agreed | The API evaluates the gate directly | No | Direct: N20 at the API, N16 at the RAS |
+| Whether the API delegates evaluation to a policy service, which then receives the user, agent, client, tenant, and token constraints only from the validated token or introspection response ([Optional Policy Services][policy-services]) | API | No policy service | No | Direct against the reference, whose policy service the suite controls: S02 to S07, S09, S11. Positive path: S01, S08, S10 |
 | How fresh authorization must be: introspection caching and the disablement delay | Agreed | Offline JWT validation; 600 s tokens | No | Untested |
 
 ### Choices to agree
@@ -653,7 +654,7 @@ flowchart LR
 
 | Point | Enforcement point | What is decided | Hook in the profiles | AuthZEN fit |
 |---|---|---|---|---|
-| Each action | API or MCP gateway | Whether this user and agent may perform this operation on this object | [Optional Policy Services][policy-services] and [Delegated Actor Authorization][actor-authorization] | AuthZEN evaluation; [COAZ-MCP][COAZ-MCP] for MCP tool calls |
+| Each action | API or MCP gateway | Whether this user and agent may perform this operation on this object | [Optional Policy Services][policy-services] and [Delegated Actor Authorization][actor-authorization]; the conformance suite's S cases try substituting each identity from request attributes | AuthZEN evaluation; [COAZ-MCP][COAZ-MCP] for MCP tool calls |
 | Redemption | RAS | Whether to issue an access token under local user, actor, client, tenant, and resource policy | Grant Redemption at the RAS; the core states its policy-service rules for the API, and [deferred redemption][ov-redemption] builds evaluations only from the redemption's resolved values | AuthZEN evaluation; ARAP and AROP when RAS policy requires approval |
 | Issuance | IdP | Decisions that depend on tool arguments or business objects, which the IdP need not interpret | Authorization Relationships: resource-domain evaluation, locally or through a trusted policy service | A resource-domain PDP; the AuthZEN Token Issuance profile is not yet composed with governed issuance ([below](#one-identity-model-across-authzen-profiles)) |
 | Requestable denial | API | Whether the agent can ask for more access | External Approval; per-action oversight in the oversight profile; at the RAS, deferred redemption; AROP at the IdP is an excluded composition | ARAP for the request; AROP for completion as a token at the RAS |

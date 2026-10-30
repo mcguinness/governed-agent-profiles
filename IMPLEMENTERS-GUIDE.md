@@ -309,10 +309,6 @@ names neither choice:
 | Re-redeeming a bound grant | Once, or again under explicit policy with a fresh proof | Once |
 | Clock skew and DPoP proof age | A few minutes; DPoP server nonces optional | 60 s each; no nonces |
 | Grant lifetime | The configured limit, recommended at most five minutes | 300 s |
-| Error codes the core does not fix | A RAS's actor-gate denial; a missing or disabled agent record at the RAS | `actor_unauthorized`; `invalid_grant` |
-
-The last row is a gap, not a choice; the conformance suite lists it among
-its [draft questions](conformance/README.md#draft-questions-found-while-implementing).
 
 Optional capabilities add their own exchanges: continuation adds the
 configuration in [Continuation through

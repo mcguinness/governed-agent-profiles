@@ -293,7 +293,7 @@ suite](conformance/README.md) and how far they go:
 | Where the tenant is carried | Agreed | The tenant-specific resource URI as `aud` | No | Direct: N17 |
 | Access-token protection and scopes per resource | API, to the RAS | DPoP; `files.read` | Protected Resource Metadata, where the API publishes it | Direct for key binding: N19. Scope untested |
 | How the API enforces the actor gate: direct evaluation, or reliance on validated RAS authorization with sufficient scope and freshness. The RAS enforces the gate in either case | Agreed | The API evaluates the gate directly | No | Direct: N20 at the API, N16 at the RAS |
-| Whether the API delegates evaluation to a policy service, which then receives the user, agent, client, tenant, and token constraints only from the validated token or introspection response ([Optional Policy Services][policy-services]) | API | No policy service | No | Direct against the reference, whose policy service the suite controls: S02 to S07, S09, S11, and for the error selection order, S14 to S17. Positive path: S01, S08, S10 |
+| Whether the API delegates evaluation to a policy service, which then receives the user, agent, client, tenant, and token constraints only from the validated token or introspection response ([Optional Policy Services][policy-services]) | API | No policy service | No | Direct against the reference, whose policy service the suite controls: S02 to S07, S09, S11, and for the error selection order, S14 to S19. Positive path: S01, S08, S10 |
 | How fresh authorization must be: introspection caching and the disablement delay | Agreed | Offline JWT validation; 600 s tokens | No | Untested |
 
 ### Choices to agree

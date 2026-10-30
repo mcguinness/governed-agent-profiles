@@ -129,6 +129,8 @@ servers listen on localhost. A reader can lay the output beside
 | S15 | API | When the actor gate and the user's permission both deny, the request fails with 403 `actor_unauthorized` | core: Error Responses; Optional Policy Services | Turn on the policy service; set its policy |
 | S16 | API | A request proven with another key, which policy would also deny, fails with 401 `invalid_token`, not 403 | core: Error Responses; Token Validation; RFC 9449 Section 7.1 | Turn on the policy service; set its policy |
 | S17 | API | When the policy service cannot be reached, the request gets HTTP 503, none of the file's data and no denial code; a missing `Retry-After` is noted | core: Error Responses; Optional Policy Services | Turn on the policy service; set its policy; make it unavailable |
+| S18 | API | When the actor gate denies and the evaluation of the user's permissions cannot complete, the request gets HTTP 403 `actor_unauthorized`, since no unfinished check comes earlier | core: Error Responses; Optional Policy Services | Turn on the policy service; set its policy; make the `other` condition unavailable |
+| S19 | API | When the actor gate cannot be evaluated and the user's permission denies, the request gets HTTP 503, since the unfinished actor gate could come earlier | core: Error Responses; Optional Policy Services | Turn on the policy service; set its policy; make the `actor` condition unavailable |
 
 The "negative-test row" sources are the rows of the core's "Renewal and
 Negative Tests" table. N15 and N27 assert `invalid_grant`, which the
@@ -148,14 +150,14 @@ minutes, a 401 challenge without an `error` parameter, or a 503 without
 core's Error Responses, a 403 challenge without an `error` attribute is
 the response for a denial other than the actor gate or token authority.
 A case that expects `actor_unauthorized` or `insufficient_scope` at the
-API (N20, S02, S03, S07, S11, S14 and S15) therefore requires the code,
+API (N20, S02, S03, S07, S11, S14, S15 and S18) therefore requires the code,
 in the challenge's `error` attribute or, where the challenge has none,
 in the body.
 
 Every negative case, P2 and D02 name the reference checks they exercise
 (`CHECKS` in [reference.py](reference.py)). With `--vacuity`, each of
-these 64 cases runs once for each check it names, with that check
-switched off; five S cases name two checks, so there are 69 runs, and
+these 66 cases runs once for each check it names, with that check
+switched off; five S cases name two checks, so there are 71 runs, and
 every run fails. Twenty-six N cases fail because the server then accepts
 the request. P2 fails because the access token then carries a rewritten
 `act`. N11 fails because the RAS's access-token protection check then
@@ -206,7 +208,12 @@ Without these, they fail on the response the API selects:
 * S16 (`api.key_binding`): the API accepts the proof and reports the
   policy denial, HTTP 403 `actor_unauthorized`;
 * S17 (`api.evaluation_unavailable`): the API treats the unreachable
-  policy service as a denial, HTTP 403.
+  policy service as a denial, HTTP 403;
+* S18 (`api.established_failure`): the API evaluates every condition
+  and answers HTTP 503 whenever one cannot complete, even after the
+  actor gate has denied;
+* S19 (`api.incomplete_outranks`): the API passes over the unfinished
+  actor gate and reports the user's denial, HTTP 403 without a code.
 
 S01, S08 and S10 are positive cases and name no check.
 
@@ -286,7 +293,9 @@ fail, the API reports the first in this order: the token and proof
 that carries no `error` attribute). An evaluation that cannot complete
 is not a denial: HTTP 503. S04 to S07 and S09 each fail one condition
 after the actor gate; S14 to S16 fail two conditions at once; S17 makes
-the policy service unavailable.
+the policy service unavailable; S18 and S19 make one condition's
+evaluation fail beside a denial, so that an established failure is
+reported only when no unfinished check comes earlier.
 
 **Test fixtures.** The policy service and the API's introspection
 caller are test fixtures under the suite's control. The policy service
@@ -394,8 +403,8 @@ The suite tests nothing outside the path above, including:
   RAS;
 * the error selection order under the API's own evaluation, except the
   actor gate (N20), and a policy decision the API cannot interpret; the
-  S cases test the order through the policy service, and S17 an
-  unreachable one;
+  S cases test the order through the policy service, S17 an
+  unreachable one, and S18 and S19 one condition that cannot complete;
 * RAS refresh tokens other than those from a deferred redemption;
 * DPoP server nonces, mutual TLS (including the refusal to defer for a
   resource configured for mutual-TLS access tokens), and bearer access
@@ -520,6 +529,6 @@ that settled it.
    denial.** Resolved by the same change. A client or tenant policy
    denial is HTTP 403 with a challenge that carries no `error` attribute
    (S05, S06); a scope the operation needs and the token lacks is HTTP
-   403 `insufficient_scope` (S07). S14 to S17 test the order and the 503.
+   403 `insufficient_scope` (S07). S14 to S19 test the order and the 503.
 
 [core-scope]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#scope

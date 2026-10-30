@@ -134,7 +134,7 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | S17 | API | When the policy service cannot be reached, the request gets HTTP 503, none of the file's data and no denial code; a missing `Retry-After` is noted | core: Error Responses; Optional Policy Services | Turn on the policy service; set its policy; make it unavailable |
 | S18 | API | When the actor gate denies and the evaluation of the user's permissions cannot complete, the request gets HTTP 403 `actor_unauthorized`, since no unfinished check comes earlier | core: Error Responses; Optional Policy Services | Turn on the policy service; set its policy; make the `other` condition unavailable |
 | S19 | API | When the actor gate cannot be evaluated and the user's permission denies, the request gets HTTP 503, since the unfinished actor gate could come earlier | core: Error Responses; Optional Policy Services | Turn on the policy service; set its policy; make the `actor` condition unavailable |
-| S20 | API | With an opaque token, when the introspection endpoint answers HTTP 503, or 200 with a body that is not a JSON object, the request gets HTTP 503, none of the file's data and no `invalid_token`; a missing `Retry-After` is noted | core: Optional Opaque Access Tokens and Introspection; Error Responses; RFC 7662 Section 2.3 | Mint an opaque token; make introspection fail |
+| S20 | API | With an opaque token the API has not introspected before, when the introspection endpoint answers HTTP 503, answers 200 with a body that is not a JSON object, or closes the connection before the body it declares, the request gets HTTP 503, none of the file's data and no `invalid_token`; a missing `Retry-After` is noted | core: Optional Opaque Access Tokens and Introspection; Error Responses; RFC 7662 Section 2.3 | Mint an opaque token; make introspection fail |
 | S21 | API | When introspection cannot complete and the DPoP proof's `ath` names another token, the request gets HTTP 401 for the proof, not 503, since the unfinished validation is in the same row | core: Error Responses; Token Validation; RFC 9449 Section 4.3 | Mint an opaque token; make introspection fail |
 
 The "negative-test row" sources are the rows of the core's "Renewal and
@@ -370,8 +370,10 @@ applicability and the `act` requirement, binds the DPoP proof to
 a JSON object with a boolean `active`, such as an endpoint error, a
 timeout or a malformed body, cannot complete: the API checks the DPoP
 proof it has, and otherwise answers HTTP 503. Test control makes the
-RAS's endpoint fail (`introspection_unavailable`: `error` or
-`malformed`). Nothing caches a response, and the suite tests no
+RAS's endpoint fail (`introspection_unavailable`: `error`, `malformed`
+or `truncated`). S20 and S21 present tokens the API has not introspected
+before, so an implementation that caches responses within its limits
+still has to make the call. Nothing caches a response, and the suite tests no
 freshness limit.
 
 Some cases depend on choices made for the reference:

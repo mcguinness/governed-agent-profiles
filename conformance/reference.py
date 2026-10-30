@@ -38,6 +38,7 @@ never sleep; with no advance, it is the system clock.
 import base64
 import copy
 import hashlib
+import http.client
 import json
 import secrets
 import threading
@@ -660,8 +661,9 @@ class RAS(Server):
         # Introspection: opaque token -> the stored response members.
         self.opaque_tokens = {}
         self.introspection_omit_act = False   # test control: leave act out of every response
-        # Test control: make the endpoint fail ("error": HTTP 503) or answer
-        # with a body that is not a JSON object ("malformed").
+        # Test control: make the endpoint fail ("error": HTTP 503), answer
+        # with a body that is not a JSON object ("malformed"), or close the
+        # connection before the body it declares ("truncated").
         self.introspection_unavailable = False
 
     def control_op(self, op, body):
@@ -687,8 +689,9 @@ class RAS(Server):
             elif what == "introspection_omit_act":
                 self.introspection_omit_act = bool(value)
             elif what == "introspection_unavailable":
-                if value not in (False, None, "error", "malformed"):
-                    raise OAuthError("invalid_request", 400, "error, malformed or false")
+                if value not in (False, None, "error", "malformed", "truncated"):
+                    raise OAuthError("invalid_request", 400,
+                                     "error, malformed, truncated or false")
                 self.introspection_unavailable = value or False
             else:
                 raise OAuthError("invalid_request", 404, "unknown setting")
@@ -726,6 +729,12 @@ class RAS(Server):
             if self.introspection_unavailable == "malformed":
                 return _respond(start_response, 200, b"temporarily unavailable",
                                 content_type="text/plain")
+            if self.introspection_unavailable == "truncated":
+                data = json.dumps(body).encode()
+                start_response("200 OK", [("Content-Type", "application/json"),
+                                          ("Cache-Control", "no-store"),
+                                          ("Content-Length", str(len(data) + 64))])
+                return [data[:len(data) // 2]]
             return _respond(start_response, 200, body)
         form = _form(environ)
         grant_type = form.get("grant_type")
@@ -1479,12 +1488,13 @@ class API(Server):
                                               "Accept": "application/json"})
         # A call that does not return a JSON object with a boolean active
         # cannot complete validation: a transport failure, a timeout, any
-        # error response from the endpoint (HTTPError is a URLError), or a
-        # body that is not such an object. It says nothing about the token.
+        # error response from the endpoint (HTTPError is a URLError), an
+        # HTTP protocol failure such as a truncated body (IncompleteRead),
+        # or a body that is not such an object. It says nothing about the token.
         try:
             with urllib.request.urlopen(req, timeout=10) as resp:
                 body = json.loads(resp.read())
-        except (urllib.error.URLError, OSError, ValueError):
+        except (urllib.error.URLError, http.client.HTTPException, OSError, ValueError):
             raise IntrospectionUnavailable()
         if not isinstance(body, dict) or not isinstance(body.get("active"), bool):
             raise IntrospectionUnavailable()

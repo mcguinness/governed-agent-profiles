@@ -222,7 +222,9 @@ class Adapter:
                                           the endpoint answers HTTP 503;
                                           "malformed": it answers 200 with a
                                           body that is not a JSON object;
-                                          false: normal)
+                                          "truncated": it closes the
+                                          connection before the body it
+                                          declares; false: normal)
                                      api: actor_gate, policy_service (hand
                                           authorization to the policy
                                           service, in place of the API's own
@@ -1737,9 +1739,11 @@ def s19(ctx):
       needs=("mint_opaque_token", "set:ras.introspection_unavailable"),
       defeats=("api.introspection_unavailable",))
 def s20(ctx):
-    token = ctx.adapter.mint_opaque_token(minted_token_claims(ctx))
-    data = file_data(ctx, token)
-    for mode in ("error", "malformed"):
+    # The setup read uses its own token; each outage request uses a token the
+    # API has never introspected, so no cached response can serve it.
+    data = file_data(ctx, ctx.adapter.mint_opaque_token(minted_token_claims(ctx)))
+    for mode in ("error", "malformed", "truncated"):
+        token = ctx.adapter.mint_opaque_token(minted_token_claims(ctx))
         ctx.adapter.set("ras", "introspection_unavailable", mode)
         resp = ctx.client.get(ctx.cfg.read_path, token)
         check(resp.status == 503,
@@ -1760,9 +1764,9 @@ def s20(ctx):
       needs=("mint_opaque_token", "set:ras.introspection_unavailable"),
       defeats=("api.established_failure",))
 def s21(ctx):
-    token = ctx.adapter.mint_opaque_token(minted_token_claims(ctx))
+    data = file_data(ctx, ctx.adapter.mint_opaque_token(minted_token_claims(ctx)))
+    token = ctx.adapter.mint_opaque_token(minted_token_claims(ctx))   # never introspected
     other = ctx.adapter.mint_opaque_token(minted_token_claims(ctx))
-    data = file_data(ctx, token)
     ctx.adapter.set("ras", "introspection_unavailable", "error")
     resp = ctx.client.get(ctx.cfg.read_path, token, proof_token=other)
     check(resp.status == 401,

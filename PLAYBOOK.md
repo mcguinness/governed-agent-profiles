@@ -209,7 +209,9 @@ token, the local principal stands for the agent.
 * The enforcement point, not a tool's declared mapping, supplies the
   agent identity the policy decision point sees: from `act` for a
   delegated token and the subject for a self-acting one, never
-  `client_id`. Treating the mapping this way is a deployment rule.
+  `client_id`. The core requires this: request attributes never supply
+  or override the identities ([core, Optional Policy
+  Services][core-policy-services]).
 * A permit never widens the token's scope or tenant.
 * With the policy decision point unreachable, requests fail as the
   selected integration requires. A COAZ-MCP enforcement point fails
@@ -1193,6 +1195,8 @@ tooling can rely on.
 [core]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
 [core-walkthrough]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#walkthrough
 [core-aws-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#aws-example
+[core-policy-services]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#policy-services
+[core-resource-errors]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#resource-errors
 [continuation]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
 [continuation-scheduled]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#walkthrough-scheduled
 [oversight-walkthrough]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#walkthrough

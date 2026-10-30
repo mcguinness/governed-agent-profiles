@@ -54,8 +54,10 @@ At 12:01:03 on September 17, Alice, signed in to the client through the
 IdP, asks the agent to read `report-7`. The deployment uses the core's
 bound profile rather than its unbound one, so the grant is bound to the
 client's DPoP key K, and the API requires DPoP-bound access tokens. The
-IdP and the RAS already hold these records; [Provisioning with
-SCIM](#provisioning-with-scim) shows how SCIM can create some of them:
+IdP and the RAS already hold these records. [Provisioning with
+SCIM](#provisioning-with-scim) shows how SCIM can create some of them;
+administrators configure the rest, such as Alice's Delegation
+Authorization, directly:
 
 * at the IdP, an Identity Binding that resolves `analysis-client` to the
   active Agent Principal `agent-42`, and a Client Association that
@@ -91,8 +93,9 @@ Authentication][core-client-assertion]):
 }
 ```
 
-It proves a separate grant key K with `IDP_DPOP_PROOF` and sends the
-exchange ([core, Exchange Request and Response][core-walkthrough]):
+It proves a grant key K, separate from the key that signs its client
+assertion, with `IDP_DPOP_PROOF` and sends the exchange ([core, Exchange
+Request and Response][core-walkthrough]):
 
 <!-- verbatim: draft-mcguinness-oauth-governed-agent-federation.md -->
 ```http
@@ -117,8 +120,8 @@ grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Atoken-exchange
 ```
 
 The IdP resolves `analysis-client` to `agent-42` through the binding,
-checks Alice's Delegation Authorization for `files.read`, and returns
-an ID-JAG:
+checks the Client Association and Alice's Delegation Authorization for
+`files.read`, and returns an ID-JAG:
 
 <!-- verbatim: draft-mcguinness-oauth-governed-agent-federation.md -->
 ```http

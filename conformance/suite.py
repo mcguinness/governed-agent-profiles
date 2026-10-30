@@ -11,9 +11,10 @@ deny or revoke through the RAS's Access Request Service, or advance the
 clock, so they are reference-implementation tests rather than black-box
 conformance cases.
 
-The S cases test the core's Optional Policy Services at the API. They
-control the API's policy service and read the evaluations it received,
-and mint self-acting and opaque access tokens, so they too are
+The S cases test the core's Optional Policy Services at the API, and
+the error it selects when several conditions fail. They control the
+API's policy service and read the evaluations it received, and mint
+self-acting and opaque access tokens, so they too are
 reference-implementation tests.
 """
 import json
@@ -67,6 +68,10 @@ class Config:
     # require approval for.
     second_agent: str = "agent-43"
     extra_scope: str = "files.write"
+    # Error codes (N25 to N28): an agent the RAS has no correlation for. N25
+    # and N28 also use extra_scope, as a scope the IdP can be configured to
+    # exclude from the delegation or to prohibit for the agent.
+    uncorrelated_agent: str = "agent-99"
     # Policy services at the API (S cases): the Target Tenants of `resource`
     # and `other_resource`, and a client registration the API configures as
     # the self-acting population for `resource`, whose tokens name the local
@@ -124,7 +129,7 @@ class Client:
                               access_token=access_token, iat=self.now())
 
     def exchange(self, id_token, dpop_key="k", assertion=None, resources=None,
-                 assertion_aud=None):
+                 assertion_aud=None, scope=None):
         cfg = self.cfg
         assertion = assertion or jws.client_assertion(
             cfg.idp_client_key, cfg.idp_client_id, assertion_aud or cfg.idp.issuer,
@@ -133,7 +138,7 @@ class Client:
                 "client_id": cfg.idp_client_id, "client_assertion_type": ASSERTION_TYPE,
                 "client_assertion": assertion, "subject_token": id_token,
                 "subject_token_type": ID_TOKEN_TYPE, "audience": cfg.ras.issuer,
-                "resource": resources or [cfg.resource], "scope": cfg.scope}
+                "resource": resources or [cfg.resource], "scope": scope or cfg.scope}
         headers = {}
         if dpop_key:
             headers["DPoP"] = self.proof(dpop_key, "POST", cfg.idp.token_endpoint)
@@ -192,7 +197,13 @@ class Adapter:
     set(role, what, value)         change one relationship or setting:
                                      idp: binding_enabled, agent_active,
                                           client_association, delegation,
-                                          client_profile ("bound" or "governed")
+                                          client_profile ("bound" or "governed"),
+                                          delegation_scope (the scopes the
+                                          user's Delegation Authorization for
+                                          the agent permits, creating it),
+                                          prohibited_scope (scopes policy
+                                          categorically prohibits the agent
+                                          for at the resource)
                                      ras: agent_active, actor_gate,
                                           client_profile ("bound" or "governed"),
                                           approval_required (a list of scopes
@@ -207,7 +218,9 @@ class Adapter:
                                           authorization to the policy
                                           service, in place of the API's own
                                           user-permission and actor-gate
-                                          evaluation)
+                                          evaluation), policy_unavailable
+                                          (the policy service cannot be
+                                          reached)
     mint_grant(claims)             an ID-JAG the IdP signs with these claims
     mint_access_token(claims, typ="at+jwt")
                                    an access token the RAS signs with these
@@ -237,13 +250,24 @@ class Adapter:
     advance_clock(seconds)         advance every server's clock
 
     The policy-service cases control the API's policy service.
-    set_policy(permits)            the service permits only a request that
-                                   matches an entry: subject (the subject's
-                                   id), agent ({iss, sub} for delegated
-                                   access, None for self-acting access),
-                                   client, tenant, action ("read"), and
-                                   scope (a value the token's scope must
-                                   include)
+    set_policy(policy)             the service's policy, a document whose
+                                   members each list what policy permits:
+                                     actor_gate [{user, agent {iss, sub},
+                                       tenant}];
+                                     prohibited [{agent {iss, sub}, action}],
+                                       categorical prohibitions of an agent;
+                                     required_scope {action: scope};
+                                     user_permissions [{user, tenant,
+                                       action}];
+                                     agent_permissions [{agent, tenant,
+                                       action}], a self-acting agent's own
+                                       permissions by local principal;
+                                     allowed_clients [client];
+                                     allowed_tenants [tenant].
+                                   A denial names its first failing
+                                   condition in the core's order: the actor
+                                   gate (delegated access only), then the
+                                   required scope, then the rest
     evaluations()                  every evaluation request the API sent,
                                    oldest first: subject {type, id}, action
                                    {name}, resource {type, id}, and context
@@ -295,7 +319,7 @@ class Adapter:
     def mint_opaque_token(self, claims):
         raise NotImplementedError
 
-    def set_policy(self, permits):
+    def set_policy(self, policy):
         raise NotImplementedError
 
     def evaluations(self):
@@ -369,8 +393,8 @@ class ReferenceAdapter(Adapter):
     def mint_opaque_token(self, claims):
         return self._call("ras", "mint_opaque_token", {"claims": claims})["access_token"]
 
-    def set_policy(self, permits):
-        self._call("api", "policy", {"permits": permits})
+    def set_policy(self, policy):
+        self._call("api", "policy", {"policy": policy})
 
     def evaluations(self):
         return self._call("api", "evaluations")["evaluations"]
@@ -454,22 +478,68 @@ def expect_error(resp, status, error):
 
 def expect_challenge(ctx, resp, status, error):
     """The status, the DPoP scheme, and the error code where the challenge carries one."""
-    challenge = resp.headers.get("WWW-Authenticate", "") if resp.headers else ""
+    challenge = challenge_of(resp)
     check(resp.status == status and challenge.startswith("DPoP"),
           f"expected HTTP {status} with a DPoP challenge, got {resp} {challenge!r}")
-    if "error=" in challenge:
-        check(f'error="{error}"' in challenge, f"expected error {error}, got {challenge!r}")
+    if "error" in challenge_params(challenge):
+        check(challenge_params(challenge)["error"] == error,
+              f"expected error {error}, got {challenge!r}")
     else:
         ctx.notes.append(f"challenge carries no error parameter; {error} expected "
                          "(RFC 9449 Section 7.1 SHOULD)")
 
 
-def expect_rejected(ctx, resp):
-    """For a rejection whose error code the drafts do not fix: a 4xx and no token."""
-    body = resp.json()
-    check(400 <= resp.status < 500 and "access_token" not in body,
-          f"expected a rejection with no token, got {resp}")
-    ctx.notes.append(f"error code observed: {body.get('error')!r} (the drafts do not fix one)")
+def challenge_of(resp):
+    return resp.headers.get("WWW-Authenticate", "") if resp.headers else ""
+
+
+def challenge_params(challenge):
+    """A challenge's auth-params (RFC 9110 Section 11.2): names lowercased, values unquoted."""
+    params = {}
+    for name, value in re.findall(r'([!#$%&\'*+.^_`|~0-9A-Za-z-]+)[ \t]*=[ \t]*'
+                                  r'("(?:[^"\\]|\\.)*"|[^\s,]+)', challenge):
+        if value.startswith('"'):
+            value = re.sub(r'\\(.)', r'\1', value[1:-1])
+        params.setdefault(name.lower(), value)
+    return params
+
+
+def challenge_error(resp):
+    """The challenge's error attribute, or else the body's error member."""
+    return challenge_params(challenge_of(resp)).get("error") or resp.json().get("error")
+
+
+def expect_denial_code(ctx, resp, error):
+    """HTTP 403 with a DPoP challenge that reports error (core: Error Responses).
+
+    At HTTP 403 the code is required: a challenge without an error
+    attribute is the response for any other denial, so it cannot report the
+    actor gate or token authority. The code is accepted in the challenge's
+    error attribute or, where the challenge has none, in the body.
+    """
+    challenge = challenge_of(resp)
+    check(resp.status == 403 and challenge.startswith("DPoP"),
+          f"expected HTTP 403 with a DPoP challenge, got {resp} {challenge!r}")
+    check(challenge_error(resp) == error,
+          f"expected {error}, got {challenge_error(resp)!r} in {challenge!r} and the body")
+
+
+def expect_no_code_denial(ctx, resp, data):
+    """HTTP 403 for any other denial of a valid token (core: Error Responses, last row).
+
+    A DPoP challenge without an error attribute, neither actor_unauthorized
+    nor insufficient_scope in the challenge or the body, and none of the
+    file's data. The body is otherwise application-specific.
+    """
+    challenge = challenge_of(resp)
+    check(resp.status == 403 and challenge.startswith("DPoP"),
+          f"expected HTTP 403 with a DPoP challenge, got {resp} {challenge!r}")
+    check(data not in resp.body, "the denial carried the file's data")
+    check("error" not in challenge_params(challenge),
+          f"the challenge carries an error attribute: {challenge!r}")
+    for code in ("actor_unauthorized", "insufficient_scope"):
+        check(code not in challenge and code.encode() not in resp.body,
+              f"the response conveys {code}: {resp} {challenge!r}")
 
 
 # Positive path -------------------------------------------------------------
@@ -623,7 +693,8 @@ def n08(ctx):
 
 
 @case("N09", "IdP", "Refuses the actor when the user's Delegation Authorization is withdrawn",
-      "core: Delegation Authorization; PLAYBOOK: delegated recipe, rejection tests",
+      "core: Delegation Authorization; Issuance Errors; PLAYBOOK: delegated recipe, rejection "
+      "tests",
       needs=("set:idp.delegation",), defeats=("idp.delegation",))
 def n09(ctx):
     ctx.adapter.set("idp", "delegation", False)
@@ -643,7 +714,8 @@ def n10(ctx):
 
 
 @case("N11", "RAS", "Rejects redemption of a bound grant without a DPoP proof",
-      "core: Renewal and Negative Tests, redemption omits the proof",
+      "core: Renewal and Negative Tests, redemption omits the proof; Access-Token Protection "
+      "(Grant Protection first)",
       defeats=("ras.require_proof",))
 def n11(ctx):
     expect_error(ctx.client.redeem(ctx.grant(), dpop_key=None), 400, "invalid_grant")
@@ -669,13 +741,13 @@ def n14(ctx):
     expect_error(resp, 400, "invalid_target")
 
 
-@case("N15", "RAS", "Denies redemption for an agent disabled at the RAS",
-      "core: Agent Principal Correlation; Applied Disablement and Revocation",
+@case("N15", "RAS", "Rejects with invalid_grant a grant for an agent disabled at the RAS",
+      "core: Agent Principal Correlation; Applied Disablement and Revocation; Redemption Errors",
       needs=("set:ras.agent_active",), defeats=("ras.agent_eligibility",))
 def n15(ctx):
     grant = ctx.grant()
     ctx.adapter.set("ras", "agent_active", False)
-    expect_rejected(ctx, ctx.client.redeem(grant))
+    expect_error(ctx.client.redeem(grant), 400, "invalid_grant")
 
 
 @case("N16", "RAS", "Refuses with actor_unauthorized when RAS policy does not let the agent "
@@ -721,7 +793,7 @@ def n19(ctx):
 def n20(ctx):
     token = ctx.access_token()
     ctx.adapter.set("api", "actor_gate", False)
-    expect_challenge(ctx, ctx.client.get(ctx.cfg.read_path, token), 403, "actor_unauthorized")
+    expect_denial_code(ctx, ctx.client.get(ctx.cfg.read_path, token), "actor_unauthorized")
 
 
 # Time claims ---------------------------------------------------------------
@@ -770,6 +842,73 @@ def n24(ctx):
     token = ctx.adapter.mint_access_token(
         minted_token_claims(ctx, iat=now + HOUR, exp=now + HOUR + 600))
     expect_challenge(ctx, ctx.client.get(ctx.cfg.read_path, token), 401, "invalid_token")
+
+
+# Issuance and redemption error codes -----------------------------------------
+#
+# The codes the core assigns where two conditions could otherwise be
+# reported differently: the IdP's categorical prohibition and scope
+# ceiling (Issuance Authorization), the RAS's uncorrelated agent
+# (Redemption Errors), and the grant's scope claim (Common Grant
+# Validation).
+
+def grant_claims(ctx, **overrides):
+    """Claims of a valid ID-JAG for the user and agent, bound to K, with overrides."""
+    cfg = ctx.cfg
+    claims = {"sub": cfg.expect["grant_sub"], "client_id": cfg.ras_client_id,
+              "resource": cfg.resource, "scope": cfg.scope,
+              "act": {"iss": cfg.expect["agent_iss"], "sub": cfg.expect["agent"]},
+              "cnf": {"jkt": jws.thumbprint(jws.public_jwk(ctx.client.k))}}
+    claims.update(overrides)
+    return claims
+
+
+@case("N25", "IdP", "Rejects with invalid_scope a scope beyond the delegation's ceiling",
+      "core: Issuance Authorization; Issuance Errors",
+      needs=("set:idp.delegation_scope",), defeats=("idp.scope_ceiling",))
+def n25(ctx):
+    cfg = ctx.cfg
+    ctx.adapter.set("idp", "delegation_scope", [cfg.scope])
+    expect_error(ctx.client.exchange(ctx.id_token(), scope=cfg.extra_scope), 400, "invalid_scope")
+
+
+@case("N26", "RAS", "Rejects with invalid_grant a grant whose scope claim is missing, empty or "
+      "not a string",
+      "core: Common Grant Validation (Scope)", needs=("mint_grant",),
+      defeats=("ras.scope_claim",))
+def n26(ctx):
+    for label, value in (("missing", None), ("empty", ""), ("an array", [ctx.cfg.scope])):
+        claims = grant_claims(ctx, scope=value)
+        if value is None:
+            del claims["scope"]
+        resp = ctx.client.redeem(ctx.adapter.mint_grant(claims))
+        check(resp.status == 400 and resp.json().get("error") == "invalid_grant",
+              f"scope claim {label}: expected HTTP 400 invalid_grant, got {resp}")
+        check("access_token" not in resp.json(), "an error response carried a token")
+
+
+@case("N27", "RAS", "Rejects with invalid_grant an ID-JAG for an agent the RAS has no correlation "
+      "for",
+      "core: Agent Principal Correlation; Redemption Errors", needs=("mint_grant",),
+      defeats=("ras.agent_eligibility",))
+def n27(ctx):
+    cfg = ctx.cfg
+    grant = ctx.adapter.mint_grant(grant_claims(
+        ctx, act={"iss": cfg.expect["agent_iss"], "sub": cfg.uncorrelated_agent}))
+    expect_error(ctx.client.redeem(grant), 400, "invalid_grant")
+
+
+@case("N28", "IdP", "Refuses with actor_unauthorized a scope policy categorically prohibits the "
+      "agent for",
+      "core: Issuance Authorization; Issuance Errors",
+      needs=("set:idp.delegation_scope", "set:idp.prohibited_scope"),
+      defeats=("idp.categorical_prohibition",))
+def n28(ctx):
+    cfg = ctx.cfg
+    ctx.adapter.set("idp", "delegation_scope", [cfg.scope, cfg.extra_scope])
+    ctx.adapter.set("idp", "prohibited_scope", [cfg.extra_scope])
+    expect_error(ctx.client.exchange(ctx.id_token(), scope=cfg.extra_scope), 400,
+                 "actor_unauthorized")
 
 
 # Deferred redemption at the RAS ---------------------------------------------
@@ -1209,13 +1348,14 @@ def d22(ctx):
 
 # Policy services at the API ------------------------------------------------
 #
-# The core's Optional Policy Services. Test control turns on the API's
-# policy service, which then replaces the API's own user-permission and
-# actor-gate evaluation; sets the service's permits; and reads the
-# evaluation requests the API sent. The query parameters agent, user,
-# client_id, tenant and scope stand in for a tool call's arguments; the
-# drafts define no such parameters. These are tests of the reference
-# implementation, not black-box conformance cases.
+# The core's Optional Policy Services and Error Responses. Test control
+# turns on the API's policy service, which then replaces the API's own
+# user-permission and actor-gate evaluation; sets the service's policy;
+# makes the service unavailable; and reads the evaluation requests the API
+# sent. The query parameters agent, user, client_id, tenant and scope stand
+# in for a tool call's arguments; the drafts define no such parameters.
+# These are tests of the reference implementation, not black-box
+# conformance cases.
 
 OTHER_AGENT = "agent-77"
 OTHER_USER = "user-109"
@@ -1223,31 +1363,42 @@ OTHER_SELF_ACTING = "service-principal-77"
 ADMIN_SCOPE = "files.admin"
 
 
-def delegated_permit(ctx, **overrides):
-    """A permit entry for the positive path, with overrides (Adapter.set_policy)."""
+def agent_id(ctx, agent=None):
+    """The issuer-qualified agent, the configured one unless another is named."""
+    return {"iss": ctx.cfg.expect["agent_iss"], "sub": agent or ctx.cfg.expect["agent"]}
+
+
+def gate_entry(ctx, user=None, agent=None, tenant=None):
+    """An actor-gate entry: the user, agent and tenant, the configured ones by default."""
+    return {"user": user or ctx.cfg.expect["token_sub"], "agent": agent_id(ctx, agent),
+            "tenant": tenant or ctx.cfg.tenant}
+
+
+def permission(key, principal, tenant):
+    return {key: principal, "tenant": tenant, "action": "read"}
+
+
+def policy(ctx, **overrides):
+    """A policy document (Adapter.set_policy) that permits the positive path in both
+    tenants and its self-acting equivalent, with members replaced by overrides."""
     cfg = ctx.cfg
-    permit = {"subject": cfg.expect["token_sub"],
-              "agent": {"iss": cfg.expect["agent_iss"], "sub": cfg.expect["agent"]},
-              "client": cfg.ras_client_id, "tenant": cfg.tenant, "action": "read",
-              "scope": cfg.scope}
-    permit.update(overrides)
-    return permit
+    tenants = (cfg.tenant, cfg.other_tenant)
+    document = {
+        "actor_gate": [gate_entry(ctx, tenant=t) for t in tenants],
+        "prohibited": [],
+        "required_scope": {"read": cfg.scope},
+        "user_permissions": [permission("user", cfg.expect["token_sub"], t) for t in tenants],
+        "agent_permissions": [permission("agent", cfg.self_acting_sub, cfg.tenant)],
+        "allowed_clients": [cfg.ras_client_id, cfg.self_acting_client_id],
+        "allowed_tenants": list(tenants)}
+    document.update(overrides)
+    return document
 
 
-def self_acting_permit(ctx, **overrides):
-    """A permit entry for the self-acting agent, with overrides."""
-    cfg = ctx.cfg
-    permit = {"subject": cfg.self_acting_sub, "agent": None,
-              "client": cfg.self_acting_client_id, "tenant": cfg.tenant, "action": "read",
-              "scope": cfg.scope}
-    permit.update(overrides)
-    return permit
-
-
-def use_policy(ctx, permits):
-    """Hand the API's authorization to its policy service, with these permits."""
+def use_policy(ctx, document):
+    """Hand the API's authorization to its policy service, with this policy."""
     ctx.adapter.set("api", "policy_service", True)
-    ctx.adapter.set_policy(permits)
+    ctx.adapter.set_policy(document)
 
 
 def last_evaluation(ctx):
@@ -1278,29 +1429,13 @@ def file_data(ctx, token):
     return resp.body
 
 
-def challenge_error(resp):
-    """The challenge's error parameter, or else the body's error member."""
-    challenge = resp.headers.get("WWW-Authenticate", "") if resp.headers else ""
-    match = re.search(r'error="([^"]*)"', challenge)
-    return match.group(1) if match else resp.json().get("error")
-
-
-def expect_denied(ctx, resp, data):
-    """A rejection without the file's data; the status and code, which the core does not fix,
-    are noted."""
-    check(400 <= resp.status < 500, f"expected a rejection, got {resp}")
-    check(data not in resp.body, "the denial carried the file's data")
-    ctx.notes.append(f"status and error code observed: HTTP {resp.status}, "
-                     f"{challenge_error(resp)!r} (the core fixes neither for this denial)")
-
-
 @case("S01", "API", "Serves the positive path through the policy service, with distinct identities",
       "core: Optional Policy Services; Delegated Access",
       needs=("set:api.policy_service", "set_policy", "evaluations"))
 def s01(ctx):
     cfg = ctx.cfg
     token = ctx.access_token()
-    use_policy(ctx, [delegated_permit(ctx)])
+    use_policy(ctx, policy(ctx))
     resp = ctx.client.get(cfg.read_path, token)
     check(resp.status == 200, f"read failed: {resp}")
     subject, context = last_evaluation(ctx)
@@ -1320,13 +1455,10 @@ def s01(ctx):
       "Error Responses",
       needs=("set:api.policy_service", "set_policy"), defeats=("api.policy_source",))
 def s02(ctx):
-    cfg = ctx.cfg
     token = ctx.access_token()
-    use_policy(ctx, [delegated_permit(ctx, agent={"iss": cfg.expect["agent_iss"],
-                                                  "sub": OTHER_AGENT})])
-    resp = ctx.client.get(cfg.read_path, token, query={"agent": OTHER_AGENT})
-    expect_challenge(ctx, resp, 403, "actor_unauthorized")
-    check(challenge_error(resp) != "insufficient_scope", "the actor denial used insufficient_scope")
+    use_policy(ctx, policy(ctx, actor_gate=[gate_entry(ctx, agent=OTHER_AGENT)]))
+    resp = ctx.client.get(ctx.cfg.read_path, token, query={"agent": OTHER_AGENT})
+    expect_denial_code(ctx, resp, "actor_unauthorized")
 
 
 @case("S03", "API", "Denies another agent's token with the same client_id; the client is not the "
@@ -1341,56 +1473,66 @@ def s03(ctx):
         ctx, act={"iss": cfg.expect["agent_iss"], "sub": cfg.second_agent}))
     check(jws.decode(other)[1].get("client_id") == jws.decode(token)[1].get("client_id"),
           "setup: the two tokens carry different client_id values")
-    use_policy(ctx, [delegated_permit(ctx)])
-    expect_challenge(ctx, ctx.client.get(cfg.read_path, other), 403, "actor_unauthorized")
+    use_policy(ctx, policy(ctx))
+    expect_denial_code(ctx, ctx.client.get(cfg.read_path, other), "actor_unauthorized")
     resp = ctx.client.get(cfg.read_path, token)
     check(resp.status == 200, f"the permitted agent's read failed: {resp}")
 
 
-@case("S04", "API", "Does not let a request attribute supply the user",
-      "core: Optional Policy Services (user)",
-      needs=("set:api.policy_service", "set_policy"), defeats=("api.policy_source",))
+@case("S04", "API", "Does not let a request attribute supply the user; the user's denial carries "
+      "no error code",
+      "core: Optional Policy Services (user); Error Responses",
+      needs=("set:api.policy_service", "set_policy"),
+      defeats=("api.policy_source", "api.denial_codes"))
 def s04(ctx):
     token = ctx.access_token()
     data = file_data(ctx, token)
-    use_policy(ctx, [delegated_permit(ctx, subject=OTHER_USER)])
-    expect_denied(ctx, ctx.client.get(ctx.cfg.read_path, token, query={"user": OTHER_USER}),
-                  data)
+    use_policy(ctx, policy(ctx, actor_gate=[gate_entry(ctx), gate_entry(ctx, user=OTHER_USER)],
+                           user_permissions=[permission("user", OTHER_USER, ctx.cfg.tenant)]))
+    resp = ctx.client.get(ctx.cfg.read_path, token, query={"user": OTHER_USER})
+    expect_no_code_denial(ctx, resp, data)
 
 
-@case("S05", "API", "Does not let a request attribute supply the OAuth client",
-      "core: Optional Policy Services (OAuth client)",
-      needs=("set:api.policy_service", "set_policy"), defeats=("api.policy_source",))
+@case("S05", "API", "Does not let a request attribute supply the OAuth client; the client's "
+      "denial carries no error code",
+      "core: Optional Policy Services (OAuth client); Error Responses",
+      needs=("set:api.policy_service", "set_policy"),
+      defeats=("api.policy_source", "api.denial_codes"))
 def s05(ctx):
     cfg = ctx.cfg
     token = ctx.access_token()
     data = file_data(ctx, token)
-    use_policy(ctx, [delegated_permit(ctx, client=cfg.other_ras_client_id)])
+    use_policy(ctx, policy(ctx, allowed_clients=[cfg.other_ras_client_id]))
     resp = ctx.client.get(cfg.read_path, token, query={"client_id": cfg.other_ras_client_id})
-    expect_denied(ctx, resp, data)
+    expect_no_code_denial(ctx, resp, data)
 
 
-@case("S06", "API", "Does not let a request attribute override the tenant",
-      "core: Optional Policy Services (tenant); Token Validation (Tenant)",
-      needs=("set:api.policy_service", "set_policy"), defeats=("api.policy_source",))
+@case("S06", "API", "Does not let a request attribute override the tenant; the tenant's denial "
+      "carries no error code",
+      "core: Optional Policy Services (tenant); Token Validation (Tenant); Error Responses",
+      needs=("set:api.policy_service", "set_policy"),
+      defeats=("api.policy_source", "api.denial_codes"))
 def s06(ctx):
     cfg = ctx.cfg
     token = ctx.access_token()
     data = file_data(ctx, token)
-    use_policy(ctx, [delegated_permit(ctx, tenant=cfg.other_tenant)])
+    use_policy(ctx, policy(ctx, allowed_tenants=[cfg.other_tenant]))
     resp = ctx.client.get(cfg.read_path, token, query={"tenant": cfg.other_tenant})
-    expect_denied(ctx, resp, data)
+    expect_no_code_denial(ctx, resp, data)
 
 
-@case("S07", "API", "Does not let a request attribute widen the token's constraints",
-      "core: Optional Policy Services (token constraints)",
-      needs=("set:api.policy_service", "set_policy"), defeats=("api.policy_source",))
+@case("S07", "API", "Does not let a request attribute widen the token's constraints; the "
+      "missing scope is insufficient_scope",
+      "core: Optional Policy Services (token constraints); Error Responses",
+      needs=("set:api.policy_service", "set_policy"),
+      defeats=("api.policy_source", "api.denial_codes"))
 def s07(ctx):
     token = ctx.access_token()
     data = file_data(ctx, token)
-    use_policy(ctx, [delegated_permit(ctx, scope=ADMIN_SCOPE)])
-    expect_denied(ctx, ctx.client.get(ctx.cfg.read_path, token, query={"scope": ADMIN_SCOPE}),
-                  data)
+    use_policy(ctx, policy(ctx, required_scope={"read": ADMIN_SCOPE}))
+    resp = ctx.client.get(ctx.cfg.read_path, token, query={"scope": ADMIN_SCOPE})
+    check(data not in resp.body, "the denial carried the file's data")
+    expect_denial_code(ctx, resp, "insufficient_scope")
 
 
 @case("S08", "API", "Serves a self-acting token on the agent's own permissions, with no user "
@@ -1404,7 +1546,7 @@ def s08(ctx):
     ctx.adapter.set("api", "actor_gate", False)
     resp = ctx.client.get(cfg.read_path, token)
     check(resp.status == 200, f"read under the API's own evaluation failed: {resp}")
-    use_policy(ctx, [self_acting_permit(ctx)])
+    use_policy(ctx, policy(ctx))
     resp = ctx.client.get(cfg.read_path, token)
     check(resp.status == 200, f"read through the policy service failed: {resp}")
     subject, context = last_evaluation(ctx)
@@ -1420,16 +1562,18 @@ def s08(ctx):
     check(context.get("tenant") == cfg.tenant, f"tenant: {context.get('tenant')}")
 
 
-@case("S09", "API", "Does not let a request attribute supply the self-acting agent",
-      "core: Optional Policy Services (self-acting); Self-Acting Access",
+@case("S09", "API", "Does not let a request attribute supply the self-acting agent; the agent's "
+      "denial carries no error code",
+      "core: Optional Policy Services (self-acting); Self-Acting Access; Error Responses",
       needs=("mint_access_token", "set:api.policy_service", "set_policy"),
-      defeats=("api.policy_source",))
+      defeats=("api.policy_source", "api.denial_codes"))
 def s09(ctx):
     token = self_acting_token(ctx)
     data = file_data(ctx, token)
-    use_policy(ctx, [self_acting_permit(ctx, subject=OTHER_SELF_ACTING)])
+    use_policy(ctx, policy(ctx, agent_permissions=[
+        permission("agent", OTHER_SELF_ACTING, ctx.cfg.tenant)]))
     resp = ctx.client.get(ctx.cfg.read_path, token, query={"agent": OTHER_SELF_ACTING})
-    expect_denied(ctx, resp, data)
+    expect_no_code_denial(ctx, resp, data)
 
 
 @case("S10", "API", "Serves an introspected opaque token, evaluated on the response's identities",
@@ -1439,7 +1583,7 @@ def s10(ctx):
     cfg = ctx.cfg
     members = minted_token_claims(ctx)
     token = ctx.adapter.mint_opaque_token(members)
-    use_policy(ctx, [delegated_permit(ctx)])
+    use_policy(ctx, policy(ctx))
     resp = ctx.client.get(cfg.read_path, token)
     check(resp.status == 200, f"read failed: {resp}")
     subject, context = last_evaluation(ctx)
@@ -1455,12 +1599,10 @@ def s10(ctx):
       needs=("mint_opaque_token", "set:api.policy_service", "set_policy"),
       defeats=("api.policy_source",))
 def s11(ctx):
-    cfg = ctx.cfg
     token = ctx.adapter.mint_opaque_token(minted_token_claims(ctx))
-    use_policy(ctx, [delegated_permit(ctx, agent={"iss": cfg.expect["agent_iss"],
-                                                  "sub": OTHER_AGENT})])
-    resp = ctx.client.get(cfg.read_path, token, query={"agent": OTHER_AGENT})
-    expect_challenge(ctx, resp, 403, "actor_unauthorized")
+    use_policy(ctx, policy(ctx, actor_gate=[gate_entry(ctx, agent=OTHER_AGENT)]))
+    resp = ctx.client.get(ctx.cfg.read_path, token, query={"agent": OTHER_AGENT})
+    expect_denial_code(ctx, resp, "actor_unauthorized")
 
 
 @case("S12", "API", "Rejects a token whose introspection response has active false",
@@ -1481,6 +1623,69 @@ def s13(ctx):
     token = ctx.adapter.mint_opaque_token(minted_token_claims(ctx))
     ctx.adapter.set("ras", "introspection_omit_act", True)
     expect_challenge(ctx, ctx.client.get(ctx.cfg.read_path, token), 401, "invalid_token")
+
+
+# Error selection at the API (core: Error Responses). When several
+# conditions fail, the API reports the first: the token and proof, the
+# token context, the actor gate, token authority, then any other denial.
+# An evaluation that cannot complete is not a denial.
+
+@case("S14", "API", "Reports the actor gate, not insufficient_scope, when the token also lacks "
+      "the required scope",
+      "core: Error Responses (selection order); Optional Policy Services",
+      needs=("set:api.policy_service", "set_policy"), defeats=("api.error_order",))
+def s14(ctx):
+    token = ctx.access_token()
+    data = file_data(ctx, token)
+    use_policy(ctx, policy(ctx, required_scope={"read": ADMIN_SCOPE},
+                           prohibited=[{"agent": agent_id(ctx), "action": "read"}]))
+    resp = ctx.client.get(ctx.cfg.read_path, token)
+    check(data not in resp.body, "the denial carried the file's data")
+    expect_denial_code(ctx, resp, "actor_unauthorized")
+
+
+@case("S15", "API", "Reports the actor gate when the user's permission also denies",
+      "core: Error Responses (selection order); Optional Policy Services",
+      needs=("set:api.policy_service", "set_policy"), defeats=("api.error_order",))
+def s15(ctx):
+    token = ctx.access_token()
+    data = file_data(ctx, token)
+    use_policy(ctx, policy(ctx, actor_gate=[gate_entry(ctx, agent=OTHER_AGENT)],
+                           user_permissions=[]))
+    resp = ctx.client.get(ctx.cfg.read_path, token)
+    check(data not in resp.body, "the denial carried the file's data")
+    expect_denial_code(ctx, resp, "actor_unauthorized")
+
+
+@case("S16", "API", "Reports a proof with another key as 401, not the policy denial",
+      "core: Error Responses (selection order); Token Validation (Protection); "
+      "RFC 9449 Section 7.1",
+      needs=("set:api.policy_service", "set_policy"), defeats=("api.key_binding",))
+def s16(ctx):
+    token = ctx.access_token()
+    use_policy(ctx, policy(ctx, actor_gate=[gate_entry(ctx, agent=OTHER_AGENT)]))
+    resp = ctx.client.get(ctx.cfg.read_path, token, dpop_key="k2")
+    expect_challenge(ctx, resp, 401, "invalid_token")
+
+
+@case("S17", "API", "Answers HTTP 503, not a denial, when the policy service cannot be reached",
+      "core: Error Responses (evaluation that cannot complete); Optional Policy Services",
+      needs=("set:api.policy_service", "set_policy", "set:api.policy_unavailable"),
+      defeats=("api.evaluation_unavailable",))
+def s17(ctx):
+    token = ctx.access_token()
+    data = file_data(ctx, token)
+    use_policy(ctx, policy(ctx))
+    ctx.adapter.set("api", "policy_unavailable", True)
+    resp = ctx.client.get(ctx.cfg.read_path, token)
+    check(resp.status == 503, f"expected HTTP 503, got {resp} {challenge_of(resp)!r}")
+    check(data not in resp.body, "the response carried the file's data")
+    challenge = challenge_of(resp)
+    for code in ("actor_unauthorized", "insufficient_scope", "invalid_token"):
+        check(code not in challenge and code.encode() not in resp.body,
+              f"the response reports {code}: {resp} {challenge!r}")
+    if not resp.headers.get("Retry-After"):
+        ctx.notes.append("no Retry-After header field (core: Error Responses SHOULD)")
 
 
 def run_case(c, cfg, adapter, disable=()):

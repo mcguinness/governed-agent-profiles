@@ -16,7 +16,10 @@ test control permits them. No WAG, no CAI, and no mutual TLS.
 
 For the core's Optional Policy Services, the API can hand its
 authorization decision to a test-controlled policy service, in place of
-its own user-permission and actor-gate evaluation. It also accepts
+its own user-permission and actor-gate evaluation. Either way, it reports
+a valid token's denial under the core's Error Responses: the actor gate
+first, then token authority, then any other denial, and HTTP 503 for an
+evaluation that could not complete. It also accepts
 self-acting tokens for a separate client registration, which the RAS
 mints only through test control, and opaque tokens, which it introspects
 at the RAS over HTTP with its own credential. The RAS mints opaque
@@ -88,12 +91,16 @@ CHECKS = {
     "idp.agent_active": "Agent Principal is active",
     "idp.client_association": "Client Association permits delegated use of the binding",
     "idp.delegation": "Delegation Authorization permits the agent for the user",
+    "idp.categorical_prohibition": "policy's categorical prohibition of the agent for a requested "
+                                   "scope is enforced",
+    "idp.scope_ceiling": "the issued scope stays within the Delegation Authorization's scope set",
     "ras.client_id": "grant client_id matches the authenticated client",
     "ras.grant_time": "grant iat and nbf are not in the future",
     "ras.require_cnf": "bound profile requires cnf.jkt in the grant",
     "ras.require_proof": "a grant with cnf requires a DPoP proof",
     "ras.proof_key_match": "the redemption proof key matches cnf.jkt",
     "ras.resource_match": "the resource parameter equals the grant's resource",
+    "ras.scope_claim": "the grant's scope claim is a non-empty string",
     "ras.agent_eligibility": "the correlated agent record exists and is active",
     "ras.actor_gate": "RAS policy permits the agent to act for the user",
     "ras.actor_preservation": "act is copied unchanged into the access token",
@@ -131,14 +138,22 @@ CHECKS = {
     "api.agent_from_token": "the API takes the agent from act, not from the client registration",
     "api.introspection_active": "an introspection response with active false is rejected",
     "api.introspection_act": "a delegated-population introspection response carries a valid act",
+    "api.error_order": "of several failing conditions, the API reports the actor gate first, then "
+                       "token authority, then any other denial",
+    "api.denial_codes": "a denial carries actor_unauthorized only for the actor gate, "
+                        "insufficient_scope only for token authority, and no error code otherwise",
+    "api.evaluation_unavailable": "an evaluation that cannot complete gets HTTP 503, not a denial",
 }
 
 
 class OAuthError(Exception):
-    def __init__(self, error, status=400, description=None, challenge=None):
+    """An error response. With error None, the body is an empty JSON object."""
+
+    def __init__(self, error, status=400, description=None, challenge=None, headers=None):
         super().__init__(error)
         self.error, self.status = error, status
         self.description, self.challenge = description, challenge
+        self.headers = list(headers or [])
 
 
 class Deferred(Exception):
@@ -151,7 +166,8 @@ class Deferred(Exception):
 
 def _respond(start_response, status, body, headers=None, content_type="application/json"):
     reasons = {200: "OK", 400: "Bad Request", 401: "Unauthorized",
-               403: "Forbidden", 404: "Not Found", 405: "Method Not Allowed"}
+               403: "Forbidden", 404: "Not Found", 405: "Method Not Allowed",
+               503: "Service Unavailable"}
     data = body if isinstance(body, bytes) else json.dumps(body).encode()
     hdrs = [("Content-Type", content_type), ("Cache-Control", "no-store"),
             ("Content-Length", str(len(data)))] + (headers or [])
@@ -245,11 +261,11 @@ class Server:
         except Deferred as deferred:
             return _respond(start_response, 400, deferred.body)
         except OAuthError as err:
-            body = {"error": err.error}
-            if err.description:
+            body = {"error": err.error} if err.error else {}
+            if err.error and err.description:
                 body["error_description"] = err.description
             headers = [("WWW-Authenticate", err.challenge)] if err.challenge else []
-            return _respond(start_response, err.status, body, headers)
+            return _respond(start_response, err.status, body, headers + err.headers)
 
     def control(self, op, body):
         if op == "reset":
@@ -353,7 +369,11 @@ class IdP(Server):
         self.bindings = {"b12": {"source": ("analysis-client", "analysis-client"),
                                  "agent": "agent-42", "enabled": True}}
         self.client_associations = {("analysis-client", "b12", "delegated")}
+        # A Delegation Authorization's scope set is its scope ceiling.
         self.delegations = {("agent-42", "alice", "analysis-client", RESOURCE): {"files.read"}}
+        # Policy's categorical prohibitions: (agent, resource) -> scopes the
+        # agent may never be issued there, whatever a delegation permits.
+        self.prohibitions = {}
         self.targets = {RAS_ISSUER: {"resources": {RESOURCE: "acme-data"},
                                      "registrations": {"analysis-client": "analysis-api"}}}
 
@@ -385,6 +405,12 @@ class IdP(Server):
                     self.delegations[key] = {"files.read"}
                 else:
                     self.delegations.pop(key, None)
+            elif what == "delegation_scope":
+                # The delegation's scope set, creating the delegation.
+                key = ("agent-42", "alice", "analysis-client", RESOURCE)
+                self.delegations[key] = set(value or ())
+            elif what == "prohibited_scope":
+                self.prohibitions[("agent-42", RESOURCE)] = set(value or ())
             elif what == "agent_active":
                 self.agents["agent-42"]["active"] = value
             elif what == "client_profile":
@@ -443,9 +469,19 @@ class IdP(Server):
         delegation = self.delegations.get((agent, user, client_id, resource))
         if delegation is None and self.on("idp.delegation"):
             raise OAuthError("actor_unauthorized")
+        # Issuance Authorization: the request is narrowed by policy's
+        # categorical prohibitions and by the delegation's scope ceiling.
+        # If nothing remains, a prohibition of a requested scope is
+        # actor_unauthorized, and otherwise the ceiling is invalid_scope.
         requested = scope.split()
-        granted = [s for s in requested if delegation is None or s in delegation]
+        prohibited = self.prohibitions.get((agent, resource), set()) \
+            if self.on("idp.categorical_prohibition") else set()
+        ceiling = delegation if self.on("idp.scope_ceiling") else None
+        granted = [s for s in requested if s not in prohibited and
+                   (ceiling is None or s in ceiling)]
         if not granted:
+            if prohibited & set(requested):
+                raise OAuthError("actor_unauthorized", description="agent prohibited for the scope")
             raise OAuthError("invalid_scope")
         now = int(self.now())
         exp = min(now + GRANT_LIFETIME, id_token_exp)
@@ -595,7 +631,9 @@ class RAS(Server):
         self.clients = {cid: {"key": key, "profile": "bound"}
                         for cid, key in self.client_keys.items()}
         self.trusted_idps = {IDP_ISSUER: self.idp_public_key}
-        self.resources = {RESOURCE: {"tenant": "acme-data", "protection": "dpop"}}
+        # default_scope is used only by a RAS with ras.scope_claim switched off.
+        self.resources = {RESOURCE: {"tenant": "acme-data", "protection": "dpop",
+                                     "default_scope": "files.read"}}
         self.user_links = {(IDP_ISSUER, "acme-data", "alice-ras"): "user-108"}
         # agent-43 is a second agent for the same user, used by the deferral
         # cases that need two pending redemptions through one client.
@@ -732,7 +770,10 @@ class RAS(Server):
             raise OAuthError("invalid_target")
         grant_scope = claims.get("scope")
         if not isinstance(grant_scope, str) or not grant_scope.split():
-            raise OAuthError("invalid_grant", description="scope claim")
+            if self.on("ras.scope_claim"):
+                raise OAuthError("invalid_grant", description="scope claim")
+            # Non-conforming: the resource's default scope stands in.
+            grant_scope = (self.resources.get(resource) or {}).get("default_scope", "")
         scope = grant_scope
         if "scope" in form:
             asked = _one(form, "scope", "invalid_scope").split()
@@ -1048,14 +1089,37 @@ class RAS(Server):
         return act
 
 
-# The policy service's permits when test control enables it: the positive
-# path, and its self-acting equivalent.
-DEFAULT_PERMITS = [
-    {"subject": "user-108", "agent": {"iss": IDP_ISSUER, "sub": "agent-42"},
-     "client": "analysis-api", "tenant": "acme-data", "action": "read", "scope": "files.read"},
-    {"subject": "service-principal-42", "agent": None, "client": SELF_ACTING_CLIENT,
-     "tenant": "acme-data", "action": "read", "scope": "files.read"},
-]
+# The reporting order of the core's Error Responses for the denial of a
+# valid token: the actor gate, then token authority, then any other
+# denial. Token and proof failures, and token-context failures, are
+# reported before all three, by token validation. WRONG_ORDER is used only
+# with api.error_order switched off.
+ERROR_ORDER = ("actor", "authority", "other")
+WRONG_ORDER = ("other", "authority", "actor")
+RETRY_AFTER = 5   # seconds, on a 503 for an evaluation that could not complete
+
+
+def default_policy():
+    """The policy service's policy when test control enables it, as the API's own
+    configuration has it: the positive path in both tenants, and its self-acting
+    equivalent."""
+    agent = {"iss": IDP_ISSUER, "sub": "agent-42"}
+    tenants = ("acme-data", "beta-data")
+    return {
+        "actor_gate": [{"user": "user-108", "agent": agent, "tenant": t} for t in tenants],
+        "prohibited": [],
+        "required_scope": {"read": "files.read"},
+        "user_permissions": [{"user": "user-108", "tenant": t, "action": "read"}
+                             for t in tenants],
+        "agent_permissions": [{"agent": "service-principal-42", "tenant": "acme-data",
+                               "action": "read"}],
+        "allowed_clients": ["analysis-api", SELF_ACTING_CLIENT],
+        "allowed_tenants": list(tenants),
+    }
+
+
+class PolicyUnavailable(Exception):
+    """The policy service cannot be reached."""
 
 
 class PolicyService:
@@ -1075,29 +1139,81 @@ class PolicyService:
                      "constraints": {"scope": ..., "aud": ...},
                      "request": {...}}}                    request attributes, verbatim
 
-    A permit entry names subject (the subject's id), agent ({iss, sub} for
-    delegated access, or None for self-acting access, where the subject is
-    the agent), client, tenant, action, and scope, a value the token
-    constraints' scope must include. The service permits a request that
-    matches an entry, and records every request it receives.
+    The policy is a document whose members each list what policy permits:
+
+        actor_gate         [{user, agent: {iss, sub}, tenant}]  the actor gate
+        prohibited         [{agent: {iss, sub}, action}]        categorical prohibitions
+                                                                of an agent
+        required_scope     {action: scope}                      the scope an action needs
+        user_permissions   [{user, tenant, action}]             the user's own permissions
+        agent_permissions  [{agent, tenant, action}]            a self-acting agent's own
+                                                                permissions, by local
+                                                                principal
+        allowed_clients    [client]
+        allowed_tenants    [tenant]
+
+    It evaluates three conditions in the order the API asks for, and
+    returns the first that fails as the decision's reason:
+
+        actor       delegated access only: the agent is categorically
+                    prohibited for the action, or the actor gate has no
+                    entry for the user, agent and tenant;
+        authority   the token constraints' scope lacks the action's
+                    required scope, which the decision names;
+        other       the client or tenant is not allowed, or the user, or
+                    for self-acting access the agent, lacks the permission.
+
+        {"decision": true}
+        {"decision": false, "reason": "actor" | "authority" | "other",
+         "scope": ...}                                     authority only
+
+    The service records every request it receives. When test control makes
+    it unavailable, it receives nothing and raises PolicyUnavailable.
     """
 
-    def __init__(self, permits):
-        self.permits, self.evaluations = copy.deepcopy(permits), []
+    def __init__(self, policy):
+        self.policy, self.evaluations, self.available = copy.deepcopy(policy), [], True
 
-    def evaluate(self, request):
+    def evaluate(self, request, order=ERROR_ORDER):
+        if not self.available:
+            raise PolicyUnavailable()
         self.evaluations.append(copy.deepcopy(request))
-        context = request["context"]
-        scope = str(context["constraints"].get("scope") or "").split()
-        for permit in self.permits:
-            if permit.get("subject") == request["subject"].get("id") and \
-                    permit.get("agent") == context.get("agent") and \
-                    permit.get("client") == context.get("client") and \
-                    permit.get("tenant") == context.get("tenant") and \
-                    permit.get("action", "read") == request["action"].get("name") and \
-                    permit.get("scope") in scope:
-                return {"decision": True}
-        return {"decision": False}
+        policy, context = self.policy, request["context"]
+        subject, action = request["subject"].get("id"), request["action"].get("name")
+        delegated = request["subject"].get("type") == "user"
+        agent, tenant = context.get("agent"), context.get("tenant")
+        scope = str((context.get("constraints") or {}).get("scope") or "").split()
+        required = (policy.get("required_scope") or {}).get(action)
+
+        def actor():
+            if not delegated:   # self-acting access: no actor gate
+                return True
+            if any(p.get("agent") == agent and p.get("action", action) == action
+                   for p in policy.get("prohibited", [])):
+                return False
+            return any(p.get("user") == subject and p.get("agent") == agent and
+                       p.get("tenant") == tenant for p in policy.get("actor_gate", []))
+
+        def authority():
+            return required is None or required in scope
+
+        def other():
+            if context.get("client") not in policy.get("allowed_clients", []) or \
+                    tenant not in policy.get("allowed_tenants", []):
+                return False
+            key = "user" if delegated else "agent"
+            return any(p.get(key) == subject and p.get("tenant") == tenant and
+                       p.get("action") == action
+                       for p in policy.get(f"{key}_permissions", []))
+
+        conditions = {"actor": actor, "authority": authority, "other": other}
+        for reason in order:
+            if not conditions[reason]():
+                decision = {"decision": False, "reason": reason}
+                if reason == "authority":
+                    decision["scope"] = required
+                return decision
+        return {"decision": True}
 
 
 def _valid_act(act, namespaces):
@@ -1146,7 +1262,7 @@ class API(Server):
                       ("beta-data", "report-9"): b"region,revenue\neast,700\n"}
         # Optional Policy Services: off unless test control enables it.
         self.policy_service = False
-        self.policy = PolicyService(DEFAULT_PERMITS)
+        self.policy = PolicyService(default_policy())
 
     def control_op(self, op, body):
         if op == "set" and body["what"] == "actor_gate":
@@ -1156,8 +1272,11 @@ class API(Server):
         if op == "set" and body["what"] == "policy_service":
             self.policy_service = bool(body["value"])
             return {}
+        if op == "set" and body["what"] == "policy_unavailable":
+            self.policy.available = not body["value"]
+            return {}
         if op == "policy":
-            self.policy.permits = copy.deepcopy(body["permits"])
+            self.policy.policy = copy.deepcopy(body["policy"])
             return {}
         if op == "evaluations":
             return {"evaluations": copy.deepcopy(self.policy.evaluations)}
@@ -1206,27 +1325,47 @@ class API(Server):
         token_tenant = self.resource_tenants.get(aud)
         if token_tenant is None or (token_tenant != tenant and self.on("api.tenant")):
             raise invalid
-        # Authority: the token's scope, which no policy permit overrides.
+        # Authorization of a valid token (core: Error Responses). Every
+        # failing condition is recorded, and the first in the reporting
+        # order is reported: the actor gate, then token authority, then any
+        # other denial. failures maps each reason to the scope it lacks.
+        order = self.order()
+        failures = {}
         if "files.read" not in str(claims.get("scope", "")).split():
-            raise OAuthError("insufficient_scope", 403,
-                             challenge='DPoP error="insufficient_scope", scope="files.read", algs="ES256"')
+            # The token's scope, which no policy permit overrides.
+            failures["authority"] = ["files.read"]
         agent = self.agent_identity(population, claims, act)
         if self.policy_service:
-            # The policy service replaces the local evaluation below.
+            # The policy service replaces the local evaluation below. Its
+            # decision names the first failing condition in the API's order.
             request = self.evaluation_request(population, claims, agent, aud, token_tenant,
                                               name, attributes)
-            if self.policy.evaluate(request).get("decision") is not True:
-                raise self.denial(population)
+            try:
+                decision = self.policy.evaluate(request, order)
+            except PolicyUnavailable:
+                decision = None
+            if not self.interpretable(decision):
+                # An evaluation that could not complete is not a denial.
+                if self.on("api.evaluation_unavailable"):
+                    raise OAuthError(None, 503, headers=[("Retry-After", str(RETRY_AFTER))])
+                decision = {"decision": False, "reason": "other"}   # non-conforming
+            if decision["decision"] is not True:
+                failures.setdefault(decision["reason"], [])
+                if decision.get("scope"):
+                    failures[decision["reason"]].append(decision["scope"])
         elif population == "delegated":
             user = claims.get("sub")
-            if "read" not in self.permissions.get((user, tenant), set()):
-                return _respond(start_response, 403, {"error": "forbidden"})
             if agent is not None and self.on("api.actor_gate") and \
                     (agent["iss"], agent["sub"], user, tenant) not in self.actor_gate:
-                raise self.denial(population)
+                failures["actor"] = []
+            if "read" not in self.permissions.get((user, tenant), set()):
+                failures["other"] = []
         elif "read" not in self.agent_permissions.get((claims.get("sub"), tenant), set()):
             # Self-acting access: the agent's own permissions; no actor gate.
-            raise self.denial(population)
+            failures["other"] = []
+        if failures:
+            reason = next(r for r in order if r in failures)
+            raise self.denial(population, reason, failures[reason])
         data = self.files.get((tenant, name))
         if data is None:
             return _respond(start_response, 404, {"error": "not_found"})
@@ -1332,22 +1471,38 @@ class API(Server):
                 context["constraints"]["scope"] = given["scope"]
         return request
 
-    @staticmethod
-    def denial(population):
-        """403 for a valid token that local policy or the policy service denies.
+    def order(self):
+        """The reporting order for a valid token's denials (core: Error Responses)."""
+        return ERROR_ORDER if self.on("api.error_order") else WRONG_ORDER
 
-        Delegated access: actor_unauthorized (core: Error Responses). The
-        reference uses it for every policy-service denial of a delegated
-        token, because the decision does not say whether the user's
-        authority or the actor gate failed. Self-acting access: no actor
-        is asserted, and the core fixes no code; the reference returns
-        "forbidden" in the body, as for its local user-permission denial,
-        with a DPoP challenge that carries no error parameter.
+    @staticmethod
+    def interpretable(decision):
+        """A decision that permits, or denies and names a condition the API can report."""
+        return isinstance(decision, dict) and isinstance(decision.get("decision"), bool) and \
+            (decision["decision"] or decision.get("reason") in ERROR_ORDER)
+
+    def denial(self, population, reason, scopes):
+        """HTTP 403 for a valid token, by the first failing condition (core: Error Responses).
+
+        The actor gate gets actor_unauthorized, and token authority gets
+        insufficient_scope with the scope the operation needs. Any other
+        denial gets a DPoP challenge without an error attribute, and an
+        empty body.
         """
-        if population == "delegated":
+        if not self.on("api.denial_codes"):
+            # Non-conforming: one code for every denial, actor_unauthorized
+            # for a delegated token and insufficient_scope for a self-acting one.
+            code = "actor_unauthorized" if population == "delegated" else "insufficient_scope"
+            return OAuthError(code, 403, challenge=f'DPoP error="{code}", algs="ES256"')
+        if reason == "actor":
             return OAuthError("actor_unauthorized", 403,
                               challenge='DPoP error="actor_unauthorized", algs="ES256"')
-        return OAuthError("forbidden", 403, challenge='DPoP algs="ES256"')
+        if reason == "authority":
+            scope = " ".join(dict.fromkeys(scopes))
+            return OAuthError("insufficient_scope", 403,
+                              challenge=f'DPoP error="insufficient_scope", scope="{scope}", '
+                                        'algs="ES256"')
+        return OAuthError(None, 403, challenge='DPoP algs="ES256"')
 
 
 class _QuietHandler(WSGIRequestHandler):

@@ -1,8 +1,8 @@
-"""Reference IdP, RAS and API for the mandatory delegated path (EXAMPLES scene 2).
+"""Reference IdP, RAS and API for the mandatory delegated path (EXAMPLES, first transaction).
 
 Test-only. State is in memory, keys are generated at start, there is no
 TLS, and nothing persists. The servers exist so the conformance suite has
-a first implementation to run against; they implement only what scene 2
+a first implementation to run against; they implement only what that transaction
 exercises: a dedicated client using private_key_jwt, an ID Token subject,
 bound governed agent access (DPoP at both token endpoints), and JWT access
 tokens validated at the API.

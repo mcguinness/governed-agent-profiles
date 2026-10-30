@@ -233,8 +233,9 @@ leave open. Authorization server metadata carries part of it ([Capability
 Discovery][capability-discovery]); the rest is configuration, because
 the core profile defines no discovery for bindings, associations,
 delegations, or local links. The tables cover the mandatory delegated
-path under the bound profile, with the [EXAMPLES.md](EXAMPLES.md) scene 2
-value for each item.
+path under the bound profile, with the value for each item in
+[EXAMPLES.md](EXAMPLES.md)'s [first delegated
+transaction](EXAMPLES.md#first-delegated-transaction).
 
 The last column names the related cases in the [conformance
 suite](conformance/README.md) and how far they go:
@@ -246,7 +247,7 @@ suite](conformance/README.md) and how far they go:
 
 ### Client and IdP
 
-| Item | From | Scene 2 value | In metadata | Related cases |
+| Item | From | Example value | In metadata | Related cases |
 |---|---|---|---|---|
 | IdP issuer identifier, the client assertion's sole `aud`, and token endpoint | IdP | `https://idp.example/`; `https://idp.example/token` | Yes (RFC 8414 metadata) | Direct: N02 |
 | Client identifier and keys for `private_key_jwt` with `RS256` | Client, through registration | `analysis-client` and its JWK Set | Client metadata or CIMD | Positive path: P1. Direct for assertion replay and `nbf`: N01, N22 |
@@ -258,7 +259,7 @@ suite](conformance/README.md) and how far they go:
 
 ### IdP and RAS
 
-| Item | From | Scene 2 value | In metadata | Related cases |
+| Item | From | Example value | In metadata | Related cases |
 |---|---|---|---|---|
 | IdP issuer and grant signing keys | IdP | `https://idp.example/`; its JWK Set | Yes (`jwks_uri`) | Positive path: P2 |
 | Authority for the IdP to assert agents in `act` under its issuer ([Grant Validation][redemption-validation]) | RAS trust configuration | Agents of `https://idp.example/` | No | Positive path: P2 |
@@ -272,7 +273,7 @@ suite](conformance/README.md) and how far they go:
 
 ### Client and RAS
 
-| Item | From | Scene 2 value | In metadata | Related cases |
+| Item | From | Example value | In metadata | Related cases |
 |---|---|---|---|---|
 | Client registration and keys at the RAS, with the RAS issuer as the assertion's `aud` | Client, through registration | `analysis-api` and its JWK Set | Client metadata or CIMD | Positive path: P2. Direct for the grant's `client_id`: N13 |
 | The client registration's `grant_types`, permitting the JWT bearer grant at the RAS ([Client Metadata][client-metadata]) | Client, through registration | `urn:ietf:params:oauth:grant-type:jwt-bearer` | Client metadata or CIMD | Untested |
@@ -280,11 +281,11 @@ suite](conformance/README.md) and how far they go:
 | DPoP at the token endpoint, proven with the grant's key | RAS | `ES256`; the same key K | DPoP algorithms | Direct: N11, N12 |
 | Access-token protection per resource ([Access-Token Protection][access-token-protection]) | Agreed with the resource | DPoP | `token_type` in the response, which does not tell mutual TLS from bearer | Positive path: P2 |
 | Refresh tokens ([Optional RAS Refresh Tokens][ras-refresh]) | RAS policy | None | No | Direct after a deferred redemption, against the reference: D13, D14, D15, D21, D22. Otherwise untested: P2 notes a refresh token but does not fail |
-| Deferred redemption ([Deferred Redemption][ov-redemption]): whether RAS policy can hold a redemption for approval; the opt-in with DPoP; polling and recovery with the same key | RAS policy; client opts in | None; scene 2 has no approval at the RAS | `deferred_token_response_supported` | Direct against the reference, whose Access Request Service the suite controls: D01 to D22. Untested: WAG deferral, mutual-TLS resources, continuation ineligibility, grant-derived revocation while pending |
+| Deferred redemption ([Deferred Redemption][ov-redemption]): whether RAS policy can hold a redemption for approval; the opt-in with DPoP; polling and recovery with the same key | RAS policy; client opts in | None in the first transaction; the [Approval at redemption](EXAMPLES.md#approval-at-redemption) variation holds one | `deferred_token_response_supported` | Direct against the reference, whose Access Request Service the suite controls: D01 to D22. Untested: WAG deferral, mutual-TLS resources, continuation ineligibility, grant-derived revocation while pending |
 
 ### RAS and API
 
-| Item | From | Scene 2 value | In metadata | Related cases |
+| Item | From | Example value | In metadata | Related cases |
 |---|---|---|---|---|
 | RAS issuer and access-token signing keys | RAS | `https://ras.example/`; JWT access tokens validated offline | Yes (`jwks_uri`) | Positive path: P3, P4 |
 | Introspection endpoint and the API's credentials for it, where access tokens are opaque ([Optional Opaque Access Tokens and Introspection][introspection]) | RAS | Not used | Introspection endpoint | Direct against the reference, without caching: S12 for an inactive token, S13 for a delegated response without `act`. Positive path: S10, S11 |
@@ -302,7 +303,7 @@ The drafts let each of these vary. Two implementations that choose
 differently fail at the boundary between them, often with an error that
 names neither choice:
 
-| Choice | What the drafts allow | Scene 2 and the reference |
+| Choice | What the drafts allow | The example and the reference |
 |---|---|---|
 | Telling token populations apart | Separate client registrations, audiences, or issuers, or a bilateral contract such as an introspection member | Separate configuration per client and audience |
 | Carrying the tenant | The tenant-specific resource as audience, a configured tenant claim, or authoritative token context | The resource as audience |

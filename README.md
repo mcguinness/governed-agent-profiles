@@ -85,9 +85,10 @@ that claims none of the optional inputs needs only the core.
 * **[Implementer's guide](IMPLEMENTERS-GUIDE.md):** message flows for
   both grants, what each role builds, configuration, and deployment
   tradeoffs.
-* **[End-to-end examples](EXAMPLES.md):** one agent from registration
-  through delegated and self-acting access, approval, a gateway, a
-  scheduled run, and an incident, with the messages on the wire.
+* **[End-to-end examples](EXAMPLES.md):** one delegated transaction and
+  its self-acting counterpart, then optional variations (approval at
+  issuance and at redemption, a gateway, a scheduled run), an incident,
+  and SCIM provisioning, with the messages on the wire.
 * **[Conformance suite](conformance/README.md):** executable cases for
   the mandatory delegated path, deferred redemption at the RAS, and an
   API's policy service, with a test-only reference IdP, RAS and API.

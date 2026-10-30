@@ -1,4 +1,4 @@
-"""Black-box conformance cases for the mandatory delegated path (EXAMPLES scene 2).
+"""Black-box conformance cases for the mandatory delegated path (EXAMPLES, first transaction).
 
 The suite plays the client role over HTTP against an IdP, a RAS and an API.
 Each case names the role it checks, the draft text it comes from, and any
@@ -110,7 +110,7 @@ def http(method, url, form=None, headers=None):
 
 
 class Client:
-    """The client role of scene 2: one grant proof key K, and a second key for mismatches.
+    """The client role of the first transaction: grant proof key K, and a second key for mismatches.
 
     The client signs proofs and assertions at its own clock, which a case
     advances together with the servers' (Context.advance).
@@ -233,7 +233,7 @@ class Adapter:
                                    members; active defaults to true, and a
                                    token minted with active false keeps its
                                    other members in the response
-    reset()                        restore the scene 1 configuration
+    reset()                        restore the examples' configuration
     disable_check(role, name)      reference implementation only (vacuity mode)
 
     The deferral cases also control the RAS's Access Request Service and

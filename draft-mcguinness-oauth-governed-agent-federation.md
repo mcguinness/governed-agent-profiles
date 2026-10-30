@@ -59,6 +59,7 @@ normative:
   RFC8707:
   RFC8725:
   RFC9068:
+  RFC9110:
   RFC9396:
   RFC9449:
   RFC9700:
@@ -2008,7 +2009,11 @@ a policy decision service, it MUST:
   from a tool call's arguments, never supply or override them.
 
 For a self-acting token, the local principal stands for the Agent
-Principal. {{AUTHZEN}} is one optional evaluation interface. This
+Principal. An API that relies on the policy service for the actor gate
+MUST obtain from the decision whether the actor gate denied the
+request, or evaluate the gate itself, so that it can report the failure
+that {{resource-errors}} selects. {{AUTHZEN}} is one optional
+evaluation interface. This
 profile defines no mapping to it. A policy permit does not override the
 token's constraints.
 
@@ -2018,15 +2023,38 @@ Challenges and scope errors use the selected scheme: `DPoP` under
 {{Section 7.1 of RFC9449}}, or `Bearer` under {{RFC6750}} for bearer
 and mutual-TLS tokens.
 
-| Failure | Response |
-|---|---|
-| Missing or invalid required actor claims, or unauthorized namespace assertion | HTTP 401, `invalid_token` |
-| Missing, ambiguous, or conflicting token tenant context, or a token tenant different from the requested operation's tenant | HTTP 401, `invalid_token` |
-| Denial for a valid actor identity | HTTP 403, `actor_unauthorized` under {{Section 8.2 of ACTOR-PROFILE}} |
+When a request fails more than one check, the API MUST report the
+failure that comes first in this table, whatever order it evaluates the
+checks in:
+
+| Order | Failure | Response |
+|---|---|---|
+| 1 | Missing or invalid access token, proof, or certificate binding ({{api-validation}}) | HTTP 401, as the applicable token or proof specification requires |
+| 2 | Missing or invalid required actor claims, unauthorized namespace assertion, or missing, ambiguous, or conflicting token tenant context, including a token tenant different from the requested operation's tenant | HTTP 401, `invalid_token` |
+| 3 | Actor-gate denial, including a categorical prohibition of the agent ({{actor-authorization}}) | HTTP 403, `actor_unauthorized` under {{Section 8.2 of ACTOR-PROFILE}} |
+| 4 | The operation needs scope or authorization details that the token does not carry | HTTP 403, `insufficient_scope` under {{Section 3.1 of RFC6750}} |
+| 5 | Any other denial of a valid token, such as the user's own permissions, a self-acting agent's own permissions, or policy for the client or tenant | HTTP 403 with a challenge that carries no `error` attribute |
 {: title="Resource server error responses"}
 
-Actor denial MUST NOT use `insufficient_scope`. The API MUST NOT expose
-actor-specific rejection details outside the trust domain.
+Actor denial MUST NOT use `insufficient_scope`, and the API MUST NOT
+return `actor_unauthorized` for any failure other than an actor-gate
+denial. The API MUST NOT expose actor-specific rejection details outside
+the trust domain.
+
+The last row is this profile's restriction. {{Section 3 of RFC6750}}
+requires a challenge when a token does not enable access but does not
+prescribe this response; neither error code would offer a remedy that
+can succeed. The challenge uses the selected scheme without an `error`
+attribute, and a `Bearer` challenge carries `realm`. A response body is
+application-specific but MUST NOT convey `actor_unauthorized` or
+`insufficient_scope`.
+
+If the API cannot complete an authorization evaluation, for example
+because a policy service is unreachable or returns a decision the API
+cannot interpret, it MUST NOT perform the operation and MUST NOT report
+a denial from this table. It responds with HTTP status code 503
+(Service Unavailable) ({{Section 15.6.4 of RFC9110}}) and SHOULD include
+a `Retry-After` header field ({{Section 10.2.3 of RFC9110}}).
 
 # Continuing Access and Authorization Changes {#continuing-access}
 
@@ -2806,6 +2834,10 @@ last column is the required result. Token endpoint errors follow
 | Platform JWT variant ({{aws-example}}): the shared client `platform-sso` holds a token for `agent-42` and starts an operation for another agent with the same scope | Client | Obtains a grant for that agent; a matching `client_id` and scope do not permit reuse ({{client-token-reuse}}) |
 | Platform JWT variant ({{aws-example}}): the platform JWT fails validation | IdP | HTTP 400, `invalid_grant`; no retry from authentication context or under another credential class ({{actor-inputs}}) |
 | The API delegates evaluation to a policy service; an attribute derived from the request names `agent-77` as the agent, and policy permits `agent-77` but not `agent-42` | API | HTTP 403, `actor_unauthorized`; the evaluation uses `agent-42` from the validated `act` ({{policy-services}}) |
+| The API's policy does not permit `agent-42` to act for Alice, and the operation also needs `files.write`, which the access token lacks | API | HTTP 403, `actor_unauthorized`, not `insufficient_scope`; the actor gate comes first ({{resource-errors}}) |
+| The actor gate permits `agent-42`, and the operation needs `files.write`, which the access token lacks | API | HTTP 403, `insufficient_scope` |
+| The actor gate permits `agent-42`, the token's scope covers the read, and Alice has no permission on `report-7` | API | HTTP 403 with a challenge that carries no `error` attribute |
+| The API delegates evaluation to a policy service, which cannot be reached | API | HTTP 503; no operation performed and no denial reported |
 | Platform JWT variant ({{aws-example}}): Alice's access tokens for `agent-42` and for another agent carry the same `client_id`, and the API's policy permits only `agent-42` | API | HTTP 403, `actor_unauthorized` for the other agent; the client identifier does not stand in for the agent ({{actor-authorization}}) |
 {: title="Negative test cases"}
 

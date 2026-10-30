@@ -1094,6 +1094,59 @@ def d19(ctx):
     expect_error(ctx.client.redeem(grant, deferred=True), 400, "invalid_grant")
 
 
+
+@case("D20", "RAS", "Denies at the next poll when the agent's correlation changes while pending",
+      "oversight: Redemption Resolution; core: Agent Principal Correlation",
+      needs=("set:ras.approval_required", "set:ras.agent_local", "tasks", "approve"),
+      defeats=("ras.correlation_continuity",))
+def d20(ctx):
+    require_approval(ctx)
+    code = defer(ctx, ctx.grant())["deferral_code"]
+    ctx.adapter.set("ras", "agent_local", "service-principal-99")
+    ctx.adapter.approve(only_task(ctx), ctx.now() + 3600)
+    expect_error(ctx.client.poll(code), 400, "access_denied")
+
+
+@case("D21", "RAS", "A refresh fails once the client's minimum profile exceeds the accepted one",
+      "oversight: Refresh and Continuation; core: Optional RAS Refresh Tokens (step 3)",
+      needs=("set:ras.approval_required", "set:ras.refresh_permitted", "set:idp.client_profile",
+             "set:ras.client_profile", "tasks", "approve"),
+      defeats=("ras.refresh_profile",))
+def d21(ctx):
+    require_approval(ctx)
+    ctx.adapter.set("ras", "refresh_permitted", True)
+    ctx.adapter.set("idp", "client_profile", "governed")
+    ctx.adapter.set("ras", "client_profile", "governed")
+    grant = ctx.grant(dpop_key=None)
+    check("cnf" not in jws.decode(grant)[1], "setup: the IdP issued a grant with cnf")
+    code = defer(ctx, grant)["deferral_code"]
+    ctx.adapter.approve(only_task(ctx), ctx.now() + 3600)
+    body, _ = expect_token(ctx.client.poll(code))
+    check(isinstance(body.get("refresh_token"), str),
+          "setup: no refresh token with refresh permitted")
+    expect_token(ctx.client.refresh(body["refresh_token"]))
+    ctx.adapter.set("ras", "client_profile", "bound")
+    expect_error(ctx.client.refresh(body["refresh_token"]), 400, "invalid_grant")
+
+
+@case("D22", "RAS", "A refresh rejected on re-evaluation ends the authorization; a bad proof "
+      "does not",
+      "oversight: Refresh and Continuation",
+      needs=("set:ras.approval_required", "set:ras.refresh_permitted", "set:ras.actor_gate",
+             "tasks", "approve"),
+      defeats=("ras.refresh_ends",))
+def d22(ctx):
+    _, body, _ = approved_refresh(ctx, ctx.now() + 3600)
+    refresh_token = body["refresh_token"]
+    resp = ctx.client.refresh(refresh_token, dpop_key="k2")
+    check(400 <= resp.status < 500 and "access_token" not in resp.json(),
+          f"setup: a refresh proven with another key was not rejected: {resp}")
+    expect_token(ctx.client.refresh(refresh_token))
+    ctx.adapter.set("ras", "actor_gate", False)
+    expect_error(ctx.client.refresh(refresh_token), 400, "invalid_grant")
+    ctx.adapter.set("ras", "actor_gate", True)
+    expect_error(ctx.client.refresh(refresh_token), 400, "invalid_grant")
+
 def run_case(c, cfg, adapter, disable=()):
     """Run one case from a reset deployment; return (passed, detail, notes)."""
     adapter.reset()

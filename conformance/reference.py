@@ -97,6 +97,10 @@ CHECKS = {
     "ras.approval_reevaluation": "resolution and every refresh re-evaluate the kept approval",
     "ras.enforcement_deadline": "a shorter approved_until from re-evaluation bounds later tokens",
     "ras.resolution_recheck": "resolution and refresh re-check the agent, actor gate and user",
+    "ras.correlation_continuity": "resolution and refresh require the agent's correlation to the "
+                                  "same local principal",
+    "ras.refresh_profile": "refresh enforces the current minimum profile against the accepted one",
+    "ras.refresh_ends": "a refresh rejected on re-evaluation ends the refresh authorization",
     "api.key_binding": "the DPoP proof key matches the token's cnf.jkt",
     "api.token_time": "access token iat and nbf are not in the future",
     "api.require_act": "a governed delegated token carries a valid act",
@@ -586,6 +590,8 @@ class RAS(Server):
             what, value = body["what"], body["value"]
             if what == "agent_active":
                 self.agents[(IDP_ISSUER, "agent-42")]["active"] = value
+            elif what == "agent_local":
+                self.agents[(IDP_ISSUER, "agent-42")]["local"] = value
             elif what == "actor_gate":
                 entry = ("user-108", IDP_ISSUER, "agent-42", "acme-data")
                 (self.actor_gate.add if value else self.actor_gate.discard)(entry)
@@ -753,6 +759,10 @@ class RAS(Server):
                    "grant_sub": claims["sub"], "client_id": client_id, "jkt": jkt,
                    "params": self.request_params(form), "user": user,
                    "agent": (act["iss"], act["sub"]), "act": copy.deepcopy(act),
+                   # The local principal the agent correlated to at receipt,
+                   # and the profile under which the grant was accepted.
+                   "agent_local": (self.agents.get((act["iss"], act["sub"])) or {}).get("local"),
+                   "profile": "bound" if claims.get("cnf") is not None else "governed",
                    "tenant": config["tenant"], "resource": resource, "scope": scope,
                    "abs_exp": abs_exp, "deadline": now + lifetime, "state": "pending"}
         # The replay record lasts until the later of the request's end and
@@ -844,7 +854,7 @@ class RAS(Server):
             raise OAuthError("access_denied", description=failure)
         auth = {name: pending[name] for name in
                 ("client_id", "jkt", "user", "grant_key", "grant_sub", "agent", "act",
-                 "tenant", "resource", "abs_exp")}
+                 "agent_local", "profile", "tenant", "resource", "abs_exp")}
         auth.update(scope=" ".join(scope), approval=copy.deepcopy(approval),
                     enforcement=enforcement)
         token, exp = self.authorized_token(auth, now)
@@ -877,6 +887,10 @@ class RAS(Server):
             agent = self.agents.get(auth["agent"])
             if agent is None or not agent["active"]:
                 return "agent not eligible", enforcement
+            if agent["local"] != auth["agent_local"] and \
+                    self.on("ras.correlation_continuity"):
+                # A changed link does not transfer the delegation.
+                return "agent correlation changed", enforcement
             if (auth["user"], *auth["agent"], auth["tenant"]) not in self.actor_gate:
                 return "actor gate", enforcement
             if self.user_links.get((auth["grant_key"][0], auth["tenant"],
@@ -911,12 +925,24 @@ class RAS(Server):
             raise OAuthError("invalid_grant", description="refresh token bound to another key")
         if "resource" in form and form["resource"] != [auth["resource"]]:
             raise OAuthError("invalid_target")
-        now = self.now()
-        if now >= auth["abs_exp"] and self.on("ras.absolute_expiration"):
-            raise OAuthError("invalid_grant", description="absolute authorization expiration")
-        failure, auth["enforcement"] = self.reevaluate(auth, auth["approval"],
-                                                       auth["enforcement"], now)
+        # The client and its key are authenticated; a rejection from here on
+        # ends the refresh authorization (Refresh and Continuation), so a
+        # later change back cannot revive it. A failed client
+        # authentication or proof above never ends it.
+        now, failure = self.now(), None
+        if self.clients[client_id]["profile"] == "bound" and auth["profile"] != "bound" and \
+                self.on("ras.refresh_profile"):
+            # core ras-refresh step 3: a proof at redemption does not upgrade
+            # an authorization accepted under governed agent access.
+            failure = "minimum profile no longer met"
+        elif now >= auth["abs_exp"] and self.on("ras.absolute_expiration"):
+            failure = "absolute authorization expiration"
+        else:
+            failure, auth["enforcement"] = self.reevaluate(auth, auth["approval"],
+                                                           auth["enforcement"], now)
         if failure:
+            if self.on("ras.refresh_ends"):
+                self.refresh_tokens.pop(_one(form, "refresh_token"), None)
             raise OAuthError("invalid_grant", description=failure)
         token, exp = self.authorized_token(auth, now)
         return {"access_token": token, "token_type": "DPoP", "expires_in": exp - int(now),

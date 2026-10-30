@@ -101,6 +101,9 @@ servers listen on localhost. A reader can lay the output beside
 | D17 | RAS | After the grant's `exp`, a repeated request gets the same deferral code with the remaining `expires_in`, and the approval then issues | oversight: Recovery | Require approval; approve; advance the clock |
 | D18 | RAS | A repeated request that reuses the first request's DPoP proof fails with `invalid_dpop_proof` | oversight: Recovery; RFC 9449 Section 11.1 | Require approval |
 | D19 | RAS | After a token response redeems the code, a repeated request fails with `invalid_grant` | oversight: Recovery | Require approval; approve |
+| D20 | RAS | An agent whose correlation changes to another local principal while pending gets `access_denied` at the poll after approval | oversight: Redemption Resolution; core: Agent Principal Correlation | Require approval; change the agent's local principal at the RAS; approve |
+| D21 | RAS | After an unbound grant's deferred redemption, raising the client's minimum to the bound profile makes the next refresh fail with `invalid_grant` | oversight: Refresh and Continuation; core: Optional RAS Refresh Tokens (step 3) | Require approval; permit refresh; set the governed profile; approve |
+| D22 | RAS | A refresh with another key is rejected and the next refresh still succeeds; a refresh rejected on re-evaluation ends the authorization, so restoring the actor gate does not revive it | oversight: Refresh and Continuation (ending the refresh authorization) | Require approval; permit refresh; approve; close and reopen the actor gate |
 
 The "negative-test row" sources are the rows of the core's "Renewal and
 Negative Tests" table. N15 asserts only that no token issues, because
@@ -127,7 +130,7 @@ depends on the code that Grant Protection requires.
 The D cases fail without their check in these ways:
 
 * the RAS issues a token it must not: D01, D02 (a second token), D05,
-  D11 and D14;
+  D11, D14, D20, D21 and D22 (after the actor gate reopens);
 * it returns or keeps a deferral where an error is required: D03, D06
   (a new deferral after the denial), D08, D18 and D19;
 * it returns another error: D07 (`actor_unauthorized`);

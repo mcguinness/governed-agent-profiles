@@ -2648,7 +2648,8 @@ the applicable input profile. <a href="#issuance-errors" class="auto internal xr
 </td>
             </tr>
             <tr>
-              <td class="text-left" rowspan="1" colspan="1">Unacceptable requested scope, invalid scope reduction, or no non-empty scope can be issued</td>
+              <td class="text-left" rowspan="1" colspan="1">Unacceptable requested scope, invalid scope reduction, or no non-empty scope can be issued, except where <a href="#issuance-authorization" class="auto internal xref">Section 5.4</a> assigns <code>actor_unauthorized</code>
+</td>
               <td class="text-left" rowspan="1" colspan="1">
                 <code>invalid_scope</code>
 </td>
@@ -3224,8 +3225,14 @@ Agent Authorization (<a href="#agent-authorization" class="auto internal xref">S
 <ul class="normal">
 <li class="normal" id="section-5.4-5.1">
             <p id="section-5.4-5.1.1">The IdP <span class="bcp14">MAY</span> narrow scope, reflecting the result in the grant and
-response under <span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>. It <span class="bcp14">MUST</span> return <code>invalid_scope</code> if no scope
-can be granted.<a href="#section-5.4-5.1.1" class="pilcrow">¶</a></p>
+response under <span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>. If no scope can be granted for delegated
+issuance, it <span class="bcp14">MUST</span> reject with <code>actor_unauthorized</code> when no applicable
+Delegation Authorization covers the agent, user, client, and target,
+or when policy categorically prohibits the agent for the requested
+scope, and otherwise with <code>invalid_scope</code>, as when an applicable
+authorization's scope ceiling excludes the request
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-actor-profile-01#section-6.6.2" class="relref">Section 6.6.2</a> of [<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>). For self-acting issuance, it
+<span class="bcp14">MUST</span> return the errors of <a href="#issuance-errors" class="auto internal xref">Section 5.8</a>.<a href="#section-5.4-5.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-5.4-5.2">
             <p id="section-5.4-5.2.1">The IdP <span class="bcp14">MUST NOT</span> issue by dropping a required actor or binding,
@@ -3813,9 +3820,21 @@ Principal, downstream client, and tenant are unambiguous.<a href="#section-5.7.2
 </td>
             </tr>
             <tr>
-              <td class="text-left" rowspan="1" colspan="1">Resolved Agent Principal, but no Client Association permits the selected binding for delegated issuance, or delegation is unauthorized</td>
+              <td class="text-left" rowspan="1" colspan="1">Resolved Agent Principal, but no Client Association permits the selected binding for delegated issuance</td>
               <td class="text-left" rowspan="1" colspan="1">
                 <code>actor_unauthorized</code> under Actor Profile, with HTTP 400</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">No applicable Delegation Authorization covers the agent, user, client, and target, or policy categorically prohibits the agent for the requested scope (<a href="#issuance-authorization" class="auto internal xref">Section 5.4</a>)</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>actor_unauthorized</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">An applicable Delegation Authorization's scope ceiling excludes the requested scope</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>invalid_scope</code>
+</td>
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Approval requires a downstream lifetime condition that the selected composition cannot enforce, in delegated issuance (<a href="#issuance-authorization" class="auto internal xref">Section 5.4</a>)</td>
@@ -3959,7 +3978,8 @@ parameters, or a requested resource different from that URI, with
 </li>
               <li class="normal" id="section-6.2-2.2.2.3">
                 <p id="section-6.2-2.2.2.3.1"><strong>Scope:</strong> Require the grant's <code>scope</code> claim to be a non-empty
-string. A supplied request <code>scope</code> <span class="bcp14">MUST</span> be a non-empty subset of
+string. Reject a missing, empty, or non-string claim with
+<code>invalid_grant</code>. A supplied request <code>scope</code> <span class="bcp14">MUST</span> be a non-empty subset of
 that claim, or the RAS <span class="bcp14">MUST</span> return <code>invalid_scope</code>.<a href="#section-6.2-2.2.2.3.1" class="pilcrow">¶</a></p>
 </li>
               <li class="normal" id="section-6.2-2.2.2.4">
@@ -4287,7 +4307,11 @@ configuration selects mutual TLS, mutual TLS applies regardless of
 any DPoP proof, including the grant proof required below.<a href="#section-6.7-2.2.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-6.7-3">A proof never selects a protection that configuration does not permit.<a href="#section-6.7-3" class="pilcrow">¶</a></p>
+<p id="section-6.7-3">A proof never selects a protection that configuration does not permit.
+The RAS selects access-token protection only after the checks of
+<a href="#grant-protection" class="auto internal xref">Section 4.4</a> succeed, so a bound grant redeemed without its
+proof fails with <code>invalid_grant</code> whatever protection the resource
+requires.<a href="#section-6.7-3" class="pilcrow">¶</a></p>
 <span id="name-access-token-protection-mod"></span><table class="center" id="table-17">
           <caption>
 <a href="#table-17" class="selfRef">Table 17</a>:
@@ -4392,7 +4416,13 @@ RAS uses these errors:<a href="#section-6.9-1" class="pilcrow">¶</a></p>
 </td>
             </tr>
             <tr>
-              <td class="text-left" rowspan="1" colspan="1">WAG whose <code>sub</code> has no authorized correlation at the RAS</td>
+              <td class="text-left" rowspan="1" colspan="1">ID-JAG whose <code>act</code> agent has no authorized correlation at the RAS, or is subject to an applied disablement, correlation removal, or local restriction (<a href="#applied-changes" class="auto internal xref">Section 8.3</a>)</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>invalid_grant</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">WAG whose <code>sub</code> has no authorized correlation at the RAS, or is subject to an applied disablement, correlation removal, or local restriction</td>
               <td class="text-left" rowspan="1" colspan="1">
                 <code>invalid_grant</code>
 </td>
@@ -4559,7 +4589,11 @@ from a tool call's arguments, never supply or override them.<a href="#section-7.
 </li>
         </ul>
 <p id="section-7.5-3">For a self-acting token, the local principal stands for the Agent
-Principal. <span>[<a href="#AUTHZEN" class="cite xref">AUTHZEN</a>]</span> is one optional evaluation interface. This
+Principal. An API that relies on the policy service for the actor gate
+<span class="bcp14">MUST</span> obtain from the decision whether the actor gate denied the
+request, or evaluate the gate itself, so that it can report the failure
+that <a href="#resource-errors" class="auto internal xref">Section 7.6</a> selects. <span>[<a href="#AUTHZEN" class="cite xref">AUTHZEN</a>]</span> is one optional
+evaluation interface. This
 profile defines no mapping to it. A policy permit does not override the
 token's constraints.<a href="#section-7.5-3" class="pilcrow">¶</a></p>
 </section>
@@ -4572,6 +4606,9 @@ token's constraints.<a href="#section-7.5-3" class="pilcrow">¶</a></p>
 <p id="section-7.6-1">Challenges and scope errors use the selected scheme: <code>DPoP</code> under
 <span><a href="https://rfc-editor.org/rfc/rfc9449#section-7.1" class="relref">Section 7.1</a> of [<a href="#RFC9449" class="cite xref">RFC9449</a>]</span>, or <code>Bearer</code> under <span>[<a href="#RFC6750" class="cite xref">RFC6750</a>]</span> for bearer
 and mutual-TLS tokens.<a href="#section-7.6-1" class="pilcrow">¶</a></p>
+<p id="section-7.6-2">When a request fails more than one check, the API <span class="bcp14">MUST</span> report the
+failure that comes first in this table, whatever order it evaluates the
+checks in:<a href="#section-7.6-2" class="pilcrow">¶</a></p>
 <span id="name-resource-server-error-respo"></span><table class="center" id="table-19">
           <caption>
 <a href="#table-19" class="selfRef">Table 19</a>:
@@ -4579,30 +4616,62 @@ and mutual-TLS tokens.<a href="#section-7.6-1" class="pilcrow">¶</a></p>
           </caption>
 <thead>
             <tr>
+              <th class="text-left" rowspan="1" colspan="1">Order</th>
               <th class="text-left" rowspan="1" colspan="1">Failure</th>
               <th class="text-left" rowspan="1" colspan="1">Response</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td class="text-left" rowspan="1" colspan="1">Missing or invalid required actor claims, or unauthorized namespace assertion</td>
+              <td class="text-left" rowspan="1" colspan="1">1</td>
+              <td class="text-left" rowspan="1" colspan="1">Missing or invalid access token, proof, or certificate binding (<a href="#api-validation" class="auto internal xref">Section 7.2</a>)</td>
+              <td class="text-left" rowspan="1" colspan="1">HTTP 401, as the applicable token or proof specification requires</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">2</td>
+              <td class="text-left" rowspan="1" colspan="1">Missing or invalid required actor claims, unauthorized namespace assertion, or missing, ambiguous, or conflicting token tenant context, including a token tenant different from the requested operation's tenant</td>
               <td class="text-left" rowspan="1" colspan="1">HTTP 401, <code>invalid_token</code>
 </td>
             </tr>
             <tr>
-              <td class="text-left" rowspan="1" colspan="1">Missing, ambiguous, or conflicting token tenant context, or a token tenant different from the requested operation's tenant</td>
-              <td class="text-left" rowspan="1" colspan="1">HTTP 401, <code>invalid_token</code>
-</td>
-            </tr>
-            <tr>
-              <td class="text-left" rowspan="1" colspan="1">Denial for a valid actor identity</td>
+              <td class="text-left" rowspan="1" colspan="1">3</td>
+              <td class="text-left" rowspan="1" colspan="1">Actor-gate denial, including a categorical prohibition of the agent (<a href="#actor-authorization" class="auto internal xref">Section 3.6.4</a>)</td>
               <td class="text-left" rowspan="1" colspan="1">HTTP 403, <code>actor_unauthorized</code> under <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-actor-profile-01#section-8.2" class="relref">Section 8.2</a> of [<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>
 </td>
             </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">4</td>
+              <td class="text-left" rowspan="1" colspan="1">The operation needs scope or authorization details that the token does not carry</td>
+              <td class="text-left" rowspan="1" colspan="1">HTTP 403, <code>insufficient_scope</code> under <span><a href="https://rfc-editor.org/rfc/rfc6750#section-3.1" class="relref">Section 3.1</a> of [<a href="#RFC6750" class="cite xref">RFC6750</a>]</span>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">5</td>
+              <td class="text-left" rowspan="1" colspan="1">Any other denial of a valid token, such as the user's own permissions, a self-acting agent's own permissions, or policy for the client or tenant</td>
+              <td class="text-left" rowspan="1" colspan="1">HTTP 403 with a challenge that carries no <code>error</code> attribute</td>
+            </tr>
           </tbody>
         </table>
-<p id="section-7.6-3">Actor denial <span class="bcp14">MUST NOT</span> use <code>insufficient_scope</code>. The API <span class="bcp14">MUST NOT</span> expose
-actor-specific rejection details outside the trust domain.<a href="#section-7.6-3" class="pilcrow">¶</a></p>
+<p id="section-7.6-4">Actor denial <span class="bcp14">MUST NOT</span> use <code>insufficient_scope</code>, and the API <span class="bcp14">MUST NOT</span>
+return <code>actor_unauthorized</code> for any failure other than an actor-gate
+denial. The API <span class="bcp14">MUST NOT</span> expose actor-specific rejection details outside
+the trust domain.<a href="#section-7.6-4" class="pilcrow">¶</a></p>
+<p id="section-7.6-5">The last row is this profile's restriction. <span><a href="https://rfc-editor.org/rfc/rfc6750#section-3" class="relref">Section 3</a> of [<a href="#RFC6750" class="cite xref">RFC6750</a>]</span>
+requires a challenge when a token does not enable access but does not
+prescribe this response; neither error code would offer a remedy that
+can succeed. The challenge uses the selected scheme without an <code>error</code>
+attribute, and a <code>Bearer</code> challenge carries <code>realm</code>. A response body is
+application-specific but <span class="bcp14">MUST NOT</span> convey <code>actor_unauthorized</code> or
+<code>insufficient_scope</code>.<a href="#section-7.6-5" class="pilcrow">¶</a></p>
+<p id="section-7.6-6">If a check cannot complete, for example because a policy service is
+unreachable or returns a decision the API cannot interpret, the API
+<span class="bcp14">MUST NOT</span> perform the operation. If it has established a failure and no
+check that did not complete comes earlier in this table, it reports that
+failure as the table selects. Otherwise it <span class="bcp14">MUST NOT</span> report a denial
+from this table: it responds with HTTP status code 503 (Service
+Unavailable) (<span><a href="https://rfc-editor.org/rfc/rfc9110#section-15.6.4" class="relref">Section 15.6.4</a> of [<a href="#RFC9110" class="cite xref">RFC9110</a>]</span>) and <span class="bcp14">SHOULD</span> include a
+<code>Retry-After</code> header field (<span><a href="https://rfc-editor.org/rfc/rfc9110#section-10.2.3" class="relref">Section 10.2.3</a> of [<a href="#RFC9110" class="cite xref">RFC9110</a>]</span>). Evaluation
+order therefore does not change the response.<a href="#section-7.6-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -5060,6 +5129,57 @@ opaque tokens. A credential change alone need not invalidate cached
 tokens when the governed principal and authorization context remain
 the same.<a href="#section-10.3-1.1.1" class="pilcrow">¶</a></p>
 </li>
+          <li class="normal" id="section-10.3-1.2">
+            <p id="section-10.3-1.2.1"><strong>Recovering from errors:</strong> An error establishes only what the
+sections that assign it define:<a href="#section-10.3-1.2.1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-10.3-1.2.2.1">
+                <p id="section-10.3-1.2.2.1.1"><code>invalid_client</code>: a consumed client assertion is replaced by one
+with a fresh <code>jti</code>, as the retry rule of <a href="#client-assertion-input" class="auto internal xref">Section 5.3.2</a>
+requires. An unknown client, a wrong key, or an unsupported method
+needs configuration, not a retry.<a href="#section-10.3-1.2.2.1.1" class="pilcrow">¶</a></p>
+</li>
+              <li class="normal" id="section-10.3-1.2.2.2">
+                <p id="section-10.3-1.2.2.2.1"><code>invalid_grant</code>: after correcting what it can detect itself, such as
+a missing proof or a grant addressed to another server, a client
+can make one recovery attempt with the same identity, client, and
+credential class: a fresh subject credential and agent-resolution
+input at the IdP, or a new grant at the RAS. The code does not say
+which check failed (<a href="#security-errors" class="auto internal xref">Section 11.3</a>), and renewal cannot repair
+a disabled binding, a missing proof, or a malformed grant.<a href="#section-10.3-1.2.2.2.1" class="pilcrow">¶</a></p>
+</li>
+              <li class="normal" id="section-10.3-1.2.2.3">
+                <p id="section-10.3-1.2.2.3.1"><code>invalid_scope</code>: the client corrects the requested scope using
+authority it knows is permitted. Reducing a request helps only if
+what remains is permitted.<a href="#section-10.3-1.2.2.3.1" class="pilcrow">¶</a></p>
+</li>
+              <li class="normal" id="section-10.3-1.2.2.4">
+                <p id="section-10.3-1.2.2.4.1"><code>invalid_target</code>: covers an unresolved target or tenant, a missing
+client registration association, and the refusals of self-acting
+issuance, including an unenforceable approval condition.<a href="#section-10.3-1.2.2.4.1" class="pilcrow">¶</a></p>
+</li>
+              <li class="normal" id="section-10.3-1.2.2.5">
+                <p id="section-10.3-1.2.2.5.1"><code>actor_unauthorized</code>: another actor credential or grant path might
+succeed (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-actor-profile-01#section-8.2" class="relref">Section 8.2</a> of [<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>); the same request will
+not.<a href="#section-10.3-1.2.2.5.1" class="pilcrow">¶</a></p>
+</li>
+              <li class="normal" id="section-10.3-1.2.2.6">
+                <p id="section-10.3-1.2.2.6.1">At an API, <code>insufficient_scope</code> calls for a token with more
+authority, which can need a new governed grant; a 403 whose
+challenge has no <code>error</code> attribute has no token-level remedy; and a
+503 can be retried after any <code>Retry-After</code> interval
+(<a href="#resource-errors" class="auto internal xref">Section 7.6</a>).<a href="#section-10.3-1.2.2.6.1" class="pilcrow">¶</a></p>
+</li>
+            </ul>
+<p id="section-10.3-1.2.3">
+Apart from the <code>invalid_client</code> and <code>invalid_grant</code> attempts above
+and a 503, a client does not retry the unchanged request
+automatically. A later change in policy or authorization makes a new
+request a new decision. <a href="#discovery" class="auto internal xref">Section 4.8</a> forbids retrying at a lower
+profile, <a href="#actor-inputs" class="auto internal xref">Section 5.3.5</a> forbids falling back from rejected
+evidence to authentication context, and <a href="#issuance-authorization" class="auto internal xref">Section 5.4</a>
+forbids falling back from delegated to self-acting access.<a href="#section-10.3-1.2.3" class="pilcrow">¶</a></p>
+</li>
         </ul>
 </section>
 </div>
@@ -5113,7 +5233,10 @@ them apart by explicit type: <code>oauth-id-jag+jwt</code> for an ID-JAG
 (<a href="#issuance-errors" class="auto internal xref">Section 5.8</a>) reveals that an actor was resolved but denied, but
 not which binding-resolution check failed. That disclosure reaches even
 a holder of stolen bearer evidence who passes the request's other
-authentication.<a href="#section-11.3-1" class="pilcrow">¶</a></p>
+authentication. At the RAS, <code>actor_unauthorized</code> (<a href="#redemption-errors" class="auto internal xref">Section 6.9</a>)
+tells an authenticated client holding a valid grant that its
+delegation was refused, not why; an uncorrelated or ineligible agent
+gets <code>invalid_grant</code>, as at the IdP.<a href="#section-11.3-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="security-bearer-evidence">
@@ -5548,6 +5671,10 @@ coordination (<a href="#wag-gaps" class="auto internal xref">Appendix B.2.1</a>)
         <dd>
 <span class="refAuthor">Bertocci, V.</span>, <span class="refTitle">"JSON Web Token (JWT) Profile for OAuth 2.0 Access Tokens"</span>, <span class="seriesInfo">RFC 9068</span>, <span class="seriesInfo">DOI 10.17487/RFC9068</span>, <time datetime="2021-10" class="refDate">October 2021</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9068">https://www.rfc-editor.org/rfc/rfc9068</a>&gt;</span>. </dd>
 <dd class="break"></dd>
+<dt id="RFC9110">[RFC9110]</dt>
+        <dd>
+<span class="refAuthor">Fielding, R., Ed.</span>, <span class="refAuthor">Nottingham, M., Ed.</span>, and <span class="refAuthor">J. Reschke, Ed.</span>, <span class="refTitle">"HTTP Semantics"</span>, <span class="seriesInfo">STD 97</span>, <span class="seriesInfo">RFC 9110</span>, <span class="seriesInfo">DOI 10.17487/RFC9110</span>, <time datetime="2022-06" class="refDate">June 2022</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9110">https://www.rfc-editor.org/rfc/rfc9110</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="RFC9396">[RFC9396]</dt>
         <dd>
 <span class="refAuthor">Lodderstedt, T.</span>, <span class="refAuthor">Richer, J.</span>, and <span class="refAuthor">B. Campbell</span>, <span class="refTitle">"OAuth 2.0 Rich Authorization Requests"</span>, <span class="seriesInfo">RFC 9396</span>, <span class="seriesInfo">DOI 10.17487/RFC9396</span>, <time datetime="2023-05" class="refDate">May 2023</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9396">https://www.rfc-editor.org/rfc/rfc9396</a>&gt;</span>. </dd>
@@ -5950,6 +6077,28 @@ last column is the required result. Token endpoint errors follow
                 <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>actor_unauthorized</code>; no ID-JAG</td>
               </tr>
               <tr>
+                <td class="text-left" rowspan="1" colspan="1">Alice's Delegation Authorization for <code>agent-42</code> permits <code>files.read</code>, and the client requests <code>files.write</code>
+</td>
+                <td class="text-left" rowspan="1" colspan="1">IdP</td>
+                <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>invalid_scope</code>; the authorization applies, and its scope ceiling excludes the request</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">The Delegation Authorization permits <code>files.read files.write</code>, policy categorically prohibits <code>agent-42</code> from <code>files.write</code>, and the client requests <code>files.write</code>
+</td>
+                <td class="text-left" rowspan="1" colspan="1">IdP</td>
+                <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>actor_unauthorized</code> (<a href="#issuance-authorization" class="auto internal xref">Section 5.4</a>)</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">The grant's <code>scope</code> claim is missing, empty, or not a string</td>
+                <td class="text-left" rowspan="1" colspan="1">RAS</td>
+                <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>invalid_grant</code> (<a href="#redemption-common" class="auto internal xref">Section 6.2</a>)</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">The RAS has no authorized correlation for <code>agent-42</code>, or <code>agent-42</code> is disabled there</td>
+                <td class="text-left" rowspan="1" colspan="1">RAS</td>
+                <td class="text-left" rowspan="1" colspan="1">HTTP 400, <code>invalid_grant</code>, not <code>actor_unauthorized</code> (<a href="#redemption-errors" class="auto internal xref">Section 6.9</a>)</td>
+              </tr>
+              <tr>
                 <td class="text-left" rowspan="1" colspan="1">Bound governed agent access required; grant has no <code>cnf</code>
 </td>
                 <td class="text-left" rowspan="1" colspan="1">RAS</td>
@@ -5995,6 +6144,39 @@ last column is the required result. Token endpoint errors follow
 </td>
                 <td class="text-left" rowspan="1" colspan="1">API</td>
                 <td class="text-left" rowspan="1" colspan="1">HTTP 403, <code>actor_unauthorized</code>; the evaluation uses <code>agent-42</code> from the validated <code>act</code> (<a href="#policy-services" class="auto internal xref">Section 7.5</a>)</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">The API's policy does not permit <code>agent-42</code> to act for Alice, and the operation also needs <code>files.write</code>, which the access token lacks</td>
+                <td class="text-left" rowspan="1" colspan="1">API</td>
+                <td class="text-left" rowspan="1" colspan="1">HTTP 403, <code>actor_unauthorized</code>, not <code>insufficient_scope</code>; the actor gate comes first (<a href="#resource-errors" class="auto internal xref">Section 7.6</a>)</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">The actor gate permits <code>agent-42</code>, and the operation needs <code>files.write</code>, which the access token lacks</td>
+                <td class="text-left" rowspan="1" colspan="1">API</td>
+                <td class="text-left" rowspan="1" colspan="1">HTTP 403, <code>insufficient_scope</code>
+</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">The actor gate permits <code>agent-42</code>, the token's scope covers the read, and Alice has no permission on <code>report-7</code>
+</td>
+                <td class="text-left" rowspan="1" colspan="1">API</td>
+                <td class="text-left" rowspan="1" colspan="1">HTTP 403 with a challenge that carries no <code>error</code> attribute</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">The API delegates evaluation to a policy service, which cannot be reached</td>
+                <td class="text-left" rowspan="1" colspan="1">API</td>
+                <td class="text-left" rowspan="1" colspan="1">HTTP 503; no operation performed and no denial reported</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">The policy service denies <code>agent-42</code> under the actor gate, and its evaluation of Alice's own permissions cannot complete</td>
+                <td class="text-left" rowspan="1" colspan="1">API</td>
+                <td class="text-left" rowspan="1" colspan="1">HTTP 403, <code>actor_unauthorized</code>; no unfinished check comes earlier</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">The policy service cannot complete the actor gate, and Alice has no permission on <code>report-7</code>
+</td>
+                <td class="text-left" rowspan="1" colspan="1">API</td>
+                <td class="text-left" rowspan="1" colspan="1">HTTP 503; the unfinished actor gate could come earlier than the user's denial</td>
               </tr>
               <tr>
                 <td class="text-left" rowspan="1" colspan="1">Platform JWT variant (<a href="#aws-example" class="auto internal xref">Appendix A.2.1</a>): Alice's access tokens for <code>agent-42</code> and for another agent carry the same <code>client_id</code>, and the API's policy permits only <code>agent-42</code>

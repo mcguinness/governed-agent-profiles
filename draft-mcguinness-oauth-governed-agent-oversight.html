@@ -1757,7 +1757,12 @@ the selected composition cannot enforce ("Issuance Authorization" in
 <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>); this document reuses them for an approval that the
 request did not let the IdP obtain. This document defines no discovery
 of a target's oversight mode; a client learns to opt in from
-configuration or from a pre-token hint (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-4.2" class="relref">Section 4.2</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>).<a href="#section-4.1-2" class="pilcrow">¶</a></p>
+configuration or from a pre-token hint (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-4.2" class="relref">Section 4.2</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>). A
+client that can wait for an approver and handle a deferred response can
+include <code>deferred</code> on every request that policy might hold, since the
+IdP answers synchronously when it does not defer. A refusal of such a
+request is not a missing opt-in, and the client does not retry it
+unchanged.<a href="#section-4.1-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="deferring">
@@ -2069,7 +2074,9 @@ that configuration applies mutual TLS regardless of any DPoP proof.<a href="#sec
 when its own policy refuses a redemption ("Redemption Errors" in
 <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>): <code>actor_unauthorized</code> for an ID-JAG and
 <code>invalid_target</code> for a WAG. The response therefore does not reveal
-that an approval could be obtained. A RAS that defers redemptions
+that an approval could be obtained. A client that can wait and handle a
+deferred response can include <code>deferred</code> on every redemption that RAS
+policy might hold, as at the IdP (<a href="#opt-in" class="auto internal xref">Section 4.1</a>). A RAS that defers redemptions
 advertises <code>deferred_token_response_supported</code> in its own metadata
 (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-4.1" class="relref">Section 4.1</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>); the IdP's metadata says nothing about the
 RAS.<a href="#section-5.1-3" class="pilcrow">¶</a></p>

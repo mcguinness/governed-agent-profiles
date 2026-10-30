@@ -134,6 +134,8 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | S17 | API | When the policy service cannot be reached, the request gets HTTP 503, none of the file's data and no denial code; a missing `Retry-After` is noted | core: Error Responses; Optional Policy Services | Turn on the policy service; set its policy; make it unavailable |
 | S18 | API | When the actor gate denies and the evaluation of the user's permissions cannot complete, the request gets HTTP 403 `actor_unauthorized`, since no unfinished check comes earlier | core: Error Responses; Optional Policy Services | Turn on the policy service; set its policy; make the `other` condition unavailable |
 | S19 | API | When the actor gate cannot be evaluated and the user's permission denies, the request gets HTTP 503, since the unfinished actor gate could come earlier | core: Error Responses; Optional Policy Services | Turn on the policy service; set its policy; make the `actor` condition unavailable |
+| S20 | API | With an opaque token the API has not introspected before, when the introspection endpoint answers HTTP 503, answers 200 with a body that is not a JSON object, or closes the connection before the body it declares, the request gets HTTP 503, none of the file's data and no `invalid_token`; a missing `Retry-After` is noted | core: Optional Opaque Access Tokens and Introspection; Error Responses; RFC 7662 Section 2.3 | Mint an opaque token; make introspection fail |
+| S21 | API | When introspection cannot complete and the DPoP proof's `ath` names another token, the request gets HTTP 401 for the proof, not 503, since the unfinished validation is in the same row | core: Error Responses; Token Validation; RFC 9449 Section 4.3 | Mint an opaque token; make introspection fail |
 
 The "negative-test row" sources are the rows of the core's "Renewal and
 Negative Tests" table. N15 and N27 assert `invalid_grant`, which the
@@ -159,8 +161,8 @@ in the body.
 
 Every negative case, P2 and D02 name the reference checks they exercise
 (`CHECKS` in [reference.py](reference.py)). With `--vacuity`, each of
-these 66 cases runs once for each check it names, with that check
-switched off; five S cases name two checks, so there are 71 runs, and
+these 68 cases runs once for each check it names, with that check
+switched off; five S cases name two checks, so there are 73 runs, and
 every run fails. Twenty-six N cases fail because the server then accepts
 the request. P2 fails because the access token then carries a rewritten
 `act`. N11 fails because the RAS's access-token protection check then
@@ -216,7 +218,11 @@ Without these, they fail on the response the API selects:
   and answers HTTP 503 whenever one cannot complete, even after the
   actor gate has denied;
 * S19 (`api.incomplete_outranks`): the API passes over the unfinished
-  actor gate and reports the user's denial, HTTP 403 without a code.
+  actor gate and reports the user's denial, HTTP 403 without a code;
+* S20 (`api.introspection_unavailable`): the API reads the failed
+  introspection call as an invalid token, HTTP 401 `invalid_token`;
+* S21 (`api.established_failure`): the API answers HTTP 503 without
+  checking the proof it could have rejected.
 
 S01, S08 and S10 are positive cases and name no check.
 
@@ -298,7 +304,10 @@ is not a denial: HTTP 503. S04 to S07 and S09 each fail one condition
 after the actor gate; S14 to S16 fail two conditions at once; S17 makes
 the policy service unavailable; S18 and S19 make one condition's
 evaluation fail beside a denial, so that an established failure is
-reported only when no unfinished check comes earlier.
+reported only when no unfinished check comes earlier. S20 and S21 do the
+same for token validation: an introspection call that cannot complete
+gets 503, unless a proof failure in the same row is already
+established.
 
 **Test fixtures.** The policy service and the API's introspection
 caller are test fixtures under the suite's control. The policy service
@@ -357,8 +366,15 @@ RAS's localhost transport whenever the presented token is not a JWS.
 The RAS mints opaque tokens only through test control. The API treats
 the response as validated claims: it rejects `active` false, applies
 applicability and the `act` requirement, binds the DPoP proof to
-`cnf.jkt`, and takes the tenant from `aud`. Nothing caches a response,
-and the suite tests no freshness limit.
+`cnf.jkt`, and takes the tenant from `aud`. A call that does not return
+a JSON object with a boolean `active`, such as an endpoint error, a
+timeout or a malformed body, cannot complete: the API checks the DPoP
+proof it has, and otherwise answers HTTP 503. Test control makes the
+RAS's endpoint fail (`introspection_unavailable`: `error`, `malformed`
+or `truncated`). S20 and S21 present tokens the API has not introspected
+before, so an implementation that caches responses within its limits
+still has to make the call. Nothing caches a response, and the suite tests no
+freshness limit.
 
 Some cases depend on choices made for the reference:
 
@@ -407,7 +423,8 @@ The suite tests nothing outside the path above, including:
 * the error selection order under the API's own evaluation, except the
   actor gate (N20), and a policy decision the API cannot interpret; the
   S cases test the order through the policy service, S17 an
-  unreachable one, and S18 and S19 one condition that cannot complete;
+  unreachable one, S18 and S19 one condition that cannot complete, and
+  S20 and S21 an introspection call that cannot complete;
 * RAS refresh tokens other than those from a deferred redemption;
 * DPoP server nonces, mutual TLS (including the refusal to defer for a
   resource configured for mutual-TLS access tokens), and bearer access
@@ -453,7 +470,8 @@ another IdP, RAS or API:
    `shorten` and `substitute`, and `advance_clock`, which must advance
    every server's clock. The S cases use `set` on the API
    (`policy_service`, `actor_gate`, `policy_unavailable`) and on the RAS
-   (`introspection_omit_act`), the policy service hooks `set_policy` and
+   (`introspection_omit_act`, `introspection_unavailable`), the policy
+   service hooks `set_policy` and
    `evaluations`, `mint_access_token`, and `mint_opaque_token`. The
    `Adapter` docstring defines each one, including the policy document
    that `set_policy` takes.

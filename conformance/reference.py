@@ -38,6 +38,7 @@ never sleep; with no advance, it is the system clock.
 import base64
 import copy
 import hashlib
+import http.client
 import json
 import secrets
 import threading
@@ -138,6 +139,8 @@ CHECKS = {
     "api.agent_from_token": "the API takes the agent from act, not from the client registration",
     "api.introspection_active": "an introspection response with active false is rejected",
     "api.introspection_act": "a delegated-population introspection response carries a valid act",
+    "api.introspection_unavailable": "an introspection call that cannot complete gets HTTP 503, "
+                                     "not invalid_token",
     "api.error_order": "of several failing conditions, the API reports the actor gate first, then "
                        "token authority, then any other denial",
     "api.denial_codes": "a denial carries actor_unauthorized only for the actor gate, "
@@ -658,6 +661,10 @@ class RAS(Server):
         # Introspection: opaque token -> the stored response members.
         self.opaque_tokens = {}
         self.introspection_omit_act = False   # test control: leave act out of every response
+        # Test control: make the endpoint fail ("error": HTTP 503), answer
+        # with a body that is not a JSON object ("malformed"), or close the
+        # connection before the body it declares ("truncated").
+        self.introspection_unavailable = False
 
     def control_op(self, op, body):
         if op == "set":
@@ -681,6 +688,11 @@ class RAS(Server):
                 self.authorization_lifetime = int(value)
             elif what == "introspection_omit_act":
                 self.introspection_omit_act = bool(value)
+            elif what == "introspection_unavailable":
+                if value not in (False, None, "error", "malformed", "truncated"):
+                    raise OAuthError("invalid_request", 400,
+                                     "error, malformed, truncated or false")
+                self.introspection_unavailable = value or False
             else:
                 raise OAuthError("invalid_request", 404, "unknown setting")
             return {}
@@ -711,7 +723,19 @@ class RAS(Server):
         if path not in ("/token", "/introspect") or environ["REQUEST_METHOD"] != "POST":
             return _respond(start_response, 404, {"error": "not_found"})
         if path == "/introspect":
-            return _respond(start_response, 200, self.introspect(environ))
+            if self.introspection_unavailable == "error":
+                raise OAuthError(None, 503)
+            body = self.introspect(environ)
+            if self.introspection_unavailable == "malformed":
+                return _respond(start_response, 200, b"temporarily unavailable",
+                                content_type="text/plain")
+            if self.introspection_unavailable == "truncated":
+                data = json.dumps(body).encode()
+                start_response("200 OK", [("Content-Type", "application/json"),
+                                          ("Cache-Control", "no-store"),
+                                          ("Content-Length", str(len(data) + 64))])
+                return [data[:len(data) // 2]]
+            return _respond(start_response, 200, body)
         form = _form(environ)
         grant_type = form.get("grant_type")
         if grant_type == [JWT_BEARER]:
@@ -1121,6 +1145,11 @@ def default_policy():
     }
 
 
+class IntrospectionUnavailable(Exception):
+    """An introspection call that did not complete token validation (core: Optional
+    Opaque Access Tokens and Introspection): no JSON object with a boolean active."""
+
+
 class PolicyUnavailable(Exception):
     """The policy service cannot be reached."""
 
@@ -1327,8 +1356,20 @@ class API(Server):
             raise OAuthError("invalid_request", 401, challenge='DPoP algs="ES256"')
         # Token validation (RFC 9068), or introspection for an opaque token.
         introspected = token.count(".") != 2
-        claims, ras = self.introspect(token, invalid) if introspected else \
-            self.validate_jwt(token, invalid)
+        try:
+            claims, ras = self.introspect(token, invalid) if introspected else \
+                self.validate_jwt(token, invalid)
+        except IntrospectionUnavailable:
+            if not self.on("api.introspection_unavailable"):
+                raise invalid   # non-conforming: an outage read as an invalid token
+            if self.on("api.established_failure"):
+                # Token validation is unfinished, but a proof failure in the
+                # same row is established without the response (core: Error
+                # Responses); the key binding needs cnf, so it stays unchecked.
+                if self.validate_dpop(environ, "GET", API_BASE + path, access_token=token,
+                                      status=401) is None:
+                    raise invalid
+            raise OAuthError(None, 503, headers=[("Retry-After", str(RETRY_AFTER))])
         # Protection: DPoP proof, ath, and key binding.
         jkt = self.validate_dpop(environ, "GET", API_BASE + path, access_token=token, status=401)
         cnf = claims.get("cnf") if isinstance(claims.get("cnf"), dict) else {}
@@ -1445,13 +1486,18 @@ class API(Server):
                                      headers={"Authorization": "Basic " + credentials,
                                               "Content-Type": "application/x-www-form-urlencoded",
                                               "Accept": "application/json"})
+        # A call that does not return a JSON object with a boolean active
+        # cannot complete validation: a transport failure, a timeout, any
+        # error response from the endpoint (HTTPError is a URLError), an
+        # HTTP protocol failure such as a truncated body (IncompleteRead),
+        # or a body that is not such an object. It says nothing about the token.
         try:
             with urllib.request.urlopen(req, timeout=10) as resp:
                 body = json.loads(resp.read())
-        except (urllib.error.URLError, ValueError):
-            raise invalid
-        if not isinstance(body, dict):
-            raise invalid
+        except (urllib.error.URLError, http.client.HTTPException, OSError, ValueError):
+            raise IntrospectionUnavailable()
+        if not isinstance(body, dict) or not isinstance(body.get("active"), bool):
+            raise IntrospectionUnavailable()
         if body.get("active") is not True and self.on("api.introspection_active"):
             raise invalid
         if body.get("iss", RAS_ISSUER) != RAS_ISSUER:

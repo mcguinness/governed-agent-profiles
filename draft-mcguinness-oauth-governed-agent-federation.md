@@ -1897,6 +1897,16 @@ For an active token:
   `jkt` under {{Section 6.2 of RFC9449}} or `x5t#S256` under
   {{Section 3.2 of RFC8705}}.
 
+An introspection call that does not return a JSON object with a boolean
+`active` member does not complete token validation. That includes a
+transport failure, a timeout, and an error response from the
+introspection endpoint ({{Section 2.3 of RFC7662}}), including one that
+rejects the API's own credentials: none says anything about the token,
+so {{resource-errors}} applies. A response with `active` set to false,
+or an active response that fails {{api-validation}}, establishes that
+the token is invalid. A cached active response used within the limits
+of {{api-validation}} completes the check.
+
 ## Redemption Errors {#redemption-errors}
 
 In addition to {{errors}} and the checks of {{redemption-common}}, the
@@ -2049,9 +2059,10 @@ attribute, and a `Bearer` challenge carries `realm`. A response body is
 application-specific but MUST NOT convey `actor_unauthorized` or
 `insufficient_scope`.
 
-If a check cannot complete, for example because a policy service is
-unreachable or returns a decision the API cannot interpret, the API
-MUST NOT perform the operation. If it has established a failure and no
+If a check cannot complete, for example because a policy service or
+the introspection endpoint ({{introspection}}) is unreachable or returns
+a response the API cannot interpret, the API MUST NOT perform the
+operation. If it has established a failure and no
 check that did not complete comes earlier in this table, it reports that
 failure as the table selects. Otherwise it MUST NOT report a denial
 from this table: it responds with HTTP status code 503 (Service
@@ -2883,6 +2894,8 @@ last column is the required result. Token endpoint errors follow
 | The actor gate permits `agent-42`, and the operation needs `files.write`, which the access token lacks | API | HTTP 403, `insufficient_scope` |
 | The actor gate permits `agent-42`, the token's scope covers the read, and Alice has no permission on `report-7` | API | HTTP 403 with a challenge that carries no `error` attribute |
 | The API delegates evaluation to a policy service, which cannot be reached | API | HTTP 503; no operation performed and no denial reported |
+| The access token is opaque, the API holds no usable cached introspection response for it, and the introspection endpoint cannot be reached or returns a response without a boolean `active` | API | HTTP 503; no operation performed, and not `invalid_token` ({{introspection}}) |
+| The introspection endpoint cannot be reached, and the DPoP proof's `ath` does not match the access token | API | HTTP 401 for the proof; the unfinished token validation is in the same row, not earlier ({{resource-errors}}) |
 | The policy service denies `agent-42` under the actor gate, and its evaluation of Alice's own permissions cannot complete | API | HTTP 403, `actor_unauthorized`; no unfinished check comes earlier |
 | The policy service cannot complete the actor gate, and Alice has no permission on `report-7` | API | HTTP 503; the unfinished actor gate could come earlier than the user's denial |
 | Platform JWT variant ({{aws-example}}): Alice's access tokens for `agent-42` and for another agent carry the same `client_id`, and the API's policy permits only `agent-42` | API | HTTP 403, `actor_unauthorized` for the other agent; the client identifier does not stand in for the agent ({{actor-authorization}}) |

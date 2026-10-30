@@ -643,7 +643,7 @@ recovery](IMPLEMENTERS-GUIDE.md#errors-and-recovery)).
 | The IdP is unavailable | New grants, including onward grants | Valid access tokens and redeemable grants | New grants once it returns |
 | Lifecycle delivery is delayed or lost | The undelivered change stops nothing until it is applied; a revalidation bound denies new authorization and refresh once it passes | Decisions on the last applied state | Reconciliation with the source |
 | The RAS has no record for the agent | Its redemptions, unless just-in-time correlation applies | Agents already correlated | Provisioning, or just-in-time correlation |
-| Introspection is unavailable at the API | Requests that need a check | Cached active responses, within the cache policy | Requests succeed once it returns |
+| Introspection is unavailable at the API | Requests that need a check; the API answers that it is unavailable, not that the token is invalid, unless a failure such as an invalid proof is established | Cached active responses, within the cache policy | A retry after any `Retry-After` interval |
 | A policy decision service is unavailable | Operations that need its decision; the API answers that it is unavailable, not that it denies, unless a failure is established and no unfinished check ranks earlier | Operations the API decides without it | A retry after any `Retry-After` interval |
 | A continuation is refused | That continuation; once the chain has ended, every continuation of it | Tokens already issued, for their lifetimes | A new root grant once the chain has ended; otherwise a different request, or a retry under a rate limit's policy |
 

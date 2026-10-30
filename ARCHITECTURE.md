@@ -299,9 +299,9 @@ recovery](IMPLEMENTERS-GUIDE.md#errors-and-recovery)).
   delegated-population token without `act`, or a token for another
   tenant is an invalid token. A valid actor that the gate denies is
   refused authority, and an evaluation that cannot complete is
-  unavailable, not a denial, unless an earlier-ranking failure is
-  already established. The validation mode decides how soon a
-  revocation at the RAS reaches the API.
+  unavailable, not a denial, unless a failure is established and no
+  unfinished check ranks earlier than it. The validation mode decides
+  how soon a revocation at the RAS reaches the API.
 
 ### Platform → IdP
 

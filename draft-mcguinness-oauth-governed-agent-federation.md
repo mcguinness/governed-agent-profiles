@@ -1636,7 +1636,8 @@ Both grants use these checks. {{redemption-validation}} and
      parameters, or a requested resource different from that URI, with
      `invalid_target` under {{Section 2 of RFC8707}}.
    * **Scope:** Require the grant's `scope` claim to be a non-empty
-     string. A supplied request `scope` MUST be a non-empty subset of
+     string. Reject a missing, empty, or non-string claim with
+     `invalid_grant`. A supplied request `scope` MUST be a non-empty subset of
      that claim, or the RAS MUST return `invalid_scope`.
    * **Authorization details:** Apply ID-JAG's processing for
      `authorization_details`. Reject the grant with `invalid_grant` if

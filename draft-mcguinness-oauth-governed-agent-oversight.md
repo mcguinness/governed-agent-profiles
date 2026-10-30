@@ -232,8 +232,10 @@ and oversight of individual actions at an API. It does not cover:
 * the approval channel or its user interface;
 * the format or transport of notices to overseers;
 * completion of an approved access request as a token under {{AROP}}
-  at the IdP, or continuation from an authorization whose redemption
-  was deferred ({{open-items}}).
+  at the IdP ({{open-items}}); or
+* continuation from an authorization whose redemption was deferred,
+  beyond making that authorization ineligible for it
+  ({{redemption-refresh}}, {{open-items}}).
 
 This document defines no new token format, claim, error code, grant
 type, or request parameter.

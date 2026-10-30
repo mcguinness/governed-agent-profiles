@@ -896,7 +896,7 @@ the applicable input profile. {{issuance-errors}} and
 | Unacceptable `resource` parameter at exchange, redemption, or refresh, including multiple values or a target outside the grant or retained authorization | `invalid_target` under RFC 8707 |
 | Target Tenant cannot be resolved for the requested resource | `invalid_target` |
 | No client registration association exists for the requested RAS ({{flow-configuration}}) | `invalid_target` |
-| Unacceptable requested scope, invalid scope reduction, or no non-empty scope can be issued | `invalid_scope` |
+| Unacceptable requested scope, invalid scope reduction, or no non-empty scope can be issued, except where {{issuance-authorization}} assigns `actor_unauthorized` | `invalid_scope` |
 | User cannot be resolved, user or required link is disabled, or subject identifiers conflict | `invalid_grant`; no token or automatic linking fallback |
 {: title="Target, authority, and user-resolution errors"}
 

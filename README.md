@@ -13,10 +13,11 @@ and revocation is all or nothing.
 
 ## How it works
 
-The agent's OAuth client authenticates to the IdP and receives a grant
-naming the governed agent. It exchanges that grant at the resource
-domain's authorization server (RAS) for an access token. The grant
-depends on whom the agent acts for:
+Three parties decide. The enterprise IdP identifies the agent and
+authorizes a grant naming it; the resource domain's authorization server
+(RAS) decides what access to issue; and the API enforces that access
+with its own checks. The agent's OAuth client carries the grant between
+them. The grant depends on whom the agent acts for:
 
 | The agent acts | Grant | The resource domain sees |
 |---|---|---|
@@ -25,30 +26,21 @@ depends on whom the agent acts for:
 
 ```mermaid
 flowchart LR
-  authority["Credential authority<br/>SPIFFE, attester, platform"]
-  subgraph platform["Agent platform"]
-    connector["SCIM connector"]
-    client["OAuth client"]
-  end
-  subgraph idp["Governing IdP"]
-    principal["Agent Principal<br/>and its relationships"]
-  end
-  subgraph domain["Resource domain"]
-    ras["RAS"]
-    api["API or gateway"]
-  end
-  client -->|"Federation: token exchange"| principal
-  principal -->|"ID-JAG or WAG"| client
-  client -->|"redeem grant"| ras
-  client -->|"access token"| api
-  authority -->|"Inputs: workload evidence"| client
-  connector -->|"Management: SCIM"| principal
-  principal -->|"Lifecycle: SCIM, signals"| ras
-  api -->|"Continuation exchange"| principal
+  client["Agent's OAuth client"]
+  idp["Governing IdP<br/>identifies and authorizes the agent"]
+  ras["RAS<br/>decides what access to issue"]
+  api["API<br/>enforces access"]
+  client -->|"token exchange"| idp
+  idp -->|"ID-JAG or WAG"| client
+  client -->|"redeem the grant"| ras
+  ras -->|"access token"| client
+  client -->|"call"| api
 ```
 
-The [architecture overview](ARCHITECTURE.md) explains each connection,
-the principles behind it, and how revocation works across it.
+Companion profiles add workload inputs, gateways, SCIM administration,
+lifecycle propagation, and human oversight to this path without
+changing it; the architecture overview shows [how they
+connect](ARCHITECTURE.md#how-they-connect).
 
 ## The drafts
 
@@ -56,7 +48,9 @@ Start with the [OAuth 2.0 Profile for Governed Agent Federation][core]
 ([source](draft-mcguinness-oauth-governed-agent-federation.md), OAuth
 working group). A client, IdP, RAS, and API can implement
 dedicated-client federation, one OAuth client per agent, from it alone.
-Add a companion when you need what it addresses:
+The core also supports shared clients that present an existing platform
+JWT identifying the agent. Add a companion when you need what it
+addresses:
 
 | When you need | Add | Working group |
 |---|---|---|
@@ -65,47 +59,25 @@ Add a companion when you need what it addresses:
 | Platforms that register agents and their relationships at the IdP | [SCIM Profile for Governed Agent Federation Management][management] ([source](draft-mcguinness-scim-agent-federation.md)) | SCIM |
 | OAuth client registrations managed through SCIM | [SCIM Profile for OAuth 2.0 Client Management][oauth-client] ([source](draft-mcguinness-scim-oauth-client-management.md)) | SCIM |
 | Resource domains provisioned with agents and their disablement | [Governed Agent Lifecycle Profile][lifecycle] ([source](draft-mcguinness-oauth-governed-agent-lifecycle.md)) | SCIM |
-| A person to approve, or to observe and end, an agent's grants and actions | [Human Oversight Profile][oversight] ([source](draft-mcguinness-oauth-governed-agent-oversight.md)) | OAuth |
+| A person to approve, or to observe and end, an agent's grants, redemptions, and actions | [Human Oversight Profile][oversight] ([source](draft-mcguinness-oauth-governed-agent-oversight.md)) | OAuth |
 
 The draft names link to the editor's copies. All seven are individual
-drafts under development. The core and the input profiles reference
-each other normatively and are published together; an implementation
-that claims none of the optional inputs needs only the core.
+drafts under development. An implementation that claims none of the
+optional inputs needs only the core; the core and the input profiles
+reference each other normatively and are published together.
 
 ## Where to start
 
-* **[Architecture overview](ARCHITECTURE.md):** the system in one page,
-  identity and responsibility, trust between parties, the delegated and
-  self-acting flows and their variants, changes and failures, optional
-  integrations, and a specification map with a glossary.
-* **[Playbook for identity teams](PLAYBOOK.md):** five operating steps
-  with exit checks, recipes for delegated and self-acting deployments,
-  a vendor evidence worksheet, stop-and-restore runbooks, and an audit
-  trace.
-* **[Implementer's guide](IMPLEMENTERS-GUIDE.md):** message flows for
-  both grants, what each role builds, configuration, and the errors
-  each role returns.
-* **[End-to-end examples](EXAMPLES.md):** one delegated transaction and
-  its self-acting counterpart, then optional variations (approval at
-  issuance and at redemption, a gateway, a scheduled run), an incident,
-  and SCIM provisioning, with the messages on the wire.
-* **[Conformance suite](conformance/README.md):** executable cases for
-  the mandatory delegated path, deferred redemption at the RAS, and an
-  API's policy service, with a test-only reference IdP, RAS and API.
-  Each case lists the control of the implementation it needs.
-* **[Coordination notes](COORDINATION.md):** what the drafts need from the
-  specifications they depend on.
-
-By role:
-
-| If you build | Read |
-|---|---|
-| An enterprise identity program | The playbook, then the architecture overview |
-| An identity provider | The core (issuance), the input profiles you support, SCIM management, and continuation if gateways continue requests |
-| A resource authorization server or API | The core (redemption and resource access), and lifecycle if the domain accepts provisioning and disablement |
-| An agent platform | The core (client requests), SCIM management, and lifecycle for agents the platform hosts |
-| A gateway | Continuation, and the core for the access it receives |
-| A SCIM service for OAuth clients | SCIM OAuth client management |
+| You are | Start with | Then |
+|---|---|---|
+| Evaluating the approach | The [architecture overview](ARCHITECTURE.md) | The [first transaction](EXAMPLES.md#first-delegated-transaction) of the end-to-end examples |
+| An enterprise identity team | The [playbook for identity teams](PLAYBOOK.md): owners, exit checks, recipes, and runbooks | The architecture overview |
+| Building an IdP, RAS, API, or client | The [implementer's guide](IMPLEMENTERS-GUIDE.md): what each role builds and configures, and the errors it returns | The core, and the [end-to-end examples](EXAMPLES.md) for the messages |
+| Adding an optional capability | The guide's chapter for it: continuation for gateways and scheduled work, human oversight for approval at the IdP, the RAS, or an action, AuthZEN for policy services | The companion profile that defines it |
+| Building an agent platform | The guide, then [SCIM management][management] to register agents | [Lifecycle][lifecycle] for agents the platform hosts |
+| Building a SCIM service for OAuth clients | [SCIM OAuth client management][oauth-client] | |
+| Testing an implementation | The [conformance suite](conformance/README.md): cases for the delegated path, deferred redemption at the RAS, and an API's policy service, each listing the control of the implementation it needs, with a test-only reference IdP, RAS, and API | |
+| Tracking dependencies | The [coordination notes](COORDINATION.md): what the drafts need from the specifications they depend on | |
 
 ## Contributing
 
@@ -125,6 +97,12 @@ $ make
 
 Command line usage requires that you have the necessary software installed.  See
 [the instructions](https://github.com/martinthomson/i-d-template/blob/main/doc/SETUP.md).
+
+Continuous integration also runs the conformance suite with its vacuity
+check, `conformance/run.py --vacuity` (setup in
+[conformance/README.md](conformance/README.md)), and
+`tools/check_examples.py`, which checks the messages EXAMPLES.md copies
+from the drafts.
 
 [core]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
 [inputs]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html

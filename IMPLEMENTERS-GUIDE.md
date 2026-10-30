@@ -685,7 +685,9 @@ drafts](ARCHITECTURE.md#beyond-these-drafts).
 ### Inputs the enforcement point supplies
 
 The enforcement point builds the protected part of each request from the
-validated access token and trusted configuration:
+validated access token, or an authenticated introspection response, and
+trusted configuration, as [Optional Policy Services][policy-services]
+requires:
 
 | Attribute | Delegated access | Self-acting access | Source |
 |---|---|---|---|
@@ -706,7 +708,11 @@ declared mapping produces, other than the verified subject identifier,
 as untrusted input (Section 11.4 of COAZ-MCP). A declared mapping
 therefore must not supply or override the attributes in the table, and
 policy must not grant identity or privilege on the strength of
-attributes it supplies.
+attributes it supplies. The AuthZEN working group reached the same
+rule for COAZ-MCP: policies that need the actor reason over the
+validated token's claims, and deployment-specific `context` values
+carry no trust semantics from the binding ([coordination
+notes](COORDINATION.md)).
 
 ### One identity model across AuthZEN profiles
 
@@ -760,24 +766,30 @@ Four differences matter for governed deployments:
   casts the authorization server as an enforcement point; a decision
   "may narrow what is issued; it may not broaden it, re-subject it, or
   re-target it." That matches the core's [Issuance
-  Authorization][issuance-authorization], but the request has no member
-  for the actor. A governed IdP decides on the Agent Principal it
-  resolved, which, for a dedicated client, is not the requesting
-  client. Likewise, AROP completes an approved request as an access
-  token, but says nothing about keeping the originating grant's
-  subject and actor. The [oversight profile][OVERSIGHT] defines
-  deferred governed issuance but not AROP, whose approval deadline
-  bounds tokens the RAS issues. A future composition of either profile
-  with governed issuance would need to preserve governed identity
-  resolution and authorization checks.
+  Authorization][issuance-authorization], but the profile has no
+  mandatory input for the actor, and its `context` is advisory. A
+  governed IdP decides on the Agent Principal it resolved, which, for a
+  dedicated client, is not the requesting client. AROP completes an
+  approved request as an access token without saying which identities
+  the token carries; for a governed grant these are the identities
+  redemption resolves, such as the RAS's local user, not the grant's
+  literal `sub`. ARAP's default approval comparison leaves out the
+  actor, and an approval deadline bounds only what the approving
+  server issues. The [oversight profile][OVERSIGHT] defines deferred
+  governed issuance but not AROP. A composition of these profiles with
+  governed issuance would need the resolved agent as a mandatory
+  decision input, an approval bound to the governed request and its
+  resolved identities, and the governed identity resolution and
+  authorization checks preserved.
 
 Two things are different here. The request projections in the table can
 be implemented today: an enforcement point can map each profile's
 request into this model, and policy can be written against the model
 rather than any one profile's members. The issuance and approval
 protocols cannot; mapping fields does not compose them, and they remain
-unresolved. [COORDINATION.md](COORDINATION.md) records the
-changes proposed to the profiles.
+unresolved. [COORDINATION.md](COORDINATION.md) records the governed
+requirements for the OAuth mapping profile the AuthZEN working group
+plans, and the changes proposed to the other profiles.
 
 A client that holds tokens for several tools or resources keeps each
 under the context of [Client Token Reuse][client-token-reuse]: agent,
@@ -789,11 +801,13 @@ context.
 
 The requests below illustrate those rules. Subject types and context
 member names are illustrations, not a convention; the profiles leave a
-reusable convention to COAZ-MCP ([coordination
-notes](COORDINATION.md)). In each request, the enforcement point
-supplies the subject and every `context` member from the validated token
-and trusted configuration; the tool's declared mapping supplies only
-`action` and `resource` from the call.
+reusable convention to the OAuth mapping profile the AuthZEN working
+group plans ([coordination notes](COORDINATION.md)). In each request,
+the enforcement point supplies the subject and every `context` member
+from the validated token and trusted configuration; the tool's declared
+mapping supplies only `action` and `resource` from the call. The
+`context` members are trustworthy because the enforcement point
+supplies them, not because a binding defines them.
 
 #### Delegated access at an MCP gateway
 

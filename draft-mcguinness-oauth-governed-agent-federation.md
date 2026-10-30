@@ -1983,6 +1983,13 @@ a policy decision service, it MUST:
   Agent Principal, and the OAuth client.
 * Supply the tenant and token constraints needed to evaluate the
   requested operation.
+* Take the user, the Agent Principal, the OAuth client, the tenant, and
+  the token constraints that it supplies only from the access token
+  validated under {{api-validation}}, or from an authenticated
+  introspection response ({{introspection}}), and from trusted
+  configuration, including the API's own resolution of those identities
+  to local principals. Attributes derived from the request, such as
+  from a tool call's arguments, never supply or override them.
 
 For a self-acting token, the local principal stands for the Agent
 Principal. {{AUTHZEN}} is one optional evaluation interface. This
@@ -2782,6 +2789,8 @@ last column is the required result. Token endpoint errors follow
 | Delegated access token without `act`, presented to an API configured for the governed delegated population | API | HTTP 401, `invalid_token`; a missing `act` does not make the token self-acting ({{api-applicability}}) |
 | Platform JWT variant ({{aws-example}}): the shared client `platform-sso` holds a token for `agent-42` and starts an operation for another agent with the same scope | Client | Obtains a grant for that agent; a matching `client_id` and scope do not permit reuse ({{client-token-reuse}}) |
 | Platform JWT variant ({{aws-example}}): the platform JWT fails validation | IdP | HTTP 400, `invalid_grant`; no retry from authentication context or under another credential class ({{actor-inputs}}) |
+| The API delegates evaluation to a policy service; an attribute derived from the request names `agent-77` as the agent, and policy permits `agent-77` but not `agent-42` | API | HTTP 403, `actor_unauthorized`; the evaluation uses `agent-42` from the validated `act` ({{policy-services}}) |
+| Platform JWT variant ({{aws-example}}): Alice's access tokens for `agent-42` and for another agent carry the same `client_id`, and the API's policy permits only `agent-42` | API | HTTP 403, `actor_unauthorized` for the other agent; the client identifier does not stand in for the agent ({{actor-authorization}}) |
 {: title="Negative test cases"}
 
 The grant binding is enforced regardless of access-token protection,

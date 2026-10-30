@@ -655,7 +655,7 @@ flowchart LR
 | Each action | API or MCP gateway | Whether this user and agent may perform this operation on this object | [Optional Policy Services][policy-services] and [Delegated Actor Authorization][actor-authorization]; the conformance suite's S cases try substituting each identity from request attributes | AuthZEN evaluation; [COAZ-MCP][COAZ-MCP] for MCP tool calls |
 | Redemption | RAS | Whether to issue an access token under local user, actor, client, tenant, and resource policy | Grant Redemption at the RAS; the core states its policy-service rules for the API, and [deferred redemption][ov-redemption] builds evaluations only from the redemption's resolved values | AuthZEN evaluation; ARAP and AROP when RAS policy requires approval |
 | Issuance | IdP | Decisions that depend on tool arguments or business objects, which the IdP need not interpret | Authorization Relationships: resource-domain evaluation, locally or through a trusted policy service | A resource-domain PDP; the AuthZEN Token Issuance profile is not yet composed with governed issuance ([below](#one-identity-model-across-authzen-profiles)) |
-| Requestable denial | API | Whether the agent can ask for more access | External Approval; per-action oversight in the oversight profile; at the RAS, deferred redemption; AROP at the IdP is an excluded composition | ARAP for the request; AROP for completion as a token at the RAS |
+| Requestable denial | API | Whether the agent can ask for more access | External Approval; per-action oversight in the oversight profile. A RAS that refuses a redemption does not reveal whether approval could be obtained ([Redemption Opt-In][ov-redemption-opt-in]), and AROP at the IdP is an excluded composition | ARAP for the request |
 
 ### Use cases
 
@@ -1361,6 +1361,7 @@ resource domain provisioned for `agent-58` applies the deletion under
 [ov-open-items]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#open-items
 [ov-redemption]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#deferred-redemption
 [ov-recovery]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#redemption-recovery
+[ov-redemption-opt-in]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#redemption-opt-in
 [ov-redemption-refresh]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html#redemption-refresh
 [DTR]: https://www.ietf.org/archive/id/draft-ietf-oauth-deferred-token-response-00.html
 [CIBA]: https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html

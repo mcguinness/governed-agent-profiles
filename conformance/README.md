@@ -5,7 +5,8 @@ interoperable path through the core profile, and a reference
 implementation to run them against. The path is the mandatory
 interoperability path for delegated access in the core's [Conformance
 Claims][core-scope], under the bound profile, as
-[EXAMPLES.md](../EXAMPLES.md) scene 2 traces it:
+[EXAMPLES.md](../EXAMPLES.md)'s [first delegated
+transaction](../EXAMPLES.md#first-delegated-transaction) traces it:
 
 * a dedicated client authenticating with `private_key_jwt`;
 * an ID Token as the subject token;
@@ -52,7 +53,9 @@ The reference servers use the example identifiers: `https://idp.example/`,
 `https://ras.example/` and `https://api.example` are the issuer and
 origin values in tokens, client assertions and DPoP proofs, while the
 servers listen on localhost. A reader can lay the output beside
-[EXAMPLES.md](../EXAMPLES.md) scene 2.
+the [first delegated
+transaction](../EXAMPLES.md#first-delegated-transaction) in
+[EXAMPLES.md](../EXAMPLES.md).
 
 ## Cases
 

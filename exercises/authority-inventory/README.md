@@ -26,12 +26,13 @@ decide what comes next.
 
 ## The deployment
 
-Each participating product is configured with scene 1 of
-[EXAMPLES.md](../../EXAMPLES.md), then runs scene 2's first access, so
+Each participating product is configured with the records that
+[EXAMPLES.md](../../EXAMPLES.md)'s first delegated transaction and its
+variations assume, then runs that first transaction, so
 that one grant and one access token exist. The authority records for
 `agent-42` are:
 
-| Record kind | Scene 1 value |
+| Record kind | Example value |
 |---|---|
 | Identity Binding | (`analysis-client`, `analysis-client`) resolves to `agent-42`; as a dedicated-client binding it also permits the client's delegated use |
 | Client Association | `analysis-client` may use that binding for self-acting issuance |
@@ -88,7 +89,7 @@ whether or not the product can give it.
 Each answer to tasks 1 and 2 has four parts, which products tend to hold
 to very different degrees:
 
-| Part | What it covers | Example in scene 1 |
+| Part | What it covers | Example value |
 |---|---|---|
 | Desired state | The record as configured: who, what, where, and whether it is active | Alice's delegation, `files.read` and `files.write`, active |
 | Approval provenance | What created the record, who approved it, and when | Assigned by an administrator, or consented to by Alice, on September 16 |
@@ -100,7 +101,7 @@ usage. Finding out which is the point of the exercise.
 
 ## Answer key for task 4
 
-Task 4's answer depends on the recorded settings. The scene 2 clock
+Task 4's answer depends on the recorded settings. The first transaction's clock
 fixes the rest: `grant-1` was issued at 12:01:03 with a 300 s lifetime,
 and was redeemed at 12:01:04 for `access-1`, a JWT access token valid
 until 12:11:04, with no refresh token.
@@ -198,7 +199,7 @@ records, whatever the outcome for the kind.
 
 The exercise needs at least two independent products: two IdPs, or an
 IdP and an identity-governance tool that reads it. It also needs people
-who can configure scene 1 on each. This repository has neither.
+who can configure the examples' records on each. This repository has neither.
 
 Until then, the table can be tried against the
 [reference implementation](../../conformance/README.md) as a dry run.

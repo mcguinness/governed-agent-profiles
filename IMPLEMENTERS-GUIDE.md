@@ -427,20 +427,108 @@ a valid proof at redemption ([Grant Protection][grant-protection]).
 ## Errors and recovery
 
 The drafts, and the specifications they build on, fix the codes each
-role returns; this index points to their tables, which govern.
+role returns. This index points to their tables, which govern.
 
-| Role | Returns | Defined in | Cases |
-|---|---|---|---|
-| IdP | The client authentication method's error, such as `invalid_client`, for a failed client assertion. `invalid_request`: a malformed request, or a missing DPoP proof under the bound profile. `invalid_grant`: the subject, input, binding, agent, or Governance Tenant cannot be resolved. `actor_unauthorized` (HTTP 400): no Client Association, no applicable Delegation Authorization, or a categorical prohibition. `invalid_scope`: beyond the authorization's scope ceiling. `invalid_target`: the target, its Target Tenant, or the client registration association. Self-acting issuance uses `unauthorized_client` (no Client Association) and `invalid_target` (not authorized for the target) where delegated issuance uses `actor_unauthorized` | core: [Token Endpoint Errors][errors]; [Issuance Errors][issuance-errors] | N01 to N09, N21, N22, N25, N28 |
-| RAS | `invalid_grant`: an invalid or replayed grant, a missing proof or one of another key, another client, or an uncorrelated, disabled, or restricted agent. `actor_unauthorized` (HTTP 400): policy, including the actor gate, refuses an ID-JAG's delegation. `invalid_target`: policy refuses a WAG, or the resource is outside the grant | core: [Redemption Errors][redemption-errors] | N10 to N16, N23, N26, N27 |
-| API | The first failure in the core's order, whatever order it checks in: token or proof (401); actor claims or tenant (401 `invalid_token`); actor gate (403 `actor_unauthorized`); scope (403 `insufficient_scope`); any other denial (403 with no `error` attribute, and no body that conveys either code). HTTP 503 when a check cannot complete, unless a failure is established and no unfinished check ranks earlier than it | core: [Error Responses][resource-errors] | N17 to N20, N24, S02 to S07, S14 to S19 |
-| Continuation (optional), at the IdP | `invalid_continuation`: the chain has ended. `invalid_grant`: past the hop's deadline or a chain limit. `unauthorized_client`: no Continuation Association or restriction permits the client. HTTP 503: shared state cannot be confirmed | continuation: [Errors][cont-errors] | None yet |
-| Oversight (optional), at the IdP and the RAS | Without the opt-in, or where the RAS cannot defer, the ordinary refusal (`actor_unauthorized` delegated, `invalid_target` self-acting). Polls: `authorization_pending`, `slow_down`, `access_denied`, `expired_token`, `invalid_dpop_proof`. `invalid_grant`: at the IdP, a poll after delivery; at the RAS, any presentation of an accepted grant other than recovery, and a refresh the kept approval no longer permits. A CAI refuses a deferred redemption's token with `invalid_request` | oversight: [Client Opt-In][ov-opt-in]; [Redemption Opt-In][ov-redemption-opt-in]; [Recovery][ov-recovery]; [Redemption Resolution][ov-redemption-resolution]; [Refresh and Continuation][ov-redemption-refresh] | D01 to D22, at the RAS; IdP deferral and the CAI refusal untested |
+### At the IdP
 
-An API that relies on a policy service for the actor gate needs the
-decision to say whether the gate denied, or it evaluates the gate
-itself ([Optional Policy Services][policy-services]). A decision it
-cannot obtain or interpret is a check that cannot complete.
+[Token Endpoint Errors][errors] and [Issuance Errors][issuance-errors];
+cases N01 to N09, N21, N22, N25, and N28.
+
+* The client authentication method's error, such as `invalid_client`:
+  a failed client assertion.
+* `invalid_request`: a malformed request, or a missing DPoP proof under
+  the bound profile.
+* `invalid_grant`: an invalid subject credential or agent-resolution
+  input, or no resolvable binding, active Agent Principal, or
+  Governance Tenant.
+* `actor_unauthorized`, with HTTP 400: no Client Association permits
+  the binding; no applicable Delegation Authorization covers the agent,
+  user, client, and target; or policy categorically prohibits the agent.
+* `invalid_scope`: beyond an applicable authorization's scope ceiling.
+* `invalid_target`: the target, its Target Tenant, or the client
+  registration association cannot be resolved.
+* Self-acting issuance answers `unauthorized_client` when no Client
+  Association permits it, and `invalid_target` when the agent is not
+  authorized for the target, where delegated issuance answers
+  `actor_unauthorized`.
+
+### At the RAS
+
+[Redemption Errors][redemption-errors] and [Common Grant
+Validation][redemption-common]; cases N10 to N16, N23, N26, and N27.
+
+* `invalid_grant`:
+  * an invalid grant, including one with a missing, empty, or
+    non-string `scope` claim, or one presented by a client other than
+    its `client_id`;
+  * for a bound grant, a missing proof or one of another key, and,
+    where the minimum profile requires binding, a grant without `cnf`;
+  * a prohibited replay: a grant without an enforced sender constraint
+    that the RAS already accepted. A bound grant can be accepted again
+    under explicit policy, each time with a fresh proof that matches its
+    `cnf.jkt`;
+  * an `act` agent, or a WAG's subject, that is uncorrelated, disabled,
+    or restricted.
+* `actor_unauthorized`, with HTTP 400: current policy, including the
+  actor gate, refuses an ID-JAG's delegation.
+* `invalid_target`: current policy refuses a WAG, or the requested
+  resource is not the grant's.
+* `invalid_scope`: a requested scope outside the grant's.
+
+### At the API
+
+[Error Responses][resource-errors] and [Optional Policy
+Services][policy-services]; cases N17 to N20, N24, S02 to S07, and S14
+to S19.
+
+The API reports the first failure in this order, whatever order it
+evaluates its checks in:
+
+1. A missing or invalid token, proof, or certificate binding: HTTP 401,
+   as the token or proof specification requires.
+2. Missing actor claims, or missing or mismatched tenant context: HTTP
+   401 `invalid_token`.
+3. An actor-gate denial: HTTP 403 `actor_unauthorized`.
+4. Missing scope or authorization details: HTTP 403
+   `insufficient_scope`.
+5. Any other denial: HTTP 403 with no `error` attribute, and no body
+   that conveys either code.
+
+A check that cannot complete gets HTTP 503, with `Retry-After`
+recommended, unless a failure is established and no unfinished check
+ranks earlier than it. An API that relies on a policy service for the
+actor gate needs the decision to say whether the gate denied, or it
+evaluates the gate itself; a decision it cannot obtain or interpret is a
+check that cannot complete.
+
+### In optional capabilities
+
+* **Continuation, at the IdP** ([Errors][cont-errors]; no cases yet):
+  * `invalid_continuation`: the chain has ended.
+  * `invalid_grant`: past the hop's deadline, or a chain limit.
+  * `unauthorized_client`: no Continuation Association or restriction
+    permits the continuing client.
+  * `invalid_target`, `invalid_scope`, or
+    `invalid_authorization_details`: beyond what the sources of
+    authority permit.
+  * HTTP 503: the IdP cannot confirm shared state.
+* **Oversight, at the IdP and the RAS** ([Client Opt-In][ov-opt-in];
+  [Redemption Opt-In][ov-redemption-opt-in]; [Recovery][ov-recovery];
+  [Redemption Resolution][ov-redemption-resolution]; [Refresh and
+  Continuation][ov-redemption-refresh]; cases D01 to D22, at the RAS
+  only):
+  * When policy requires approval, a request without the opt-in, or one
+    the RAS cannot defer, gets the ordinary refusal:
+    `actor_unauthorized` for a delegated grant, `invalid_target` for a
+    self-acting one. Without such a policy, a request without the
+    opt-in can succeed at once.
+  * Polls: `authorization_pending` or `slow_down` while pending; then
+    `access_denied`, `expired_token`, or, for a poll with another key,
+    `invalid_dpop_proof`.
+  * `invalid_grant`: at the IdP, a poll after delivery; at the RAS, any
+    presentation of an accepted grant other than recovery, and a
+    refresh that the kept approval no longer permits.
+  * At a CAI, a token from a deferred redemption: `invalid_request`.
 
 A client recovers as the core's [recovery list][implementation-client]
 describes: at most one bounded attempt after `invalid_client` or
@@ -1428,6 +1516,7 @@ Considerations][security].
 [errors]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#errors
 [issuance-errors]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#issuance-errors
 [redemption-errors]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#redemption-errors
+[redemption-common]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#redemption-common
 [resource-errors]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#resource-errors
 [implementation-client]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#implementation-client
 [actor-authorization]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#actor-authorization

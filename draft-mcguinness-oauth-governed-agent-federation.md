@@ -1892,7 +1892,8 @@ RAS uses these errors:
 |---|---|
 | Invalid ID-JAG | `invalid_grant` |
 | Unbound grant whose (`iss`, `jti`) the RAS already accepted | `invalid_grant` |
-| WAG whose `sub` has no authorized correlation at the RAS | `invalid_grant` |
+| ID-JAG whose `act` agent has no authorized correlation at the RAS, or is subject to an applied disablement, correlation removal, or local restriction ({{applied-changes}}) | `invalid_grant` |
+| WAG whose `sub` has no authorized correlation at the RAS, or is subject to an applied disablement, correlation removal, or local restriction | `invalid_grant` |
 | Invalid WAG, including one without `typ` `wag+jwt` or one that contains `act` | `invalid_grant` |
 | Current RAS policy refuses a valid ID-JAG's delegation, including under the actor gate ({{actor-authorization}}) | `actor_unauthorized` under Actor Profile, with HTTP 400 |
 | Current RAS policy refuses a valid WAG for the agent, client, tenant, or resource ({{wag-redemption}}) | `invalid_target` |

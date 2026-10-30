@@ -220,7 +220,10 @@ class Adapter:
                                           user-permission and actor-gate
                                           evaluation), policy_unavailable
                                           (the policy service cannot be
-                                          reached)
+                                          reached), condition_unavailable
+                                          (a list of conditions, actor,
+                                          authority or other, whose
+                                          evaluation cannot complete)
     mint_grant(claims)             an ID-JAG the IdP signs with these claims
     mint_access_token(claims, typ="at+jwt")
                                    an access token the RAS signs with these
@@ -1687,6 +1690,36 @@ def s17(ctx):
     if not resp.headers.get("Retry-After"):
         ctx.notes.append("no Retry-After header field (core: Error Responses SHOULD)")
 
+
+
+@case("S18", "API", "Reports an established actor denial when a later check cannot complete",
+      "core: Error Responses (evaluation that cannot complete); Optional Policy Services",
+      needs=("set:api.policy_service", "set_policy", "set:api.condition_unavailable"),
+      defeats=("api.established_failure",))
+def s18(ctx):
+    token = ctx.access_token()
+    data = file_data(ctx, token)
+    use_policy(ctx, policy(ctx, actor_gate=[gate_entry(ctx, agent=OTHER_AGENT)]))
+    ctx.adapter.set("api", "condition_unavailable", ["other"])
+    resp = ctx.client.get(ctx.cfg.read_path, token)
+    check(data not in resp.body, "the denial carried the file's data")
+    expect_denial_code(ctx, resp, "actor_unauthorized")
+
+
+@case("S19", "API", "Answers HTTP 503 when an unfinished check could outrank the denial it found",
+      "core: Error Responses (evaluation that cannot complete); Optional Policy Services",
+      needs=("set:api.policy_service", "set_policy", "set:api.condition_unavailable"),
+      defeats=("api.incomplete_outranks",))
+def s19(ctx):
+    token = ctx.access_token()
+    data = file_data(ctx, token)
+    use_policy(ctx, policy(ctx, user_permissions=[]))
+    ctx.adapter.set("api", "condition_unavailable", ["actor"])
+    resp = ctx.client.get(ctx.cfg.read_path, token)
+    check(resp.status == 503, f"expected HTTP 503, got {resp} {challenge_of(resp)!r}")
+    check(data not in resp.body, "the response carried the file's data")
+    if not resp.headers.get("Retry-After"):
+        ctx.notes.append("no Retry-After header field (core: Error Responses SHOULD)")
 
 def run_case(c, cfg, adapter, disable=()):
     """Run one case from a reset deployment; return (passed, detail, notes)."""

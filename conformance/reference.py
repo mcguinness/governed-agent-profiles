@@ -143,6 +143,9 @@ CHECKS = {
     "api.denial_codes": "a denial carries actor_unauthorized only for the actor gate, "
                         "insufficient_scope only for token authority, and no error code otherwise",
     "api.evaluation_unavailable": "an evaluation that cannot complete gets HTTP 503, not a denial",
+    "api.established_failure": "a failure no unfinished check outranks is reported, not HTTP 503",
+    "api.incomplete_outranks": "an unfinished check that could outrank every established failure "
+                               "gets HTTP 503",
 }
 
 
@@ -1166,15 +1169,24 @@ class PolicyService:
         {"decision": true}
         {"decision": false, "reason": "actor" | "authority" | "other",
          "scope": ...}                                     authority only
+        {"incomplete": "actor" | "authority" | "other"}    a condition it could not
+                                                           evaluate, before any failure
 
     The service records every request it receives. When test control makes
-    it unavailable, it receives nothing and raises PolicyUnavailable.
+    it unavailable, it receives nothing and raises PolicyUnavailable. Test
+    control can instead make one condition's evaluation fail: the service
+    stops there, unless an earlier condition already failed. Two
+    non-conforming modes exist for vacuity: skip_unavailable passes over
+    that condition and reports a later failure instead, and complete_all
+    evaluates every condition and reports any it could not evaluate, even
+    after an earlier failure.
     """
 
     def __init__(self, policy):
         self.policy, self.evaluations, self.available = copy.deepcopy(policy), [], True
+        self.unavailable = set()
 
-    def evaluate(self, request, order=ERROR_ORDER):
+    def evaluate(self, request, order=ERROR_ORDER, skip_unavailable=False, complete_all=False):
         if not self.available:
             raise PolicyUnavailable()
         self.evaluations.append(copy.deepcopy(request))
@@ -1207,13 +1219,25 @@ class PolicyService:
                        for p in policy.get(f"{key}_permissions", []))
 
         conditions = {"actor": actor, "authority": authority, "other": other}
+        incomplete, failure = None, None
         for reason in order:
-            if not conditions[reason]():
-                decision = {"decision": False, "reason": reason}
-                if reason == "authority":
-                    decision["scope"] = required
-                return decision
-        return {"decision": True}
+            if reason in self.unavailable and (delegated or reason != "actor"):
+                if not (skip_unavailable or complete_all):
+                    return {"incomplete": reason}
+                incomplete = incomplete or reason
+                continue
+            if failure is None and not conditions[reason]():
+                failure = reason
+                if not complete_all:
+                    break
+        if complete_all and incomplete:
+            return {"incomplete": incomplete}
+        if failure:
+            decision = {"decision": False, "reason": failure}
+            if failure == "authority":
+                decision["scope"] = required
+            return decision
+        return {"incomplete": incomplete} if incomplete else {"decision": True}
 
 
 def _valid_act(act, namespaces):
@@ -1275,6 +1299,10 @@ class API(Server):
         if op == "set" and body["what"] == "policy_unavailable":
             self.policy.available = not body["value"]
             return {}
+        if op == "set" and body["what"] == "condition_unavailable":
+            # One condition's evaluation cannot complete: actor, authority, or other.
+            self.policy.unavailable = set(body["value"] or ())
+            return {}
         if op == "policy":
             self.policy.policy = copy.deepcopy(body["policy"])
             return {}
@@ -1335,20 +1363,25 @@ class API(Server):
             # The token's scope, which no policy permit overrides.
             failures["authority"] = ["files.read"]
         agent = self.agent_identity(population, claims, act)
+        incomplete = None
         if self.policy_service:
             # The policy service replaces the local evaluation below. Its
             # decision names the first failing condition in the API's order.
             request = self.evaluation_request(population, claims, agent, aud, token_tenant,
                                               name, attributes)
+            # The first condition the service would evaluate, for an
+            # evaluation that did not complete at all.
+            first = next(r for r in order if population == "delegated" or r != "actor")
             try:
-                decision = self.policy.evaluate(request, order)
+                decision = self.policy.evaluate(
+                    request, order, skip_unavailable=not self.on("api.incomplete_outranks"),
+                    complete_all=not self.on("api.established_failure"))
             except PolicyUnavailable:
-                decision = None
-            if not self.interpretable(decision):
-                # An evaluation that could not complete is not a denial.
-                if self.on("api.evaluation_unavailable"):
-                    raise OAuthError(None, 503, headers=[("Retry-After", str(RETRY_AFTER))])
-                decision = {"decision": False, "reason": "other"}   # non-conforming
+                decision = {"incomplete": first}
+            if isinstance(decision, dict) and decision.get("incomplete") in ERROR_ORDER:
+                incomplete, decision = decision["incomplete"], {"decision": True}
+            elif not self.interpretable(decision):
+                incomplete, decision = first, {"decision": True}
             if decision["decision"] is not True:
                 failures.setdefault(decision["reason"], [])
                 if decision.get("scope"):
@@ -1363,6 +1396,16 @@ class API(Server):
         elif "read" not in self.agent_permissions.get((claims.get("sub"), tenant), set()):
             # Self-acting access: the agent's own permissions; no actor gate.
             failures["other"] = []
+        if incomplete is not None:
+            # An evaluation that could not complete is not a denial. A failure
+            # is still reported when no unfinished check comes before it in
+            # the reporting order; otherwise the response is HTTP 503.
+            established = [r for r in order if r in failures]
+            if not (established and self.on("api.established_failure") and
+                    order.index(established[0]) <= order.index(incomplete)):
+                if self.on("api.evaluation_unavailable"):
+                    raise OAuthError(None, 503, headers=[("Retry-After", str(RETRY_AFTER))])
+                failures.setdefault("other", [])   # non-conforming: treated as a denial
         if failures:
             reason = next(r for r in order if r in failures)
             raise self.denial(population, reason, failures[reason])

@@ -693,7 +693,9 @@ A missed disable-and-re-enable cycle cannot be recovered from current
 state.
 
 **The RAS has no record for the agent.** Redemption that depends on the
-missing record is denied, and a WAG fails with `invalid_grant`. Where
+missing record is denied: an ID-JAG whose `act` agent has no authorized
+correlation, or a WAG for an uncorrelated agent, fails with
+`invalid_grant`. Where
 resource policy enables just-in-time correlation for that issuer and
 tenant, the RAS can create the record from the validated grant,
 applying local restrictions and policy before issuance. A record

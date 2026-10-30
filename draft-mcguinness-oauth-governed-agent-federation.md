@@ -59,6 +59,7 @@ normative:
   RFC8707:
   RFC8725:
   RFC9068:
+  RFC9110:
   RFC9396:
   RFC9449:
   RFC9700:
@@ -895,7 +896,7 @@ the applicable input profile. {{issuance-errors}} and
 | Unacceptable `resource` parameter at exchange, redemption, or refresh, including multiple values or a target outside the grant or retained authorization | `invalid_target` under RFC 8707 |
 | Target Tenant cannot be resolved for the requested resource | `invalid_target` |
 | No client registration association exists for the requested RAS ({{flow-configuration}}) | `invalid_target` |
-| Unacceptable requested scope, invalid scope reduction, or no non-empty scope can be issued | `invalid_scope` |
+| Unacceptable requested scope, invalid scope reduction, or no non-empty scope can be issued, except where {{issuance-authorization}} assigns `actor_unauthorized` | `invalid_scope` |
 | User cannot be resolved, user or required link is disabled, or subject identifiers conflict | `invalid_grant`; no token or automatic linking fallback |
 {: title="Target, authority, and user-resolution errors"}
 
@@ -1281,8 +1282,14 @@ Agent Authorization ({{agent-authorization}}).
 Issuance and denial follow these rules:
 
 * The IdP MAY narrow scope, reflecting the result in the grant and
-  response under {{RFC8693}}. It MUST return `invalid_scope` if no scope
-  can be granted.
+  response under {{RFC8693}}. If no scope can be granted for delegated
+  issuance, it MUST reject with `actor_unauthorized` when no applicable
+  Delegation Authorization covers the agent, user, client, and target,
+  or when policy categorically prohibits the agent for the requested
+  scope, and otherwise with `invalid_scope`, as when an applicable
+  authorization's scope ceiling excludes the request
+  ({{Section 6.6.2 of ACTOR-PROFILE}}). For self-acting issuance, it
+  MUST return the errors of {{issuance-errors}}.
 * The IdP MUST NOT issue by dropping a required actor or binding,
   substituting an external identifier for the Agent Principal, or
   weakening proof requirements.
@@ -1570,7 +1577,9 @@ In addition to {{errors}}, the IdP uses these errors:
 | Invalid subject or agent-resolution credential, or disallowed inbound actor chain | `invalid_grant` |
 | Absent, disabled, or ambiguous Identity Binding, or no active Agent Principal can be resolved | `invalid_grant` |
 | Governance Tenant cannot be resolved unambiguously from trusted identity and configuration context | `invalid_grant` |
-| Resolved Agent Principal, but no Client Association permits the selected binding for delegated issuance, or delegation is unauthorized | `actor_unauthorized` under Actor Profile, with HTTP 400 |
+| Resolved Agent Principal, but no Client Association permits the selected binding for delegated issuance | `actor_unauthorized` under Actor Profile, with HTTP 400 |
+| No applicable Delegation Authorization covers the agent, user, client, and target, or policy categorically prohibits the agent for the requested scope ({{issuance-authorization}}) | `actor_unauthorized` |
+| An applicable Delegation Authorization's scope ceiling excludes the requested scope | `invalid_scope` |
 | Approval requires a downstream lifetime condition that the selected composition cannot enforce, in delegated issuance ({{issuance-authorization}}) | `actor_unauthorized` |
 {: title="Identity resolution and delegation errors"}
 
@@ -1628,7 +1637,8 @@ Both grants use these checks. {{redemption-validation}} and
      parameters, or a requested resource different from that URI, with
      `invalid_target` under {{Section 2 of RFC8707}}.
    * **Scope:** Require the grant's `scope` claim to be a non-empty
-     string. A supplied request `scope` MUST be a non-empty subset of
+     string. Reject a missing, empty, or non-string claim with
+     `invalid_grant`. A supplied request `scope` MUST be a non-empty subset of
      that claim, or the RAS MUST return `invalid_scope`.
    * **Authorization details:** Apply ID-JAG's processing for
      `authorization_details`. Reject the grant with `invalid_grant` if
@@ -1844,6 +1854,10 @@ validation failure MUST NOT trigger a weaker mode.
   any DPoP proof, including the grant proof required below.
 
 A proof never selects a protection that configuration does not permit.
+The RAS selects access-token protection only after the checks of
+{{grant-protection}} succeed, so a bound grant redeemed without its
+proof fails with `invalid_grant` whatever protection the resource
+requires.
 
 | Selected protection | Access token |
 |---|---|
@@ -1892,7 +1906,8 @@ RAS uses these errors:
 |---|---|
 | Invalid ID-JAG | `invalid_grant` |
 | Unbound grant whose (`iss`, `jti`) the RAS already accepted | `invalid_grant` |
-| WAG whose `sub` has no authorized correlation at the RAS | `invalid_grant` |
+| ID-JAG whose `act` agent has no authorized correlation at the RAS, or is subject to an applied disablement, correlation removal, or local restriction ({{applied-changes}}) | `invalid_grant` |
+| WAG whose `sub` has no authorized correlation at the RAS, or is subject to an applied disablement, correlation removal, or local restriction | `invalid_grant` |
 | Invalid WAG, including one without `typ` `wag+jwt` or one that contains `act` | `invalid_grant` |
 | Current RAS policy refuses a valid ID-JAG's delegation, including under the actor gate ({{actor-authorization}}) | `actor_unauthorized` under Actor Profile, with HTTP 400 |
 | Current RAS policy refuses a valid WAG for the agent, client, tenant, or resource ({{wag-redemption}}) | `invalid_target` |
@@ -1994,7 +2009,11 @@ a policy decision service, it MUST:
   from a tool call's arguments, never supply or override them.
 
 For a self-acting token, the local principal stands for the Agent
-Principal. {{AUTHZEN}} is one optional evaluation interface. This
+Principal. An API that relies on the policy service for the actor gate
+MUST obtain from the decision whether the actor gate denied the
+request, or evaluate the gate itself, so that it can report the failure
+that {{resource-errors}} selects. {{AUTHZEN}} is one optional
+evaluation interface. This
 profile defines no mapping to it. A policy permit does not override the
 token's constraints.
 
@@ -2004,15 +2023,41 @@ Challenges and scope errors use the selected scheme: `DPoP` under
 {{Section 7.1 of RFC9449}}, or `Bearer` under {{RFC6750}} for bearer
 and mutual-TLS tokens.
 
-| Failure | Response |
-|---|---|
-| Missing or invalid required actor claims, or unauthorized namespace assertion | HTTP 401, `invalid_token` |
-| Missing, ambiguous, or conflicting token tenant context, or a token tenant different from the requested operation's tenant | HTTP 401, `invalid_token` |
-| Denial for a valid actor identity | HTTP 403, `actor_unauthorized` under {{Section 8.2 of ACTOR-PROFILE}} |
+When a request fails more than one check, the API MUST report the
+failure that comes first in this table, whatever order it evaluates the
+checks in:
+
+| Order | Failure | Response |
+|---|---|---|
+| 1 | Missing or invalid access token, proof, or certificate binding ({{api-validation}}) | HTTP 401, as the applicable token or proof specification requires |
+| 2 | Missing or invalid required actor claims, unauthorized namespace assertion, or missing, ambiguous, or conflicting token tenant context, including a token tenant different from the requested operation's tenant | HTTP 401, `invalid_token` |
+| 3 | Actor-gate denial, including a categorical prohibition of the agent ({{actor-authorization}}) | HTTP 403, `actor_unauthorized` under {{Section 8.2 of ACTOR-PROFILE}} |
+| 4 | The operation needs scope or authorization details that the token does not carry | HTTP 403, `insufficient_scope` under {{Section 3.1 of RFC6750}} |
+| 5 | Any other denial of a valid token, such as the user's own permissions, a self-acting agent's own permissions, or policy for the client or tenant | HTTP 403 with a challenge that carries no `error` attribute |
 {: title="Resource server error responses"}
 
-Actor denial MUST NOT use `insufficient_scope`. The API MUST NOT expose
-actor-specific rejection details outside the trust domain.
+Actor denial MUST NOT use `insufficient_scope`, and the API MUST NOT
+return `actor_unauthorized` for any failure other than an actor-gate
+denial. The API MUST NOT expose actor-specific rejection details outside
+the trust domain.
+
+The last row is this profile's restriction. {{Section 3 of RFC6750}}
+requires a challenge when a token does not enable access but does not
+prescribe this response; neither error code would offer a remedy that
+can succeed. The challenge uses the selected scheme without an `error`
+attribute, and a `Bearer` challenge carries `realm`. A response body is
+application-specific but MUST NOT convey `actor_unauthorized` or
+`insufficient_scope`.
+
+If a check cannot complete, for example because a policy service is
+unreachable or returns a decision the API cannot interpret, the API
+MUST NOT perform the operation. If it has established a failure and no
+check that did not complete comes earlier in this table, it reports that
+failure as the table selects. Otherwise it MUST NOT report a denial
+from this table: it responds with HTTP status code 503 (Service
+Unavailable) ({{Section 15.6.4 of RFC9110}}) and SHOULD include a
+`Retry-After` header field ({{Section 10.2.3 of RFC9110}}). Evaluation
+order therefore does not change the response.
 
 # Continuing Access and Authorization Changes {#continuing-access}
 
@@ -2285,6 +2330,41 @@ cited are met.
   opaque tokens. A credential change alone need not invalidate cached
   tokens when the governed principal and authorization context remain
   the same.
+* **Recovering from errors:** An error establishes only what the
+  sections that assign it define:
+  * `invalid_client`: a consumed client assertion is replaced by one
+    with a fresh `jti`, as the retry rule of {{client-assertion-input}}
+    requires. An unknown client, a wrong key, or an unsupported method
+    needs configuration, not a retry.
+  * `invalid_grant`: after correcting what it can detect itself, such as
+    a missing proof or a grant addressed to another server, a client
+    can make one recovery attempt with the same identity, client, and
+    credential class: a fresh subject credential and agent-resolution
+    input at the IdP, or a new grant at the RAS. The code does not say
+    which check failed ({{security-errors}}), and renewal cannot repair
+    a disabled binding, a missing proof, or a malformed grant.
+  * `invalid_scope`: the client corrects the requested scope using
+    authority it knows is permitted. Reducing a request helps only if
+    what remains is permitted.
+  * `invalid_target`: covers an unresolved target or tenant, a missing
+    client registration association, and the refusals of self-acting
+    issuance, including an unenforceable approval condition.
+  * `actor_unauthorized`: another actor credential or grant path might
+    succeed ({{Section 8.2 of ACTOR-PROFILE}}); the same request will
+    not.
+  * At an API, `insufficient_scope` calls for a token with more
+    authority, which can need a new governed grant; a 403 whose
+    challenge has no `error` attribute has no token-level remedy; and a
+    503 can be retried after any `Retry-After` interval
+    ({{resource-errors}}).
+
+  Apart from the `invalid_client` and `invalid_grant` attempts above
+  and a 503, a client does not retry the unchanged request
+  automatically. A later change in policy or authorization makes a new
+  request a new decision. {{discovery}} forbids retrying at a lower
+  profile, {{actor-inputs}} forbids falling back from rejected
+  evidence to authentication context, and {{issuance-authorization}}
+  forbids falling back from delegated to self-acting access.
 
 # Security Considerations {#security}
 
@@ -2322,7 +2402,10 @@ Distinguishing `invalid_grant` from `actor_unauthorized`
 ({{issuance-errors}}) reveals that an actor was resolved but denied, but
 not which binding-resolution check failed. That disclosure reaches even
 a holder of stolen bearer evidence who passes the request's other
-authentication.
+authentication. At the RAS, `actor_unauthorized` ({{redemption-errors}})
+tells an authenticated client holding a valid grant that its
+delegation was refused, not why; an uncorrelated or ineligible agent
+gets `invalid_grant`, as at the IdP.
 
 ## Bearer Workload Evidence {#security-bearer-evidence}
 
@@ -2783,6 +2866,10 @@ last column is the required result. Token endpoint errors follow
 | Nonce retry with a fresh DPoP proof reuses the consumed `analysis-auth-1` assertion | IdP | HTTP 400, `invalid_client`; regenerate `client_assertion` |
 | Identity Binding disabled | IdP | HTTP 400, `invalid_grant`; successful authentication does not resolve the agent |
 | Client Association for `analysis-client` disabled | IdP | HTTP 400, `actor_unauthorized`; no ID-JAG |
+| Alice's Delegation Authorization for `agent-42` permits `files.read`, and the client requests `files.write` | IdP | HTTP 400, `invalid_scope`; the authorization applies, and its scope ceiling excludes the request |
+| The Delegation Authorization permits `files.read files.write`, policy categorically prohibits `agent-42` from `files.write`, and the client requests `files.write` | IdP | HTTP 400, `actor_unauthorized` ({{issuance-authorization}}) |
+| The grant's `scope` claim is missing, empty, or not a string | RAS | HTTP 400, `invalid_grant` ({{redemption-common}}) |
+| The RAS has no authorized correlation for `agent-42`, or `agent-42` is disabled there | RAS | HTTP 400, `invalid_grant`, not `actor_unauthorized` ({{redemption-errors}}) |
 | Bound governed agent access required; grant has no `cnf` | RAS | HTTP 400, `invalid_grant`; no fallback to governed agent access |
 | Grant has `cnf.jkt`; redemption omits the proof | RAS | HTTP 400, `invalid_grant`; grant binding enforced |
 | Access token used in another tenant where Alice and the agent also have permissions, with a fresh valid proof | API | HTTP 401, `invalid_token`; no operation performed |
@@ -2792,6 +2879,12 @@ last column is the required result. Token endpoint errors follow
 | Platform JWT variant ({{aws-example}}): the shared client `platform-sso` holds a token for `agent-42` and starts an operation for another agent with the same scope | Client | Obtains a grant for that agent; a matching `client_id` and scope do not permit reuse ({{client-token-reuse}}) |
 | Platform JWT variant ({{aws-example}}): the platform JWT fails validation | IdP | HTTP 400, `invalid_grant`; no retry from authentication context or under another credential class ({{actor-inputs}}) |
 | The API delegates evaluation to a policy service; an attribute derived from the request names `agent-77` as the agent, and policy permits `agent-77` but not `agent-42` | API | HTTP 403, `actor_unauthorized`; the evaluation uses `agent-42` from the validated `act` ({{policy-services}}) |
+| The API's policy does not permit `agent-42` to act for Alice, and the operation also needs `files.write`, which the access token lacks | API | HTTP 403, `actor_unauthorized`, not `insufficient_scope`; the actor gate comes first ({{resource-errors}}) |
+| The actor gate permits `agent-42`, and the operation needs `files.write`, which the access token lacks | API | HTTP 403, `insufficient_scope` |
+| The actor gate permits `agent-42`, the token's scope covers the read, and Alice has no permission on `report-7` | API | HTTP 403 with a challenge that carries no `error` attribute |
+| The API delegates evaluation to a policy service, which cannot be reached | API | HTTP 503; no operation performed and no denial reported |
+| The policy service denies `agent-42` under the actor gate, and its evaluation of Alice's own permissions cannot complete | API | HTTP 403, `actor_unauthorized`; no unfinished check comes earlier |
+| The policy service cannot complete the actor gate, and Alice has no permission on `report-7` | API | HTTP 503; the unfinished actor gate could come earlier than the user's denial |
 | Platform JWT variant ({{aws-example}}): Alice's access tokens for `agent-42` and for another agent carry the same `client_id`, and the API's policy permits only `agent-42` | API | HTTP 403, `actor_unauthorized` for the other agent; the client identifier does not stand in for the agent ({{actor-authorization}}) |
 {: title="Negative test cases"}
 

@@ -15,8 +15,9 @@ Claims][core-scope], under the bound profile, as
 It also holds tests of the oversight companion's deferred redemption at
 the reference RAS ([Deferred redemption at the
 RAS](#deferred-redemption-at-the-ras)), and of the core's Optional
-Policy Services, self-acting access and introspection at the reference
-API ([Policy services at the API](#policy-services-at-the-api)).
+Policy Services, error selection order, self-acting access and
+introspection at the reference API ([Policy services at the
+API](#policy-services-at-the-api)).
 
 The drafts define every requirement. The suite tests a subset of them,
 and passing it is evidence for that subset only, not a conformance claim.
@@ -42,8 +43,8 @@ python3 -m venv .venv-conformance
 
 `run.py` starts the reference IdP, RAS and API on localhost ports, plays
 the client, and prints one line per case. `--vacuity` then runs every
-case that cites a reference check with that check switched off, and
-fails if the case still passes. `--list` prints each case's source and
+case that cites reference checks once for each check, with that check
+switched off, prints why the case failed, and fails if it still passes. `--list` prints each case's source and
 the test-control capabilities it needs. The exit status is non-zero on
 any failure.
 
@@ -69,13 +70,13 @@ servers listen on localhost. A reader can lay the output beside
 | N06 | IdP | A disabled Identity Binding fails with `invalid_grant` | core: negative-test row | Disable the binding |
 | N07 | IdP | A disabled Agent Principal fails with `invalid_grant` | core: Issuance Errors; PLAYBOOK runbook | Disable the agent |
 | N08 | IdP | No Client Association fails with `actor_unauthorized` | core: negative-test row | Remove the association |
-| N09 | IdP | A withdrawn Delegation Authorization fails with `actor_unauthorized` | core: Delegation Authorization; PLAYBOOK recipe | Withdraw the delegation |
+| N09 | IdP | A withdrawn Delegation Authorization fails with `actor_unauthorized` | core: Delegation Authorization; Issuance Errors; PLAYBOOK recipe | Withdraw the delegation |
 | N10 | RAS | A grant without `cnf` under the bound profile fails with `invalid_grant` | core: negative-test row | Let the IdP issue unbound grants |
-| N11 | RAS | A bound grant redeemed without a proof fails with `invalid_grant` | core: negative-test row | None |
+| N11 | RAS | A bound grant redeemed without a proof fails with `invalid_grant` | core: negative-test row; Access-Token Protection | None |
 | N12 | RAS | A redemption proven with another key fails with `invalid_grant` | core: Grant Protection | None |
 | N13 | RAS | A grant redeemed by a client other than its `client_id` fails with `invalid_grant` | core: Redemption Request; ID-JAG Section 4.4.1 | None; needs a second RAS client |
 | N14 | RAS | A `resource` parameter other than the grant's fails with `invalid_target` | core: Common Grant Validation | None |
-| N15 | RAS | An agent disabled at the RAS gets no access token | core: Agent Principal Correlation; Applied Disablement and Revocation | Disable the agent at the RAS |
+| N15 | RAS | A grant for an agent disabled at the RAS fails with `invalid_grant` | core: Agent Principal Correlation; Applied Disablement and Revocation; Redemption Errors | Disable the agent at the RAS |
 | N16 | RAS | An agent the RAS's policy does not let act for the user fails with `actor_unauthorized` | core: Delegated Actor Authorization; Redemption Errors | Close the actor gate at the RAS |
 | N17 | API | An access token used in another tenant, with a fresh proof, fails with 401 `invalid_token` | core: negative-test row | None; needs a second tenant |
 | N18 | API | A delegated-population token without `act` fails with 401 `invalid_token` | core: negative-test row; Profile Applicability | Mint an access token |
@@ -85,6 +86,10 @@ servers listen on localhost. A reader can lay the output beside
 | N22 | IdP | A client assertion whose `nbf` is an hour ahead fails with `invalid_client` | RFC 7523 Section 3; core: Time, Replay, and Key Validation | None |
 | N23 | RAS | A grant whose `nbf` is an hour ahead fails with `invalid_grant` | RFC 7523 Section 3; core: Time, Replay, and Key Validation | Mint a grant |
 | N24 | API | An access token whose `iat` is an hour ahead fails with 401 `invalid_token` | core: Time, Replay, and Key Validation; RFC 9068 Section 4 | Mint an access token |
+| N25 | IdP | A request for `files.write`, when the delegation permits only `files.read`, fails with `invalid_scope` | core: Issuance Authorization; Issuance Errors | Set the delegation's scope |
+| N26 | RAS | A grant whose `scope` claim is missing, empty or an array fails with `invalid_grant` | core: Common Grant Validation | Mint a grant |
+| N27 | RAS | A grant whose `act` names `agent-99`, which the RAS has no correlation for, fails with `invalid_grant` | core: Agent Principal Correlation; Redemption Errors | Mint a grant |
+| N28 | IdP | A request for `files.write`, which the delegation permits but policy categorically prohibits for the agent, fails with `actor_unauthorized` | core: Issuance Authorization; Issuance Errors | Set the delegation's scope; prohibit a scope for the agent |
 | D01 | RAS | Without `completion_mode=deferred`, a redemption that needs approval fails with `actor_unauthorized` and carries no deferral code | oversight: Redemption Opt-In; core: Redemption Errors | Require approval |
 | D02 | RAS | A deferred redemption stays `authorization_pending` until approved, then issues an access token like P2's, expiring within `approved_until`, that the API accepts; a second poll fails with `invalid_grant` | oversight: Deferring a Redemption; Redemption Resolution | Require approval; approve |
 | D03 | RAS | A poll proven with another key fails with `invalid_dpop_proof` | oversight: Deferring a Redemption | Require approval |
@@ -107,41 +112,61 @@ servers listen on localhost. A reader can lay the output beside
 | D20 | RAS | An agent whose correlation changes to another local principal while pending gets `access_denied` at the poll after approval | oversight: Redemption Resolution; core: Agent Principal Correlation | Require approval; change the agent's local principal at the RAS; approve |
 | D21 | RAS | After an unbound grant's deferred redemption, raising the client's minimum to the bound profile makes the next refresh fail with `invalid_grant` | oversight: Refresh and Continuation; core: Optional RAS Refresh Tokens (step 3) | Require approval; permit refresh; set the governed profile; approve |
 | D22 | RAS | A refresh with another key is rejected and the next refresh still succeeds; a refresh rejected on re-evaluation ends the authorization, so restoring the actor gate does not revive it | oversight: Refresh and Continuation (ending the refresh authorization) | Require approval; permit refresh; approve; close and reopen the actor gate |
-| S01 | API | Through the policy service, the positive path's read succeeds, and the evaluation names the user `user-108` as subject, the agent from `act`, the client `analysis-api`, the tenant `acme-data`, and `files.read` in the token constraints | core: Optional Policy Services; Delegated Access | Turn on the policy service; set its permits; read its evaluations |
-| S02 | API | A request attribute naming `agent-77`, which policy permits instead of `agent-42`, fails with 403 `actor_unauthorized`, not `insufficient_scope` | core: Optional Policy Services; negative-test row for a policy service; Error Responses | Turn on the policy service; set its permits |
-| S03 | API | When policy permits only `agent-42`, another agent's access token with the same `client_id` fails with 403 `actor_unauthorized`, and `agent-42`'s succeeds | core: Delegated Actor Authorization; negative-test row for the platform JWT variant's policy | Turn on the policy service; set its permits; mint an access token |
-| S04 | API | A request attribute naming another user, whom policy permits instead, is rejected without the file's data | core: Optional Policy Services | Turn on the policy service; set its permits |
-| S05 | API | A request attribute naming another OAuth client, `other-api`, which policy permits instead, is rejected without the file's data | core: Optional Policy Services | Turn on the policy service; set its permits |
-| S06 | API | With an `acme-data` token on the `acme-data` path, a request attribute naming tenant `beta-data`, which policy permits instead, is rejected without the file's data | core: Optional Policy Services; Token Validation (Tenant) | Turn on the policy service; set its permits |
-| S07 | API | With a `files.read` token, a request attribute naming `files.admin`, which policy requires, is rejected without the file's data | core: Optional Policy Services | Turn on the policy service; set its permits |
-| S08 | API | A self-acting token is served with the API's actor gate closed, and through the policy service, whose evaluation has the local agent principal as subject and names no user | core: Self-Acting Access; Optional Policy Services; Profile Applicability | Mint an access token; close the actor gate at the API; turn on the policy service; set its permits; read its evaluations |
-| S09 | API | For a self-acting token, a request attribute naming `service-principal-77`, which policy permits instead, is rejected without the file's data | core: Optional Policy Services; Self-Acting Access | Mint an access token; turn on the policy service; set its permits |
-| S10 | API | An opaque DPoP-bound token is introspected and served, and the evaluation takes the user, the unchanged `act` and the client from the introspection response | core: Optional Opaque Access Tokens and Introspection; Optional Policy Services | Mint an opaque token; turn on the policy service; set its permits; read its evaluations |
-| S11 | API | For an opaque token, a request attribute naming `agent-77`, which policy permits instead, fails with 403 `actor_unauthorized` | core: Optional Policy Services; Optional Opaque Access Tokens and Introspection | Mint an opaque token; turn on the policy service; set its permits |
+| S01 | API | Through the policy service, the positive path's read succeeds, and the evaluation names the user `user-108` as subject, the agent from `act`, the client `analysis-api`, the tenant `acme-data`, and `files.read` in the token constraints | core: Optional Policy Services; Delegated Access | Turn on the policy service; set its policy; read its evaluations |
+| S02 | API | A request attribute naming `agent-77`, which policy permits instead of `agent-42`, fails with 403 `actor_unauthorized`, not `insufficient_scope` | core: Optional Policy Services; negative-test row for a policy service; Error Responses | Turn on the policy service; set its policy |
+| S03 | API | When policy permits only `agent-42`, another agent's access token with the same `client_id` fails with 403 `actor_unauthorized`, and `agent-42`'s succeeds | core: Delegated Actor Authorization; negative-test row for the platform JWT variant's policy | Turn on the policy service; set its policy; mint an access token |
+| S04 | API | A request attribute naming another user, whom policy permits instead, fails with HTTP 403, a challenge without an `error` attribute, neither `actor_unauthorized` nor `insufficient_scope`, and none of the file's data | core: Optional Policy Services; Error Responses | Turn on the policy service; set its policy |
+| S05 | API | A request attribute naming another OAuth client, `other-api`, which policy permits instead, fails as S04 does | core: Optional Policy Services; Error Responses | Turn on the policy service; set its policy |
+| S06 | API | With an `acme-data` token on the `acme-data` path, a request attribute naming tenant `beta-data`, which policy permits instead, fails as S04 does | core: Optional Policy Services; Token Validation (Tenant); Error Responses | Turn on the policy service; set its policy |
+| S07 | API | With a `files.read` token, a request attribute naming `files.admin`, which policy requires, fails with HTTP 403 `insufficient_scope` and none of the file's data | core: Optional Policy Services; Error Responses | Turn on the policy service; set its policy |
+| S08 | API | A self-acting token is served with the API's actor gate closed, and through the policy service, whose evaluation has the local agent principal as subject and names no user | core: Self-Acting Access; Optional Policy Services; Profile Applicability | Mint an access token; close the actor gate at the API; turn on the policy service; set its policy; read its evaluations |
+| S09 | API | For a self-acting token, a request attribute naming `service-principal-77`, which policy permits instead, fails as S04 does | core: Optional Policy Services; Self-Acting Access; Error Responses | Mint an access token; turn on the policy service; set its policy |
+| S10 | API | An opaque DPoP-bound token is introspected and served, and the evaluation takes the user, the unchanged `act` and the client from the introspection response | core: Optional Opaque Access Tokens and Introspection; Optional Policy Services | Mint an opaque token; turn on the policy service; set its policy; read its evaluations |
+| S11 | API | For an opaque token, a request attribute naming `agent-77`, which policy permits instead, fails with 403 `actor_unauthorized` | core: Optional Policy Services; Optional Opaque Access Tokens and Introspection | Mint an opaque token; turn on the policy service; set its policy |
 | S12 | API | An introspection response with `active` false fails with 401 `invalid_token` | core: Optional Opaque Access Tokens and Introspection; RFC 7662 Section 2.2 | Mint an opaque token |
 | S13 | API | A delegated-population introspection response without `act` fails with 401 `invalid_token` | core: Optional Opaque Access Tokens and Introspection; Profile Applicability | Mint an opaque token; have the RAS leave `act` out of introspection |
+| S14 | API | When policy requires `files.admin`, which the token lacks, and categorically prohibits the agent, the request fails with 403 `actor_unauthorized`, not `insufficient_scope` | core: Error Responses; Optional Policy Services | Turn on the policy service; set its policy |
+| S15 | API | When the actor gate and the user's permission both deny, the request fails with 403 `actor_unauthorized` | core: Error Responses; Optional Policy Services | Turn on the policy service; set its policy |
+| S16 | API | A request proven with another key, which policy would also deny, fails with 401 `invalid_token`, not 403 | core: Error Responses; Token Validation; RFC 9449 Section 7.1 | Turn on the policy service; set its policy |
+| S17 | API | When the policy service cannot be reached, the request gets HTTP 503, none of the file's data and no denial code; a missing `Retry-After` is noted | core: Error Responses; Optional Policy Services | Turn on the policy service; set its policy; make it unavailable |
+| S18 | API | When the actor gate denies and the evaluation of the user's permissions cannot complete, the request gets HTTP 403 `actor_unauthorized`, since no unfinished check comes earlier | core: Error Responses; Optional Policy Services | Turn on the policy service; set its policy; make the `other` condition unavailable |
+| S19 | API | When the actor gate cannot be evaluated and the user's permission denies, the request gets HTTP 503, since the unfinished actor gate could come earlier | core: Error Responses; Optional Policy Services | Turn on the policy service; set its policy; make the `actor` condition unavailable |
 
 The "negative-test row" sources are the rows of the core's "Renewal and
-Negative Tests" table. N15 asserts only that no token issues, because
-the drafts fix no error code for it; the runner prints the code it
-observed. N16 asserts `actor_unauthorized`, which the core's Redemption
-Errors assigns when RAS policy refuses a valid ID-JAG's delegation. The
-time cases use an hour, well beyond the few minutes of skew the core
-contemplates, so they do not depend on one implementation's tolerance.
+Negative Tests" table. N15 and N27 assert `invalid_grant`, which the
+core's Redemption Errors assigns to an ID-JAG whose `act` agent has no
+authorized correlation or is disabled. N16 asserts `actor_unauthorized`,
+which Redemption Errors assigns when RAS policy refuses a valid
+ID-JAG's delegation. N25 and N28 send a single scope, so they do not
+depend on whether the IdP narrows a request, which Issuance
+Authorization permits but does not require. The time cases use an hour,
+well beyond the few minutes of skew the core contemplates, so they do
+not depend on one implementation's tolerance.
 
 The suite fails a case only for a departure from a requirement. A
 departure from a recommendation, such as a grant longer than five
-minutes or a resource challenge without an `error` parameter, is
-printed as a note.
+minutes, a 401 challenge without an `error` parameter, or a 503 without
+`Retry-After`, is printed as a note. An HTTP 403 is different: under the
+core's Error Responses, a 403 challenge without an `error` attribute is
+the response for a denial other than the actor gate or token authority.
+A case that expects `actor_unauthorized` or `insufficient_scope` at the
+API (N20, S02, S03, S07, S11, S14, S15 and S18) therefore requires the code,
+in the challenge's `error` attribute or, where the challenge has none,
+in the body.
 
-Every negative case, P2 and D02 name the reference check they exercise
-(`CHECKS` in [reference.py](reference.py)). With `--vacuity`, all 56
-fail with their check switched off. Twenty-three N cases fail because
-the server then accepts the request. P2 fails because the access token
-then carries a rewritten `act`. N11 fails because the RAS returns
-`invalid_request` instead of `invalid_grant`: its access-token
-protection check also rejects a redemption without a proof, so the case
-depends on the code that Grant Protection requires.
+Every negative case, P2 and D02 name the reference checks they exercise
+(`CHECKS` in [reference.py](reference.py)). With `--vacuity`, each of
+these 66 cases runs once for each check it names, with that check
+switched off; five S cases name two checks, so there are 71 runs, and
+every run fails. Twenty-six N cases fail because the server then accepts
+the request. P2 fails because the access token then carries a rewritten
+`act`. N11 fails because the RAS's access-token protection check then
+rejects the redemption with `invalid_request`; Access-Token Protection
+states that Grant Protection's checks come first, so `invalid_grant` is
+the required code, and the case no longer depends on the reference's
+own order. N27 fails because the RAS's actor gate then refuses the
+uncorrelated agent with `actor_unauthorized`, the code Redemption Errors
+keeps for RAS policy that refuses a valid ID-JAG's delegation.
 
 The D cases fail without their check in these ways:
 
@@ -157,7 +182,7 @@ The D cases fail without their check in these ways:
 
 D09 is a positive case and names no check.
 
-The S cases fail without their check because the API then serves the
+Without these checks, the S cases fail because the API then serves the
 file (HTTP 200):
 
 * S02, S04 to S07, S09 and S11 (`api.policy_source`): the request
@@ -169,6 +194,26 @@ file (HTTP 200):
   inactive response;
 * S13 (`api.introspection_act`): without `act`, the API applies no
   actor gate, as if the token were self-acting.
+
+Without these, they fail on the response the API selects:
+
+* S04 to S07 and S09 (`api.denial_codes`): the API returns
+  `actor_unauthorized` for every denial of a delegated token, and
+  `insufficient_scope` for every denial of a self-acting one, so S04 to
+  S06 and S09 find an `error` attribute, and S07 finds
+  `actor_unauthorized`;
+* S14 and S15 (`api.error_order`): the API reports the failing
+  conditions in reverse order, so S14 gets `insufficient_scope` and S15
+  gets a 403 without a code;
+* S16 (`api.key_binding`): the API accepts the proof and reports the
+  policy denial, HTTP 403 `actor_unauthorized`;
+* S17 (`api.evaluation_unavailable`): the API treats the unreachable
+  policy service as a denial, HTTP 403;
+* S18 (`api.established_failure`): the API evaluates every condition
+  and answers HTTP 503 whenever one cannot complete, even after the
+  actor gate has denied;
+* S19 (`api.incomplete_outranks`): the API passes over the unfinished
+  actor gate and reports the user's denial, HTTP 403 without a code.
 
 S01, S08 and S10 are positive cases and name no check.
 
@@ -237,19 +282,47 @@ access token or an authenticated introspection response, and trusted
 configuration. Attributes derived from the request never supply or
 override them. S02 and S03 are the core's negative-test rows for the
 API's policy: the request attribute naming `agent-77`, and the platform
-JWT variant's two agents with one `client_id`. The other cases cover
-each member, self-acting access, and introspection.
+JWT variant's two agents with one `client_id`. S04 to S13 cover each
+member, self-acting access, and introspection.
+
+The S cases also test the core's Error Responses. When several checks
+fail, the API reports the first in this order: the token and proof
+(HTTP 401), the token context (HTTP 401 `invalid_token`), the actor gate
+(HTTP 403 `actor_unauthorized`), token authority (HTTP 403
+`insufficient_scope`), and any other denial (HTTP 403 with a challenge
+that carries no `error` attribute). An evaluation that cannot complete
+is not a denial: HTTP 503. S04 to S07 and S09 each fail one condition
+after the actor gate; S14 to S16 fail two conditions at once; S17 makes
+the policy service unavailable; S18 and S19 make one condition's
+evaluation fail beside a denial, so that an established failure is
+reported only when no unfinished check comes earlier.
 
 **Test fixtures.** The policy service and the API's introspection
 caller are test fixtures under the suite's control. The policy service
 runs in the API's process. When test control turns it on, it replaces
 the API's own user-permission and actor-gate evaluation; token
-validation, DPoP, applicability, the tenant check and the token's scope
-still run first, so a permit never overrides the token's constraints.
-Test control sets its permits and reads the evaluation requests it
-received. The S cases are reference-implementation tests, not black-box
+validation, DPoP, applicability and the tenant check still run first,
+and the API still requires the token's scope for the read, so a permit
+never overrides the token's constraints. Test control sets its policy,
+makes it unavailable, and reads the evaluation requests it received.
+The S cases are reference-implementation tests, not black-box
 conformance cases, and passing them claims nothing about a real policy
 decision point integration.
+
+**Policy and decisions.** The policy is a document whose members each
+list what policy permits: the actor gate's (user, agent, tenant)
+entries, categorical prohibitions of an agent for an action, the scope
+each action requires, the user's own permissions, a self-acting agent's
+own permissions, and the allowed clients and tenants. The service
+evaluates three conditions in the order the API asks for and returns
+the first that fails as the decision's reason: the actor gate (delegated
+access only), then the required scope, then the rest. The API merges
+that reason with its own scope check, reports the first in the order,
+and maps it to `actor_unauthorized`, to `insufficient_scope` with the
+required scope, or to a DPoP challenge without an `error` attribute and
+an empty JSON body. A decision it cannot interpret, or an unreachable
+service, gets HTTP 503 with `Retry-After`. The API's own evaluation,
+without the service, uses the same order.
 
 **Evaluation requests.** The API's request follows the implementer's
 guide's [illustrative AuthZEN
@@ -286,14 +359,15 @@ and the suite tests no freshness limit.
 
 Some cases depend on choices made for the reference:
 
-* For a delegated token, the reference maps every policy denial to HTTP
-  403 `actor_unauthorized`, because one decision does not say whether
-  the user's authority or the actor gate failed. For a self-acting
-  token, it returns HTTP 403 with `forbidden` in the body and a DPoP
-  challenge without an `error` parameter. S04 to S07 and S09 assert
-  only a rejection without the file's data, since the core fixes no
-  status or code for these denials, and the runner prints what it
-  observed; see draft questions 6 to 8.
+* Each S case's policy permits the positive path in both tenants and
+  changes one member. S04 lets the actor gate permit both `user-108`
+  and `user-109`, so that `user-108`'s denial comes from the user's own
+  permission and not from the gate. S06's gate and user permissions
+  cover both tenants, so that the request attribute naming `beta-data`
+  would succeed if it replaced the token's tenant.
+* S14 makes the actor gate fail through a categorical prohibition of
+  `agent-42`, and S15 through an actor gate with no entry for it, so the
+  two cases cover both forms.
 * S03 mints the other agent's token, for `agent-43`, with the same
   `client_id` as `agent-42`'s. It stands for the platform JWT variant's
   shared client.
@@ -317,15 +391,20 @@ The suite tests nothing outside the path above, including:
 * governed agent access with unbound grants, except as the setup for N10
   and D08;
 * existing platform JWTs and the inputs of the inputs draft;
-* WAG issuance and redemption, including deferred WAG redemption and
-  the removal of a pending WAG redemption's correlation; self-acting
-  access at the API is covered only with minted tokens (S08 and S09);
+* WAG issuance and redemption, including deferred WAG redemption, the
+  removal of a pending WAG redemption's correlation, and the WAG rows of
+  Redemption Errors; self-acting access at the API is covered only with
+  minted tokens (S08 and S09);
 * introspection beyond the API's processing in S10 to S13: the RAS's
   own introspection responses, caching and freshness limits,
   `authorization_details`, certificate-bound tokens, and opaque tokens
   issued by a redemption;
 * a real policy decision point, and policy services at the IdP or the
   RAS;
+* the error selection order under the API's own evaluation, except the
+  actor gate (N20), and a policy decision the API cannot interpret; the
+  S cases test the order through the policy service, S17 an
+  unreachable one, and S18 and S19 one condition that cannot complete;
 * RAS refresh tokens other than those from a deferred redemption;
 * DPoP server nonces, mutual TLS (including the refusal to defer for a
   resource configured for mutual-TLS access tokens), and bearer access
@@ -350,9 +429,12 @@ another IdP, RAS or API:
    in the access token. Set `max_grant_lifetime` to the IdP's configured
    grant lifetime limit. N13 needs a second client registered at the RAS;
    N17 needs a second tenant in which the user and the agent also have
-   rights. D10 and D11 need `second_agent`, another agent the RAS
+   rights. N27 needs `uncorrelated_agent`, an agent the RAS has no
+   correlation for. D10 and D11 need `second_agent`, another agent the RAS
    correlates and lets act for the user; D12 needs `extra_scope`, a
-   scope beyond `scope` the RAS can require approval for. The S cases
+   scope beyond `scope` the RAS can require approval for, and N25 and N28
+   use it as a scope the IdP can exclude from the delegation or prohibit
+   for the agent. The S cases
    need `tenant` and `other_tenant`, the Target Tenants of the two
    resources, and `self_acting_client_id` and `self_acting_sub`, a
    registration the API configures as the self-acting population for
@@ -360,15 +442,18 @@ another IdP, RAS or API:
 2. Implement `suite.Adapter` for the deployment. Every case needs
    `id_token`; the "Test control" column lists the other capabilities.
    A case whose capability the deployment cannot provide can be skipped
-   and reported as not run. The D cases use `set` on the RAS
-   (`approval_required`, `refresh_permitted`, `max_pending_lifetime`,
-   `authorization_lifetime`, `client_profile`), the Access Request
-   Service hooks `tasks`, `approve`, `deny`, `revoke`, `shorten` and
-   `substitute`, and `advance_clock`, which must advance every server's
-   clock. The S cases use `set` on the API (`policy_service`,
-   `actor_gate`) and on the RAS (`introspection_omit_act`), the policy
-   service hooks `set_policy` and `evaluations`, `mint_access_token`,
-   and `mint_opaque_token`. The `Adapter` docstring defines each one.
+   and reported as not run. N25 and N28 use `set` on the IdP
+   (`delegation_scope`, `prohibited_scope`). The D cases use `set` on
+   the RAS (`approval_required`, `refresh_permitted`,
+   `max_pending_lifetime`, `authorization_lifetime`, `client_profile`),
+   the Access Request Service hooks `tasks`, `approve`, `deny`, `revoke`,
+   `shorten` and `substitute`, and `advance_clock`, which must advance
+   every server's clock. The S cases use `set` on the API
+   (`policy_service`, `actor_gate`, `policy_unavailable`) and on the RAS
+   (`introspection_omit_act`), the policy service hooks `set_policy` and
+   `evaluations`, `mint_access_token`, and `mint_opaque_token`. The
+   `Adapter` docstring defines each one, including the policy document
+   that `set_policy` takes.
 3. Call `suite.run_case` for each case in `suite.CASES`.
 
 `disable_check` exists only for the reference implementation's vacuity
@@ -390,12 +475,12 @@ implementations](../IMPLEMENTERS-GUIDE.md#configuration-exchanged-between-implem
 | Where the tenant is carried | The tenant-specific resource URI, as the access token's audience | core: Access Token Issuance and Response (the default) |
 | Client registration association | One RAS registration, `analysis-api`, for the dedicated IdP client `analysis-client` | core: Issuance Prerequisites |
 | Actor gate | An explicit entry of user, agent issuer, agent and tenant, at both the RAS and the API | core: Delegated Actor Authorization ("not a protocol object") |
-| Delegation Authorization | Agent, user, client and resource, with a scope set; a request is narrowed to it, and a request with no overlap fails with `invalid_scope` | core: Delegation Authorization; Issuance Authorization |
+| Delegation Authorization | Agent, user, client and resource, with a scope set; a request is narrowed to that set and away from scopes policy categorically prohibits for the agent there; if nothing remains, a requested scope that is prohibited gives `actor_unauthorized`, and otherwise the result is `invalid_scope` | core: Delegation Authorization; Issuance Authorization |
 | Re-redeeming a bound grant | Not accepted: each grant is redeemed once | core: Common Grant Validation (MAY accept again under explicit policy) |
 | Access tokens | JWT access tokens validated at the API, 600 s, no refresh token except after a deferred redemption; opaque tokens only through test control | core: Token Validation; Optional RAS Refresh Tokens |
 | Introspection | RFC 7662 at the RAS, for opaque tokens; the API authenticates with HTTP Basic, calls over HTTP, and caches nothing | core: Optional Opaque Access Tokens and Introspection |
-| Policy service | Off unless test control turns it on; in-process, replacing the API's own evaluation; permits set by test control | core: Optional Policy Services |
-| API denials | A delegated token: HTTP 403 `actor_unauthorized` for a closed actor gate and for every policy-service denial, and HTTP 403 with `forbidden` in the body for the user's own permissions. A self-acting token: HTTP 403, `forbidden` in the body, and a DPoP challenge without an `error` parameter | core: Error Responses; Self-Acting Access |
+| Policy service | Off unless test control turns it on; in-process, replacing the API's own evaluation; policy set by test control; the decision names the first failing condition | core: Optional Policy Services |
+| API denials | HTTP 403 `actor_unauthorized` for the actor gate; HTTP 403 `insufficient_scope`, with the required scope, for token authority; for any other denial, delegated or self-acting, HTTP 403 with `DPoP algs="ES256"` and an empty JSON body; HTTP 503 with `Retry-After: 5` and an empty JSON body when an evaluation cannot complete | core: Error Responses; Self-Acting Access |
 | Approval at the RAS | Not required unless test control names the scopes that need it; the Access Request Service is in-process and test-controlled | oversight: Redemption Opt-In; Approval Binding |
 | Deferral lifetimes | Maximum pending lifetime 3600 s; absolute authorization expiration 8 h after acceptance; polling interval 5 s | oversight: Deferring a Redemption |
 | Refresh after a deferred redemption | Only where test control permits it; bound to the client and the DPoP key, not rotated | core: Optional RAS Refresh Tokens; oversight: Refresh and Continuation |
@@ -416,51 +501,34 @@ that settled it.
    core's Redemption Errors now assigns `actor_unauthorized` when RAS
    policy refuses a valid ID-JAG's delegation, including under the
    actor gate, and N16 asserts it.
-2. **The RAS's error for a missing or disabled agent record.** Agent
-   Principal Correlation and Applied Disablement require denial. The
-   Redemption Errors table fixes `invalid_grant` for a WAG whose `sub`
-   has no authorized correlation, but names no error for an ID-JAG whose
-   `act` has none, or for a disabled agent. The reference returns
-   `invalid_grant`; N15 asserts only that no token issues.
-3. **A delegation that covers none of the requested scope.** Issuance
-   Authorization returns `invalid_scope` when no scope can be granted;
-   the Issuance Errors table returns `actor_unauthorized` for an
-   insufficient delegation. The reference returns `invalid_scope`.
-4. **A grant with a missing or empty `scope` claim.** Common Grant
-   Validation requires a non-empty string but names no error. Two codes
-   are candidates: `invalid_grant` for an invalid ID-JAG (Redemption
-   Errors), and `invalid_scope` when no non-empty scope can be issued
-   (Token Endpoint Errors). The reference returns `invalid_grant`.
-5. **Check order for a bound redemption without a proof.** Grant
-   Protection requires `invalid_grant`. Access-Token Protection also
-   prevents issuing an access token for a resource that requires DPoP
-   when no proof is presented. An implementation that applies
-   access-token protection first returns a different error. The core
-   could say that grant protection is checked first.
-6. **The API's error for a user-authority denial.** Delegated Actor
-   Authorization requires the API to enforce both the user's authority
-   and the actor gate. Error Responses fixes HTTP 403
-   `actor_unauthorized` only for the denial of a valid actor identity,
-   and a policy service's one decision may not say which failed. The
-   reference returns `actor_unauthorized` for every policy-service
-   denial of a delegated token, including S04's. Its own
-   user-permission denial, without a policy service, is HTTP 403 with
-   `forbidden` in the body and no challenge.
-7. **The API's error for a self-acting denial.** Self-Acting Access
-   applies the agent's own permissions and no actor gate, and the core
-   fixes no error for a denial. `actor_unauthorized` names an actor, and
-   the Issuance Errors table avoids it for self-acting issuance because
-   no actor is asserted; `insufficient_scope` would tell the client that
-   more scope could help. The reference returns HTTP 403 with
-   `forbidden`, which is not a registered error code, in the body, and
-   a DPoP challenge without an `error` parameter (S09).
+2. **The RAS's error for a missing or disabled agent record.**
+   Resolved. The core's Redemption Errors now assigns `invalid_grant`
+   for an ID-JAG whose `act` agent has no authorized correlation or is
+   not eligible, and widens the WAG row. N15 asserts it for a disabled
+   agent, and N27 for an uncorrelated one.
+3. **A delegation that covers none of the requested scope.** Resolved.
+   The core's Issuance Errors and Issuance Authorization split
+   `actor_unauthorized` (no applicable delegation, or a categorical
+   prohibition) from `invalid_scope` (scope ceiling). N09 and N28 assert
+   the first, and N25 the second.
+4. **A grant with a missing or empty `scope` claim.** Resolved. The
+   core's Common Grant Validation assigns `invalid_grant`, and N26
+   asserts it.
+5. **Check order for a bound redemption without a proof.** Resolved.
+   The core's Access-Token Protection states that Grant Protection's
+   checks come first, so N11's `invalid_grant` no longer depends on the
+   reference's order.
+6. **The API's error for a user-authority denial.** Resolved, with
+   questions 7 and 8. The core's Error Responses defines the selection
+   order, the no-code 403 and the 503. A user-permission denial is HTTP
+   403 with a challenge that carries no `error` attribute (S04).
+7. **The API's error for a self-acting denial.** Resolved by the same
+   change: HTTP 403 with a challenge that carries no `error` attribute
+   (S09).
 8. **The API's error for a client, tenant or constraint policy
-   denial.** When policy denies a valid token for its OAuth client, its
-   tenant or its scope, rather than its agent, the core fixes no error.
-   A token tenant that differs from the operation's tenant is HTTP 401
-   `invalid_token`, but that is a token-context failure, not a policy
-   decision, and `insufficient_scope` would misstate a policy that
-   requires more than the operation's scope. The reference returns HTTP
-   403 `actor_unauthorized` for a delegated token (S05 to S07).
+   denial.** Resolved by the same change. A client or tenant policy
+   denial is HTTP 403 with a challenge that carries no `error` attribute
+   (S05, S06); a scope the operation needs and the token lacks is HTTP
+   403 `insufficient_scope` (S07). S14 to S19 test the order and the 503.
 
 [core-scope]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#scope

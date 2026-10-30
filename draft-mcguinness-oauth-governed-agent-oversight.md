@@ -383,7 +383,12 @@ the selected composition cannot enforce ("Issuance Authorization" in
 {{FEDERATION}}); this document reuses them for an approval that the
 request did not let the IdP obtain. This document defines no discovery
 of a target's oversight mode; a client learns to opt in from
-configuration or from a pre-token hint ({{Section 4.2 of DTR}}).
+configuration or from a pre-token hint ({{Section 4.2 of DTR}}). A
+client that can wait for an approver and handle a deferred response can
+include `deferred` on every request that policy might hold, since the
+IdP answers synchronously when it does not defer. A refusal of such a
+request is not a missing opt-in, and the client does not retry it
+unchanged.
 
 ## Deferring {#deferring}
 
@@ -607,7 +612,9 @@ NOT issue a token. It rejects the redemption with the error it returns
 when its own policy refuses a redemption ("Redemption Errors" in
 {{FEDERATION}}): `actor_unauthorized` for an ID-JAG and
 `invalid_target` for a WAG. The response therefore does not reveal
-that an approval could be obtained. A RAS that defers redemptions
+that an approval could be obtained. A client that can wait and handle a
+deferred response can include `deferred` on every redemption that RAS
+policy might hold, as at the IdP ({{opt-in}}). A RAS that defers redemptions
 advertises `deferred_token_response_supported` in its own metadata
 ({{Section 4.1 of DTR}}); the IdP's metadata says nothing about the
 RAS.

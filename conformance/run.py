@@ -3,11 +3,12 @@
 
     python3 conformance/run.py             run every case
     python3 conformance/run.py --vacuity   also show each negative case fails
-                                           when the check it cites is switched off
+                                           with each check it cites switched off,
+                                           and why
     python3 conformance/run.py --list      list the cases, their sources and needs
 
-Exits 1 if a case fails, or, with --vacuity, if a case still passes with its
-check switched off.
+Exits 1 if a case fails, or, with --vacuity, if a case still passes with one
+of its checks switched off.
 """
 import argparse
 import os
@@ -67,18 +68,20 @@ def main():
             print(f"            {detail}")
     print(f"\n{len(suite.CASES) - failures} of {len(suite.CASES)} cases passed")
 
-    vacuous = 0
+    vacuous = checked = 0
     if args.vacuity:
-        print("\nVacuity: each case with its cited check switched off must fail")
+        print("\nVacuity: each case must fail with each check it cites switched off")
         for c in suite.CASES:
-            if not c.defeats:
-                continue
-            passed, _, _ = suite.run_case(c, cfg, adapter, disable=c.defeats)
-            vacuous += passed
-            verdict = "VACUOUS" if passed else "ok"
-            print(f"{verdict:7} {c.id:4} without {', '.join(c.defeats)}")
-        checked = sum(1 for c in suite.CASES if c.defeats)
-        print(f"\n{checked - vacuous} of {checked} cases fail without their check")
+            for name in c.defeats:
+                passed, detail, _ = suite.run_case(c, cfg, adapter, disable=(name,))
+                vacuous += passed
+                checked += 1
+                print(f"{'VACUOUS' if passed else 'ok':7} {c.id:4} without {name}")
+                if not passed:
+                    print(f"            {detail[:120]}{'...' if len(detail) > 120 else ''}")
+        cases = sum(1 for c in suite.CASES if c.defeats)
+        print(f"\n{checked - vacuous} of {checked} runs fail: {cases} cases, each without "
+              "each check it cites")
 
     for server in servers:
         server.shutdown()

@@ -13,6 +13,7 @@ One example runs throughout: the enterprise identity provider (IdP)
 user Alice through the OAuth client `analysis-client` against the
 resource domain whose authorization server (RAS) is
 `https://ras.example/` and whose tenant is `acme-data`.
+[EXAMPLES.md](EXAMPLES.md) shows the same example's messages.
 
 * [The system in one page](#the-system-in-one-page)
 * [Identity, authority, and responsibility](#identity-authority-and-responsibility)
@@ -55,10 +56,10 @@ mapping.
 
 ### How it works
 
-The agent's OAuth client authenticates to the enterprise IdP and
-receives a grant naming the governed agent. It exchanges that grant at
-the resource domain's RAS for an access token,
-which it presents to the API:
+Three parties make the decisions: the IdP identifies the agent and
+authorizes its grant, the RAS decides what access to issue, and the API
+enforces that access, with its own checks, on each request. The agent's
+OAuth client carries the decisions between them:
 
 ```mermaid
 sequenceDiagram
@@ -100,7 +101,9 @@ Self-acting WAG (excerpt):
 The resource domain correlates the agent with its local principal by
 the exact (IdP issuer, agent identifier) pair. For delegated access,
 the RAS and API also enforce the actor gate: may this agent act for
-this user here?
+this user here? A person's approval and a policy service's evaluation
+are optional inputs to these decisions; neither replaces them
+([optional integrations](#optional-integrations-and-boundaries)).
 
 ### What is required, and what is optional
 
@@ -109,44 +112,44 @@ Every deployment using governed federation needs:
 * identity resolution through an Identity Binding, and client authority
   through a Client Association;
 * a Delegation or Agent Authorization at the IdP;
+* a client registration association, which supplies the grant's
+  `client_id` at the RAS;
 * the grant, and its redemption at the resource domain's RAS, which
   correlates the agent with a local principal; and
 * resource authorization at the RAS and the API, including the actor
   gate for delegated access.
 
 The rest are optional mechanisms, adopted as needed: inputs other than
-the dedicated client (the existing platform JWT is needed only to claim
-generic shared-client interoperability), SCIM administration of the
-relationships, lifecycle propagation into resource domains, gateway
-continuation, human oversight of grants and actions, an external policy
-decision point, and Transaction Tokens inside a resource domain.
-
-[Platform-hosted agents](#platform-hosted-agents) can use registration
-and lifecycle governance without federation; they need no Identity
-Binding, Client Association, or IdP-issued grant until they federate.
+the dedicated client (the core's existing platform JWT input, which an
+implementation needs only to claim generic shared-client
+interoperability; a shared client can also use the input profiles), SCIM
+administration of the relationships, lifecycle propagation into resource
+domains, gateway continuation, human oversight of grants and actions, an
+external policy decision point, and Transaction Tokens inside a resource
+domain.
 
 ## Identity, authority, and responsibility
 
-Five parties take part, each owning its own decisions:
+These parties take part, each owning its own decisions. A credential
+authority appears only where workload evidence, rather than the
+client's own authentication, identifies the agent:
 
 | Party | Role |
 |---|---|
-| Agent platform | Runs agents. Can implement the OAuth client that obtains access for them and, with SCIM management, a connector that registers them at the IdP |
+| Agent platform | Runs agents. Can implement the OAuth client that obtains access for them, and a connector that registers them at the IdP |
 | Credential authority | Issues the workload evidence the IdP can resolve: SPIFFE, a client attester, or the platform's own JWTs |
 | Governing IdP | Holds each Agent Principal and the relationships that govern it, and issues grants naming it |
 | Resource domain | Its RAS redeems grants and issues access tokens; its API enforces them |
-| Gateway | An API that continues an agent's request to a resource in another domain |
 
 The IdP holds the relationships. Each answers one question, and none
 implies another:
 
 | Relationship | Question | Defined in |
 |---|---|---|
-| Identity Binding | Which governed agent does this credential identify? | The core; administered with SCIM management |
-| Client Association | May this OAuth client use that agent's identity? | The core; for delegated issuance, administered with SCIM management |
+| Identity Binding | Which governed agent does this credential identify? | The core |
+| Client Association | May this OAuth client use that agent's identity? | The core |
 | Delegation Authorization | May the agent act for this user, with what authority? | The core |
 | Agent Authorization | What may the agent access on its own behalf? | The core |
-| Continuation Association | May this client, typically a gateway, continue the agent's chains in one acting relationship? | Continuation profile |
 
 Four rules follow:
 
@@ -154,9 +157,7 @@ Four rules follow:
   Binding says which agent a credential represents. A separate Client
   Association says whether a client may exercise that agent. In the
   [delegated flow](#delegated-access), disabling the association leaves
-  `agent-42` resolvable but refuses the grant. (SCIM management records
-  a dedicated client's binding and association in one resource, so
-  withdrawing client use there deactivates the binding as well.)
+  `agent-42` resolvable but refuses the grant.
 * **Attribution is not delegation authority.** In delegated access, the
   user is the subject and the agent the actor, each resolved on its own,
   and user and agent context stay separate in the grant. An
@@ -170,15 +171,15 @@ Four rules follow:
   design choice; the drafts do not require it.
 * **Each boundary keeps its own decision.** The IdP owns identity and
   the grant decision; the resource domain owns resource authority. The
-  RAS decides anew within the grant, a Local Suspension in a resource
-  domain cannot be cleared from upstream, and each resource domain's
-  RAS, not the IdP, issues access to its resources. Being known is not
-  being authorized.
+  RAS decides anew within the grant, a resource domain's own suspension
+  of an agent (a Local Suspension) cannot be cleared from upstream, and
+  each resource domain's RAS, not the IdP, issues access to its
+  resources. Being known is not being authorized.
 
 Facts cross each boundary only by contract, which states what is
 preserved, what is translated, and what is decided anew. The treatment
-of each boundary follows
-[Continuity Is Not One Thing](https://notes.karlmcguinness.com/notes/continuity-is-not-one-thing/).
+of each boundary follows [Continuity Is Not One
+Thing](https://notes.karlmcguinness.com/notes/continuity-is-not-one-thing/).
 
 ### Issuers, tenants, and executions
 
@@ -232,14 +233,75 @@ narrowed or withdrawn separately. The implementer's guide covers
 
 Every arrow in the flows rests on an agreement configured at both ends
 before the first request. The drafts require each agreement, not a
-format for it; the implementer's guide lists the items under
-[Federation configuration](IMPLEMENTERS-GUIDE.md#federation-configuration).
-None of them comes from a request: request parameters, presented
-credentials, and discovered metadata never create or widen one.
-Each boundary below states what is configured, what is checked on each
-request or administrative write, and what happens when the check fails.
-Adding a resource domain, a credential issuer, or a gateway means
-configuring its boundary at both ends.
+format for it; the implementer's guide lists the items under [Federation
+configuration](IMPLEMENTERS-GUIDE.md#federation-configuration). None of
+them comes from a request: request parameters, presented credentials,
+and discovered metadata never create or widen one. Each boundary below
+states what is configured, what is checked on each request or
+administrative write, and what happens when the check fails. Adding a
+resource domain, a credential issuer, or a gateway means configuring its
+boundary at both ends. The IdP → RAS and RAS → API boundaries are
+part of every deployment, and Credential authority → IdP of every
+deployment that resolves agents from workload evidence; the others come
+with optional capabilities. The implementer's guide indexes the OAuth
+errors these failures return ([Errors and
+recovery](IMPLEMENTERS-GUIDE.md#errors-and-recovery)).
+
+### Credential authority → IdP
+
+* **Configure:** each trusted issuer or trust domain, with its approved
+  keys, algorithms, time limits, and accepted audiences, and the
+  credential class that tells its workload credentials apart from its
+  user or management tokens. Identity Bindings name an exact issuer and
+  subject.
+* **Validate:** the IdP selects exactly one configured class for
+  presented evidence, validates the evidence under it, and resolves the
+  exact identity through an enabled binding.
+* **On failure:** for presented evidence, such as a platform JWT, an
+  ambiguous class makes the request malformed, and evidence that fails
+  validation, or matches no enabled binding, identifies no agent.
+  Neither falls back to another class or to the client's own
+  authentication. A rejected SVID or Client Attestation, which resolves
+  from client authentication, fails that authentication.
+
+### IdP → RAS
+
+* **Configure:** the RAS trusts the IdP as issuer of its ID-JAGs or
+  WAGs and of the agent namespace. The IdP holds a client registration
+  association for each client at that RAS, the Target Tenant for each
+  resource, and whether it may assert local account identifiers there.
+  Both hold the minimum profile for each client, trust relationship, and
+  resource.
+* **Validate:** the IdP derives each grant's `client_id` from the
+  association, never from the request. The RAS validates the grant, its
+  issuer and namespace, the client, and the proof, and correlates the
+  agent by the exact pair in the Target Tenant.
+* **On failure:** with no client registration association, the IdP
+  issues nothing for that target. A grant from an untrusted issuer or
+  namespace, or a bound grant without its proof, is an invalid grant at
+  the RAS. Each server enforces its own minimum profile, and nothing is
+  retried at a lower one.
+
+### RAS → API
+
+* **Configure:** the resource's minimum profile; how each token's
+  population, delegated or self-acting, is established (separate client
+  registrations, audiences, or issuers; one registration and audience
+  for both needs an additional bilateral contract, such as an
+  introspection member the RAS and API agree on); how the token carries
+  the tenant, by default a tenant-specific audience; the access-token
+  protection; and whether the API introspects or validates offline.
+* **Validate:** the API validates the token and its proof, takes the
+  population from that configuration and never from whether `act` is
+  present, checks the tenant, and applies the actor gate or the agent's
+  own permissions.
+* **On failure:** a token whose applicability is ambiguous, a
+  delegated-population token without `act`, or a token for another
+  tenant is an invalid token. A valid actor that the gate denies is
+  refused authority, and an evaluation that cannot complete is
+  unavailable, not a denial, unless an earlier-ranking failure is
+  already established. The validation mode decides how soon a
+  revocation at the RAS reaches the API.
 
 ### Platform → IdP
 
@@ -255,61 +317,6 @@ configuring its boundary at both ends.
 * **On failure:** the write is rejected with a SCIM error. The
   permissions stay separate because a binding or association write can
   let an identity act as an enterprise agent.
-
-### Credential authority → IdP
-
-* **Configure:** each trusted issuer or trust domain, with its approved
-  keys, algorithms, time limits, and accepted audiences, and the
-  credential class that tells its workload credentials apart from its
-  user or management tokens. Identity Bindings name an exact issuer and
-  subject.
-* **Validate:** the IdP selects exactly one configured class for
-  presented evidence, validates the evidence under it, and resolves the
-  exact identity through an enabled binding.
-* **On failure:** for presented evidence, such as a platform JWT, no
-  single configured class gives `invalid_request`, and evidence rejected
-  under the selected class, or no enabled binding, gives
-  `invalid_grant`. Neither falls back to another class or to the
-  client's own authentication. A rejected SVID or Client Attestation,
-  which resolves from client authentication, fails with that method's
-  error.
-
-### IdP → RAS
-
-* **Configure:** the RAS trusts the IdP as issuer of its ID-JAGs or
-  WAGs and of the agent namespace. The IdP holds a client registration
-  association for each client at that RAS, the Target Tenant for each
-  resource, and whether it may assert local account identifiers there.
-  Both hold the minimum profile for each client, trust relationship, and
-  resource.
-* **Validate:** the IdP derives each grant's `client_id` from the
-  association, never from the request. The RAS validates the grant, its
-  issuer and namespace, the client, and the proof, and correlates the
-  agent by the exact pair in the Target Tenant.
-* **On failure:** with no client registration association, the IdP
-  returns `invalid_target`. A grant from an untrusted issuer or
-  namespace, or a bound grant without its proof, fails at the RAS with
-  `invalid_grant`. Each server enforces its own minimum profile, and
-  nothing is retried at a lower one.
-
-### RAS → API
-
-* **Configure:** the resource's minimum profile; how each token's
-  population, delegated or self-acting, is established (separate client
-  registrations, audiences, or issuers; one registration and audience
-  for both needs an additional bilateral contract, such as an
-  introspection member the RAS and API agree on); how the token carries
-  the tenant, by default a tenant-specific audience; the access-token
-  protection; and whether the API introspects or validates offline.
-* **Validate:** the API validates the token and its proof, takes the
-  population from that configuration and never from whether `act` is
-  present, checks the tenant, and applies the actor gate or the agent's
-  own permissions.
-* **On failure:** a token whose applicability is ambiguous is rejected.
-  A delegated-population token without `act`, or a token for another
-  tenant, gets HTTP 401 `invalid_token`; a valid actor that is denied
-  gets HTTP 403 `actor_unauthorized`. The validation mode decides how
-  soon a revocation at the RAS reaches the API.
 
 ### Lifecycle sender → receiver
 
@@ -337,8 +344,8 @@ configuring its boundary at both ends.
   in it to the authenticated gateway, and applies the Continuation
   Association and the chain's governance checks. The assertion shows
   only that the RAS accepted the hop.
-* **On failure:** without a Continuation Association, the IdP returns
-  `unauthorized_client`, and the gateway does not fall back to its own
+* **On failure:** without a Continuation Association, the IdP refuses
+  the continuation, and the gateway does not fall back to its own
   authority.
 
 ## Access flows and deployment variants
@@ -350,10 +357,13 @@ implementer's guide's
 [primer](IMPLEMENTERS-GUIDE.md#primer-two-grants-one-identity-model)
 walks both message by message. Four variants follow, each in the same
 shape: when to use it, its prerequisites, what changes, and its
-limitations. Domains are always crossed with grants: an ID-JAG or WAG, or
-continuation through a gateway, so the target domain validates a grant
-from the IdP it already trusts. Tokens bound to one trust domain, such
-as Transaction Tokens, stay inside it.
+limitations. Domains are always crossed with grants: an ID-JAG or WAG,
+or continuation through a gateway, so the target domain validates a
+grant from the IdP it already trusts. Tokens bound to one trust domain,
+such as Transaction Tokens, stay inside it. [Platform-hosted
+agents](#platform-hosted-agents) can use registration and lifecycle
+governance without federation; they need no Identity Binding, Client
+Association, or IdP-issued grant until they federate.
 
 ### Delegated access
 
@@ -379,15 +389,15 @@ Three properties follow from that division:
   its identity.
 * **Resolution and authorization fail separately.** With the Client
   Association disabled, the Identity Binding still resolves `agent-42`,
-  but the IdP refuses the grant with `actor_unauthorized`, and nothing
-  reaches the RAS.
+  but the IdP refuses the grant, and nothing reaches the RAS.
 * **The client never stands in for the agent.** `analysis-api` is the
   client at the RAS, and the access token keeps `agent-42` in `act`, so
   agents that share a client remain distinct actors.
 
 The walkthrough's RAS issues no refresh token. When `access-1` expires,
 the client obtains a new ID-JAG, and the IdP decides again. The
-playbook's [delegated recipe](PLAYBOOK.md#recipe-delegated-access-to-a-saas-application)
+playbook's [delegated
+recipe](PLAYBOOK.md#recipe-delegated-access-to-a-saas-application)
 deploys this flow, tests it, and stops and restores it.
 
 ### Self-acting access
@@ -435,9 +445,8 @@ tests the flow.
 * **Limitations:** the client's authentication cannot tell its agents
   apart, so a token it holds for one agent is never reused for another,
   even with a matching scope. A platform JWT that fails validation is
-  rejected with `invalid_grant` and is not retried under another
-  credential class. The core's [AWS example][core-aws-example] shows the
-  input.
+  rejected and is not retried under another credential class. The core's
+  [AWS example][core-aws-example] shows the input.
 
 ### Continuation through gateways
 
@@ -480,20 +489,22 @@ bound to the gateway's key.
 The gateway is the grant's client, never an added actor; a separate
 `continuation_via` claim lists the gateways on the path.
 
-* **Limitations:** the API sees `continuation_via` only where the
-  target RAS supports path disclosure. A chain ends when its anchor
-  ends, such as the user's IdP session, and on governance events:
-  disabling the agent or user, disabling the root binding or
-  association, revoking (not rotating) the root credential, or
-  withdrawing the root authorization as a whole. Narrowing an
-  authorization stops continuation only to what was removed.
-  Self-acting chains anchor
-  to an agent session that only the agent's own authentication keeps
-  active, so a gateway cannot keep a stopped agent's chains alive.
-  The continuation profile requires the IdP to enforce a continuation
-  window, so continuation from a source hop stops once that window
-  passes, even while the agent's access token at the gateway is still
-  accepted.
+* **Limitations:** the API sees `continuation_via` only where the target
+  RAS supports path disclosure. A chain ends when its anchor  ends, such
+  as the user's IdP session, and on governance events: disabling the
+  agent or user, disabling the root binding or association, revoking
+  (not rotating) the root credential, or withdrawing the root
+  authorization as a whole. Narrowing an authorization stops
+  continuation only to what was removed. Restrictions in the chain
+  authorization or a Continuation Association can limit targets,
+  authority, and continuing clients, and an authorization from a
+  deferred redemption is never eligible for continuation. Self-acting
+  chains anchor to an agent session that only the agent's own
+  authentication keeps active, so a gateway cannot keep a stopped
+  agent's chains alive. The continuation profile requires the IdP to
+  enforce a continuation window, so continuation from a source hop stops
+  once that window passes, even while the agent's access token at the
+  gateway is still accepted.
 
 ### Scheduled work
 
@@ -511,11 +522,12 @@ The gateway is the grant's client, never an added actor; a separate
   continues from the task record and obtains a new ID-JAG for the
   target, with no retained user credential. The target RAS processes
   that grant as in the delegated flow.
-* **Limitations:** delegated access only. Withdrawing the user's
-  delegation, or revoking the refresh-token grant, ends the chain, and
-  the next run fails with `invalid_continuation`. The continuation
-  profile's [scheduled variant][continuation-scheduled] shows the
-  messages.
+* **Limitations:** delegated access only. The continuation window must
+  cover the task; once the chain's first hop passes its deadline, the
+  task needs a new chain. Withdrawing the user's delegation, or revoking
+  the refresh-token grant, ends the chain, and the next run fails. The
+  continuation profile's [scheduled variant][continuation-scheduled]
+  shows the messages.
 
 ### Platform-hosted agents
 
@@ -539,14 +551,6 @@ The gateway is the grant's client, never an added actor; a separate
     disablement, it denies new authorization and revokes the agent's
     existing authorization in its own system. Its own suspension is a
     Local Suspension the IdP cannot clear.
-  * **Signal both ways.** The platform can send WISE credential and
-    posture events and CAEP session events about its agents to the IdP,
-    and the
-    IdP can send CAEP risk changes back. Events inform policy; they do
-    not change administrative state.
-  * **One correlation key.** The issuer-qualified Agent Principal
-    identifier appears in SCIM and in any events, and the platform's
-    audit records should carry it next to the platform's own identifier.
 * **Limitations:** the platform authorizes from locally applied state,
   so an unreachable IdP neither disables nor re-enables its agents; a
   bound on stale state needs a revalidation policy. To reach a resource
@@ -564,63 +568,40 @@ risk signals, disablement, and re-enablement.
 
 ### One deployment, end to end
 
-This advanced example combines the required parts with several optional
-mechanisms: SCIM registration, a gateway, a policy decision point,
-continuation, Transaction Tokens inside the tool's domain, and lifecycle
-propagation. The required parts are the ones listed under [What is
-required](#what-is-required-and-what-is-optional): identity resolution,
-client authority, authorization, the grant and its redemption, and
-resource authorization at the RAS and the API.
-
-```mermaid
-sequenceDiagram
-  participant P as Agent platform
-  participant I as Governing IdP
-  participant G as Gateway domain
-  participant D as Policy decision point
-  participant T as Tool domain
-  participant S as Internal service
-  P->>I: Register the agent and its relationships
-  P->>I: Token exchange with the user ID Token, identifying the agent
-  I-->>P: ID-JAG naming the user and the agent
-  P->>G: Redeem the grant, then call a tool
-  G->>D: Evaluate the action
-  G->>I: Continuation exchange
-  I-->>G: Onward grant naming the same agent
-  G->>T: Redeem the onward grant, then call the tool
-  T->>S: Transaction Token with the authorized operation
-  I-->>T: Provision, disable, or revoke
-```
-
-1. **Register.** The platform's connector registers the agent and its
-   relationships at the IdP (SCIM management).
-2. **Resolve and grant.** The agent's client presents the user's ID
-   Token as the subject token and identifies the agent through its
-   client authentication or workload evidence. The IdP resolves the
-   user and the Agent Principal, checks the Client Association and the
-   user's Delegation Authorization, and issues an ID-JAG, DPoP-bound in
-   the bound profile (the core).
-3. **Access.** The client redeems the grant at the gateway's RAS and
-   calls the gateway, which enforces the user's authority and the actor
-   gate and can ask a PDP about each action
-   ([AuthZEN](#authorization-decisions-with-authzen)).
-4. **Continue.** For a tool in another domain, the gateway continues the
-   agent's chain: its RAS attests the hop, and the IdP issues an onward
-   grant naming the same agent, with the gateway as client
-   ([continuation](#continuation-through-gateways)).
-5. **Propagate.** Inside the tool's domain, a Transaction Token carries
-   the user, the agent, the client, the path, and the authorized
-   operation through the internal call chain. Internal services enforce
-   those bounds, and the token is never accepted outside that domain.
-6. **Govern.** Changes at the IdP or in a resource domain take effect
-   as [Changes, failures, and recovery](#changes-failures-and-recovery)
-   describes. Transaction Tokens inside the tool's domain end by their
-   own validation and expiry rules. As a deployment choice, risk signals
-   can inform issuance policy and per-action decisions.
-
-The implementer's guide covers
-[Transaction Tokens inside a resource domain](IMPLEMENTERS-GUIDE.md#transaction-tokens-inside-a-resource-domain)
+The optional mechanisms compose without changing the core. A platform's
+connector can register the agent (SCIM management); a gateway can ask a
+policy decision service about each action and continue the agent's chain
+to a tool in another domain (continuation); a Transaction Token can
+carry the user, the agent, the client, and the authorized operation
+through the tool's internal services; and lifecycle propagation can
+provision, disable, and revoke. Each leaves the core's grant,
+redemption, and resource authorization unchanged.
+[EXAMPLES.md](EXAMPLES.md) shows the gateway and its approval with
+messages, and the implementer's guide covers [Transaction Tokens inside
+a resource
+domain](IMPLEMENTERS-GUIDE.md#transaction-tokens-inside-a-resource-domain)
 and [risk signals](IMPLEMENTERS-GUIDE.md#risk-signals).
+
+### What each choice costs
+
+The security controls carry these deployment costs. The threats behind
+them are in the core's [Security Considerations][core-security].
+
+| Requirement | Benefit | Cost |
+|---|---|---|
+| Dedicated-client resolution as the common mode | Reuses deployed client authentication and registered keys | One Agent Principal per client identity; proves registered-client identity, not independent runtime or workload provenance |
+| Optional native JWT-SVID input ([input profiles][inputs]) | Reuses SPIFFE issuance, client authentication, and trust-domain validation | Bearer evidence; issuer-bound presenter proof needs another supported input |
+| Bound profile: DPoP at both token endpoints; grant bound to the grant proof key | A stolen ID-JAG cannot be redeemed without the key | Every client holds and proves a key |
+| Actor-aware API processing | The actor gate is enforced where access happens | APIs parse `act` and consult the gate on delegated paths |
+| Sender-constrained access tokens by default | Token theft is contained | Resources without DPoP or mutual TLS need explicit configuration for bearer use |
+
+Bound grants also need one key holder for issuance and redemption, and
+opaque access tokens add an introspection round trip and a freshness
+policy; the implementer's
+guide covers [key
+use](IMPLEMENTERS-GUIDE.md#distributed-platforms-and-key-use) and
+[optional
+exchanges](IMPLEMENTERS-GUIDE.md#optional-exchanges-within-the-core).
 
 ## Changes, failures, and recovery
 
@@ -636,7 +617,7 @@ issued runs until its own revocation or expiry.
 | Disable an Identity Binding | At the IdP, through that binding; other bindings continue. Chains rooted through it end | Grants and RAS tokens, until revoked or expired | Re-enabling it; ended chains stay ended |
 | Remove a Client Association | At the IdP, for that client's use of the binding. Chains rooted through it end | Grants and RAS tokens, until revoked or expired | Restoring it; ended chains stay ended |
 | Withdraw a user's delegation, or an Agent Authorization, as a whole | At the IdP, for that authorization; chains rooted under it end | Delegated: RAS authorization, until revoked or its absolute expiration. Self-acting: access tokens and any still-redeemable WAG, until they expire | Restoring it; a new root grant for ended chains |
-| Narrow an authorization by removing targets or authority | New grants for what was removed are refused, and continuation to it fails with `invalid_target`, `invalid_scope`, or `invalid_authorization_details`; chains continue to other targets | Tokens already issued for the removed targets, until revoked or expired | Restoring the targets or authority |
+| Narrow an authorization by removing targets or authority | New grants and continuation for what was removed are refused; chains continue to other targets | Tokens already issued for the removed targets, until revoked or expired | Restoring the targets or authority |
 | Disable the Agent Principal | At the IdP, for every binding and client; every chain for the agent ends | Once a resource domain applies the change, redemption and refresh are denied there and the agent's sessions are revoked | Re-enabling it permits new decisions; revoked sessions and ended chains stay ended |
 | Revoke one ID-JAG through the optional grant-derived revocation capability | Its redemption, at participating receivers in the target tenant | The authorization derived from it there is revoked; the agent stays enabled | A new grant; the revoked one stays unusable |
 | Apply a Local Suspension | In that resource domain, regardless of upstream state | API access stops when its policy observes the change, introspection reports the token inactive, or the token expires | Only the resource domain lifting it; upstream activation cannot. A provisional suspension caused by a deactivation event can also be cleared by successful reconciliation |
@@ -653,81 +634,62 @@ document its expected and maximum delay.
 
 A component that cannot reach another keeps the decisions it has
 already applied, unless a configured stale-state bound expires, and
-makes no decision that needs the missing input.
-The table separates continuing an authorized operation with tokens and
-grants already issued from obtaining new authority from the IdP; the
-details of each row follow it.
+makes no decision that needs the missing input. The implementer's guide
+indexes the OAuth errors these failures return ([Errors and
+recovery](IMPLEMENTERS-GUIDE.md#errors-and-recovery)).
 
-| Failure | Existing operations | New authority | Recovery |
+| Failure | What stops | What still works | Recovery |
 |---|---|---|---|
-| The IdP is unavailable | Continue with valid tokens and redeemable grants | No new grant from the IdP | New grants once it returns |
-| Lifecycle delivery is delayed or lost | Continue on the last applied state | Decided on the last applied state | Reconciliation with the source |
-| The RAS has no record for the agent | Unaffected for agents already correlated | Denied, unless just-in-time correlation applies | Provisioning, or just-in-time correlation |
-| Introspection is unavailable at the API | Requests that need a check fail | Unaffected at the RAS | Requests succeed once it returns |
-| A policy decision service is unavailable | The API performs no operation that needs the decision and answers HTTP 503, not a denial, unless a failure is established and no unfinished check ranks earlier than it | An IdP issuance decision that depends on the service cannot be made | Retry after any `Retry-After` interval; decisions resume once it returns |
-| A continuation is refused | Issued tokens keep their lifetimes | No onward grant; after `invalid_continuation`, no further continuation of that chain | A new root grant, or a different request |
+| The IdP is unavailable | New grants, including onward grants | Valid access tokens and redeemable grants | New grants once it returns |
+| Lifecycle delivery is delayed or lost | The undelivered change stops nothing until it is applied; a revalidation bound denies new authorization and refresh once it passes | Decisions on the last applied state | Reconciliation with the source |
+| The RAS has no record for the agent | Its redemptions, unless just-in-time correlation applies | Agents already correlated | Provisioning, or just-in-time correlation |
+| Introspection is unavailable at the API | Requests that need a check | Cached active responses, within the cache policy | Requests succeed once it returns |
+| A policy decision service is unavailable | Operations that need its decision; the API answers that it is unavailable, not that it denies, unless a failure is established and no unfinished check ranks earlier | Operations the API decides without it | A retry after any `Retry-After` interval |
+| A continuation is refused | That continuation; once the chain has ended, every continuation of it | Tokens already issued, for their lifetimes | A new root grant once the chain has ended; otherwise a different request, or a retry under a rate limit's policy |
 
-**The IdP is unavailable.** The outage prevents new IdP-issued grants:
-no new ID-JAG, WAG, or onward grant. Grants already issued stay
-redeemable under their validity, replay, proof, and local-policy rules:
-an unbound grant once, and a bound grant again only where RAS policy
-permits. Access tokens work until they expire, and where a RAS issued a
-refresh token under explicit policy, delegated access can refresh
-within its absolute expiration. Self-acting access ends only when the
-client has neither an acceptable access token nor a redeemable WAG.
-Platform-hosted agents keep authorizing on applied state until any
-configured stale-state bound expires and denies new authorization. An
-IdP that is reachable but cannot confirm shared state a continuation
-depends on answers HTTP 503; the chain does not end, and the gateway
-can retry the same request with the same assertion while it is
-unexpired, after any `Retry-After` interval, with a fresh client
-assertion and DPoP proof.
+**The IdP is unavailable.** Grants already issued stay redeemable under
+their own rules: an unbound grant once, and a bound grant again only
+where RAS policy permits. Where a RAS issued a refresh token under
+explicit policy, delegated access can refresh within its absolute
+expiration; self-acting access ends only when the client has neither an
+acceptable access token nor a redeemable WAG. Platform-hosted agents
+keep authorizing on applied state until any stale-state bound expires.
+An IdP that is reachable but cannot confirm shared state a continuation
+depends on answers HTTP 503, a temporary refusal that is not an error
+response: the chain does not end, and the gateway can retry the same
+request with the same assertion while it is unexpired, after any
+`Retry-After` interval, with a fresh client assertion and DPoP proof.
 
 **Lifecycle delivery is delayed or lost.** A disablement not yet
 applied in a resource domain stops neither redemption, refresh, nor
-sessions there. A revalidation policy with a maximum stale-state
-interval denies new authorization and refresh once that interval
-expires. Reconciliation retrieves current state from the source, and a
-delayed activation notice triggers that retrieval, never an activation.
-A missed disable-and-re-enable cycle cannot be recovered from current
-state.
+sessions there. A delayed activation notice triggers retrieval of
+current state, never an activation, and a missed disable-and-re-enable
+cycle cannot be recovered from current state.
 
-**The RAS has no record for the agent.** Redemption that depends on the
-missing record is denied: an ID-JAG whose `act` agent has no authorized
-correlation, or a WAG for an uncorrelated agent, fails with
-`invalid_grant`. Where
+**The RAS has no record for the agent.** Where
 resource policy enables just-in-time correlation for that issuer and
 tenant, the RAS can create the record from the validated grant,
 applying local restrictions and policy before issuance. A record
 created just in time still needs lifecycle integration to learn of
 disablement.
 
-**Introspection is unavailable at the API.** A failed or timed-out
-check cannot authorize a request. Cached active responses stay usable
-within the cache policy.
+**A policy decision service is unavailable.** Unless a failure is
+established and no unfinished check ranks earlier, the API answers HTTP
+503, normally with `Retry-After` ([core, Error
+Responses][core-resource-errors]). A COAZ-MCP enforcement point fails
+closed and returns an error of its own; the drafts do not yet say how
+that composes with the core's 503. Whether local policy can stand in for
+the unavailable service is not settled either. Where an IdP issuance
+decision depends on resource-domain evaluation through that service, the
+IdP cannot make it.
 
-**A policy decision service is unavailable.** An API whose check
-cannot complete does not perform the operation. Unless a failure is
-established and no unfinished check ranks earlier than it in the core's
-selection order, it reports no denial and answers HTTP 503, normally
-with `Retry-After` ([core, Error Responses][core-resource-errors]).
-A COAZ-MCP enforcement point fails closed and returns an error of its
-own; the drafts do not yet say how that composes with the core's 503.
-Whether local policy can stand in for the unavailable service is not
-settled either. Where an IdP issuance decision depends on
-resource-domain evaluation through that service, the IdP cannot make
-it.
-
-**A continuation is refused.** Ending a chain stops new continuations
-only; grants and tokens already issued keep their own lifetimes. After
-`invalid_continuation`, the chain has ended: the gateway should reject
-the agent's request with HTTP 401 `invalid_token`, and only a new root
-grant, which the agent's client obtains, starts a new chain. After a
-limit or continuation-window failure (`invalid_grant`), the chain
-continues: the gateway fails the request with an error of its own API,
-the failure does not invalidate the agent's access token, and recovery
-takes a different request or a retry under a rate limit's policy. In
-either case, the gateway never calls the tool with its own authority.
+**A continuation is refused.** Once the chain has ended, the gateway
+should reject the agent's request as an invalid token, so that the
+agent's client obtains a new root grant. After a limit or
+continuation-window failure, the chain continues: the gateway fails only
+the request, with an error of its own API, and the failure alone does
+not invalidate the agent's access token. In either case, the gateway
+never calls the tool with its own authority.
 
 ## Optional integrations and boundaries
 
@@ -739,96 +701,81 @@ an example here is not a promise of interoperability:
 |---|---|
 | The companion profiles: inputs, continuation, SCIM management, OAuth client management, and lifecycle | Defined protocol behavior ([specification map](#specification-map-and-glossary)) |
 | Grant-derived revocation of one ID-JAG | Optional capability with defined requirements, in the lifecycle profile |
-| An external policy decision service | Optional capability with defined requirements: "Optional Policy Services" in the core |
-| An AuthZEN or COAZ-MCP message mapping | Unresolved composition: the core names AuthZEN as one interface and defines no mapping; the AuthZEN working group plans an OAuth mapping profile ([below](#authorization-decisions-with-authzen)) |
+| An external policy decision service | Optional capability with defined requirements ([below](#policy-decision-services)) |
+| An AuthZEN or COAZ-MCP message mapping | Unresolved composition: the core names AuthZEN as one interface and defines no mapping; the AuthZEN working group plans an OAuth mapping profile |
 | AuthZEN Token Issuance or Token Exchange profiles at the IdP | Unresolved composition: compatible with the core's issuance authorization, which a decision can narrow but not broaden, but neither profile makes the resolved Agent Principal a mandatory decision input |
 | Transaction Tokens inside a resource domain | Illustrative deployment composition, in the [implementer's guide](IMPLEMENTERS-GUIDE.md#transaction-tokens-inside-a-resource-domain) |
-| Credential brokers | Illustrative deployment composition ([below](#credential-brokers)) |
-| Human oversight: approval before issuance or redemption, supervised issuance, and per-action approval | Defined protocol behavior in the [oversight profile][oversight], which profiles Deferred Token Response for governed issuance at the IdP and governed redemption at the RAS |
-| Asynchronous approval with ARAP and AROP | At the RAS, defined protocol behavior: the [oversight profile][oversight]'s deferred redemption binds each approval to one pending redemption, bounds every token the RAS issues by the approval's expiry, and makes the authorization ineligible for continuation. At the IdP, unresolved and an excluded composition in the core: an approval there bounds only the grant, not the RAS's tokens that AROP bounds, and ARAP does not yet bind an approval to a governed request's resolved identities |
+| Credential brokers | Illustrative deployment composition, in the [implementer's guide](IMPLEMENTERS-GUIDE.md#credential-brokers) |
+| Human oversight: approval before issuance or redemption, supervised issuance, and per-action approval | Defined protocol behavior ([below](#human-oversight)) |
 | Approved work, such as Mission-Bound Authorization | Outside these drafts ([below](#beyond-these-drafts)) |
 
-### Authorization decisions with AuthZEN
+### Human oversight
 
-These drafts decide which governed agent is acting and what authority
-its grant carries. A resource domain can still ask a policy decision
-point (PDP) whether to permit one operation, such as one MCP tool call,
-through the OpenID AuthZEN Authorization API; COAZ-MCP maps MCP tool
-calls into AuthZEN requests. The drafts define no AuthZEN mapping.
+The [oversight profile][oversight] adds a person to governed access.
+With a human in the loop, an approver decides before a grant issues,
+before a RAS issues access, or before an action executes; with a human
+on the loop, an overseer sees each grant as it issues and can end it.
+Without the profile, standing authorization decides alone (human out of
+the loop). For approval before a grant or before access, the IdP or the
+RAS holds the request under OAuth Deferred Token Response until the
+approver decides; at the RAS this is deferred redemption. Policy at each
+decision point selects the mode; a client's opt-in to waiting never
+does.
 
-Whatever the PDP, the enforcement point keeps the user, the
-issuer-qualified Agent Principal, the OAuth client, the tenant, and the
-token's authority distinct, and a permit never widens the token
-("Optional Policy Services" in the core). Three points need care:
+Approval permits this request; it does not create standing authority.
+An audit identifier can correlate the approval but cannot establish
+authorization. For deferred redemption, token lifetimes are bounded by
+the approval and other applicable deadlines, and the resulting
+authorization cannot be continued.
 
-* **Where the agent comes from.** COAZ-MCP's default puts the agent in
-  `context.agent`, "typically `$token.?client_id`". For a governed
-  delegated token, that names the platform's shared client, or in a
-  further domain the gateway, instead of the agent. Delegated access
-  takes the agent from the validated `act`; self-acting access uses the
-  correlated local subject. The enforcement point selects the case by
-  the token population configured for the resource, not by whether
-  `act` is present. The AuthZEN working group has decided that COAZ-MCP
-  will not define a trusted agent member: policies that need the actor
-  reason over the validated token's claims.
-* **Who supplies it.** COAZ-MCP treats attributes from a tool's declared
-  mapping as untrusted and verifies only the subject identifier against
-  the token. The core therefore requires the enforcement point to take
-  the user, agent, client, tenant, and token constraints from the
-  validated token, or an authenticated introspection response, and
-  trusted configuration; a declared mapping cannot supply or override
-  them.
-* **One identity model across profiles.** COAZ-MCP, ARAP, AROP, Token
-  Issuance, and the Mission AuthZEN profile each place the agent
-  somewhere different. A governed token gives them one model: in a
-  delegated chain, a single actor that is also the agent the IdP
-  authorized to act for the user; the client kept separate; for a token
-  that trusted context establishes as self-acting, the agent as the
-  subject; and gateways in `continuation_via` rather than `act`. The
-  working group plans an OAuth mapping profile on which COAZ-MCP, the
-  token issuance and exchange profiles, and ARAP are to build.
+* **Approval at the IdP and at the RAS end differently.** At the IdP,
+  approval yields a grant that the RAS redeems and the API enforces like
+  any other. At the RAS, it yields the access token itself, and every
+  refresh is evaluated again with the approval. Approval at one decision
+  point does not satisfy another.
+* **The approver is authenticated.** An approver authenticates at the
+  strength policy requires; a confirmation from the client or the agent
+  is not an approval, and a denial issues nothing.
+* **Some compositions are unresolved.** At the RAS, the oversight
+  profile binds each approval to one pending redemption, and the AuthZEN
+  [Access Request and Approval Profile][arap] (ARAP) and [Access Request
+  OAuth Profile][arop] (AROP) can realize that binding. At the IdP,
+  completing an approved request as a token through AROP is an excluded
+  composition of the core: an approval there bounds only the grant, and
+  ARAP does not yet bind an approval to a governed request's resolved
+  identities.
 
-The implementer's guide has the [integration points, use cases, and
-worked requests](IMPLEMENTERS-GUIDE.md#authorization-decisions-with-authzen),
-and compares the profiles in [one identity
-model](IMPLEMENTERS-GUIDE.md#one-identity-model-across-authzen-profiles).
-[COORDINATION.md](COORDINATION.md) records the changes proposed to the
-profiles.
+The implementer's guide covers [configuration and waiting
+limits](IMPLEMENTERS-GUIDE.md#human-oversight), and EXAMPLES.md shows
+[approval at issuance](EXAMPLES.md#approval-at-issuance) and [at
+redemption](EXAMPLES.md#approval-at-redemption).
 
-### Credential brokers
+### Policy decision services
 
-A credential broker, such as the Credential Broker for Agents (CB4A)
-described in an individual Internet-Draft, keeps long-lived credentials
-away from agents. A policy decision point approves each request, and a
-separate credential delivery point mints a short-lived,
-sender-constrained token from a vaulted credential. These profiles
-change what a broker needs for targets that accept governed grants:
+A resource domain can ask a policy decision service whether to permit
+one operation, such as one MCP tool call, through the OpenID AuthZEN
+Authorization API or another interface; the drafts define no mapping to
+any of them. Whatever the service, the core's [Optional Policy
+Services][core-policy-services] rules apply:
 
-* **No vaulted credential.** The IdP issues a grant naming the agent,
-  and the target's RAS issues the access token, so the broker holds no
-  vaulted API or user credential for that target, and the target sees
-  the agent as the acting principal, with the broker only as its
-  client. A gateway that would otherwise inject a shared
-  credential continues the agent's grant instead
-  ([Continuation through gateways](#continuation-through-gateways)).
-* **The broker's decisions map onto existing points.** Its policy
-  decision is the IdP's issuance authorization, which can use an
-  AuthZEN PDP. Its human approval tiers correspond to approval before
-  issuance under the [oversight profile][oversight]. At the target's
-  RAS, an approval can complete as an access token through the
-  profile's deferred redemption; at the IdP, completion through AROP
-  stays unresolved.
-* **Identity stays separate.** CB4A names each agent session
-  `spiffe://trust-domain/agent/{user-id}/{session-id}`. A governed Agent
-  Principal is stable and excludes the user and the session: the user
-  travels as the subject of an ID-JAG, and a session is a chain anchor.
-  A broker that federates therefore presents a stable per-agent
-  identity.
+* the API keeps the user, the issuer-qualified Agent Principal, and the
+  OAuth client distinct, and supplies the tenant and token constraints;
+* it takes them only from the validated token, or an authenticated
+  introspection response, and trusted configuration, never from request
+  attributes such as a tool call's arguments;
+* a permit never widens the token; and
+* the decision says whether the actor gate denied, or the API evaluates
+  the gate itself, so that it can report the right failure.
 
-Targets that accept only API keys or their own minting interfaces stay
-outside these profiles. For those, the governed identity applies where
-the broker decides. The implementer's guide has the
-[mapping and two deployment patterns](IMPLEMENTERS-GUIDE.md#credential-brokers).
+[COAZ-MCP][coaz-mcp], the AuthZEN binding for MCP tool calls, names the
+client as the agent by default, which for a shared client or a gateway
+is the same for every agent behind it. The API supplies the agent from
+the validated `act` or, for a self-acting token, the correlated subject,
+as the token population configured for the resource selects. The
+implementer's guide has the [integration points and illustrative
+requests](IMPLEMENTERS-GUIDE.md#authorization-decisions-with-authzen),
+and [COORDINATION.md](COORDINATION.md) the changes proposed to the
+AuthZEN profiles.
 
 ### Beyond these drafts
 
@@ -840,7 +787,7 @@ context and per-action authorization belong to other specifications:
 | Concern | Question | Responsibility | Specifications |
 |---|---|---|---|
 | Identity | Which governed agent is acting? | The IdP resolves the Agent Principal; the resource domain correlates it locally | These drafts |
-| Authority | What may it do, and for whom? | The IdP authorizes the grant; the resource domain decides within its limits | These drafts; AuthZEN and COAZ for per-action decisions ([above](#authorization-decisions-with-authzen)); ARAP and AROP for requestable denials ([glossary](#glossary)) |
+| Authority | What may it do, and for whom? | The IdP authorizes the grant; the resource domain decides within its limits | These drafts; AuthZEN and COAZ for per-action decisions ([above](#policy-decision-services)); ARAP and AROP for access requests after a denial ([above](#human-oversight)) |
 | Work | Does approved work still justify this action? | A mission control point supplies and evaluates work context; ending a Mission denies actions at every boundary that checks work state | [Mission-Bound Authorization](https://github.com/mcguinness/mission-bound-authorization) |
 
 Also outside these drafts: identity continuity across a chain of IdPs,
@@ -877,16 +824,8 @@ no new workload credential format is defined. Two adoption profiles
 differ in grant protection: bound governed agent access requires DPoP
 at issuance and redemption.
 
-**Add a companion when you need what it addresses:**
-
-| When you need | Add | Working group | Notes |
-|---|---|---|---|
-| SPIFFE or Client Attestation evidence, including several managed installations behind one client | [Agent Resolution Input Profiles][inputs] | OAuth | Each input is claimed separately. The core requires it for JWT-SVID client authentication, so the two are published together; without these inputs, the core alone suffices |
-| A gateway that calls further resource domains for the agent | [Identity Continuation Profile][continuation] | OAuth | Profiles the Identity Continuation Assertion (ICA) for governed agents ([variant](#continuation-through-gateways)) |
-| Platforms that register agents and their relationships at the IdP | [SCIM Profile for Governed Agent Federation Management][management] | SCIM | Keeps registering, binding, and authorizing client use as separate permissions ([trust](#trust-between-parties)) |
-| OAuth client registrations managed through SCIM | [SCIM Profile for OAuth 2.0 Client Management][oauth-client] | SCIM | Develops the approach first proposed by Phil Hunt, Morteza Ansari, and Anthony Nadalin. It can share a registration with OAuth dynamic registration, and admits Client ID Metadata Document clients without copying their metadata |
-| Resource domains provisioned with agents and their disablement | [Governed Agent Lifecycle Profile][lifecycle] | SCIM | Applies administrative disablement to OAuth authorization, with an optional CAEP composition that revokes what one grant authorized. It defines no new schema, event type, or authorization timestamp |
-| A person to approve, or to observe and end, an agent's grants and actions | [Human Oversight Profile][oversight] | OAuth | Defines human-in-the-loop, on-the-loop, and out-of-the-loop modes; profiles Deferred Token Response so the IdP holds a governed grant, or the RAS holds its redemption, until an approver decides. It defines no new claim, error, or grant type |
+The [README](README.md#the-drafts) lists the companion profiles and
+when to add each.
 
 ### How they connect
 
@@ -941,22 +880,17 @@ What each draft needs from the specifications it depends on is in
 | Agent Authorization | The IdP's decision that an agent may access a target on its own behalf, within an approved client, tenant, target, and authority | The core |
 | Agent Principal | The stable principal, in the IdP's namespace, that the enterprise governs as one agent; identified by its IdP's issuer and its identifier | The core |
 | Agent session | IdP state recording that an agent recently authenticated through one Identity Binding; it anchors self-acting chains | Continuation |
-| ARAP | [AuthZEN Access Request and Approval Profile](https://openid.github.io/authzen/authzen-access-request-approval-profile-1_0.html): after a requestable denial, the enforcement point submits an access request, tracks it, and re-evaluates after approval | OpenID AuthZEN |
-| AROP | [AuthZEN Access Request OAuth Profile](https://github.com/openid/authzen/blob/main/profiles/authzen-access-request-oauth/authzen-access-request-oauth-profile-1_0.md): binds ARAP to OAuth, so an approved request completes as an access token | OpenID AuthZEN |
-| AuthZEN Authorization API | [The API](https://openid.net/specs/authorization-api-1_0.html) through which an enforcement point asks a policy decision point for a decision about a subject, action, resource, and context | OpenID AuthZEN |
 | Bound governed agent access | The adoption profile that requires DPoP at grant issuance and redemption | The core |
 | Chain, hop | The IdP's record of grants continued from one root grant; each grant in it is a hop | ICA, as the continuation profile uses it |
 | Client Association | Permission for an OAuth client to use an agent through the selected Identity Binding, in one acting relationship and credential class | The core |
 | Client registration association | The IdP's mapping from an authenticated client to its registration at a target RAS, which supplies the grant's `client_id`; not a Client Association | The core ("Issuance Prerequisites") |
-| COAZ, COAZ-MCP | [COAZ](https://openid.github.io/authzen/authzen-coaz-framework-1_0.html) (Compatible with OpenID AuthZEN) maps an operation's inputs into an AuthZEN request; [COAZ-MCP](https://openid.github.io/authzen/authzen-coaz-mcp-binding-1_0.html) is its binding for the Model Context Protocol | OpenID AuthZEN |
-| Continuation Assertion Issuer (CAI) | The issuer that attests, for a continuation exchange, that a RAS accepted a hop, that its authorization is active, and that the continuing client is associated with it | ICA |
+| Continuation Assertion Issuer (CAI) | The issuer that attests, for a continuation exchange, that a RAS accepted a hop, that its authorization is active, and that the continuing client is associated with it | Identity Continuation Assertion (ICA) |
 | Continuation Association | Permission for a client to continue an agent's governed chains in one acting relationship | Continuation |
 | `continuation_via` | The onward grant's claim listing the continuing clients on the path | Continuation |
 | Continuing client | The client, usually a gateway, that continues a chain: it obtains the assertion, exchanges it at the IdP, and redeems the onward grant | Continuation |
 | Credential class | A configured category of agent-resolution input with its own validation rules, such as a client assertion, a SPIFFE SVID, Client Attestation, or a platform's workload JWT | The core |
 | Dedicated client, shared client | A dedicated client's authenticated identity maps to one agent. A shared client serves several agents, so resolving one needs workload evidence | The core |
 | Delegation Authorization | The IdP's decision that an agent may act for a user, within an approved client, tenant, target, and authority | The core |
-| Execution identity | What a platform issues for a workload it runs, or a client's own authentication: evidence the IdP resolves, not the governed principal | This overview |
 | Governance Tenant | The IdP's administrative scope for an agent and its relationships; not part of the agent's identity | The core |
 | Governed agent access | The adoption profile that permits unbound grants only where trusted policy explicitly allows them | The core |
 | Grant-derived revocation | Optional revocation, by a CAEP event, of the authorization one ID-JAG produced in a tenant | Lifecycle |
@@ -964,7 +898,6 @@ What each draft needs from the specifications it depends on is in
 | Identity Binding | An approved association from an exact client or workload identity to one agent; it resolves the agent and grants no permission | The core |
 | Local Suspension | A resource-domain restriction independent of the IdP's state; upstream activation cannot clear it | Lifecycle |
 | Onward grant | An ID-JAG or WAG issued on a continuation exchange | Continuation |
-| Oversight mode | Whether a person decides before a grant issues or an action executes (human in the loop), can observe and end what issued (human on the loop), or is not involved per request (human out of the loop) | Oversight |
 | Provisioning Domain | In a resource domain, configuration naming one governing IdP issuer, one Target Tenant, and the connectors authorized to manage them. At the IdP, one connector's management authority within one Governance Tenant | Lifecycle; SCIM management |
 | RAS | The resource domain's authorization server, which redeems grants and issues access tokens | The core |
 | Resource domain | A RAS and the APIs it issues access tokens for | This overview |
@@ -975,13 +908,14 @@ What each draft needs from the specifications it depends on is in
 [core]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
 [core-walkthrough]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#walkthrough
 [core-resource-errors]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#resource-errors
+[core-policy-services]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#policy-services
+[core-security]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#security
+[arap]: https://openid.github.io/authzen/authzen-access-request-approval-profile-1_0.html
+[arop]: https://github.com/openid/authzen/blob/main/profiles/authzen-access-request-oauth/authzen-access-request-oauth-profile-1_0.md
+[coaz-mcp]: https://openid.github.io/authzen/authzen-coaz-mcp-binding-1_0.html
 [core-wag-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#wag-example
 [core-aws-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#aws-example
 [inputs]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html
-[continuation]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html
 [continuation-scheduled]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-continuation.html#walkthrough-scheduled
-[management]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-agent-federation.html
-[lifecycle]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html
 [oversight]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-oversight.html
 [lifecycle-example]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html#platform-example
-[oauth-client]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-scim-oauth-client-management.html

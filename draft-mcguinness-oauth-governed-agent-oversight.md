@@ -838,8 +838,13 @@ passed, or if the evaluation denies. A shorter deadline that an
 evaluation returns becomes the enforcement deadline for every later
 token and for the refresh authorization. An access token issued on
 refresh expires no later than the approval expiry, any enforcement
-deadline, and the absolute authorization expiration. Access after a
-rejected refresh needs a new grant, since this one is consumed.
+deadline, and the absolute authorization expiration. When the RAS
+rejects a refresh after authenticating the client and its proof, under
+this paragraph or under "Optional RAS Refresh Tokens" in
+{{FEDERATION}}, it MUST end the refresh authorization, so that a later
+change in policy or approval does not revive it. A request that fails
+client authentication or proof does not end it. Access after an ended
+refresh authorization needs a new grant, since this one is consumed.
 
 The RAS MUST NOT record an authorization from a deferred redemption as
 eligible for continuation ("Root Redemption at the Gateway's RAS" in
@@ -1195,6 +1200,7 @@ Each case changes this variant as stated; all other checks succeed.
 | The grant's `exp` passes while the redemption is pending, and the steward then approves | RAS | The access token issues at the next poll |
 | The maximum pending lifetime is 24 hours, and the steward approves nine hours after receipt | RAS | `expires_in` was at most eight hours; HTTP 400, `expired_token`; no token |
 | Local Suspension of `agent-42` while the redemption is pending, and the steward then approves | RAS | HTTP 400, `access_denied` at the next poll; no token |
+| While the redemption is pending, `agent-42`'s correlation changes to another local agent principal, and the steward then approves | RAS | HTTP 400, `access_denied` at the next poll; no token |
 | Grant-derived revocation of the ID-JAG arrives while the redemption is pending, at a participating RAS | RAS | HTTP 400, `access_denied` at the next poll |
 | The steward denies, and the client presents the grant again | RAS | HTTP 400, `access_denied`; then `invalid_grant` |
 | While the redemption is pending, the client presents the grant without `completion_mode` | RAS | HTTP 400, `invalid_grant` |
@@ -1206,6 +1212,8 @@ Each case changes this variant as stated; all other checks succeed.
 | The access request service returns the first redemption's approval for the second's approval request | RAS | The second stays pending (`authorization_pending`); no token |
 | The approval expires in one hour, a refresh token issues, and the client refreshes after the approval expiry | RAS | The access token expires within the approval expiry; HTTP 400, `invalid_grant` on refresh |
 | The approval is revoked ten minutes into its hour, and the client then refreshes | RAS | HTTP 400, `invalid_grant` |
+| The grant had no `cnf` and the client's minimum was governed agent access; after a refresh token issues, the minimum becomes bound governed agent access, and the client refreshes | RAS | HTTP 400, `invalid_grant` ("Optional RAS Refresh Tokens" in {{FEDERATION}}) |
+| A refresh is rejected because the actor gate no longer permits `agent-42`; the gate is restored, and the client refreshes again with the same refresh token | RAS | HTTP 400, `invalid_grant`; the rejection ended the refresh authorization |
 | A deferred WAG redemption is approved | RAS | An access token with the local agent principal as `sub`, no `act`, and no refresh token |
 | The gateway exchanges at the CAI an access token from a deferred redemption, or one refreshed from it | CAI | HTTP 400, `invalid_request`; the authorization is not eligible for continuation |
 {: title="Deferred redemption negative test cases"}

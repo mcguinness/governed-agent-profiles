@@ -1190,7 +1190,8 @@ assertion's two-minute lifetime, so the assertion cannot be presented
 again. Passing the chain's limits now reserves no capacity; the IdP
 counts them again when the grant issues. The deadline limits only when
 a continuation can be requested, so the onward grant can still issue
-after 12:16:03 if Alice approves later.
+after 12:16:03 if Alice approves within the request's 15-minute pending
+lifetime.
 
 The gateway answers the agent's call with a task:
 
@@ -1454,11 +1455,11 @@ file service processes it as before. Its `auth_time` is still Alice's
 sign-in of the previous day. No user credential was retained.
 
 Once H0's deadline passes, the next run fails with `invalid_grant`, and
-the task needs a new chain, anchored while Alice is signed in
-([continuation, Identity Provider][cont-impl-idp]). If Alice withdraws
-her Delegation Authorization for `agent-42`, the next run fails with
-`invalid_continuation`, and her delegations to other agents continue. Revoking the refresh-token grant that anchors the chain
-also ends it.
+the task needs a new chain, anchored as at setup ([continuation,
+Identity Provider][cont-impl-idp]). If Alice withdraws her Delegation
+Authorization for `agent-42`, the next run fails with
+`invalid_continuation`, and her delegations to other agents continue.
+Revoking the refresh-token grant that anchors the chain also ends it.
 
 ## 8. Incident
 

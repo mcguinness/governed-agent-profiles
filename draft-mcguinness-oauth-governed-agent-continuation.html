@@ -2284,7 +2284,7 @@ RAS that issued its token supports path disclosure.<a href="#section-6.5.2-6" cl
 <a href="#section-6.5.3" class="section-number selfRef">6.5.3. </a><a href="#name-delegated-id-jag" class="section-name selfRef">Delegated: ID-JAG</a>
           </h4>
 <p id="section-6.5.3-1">The onward ID-JAG uses the format and claims of
-<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04#section-3.1" class="relref">Section 3.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span> and the following:<a href="#section-6.5.3-1" class="pilcrow">¶</a></p>
+<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05#section-3.1" class="relref">Section 3.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span> and the following:<a href="#section-6.5.3-1" class="pilcrow">¶</a></p>
 <span id="name-onward-id-jag-subject-actor"></span><table class="center" id="table-5">
             <caption>
 <a href="#table-5" class="selfRef">Table 5</a>:
@@ -2566,7 +2566,7 @@ Request" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span
 grant type, client authentication as the client the grant names, and a
 DPoP proof of the grant's <code>cnf</code> key. For governed chains, this replaces
 the <code>jwt-dpop</code> redemption of <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.5.5" class="relref">Section 5.5.5</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>;
-<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04#section-4.4" class="relref">Section 4.4</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span> requires <code>jwt-bearer</code>, and <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>
+<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05#section-4.4" class="relref">Section 4.4</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span> requires <code>jwt-bearer</code>, and <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>
 applies the grant confirmation checks of ID-JAG to it. Every onward
 grant carries <code>cnf</code>, so the target RAS needs DPoP support at its token
 endpoint ("Grant Protection" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>), which the continuing
@@ -2788,7 +2788,7 @@ RAS. The continuing client <span class="bcp14">MUST</span> implement that reques
         </h3>
 <p id="section-10.2-1">A continuation-aware RAS that binds handles of governed grants <span class="bcp14">MUST</span> list
 <code>urn:ietf:params:oauth:grant-profile:governed-agent-continuation</code> in
-<code>authorization_grant_profiles_supported</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04#section-7.2" class="relref">Section 7.2</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>),
+<code>authorization_grant_profiles_supported</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05#section-7.2" class="relref">Section 7.2</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>),
 together with the governed profile URIs that identify the grants it
 accepts. The value indicates handle binding under
 <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.2" class="relref">Section 5.2</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span> with the access-token protection and eligibility
@@ -3132,7 +3132,7 @@ WAGs. Errors are those of <span>[<a href="#RFC6749" class="cite xref">RFC6749</a
 <dd class="break"></dd>
 <dt id="ID-JAG">[ID-JAG]</dt>
         <dd>
-<span class="refAuthor">Parecki, A.</span>, <span class="refAuthor">McGuinness, K.</span>, and <span class="refAuthor">B. Campbell</span>, <span class="refTitle">"Identity Assertion JWT Authorization Grant"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-identity-assertion-authz-grant-04</span>, <time datetime="2026-05-21" class="refDate">21 May 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04</a>&gt;</span>. </dd>
+<span class="refAuthor">Parecki, A.</span>, <span class="refAuthor">McGuinness, K.</span>, and <span class="refAuthor">B. Campbell</span>, <span class="refTitle">"Identity Assertion JWT Authorization Grant"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-identity-assertion-authz-grant-05</span>, <time datetime="2026-10-30" class="refDate">30 October 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC6749">[RFC6749]</dt>
         <dd>
@@ -4125,7 +4125,7 @@ ICA-02, ID-JAG-04, WAG-01, and the 2026-10-09 revision of
             <tr>
               <td class="text-left" rowspan="1" colspan="1">ID-JAG</td>
               <td class="text-left" rowspan="1" colspan="1">
-                <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04#section-4.4" class="relref">Section 4.4</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span> requires <code>jwt-bearer</code>, while its key-bound example uses <code>jwt-dpop</code>, which <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.5.5" class="relref">Section 5.5.5</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span> follows</td>
+                <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05#section-4.4" class="relref">Section 4.4</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span> requires <code>jwt-bearer</code>, while its key-bound example uses <code>jwt-dpop</code>, which <span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.5.5" class="relref">Section 5.5.5</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span> follows</td>
               <td class="text-left" rowspan="1" colspan="1">Onward grants are redeemed with <code>jwt-bearer</code> under <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>
 </td>
             </tr>

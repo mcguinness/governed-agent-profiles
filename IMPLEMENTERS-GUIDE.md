@@ -813,7 +813,8 @@ member names are illustrations, not a convention; the profiles leave a
 reusable convention to the OAuth mapping profile the AuthZEN working
 group plans ([coordination notes](COORDINATION.md)). In each request,
 the enforcement point supplies the subject and every `context` member
-from the validated token and trusted configuration; the tool's declared
+from the validated token and trusted configuration, with the token's
+`scope` and audience grouped as `constraints`; the tool's declared
 mapping supplies only `action` and `resource` from the call. The
 `context` members are trustworthy because the enforcement point
 supplies them, not because a binding defines them.
@@ -845,7 +846,10 @@ The agent calls a `read_file` tool with the argument
     "agent": {"iss": "https://idp.example/", "sub": "agent-42"},
     "client": "analysis-api",
     "tenant": "acme-data",
-    "scope": "files.read"
+    "constraints": {
+      "scope": "files.read",
+      "aud": "https://api.example/tenants/acme-data/"
+    }
   }
 }
 ~~~
@@ -864,6 +868,7 @@ and carries no `act` (excerpt):
 {
   "iss": "https://ras.example/",
   "sub": "service-principal-42",
+  "aud": "https://api.example/tenants/acme-data/",
   "client_id": "analysis-api",
   "scope": "files.read"
 }
@@ -877,7 +882,10 @@ and carries no `act` (excerpt):
   "context": {
     "client": "analysis-api",
     "tenant": "acme-data",
-    "scope": "files.read"
+    "constraints": {
+      "scope": "files.read",
+      "aud": "https://api.example/tenants/acme-data/"
+    }
   }
 }
 ~~~
@@ -895,6 +903,7 @@ path disclosure (excerpt):
 ~~~ json
 {
   "sub": "user-108",
+  "aud": "https://api.example/tenants/acme-data/",
   "client_id": "data-files",
   "scope": "files.read",
   "act": {"iss": "https://idp.example/", "sub": "agent-42"},
@@ -918,7 +927,10 @@ path disclosure (excerpt):
       {"iss": "https://data-gateway.example/", "sub": "data-gateway"}
     ],
     "tenant": "acme-data",
-    "scope": "files.read"
+    "constraints": {
+      "scope": "files.read",
+      "aud": "https://api.example/tenants/acme-data/"
+    }
   }
 }
 ~~~

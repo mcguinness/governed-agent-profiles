@@ -925,7 +925,10 @@ are illustrations, not a convention):
   "context": {
     "agent": {"iss": "https://idp.example/", "sub": "agent-42"},
     "client": "analysis-gw",
-    "scope": "tools.invoke"
+    "constraints": {
+      "scope": "tools.invoke",
+      "aud": "https://gateway.example/mcp"
+    }
   }
 }
 ```

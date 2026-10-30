@@ -2894,7 +2894,7 @@ last column is the required result. Token endpoint errors follow
 | The actor gate permits `agent-42`, and the operation needs `files.write`, which the access token lacks | API | HTTP 403, `insufficient_scope` |
 | The actor gate permits `agent-42`, the token's scope covers the read, and Alice has no permission on `report-7` | API | HTTP 403 with a challenge that carries no `error` attribute |
 | The API delegates evaluation to a policy service, which cannot be reached | API | HTTP 503; no operation performed and no denial reported |
-| The access token is opaque, and the introspection endpoint cannot be reached or returns a response without a boolean `active` | API | HTTP 503; no operation performed, and not `invalid_token` ({{introspection}}) |
+| The access token is opaque, the API holds no usable cached introspection response for it, and the introspection endpoint cannot be reached or returns a response without a boolean `active` | API | HTTP 503; no operation performed, and not `invalid_token` ({{introspection}}) |
 | The introspection endpoint cannot be reached, and the DPoP proof's `ath` does not match the access token | API | HTTP 401 for the proof; the unfinished token validation is in the same row, not earlier ({{resource-errors}}) |
 | The policy service denies `agent-42` under the actor gate, and its evaluation of Alice's own permissions cannot complete | API | HTTP 403, `actor_unauthorized`; no unfinished check comes earlier |
 | The policy service cannot complete the actor gate, and Alice has no permission on `report-7` | API | HTTP 503; the unfinished actor gate could come earlier than the user's denial |

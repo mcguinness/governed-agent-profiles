@@ -1722,7 +1722,7 @@ through these steps, which the subsections define:<a href="#section-4-1" class="
               <code>access_denied</code>; reservation FAILED</td>
           </tr>
           <tr>
-            <td class="text-left" rowspan="1" colspan="1">Client revokes the deferral code (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-7" class="relref">Section 7</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>)</td>
+            <td class="text-left" rowspan="1" colspan="1">Client revokes the deferral code (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-7" class="relref">Section 7</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>)</td>
             <td class="text-left" rowspan="1" colspan="1">Ends the request</td>
             <td class="text-left" rowspan="1" colspan="1">
               <code>access_denied</code>; reservation FAILED</td>
@@ -1746,14 +1746,14 @@ holds no limit capacity and no grant, so its end releases nothing else.<a href="
         </h3>
 <p id="section-4.1-1">A client that can wait for an approver includes <code>deferred</code> in the
 <code>completion_mode</code> parameter of its token exchange request
-(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-4.1" class="relref">Section 4.1</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>). It <span class="bcp14">MUST</span> present a DPoP proof <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span> on
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-4.1" class="relref">Section 4.1</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>). It <span class="bcp14">MUST</span> present a DPoP proof <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span> on
 that request, whatever its client authentication method. This narrows
-<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-10.1" class="relref">Section 10.1</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>, which lets a confidential client using
+<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-10.1" class="relref">Section 10.1</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>, which lets a confidential client using
 <code>private_key_jwt</code> omit DPoP: under this document the deferral code and
 the grant it yields are bound to one key.<a href="#section-4.1-1" class="pilcrow">¶</a></p>
 <p id="section-4.1-2">When policy requires human in the loop and the request does not include
 <code>deferred</code>, the IdP <span class="bcp14">MUST NOT</span> return a deferred response
-(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-4.1" class="relref">Section 4.1</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>) and <span class="bcp14">MUST NOT</span> issue the grant. It rejects the
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-4.1" class="relref">Section 4.1</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>) and <span class="bcp14">MUST NOT</span> issue the grant. It rejects the
 request (<span><a href="https://rfc-editor.org/rfc/rfc6749#section-5.2" class="relref">Section 5.2</a> of [<a href="#RFC6749" class="cite xref">RFC6749</a>]</span>) with <code>actor_unauthorized</code> for
 delegated issuance or <code>invalid_target</code> for self-acting issuance. These
 are the errors <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> assigns when approval requires a condition
@@ -1761,7 +1761,7 @@ the selected composition cannot enforce ("Issuance Authorization" in
 <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>); this document reuses them for an approval that the
 request did not let the IdP obtain. This document defines no discovery
 of a target's oversight mode; a client learns to opt in from
-configuration or from a pre-token hint (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-4.2" class="relref">Section 4.2</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>). A
+configuration or from a pre-token hint (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-4.2" class="relref">Section 4.2</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>). A
 client that can wait for an approver and handle a deferred response can
 include <code>deferred</code> on every request that policy might hold, since the
 IdP answers synchronously when it does not defer. A refusal of such a
@@ -1784,11 +1784,11 @@ registration association. A request that fails a check is rejected as
 never decides on a request the IdP would refuse.<a href="#section-4.2-1" class="pilcrow">¶</a></p>
 <p id="section-4.2-2">The IdP then records a pending governed request holding the request's
 governed request context, and returns the deferred response of
-<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-5.4" class="relref">Section 5.4</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>. The deferral code represents that pending
+<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-5.4" class="relref">Section 5.4</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>. The deferral code represents that pending
 governed request and nothing else. The IdP <span class="bcp14">MUST</span> bind it to the
 authenticated client and to the key of the request's DPoP proof, and
 <span class="bcp14">MUST</span> reject a poll or cancellation that does not prove that key
-(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-10.1" class="relref">Section 10.1</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>). The IdP <span class="bcp14">MUST</span> set <code>expires_in</code> no greater than
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-10.1" class="relref">Section 10.1</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>). The IdP <span class="bcp14">MUST</span> set <code>expires_in</code> no greater than
 a configured maximum pending lifetime for the applicable policy.<a href="#section-4.2-2" class="pilcrow">¶</a></p>
 <p id="section-4.2-3">The client does not present the subject token or the agent-resolution
 input again; the IdP validates them when it receives the request. The
@@ -1854,7 +1854,7 @@ user; an access request service under <span>[<a href="#ARAP" class="cite xref">A
 <a href="#section-4.4" class="section-number selfRef">4.4. </a><a href="#name-resolution" class="section-name selfRef">Resolution</a>
         </h3>
 <p id="section-4.4-1">Before issuing a grant in response to a poll, the IdP <span class="bcp14">MUST</span> re-evaluate
-the request under <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-10.7" class="relref">Section 10.7</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span> and, in addition, <span class="bcp14">MUST</span> confirm
+the request under <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-10.7" class="relref">Section 10.7</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span> and, in addition, <span class="bcp14">MUST</span> confirm
 that:<a href="#section-4.4-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-4.4-2.1">
@@ -1884,10 +1884,10 @@ Authorization" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]
 </li>
         </ul>
 <p id="section-4.4-3">If any check fails, the IdP returns <code>access_denied</code> and issues no grant,
-as <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-10.7" class="relref">Section 10.7</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span> requires. A denial resolves to
+as <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-10.7" class="relref">Section 10.7</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span> requires. A denial resolves to
 <code>access_denied</code>, and a pending request that outlives <code>expires_in</code>
-resolves to <code>expired_token</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-5.6" class="relref">Section 5.6</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>). A client cancels
-a pending request by revoking its deferral code (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-7" class="relref">Section 7</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>,
+resolves to <code>expired_token</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-5.6" class="relref">Section 5.6</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>). A client cancels
+a pending request by revoking its deferral code (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-7" class="relref">Section 7</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>,
 <span>[<a href="#RFC7009" class="cite xref">RFC7009</a>]</span>).<a href="#section-4.4-3" class="pilcrow">¶</a></p>
 <p id="section-4.4-4">On success, the IdP <span class="bcp14">MUST</span> issue the governed grant that the request
 would have produced without deferral, with the approved authority:<a href="#section-4.4-4" class="pilcrow">¶</a></p>
@@ -1910,7 +1910,7 @@ redemption window begins at resolution, within the lifetime limits of
 </li>
         </ul>
 <p id="section-4.4-6">The successful polling response carries the <code>issued_token_type</code> of the
-originating request (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-5.5.2" class="relref">Section 5.5.2</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>). No claim in the grant
+originating request (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-5.5.2" class="relref">Section 5.5.2</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>). No claim in the grant
 indicates that an approval occurred. The IdP <span class="bcp14">MAY</span> include the <code>txn</code>
 claim <span>[<a href="#RFC8417" class="cite xref">RFC8417</a>]</span> with an identifier of the approval, for audit
 correlation; a RAS or API <span class="bcp14">MUST NOT</span> treat <code>txn</code> as evidence of approval
@@ -1951,7 +1951,7 @@ cancellation, expiry, or a failed re-check.<a href="#section-4.5-2.2.1" class="p
 assertion, both while the request is pending and after it ends.
 Recovery (<span><a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-id-continuation-assertion-02#section-5.5.7.1" class="relref">Section 5.5.7.1</a> of [<a href="#ICA" class="cite xref">ICA</a>]</span>) does not apply to an onward
 grant issued at resolution, which only the polling response delivers
-(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-5.5.2" class="relref">Section 5.5.2</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>).<a href="#section-4.5-2.3.1" class="pilcrow">¶</a></p>
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-5.5.2" class="relref">Section 5.5.2</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>).<a href="#section-4.5-2.3.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 <p id="section-4.5-3">A continuation exchange performs no agent resolution, so at resolution
@@ -2040,7 +2040,7 @@ redemption moves through these steps, which the subsections define:<a href="#sec
 </td>
           </tr>
           <tr>
-            <td class="text-left" rowspan="1" colspan="1">Client revokes the deferral code (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-7" class="relref">Section 7</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>)</td>
+            <td class="text-left" rowspan="1" colspan="1">Client revokes the deferral code (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-7" class="relref">Section 7</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>)</td>
             <td class="text-left" rowspan="1" colspan="1">Ends the pending redemption</td>
             <td class="text-left" rowspan="1" colspan="1">
               <code>access_denied</code>
@@ -2063,7 +2063,7 @@ redemption moves through these steps, which the subsections define:<a href="#sec
         </h3>
 <p id="section-5.1-1">A client that can wait for an approver includes <code>deferred</code> in the
 <code>completion_mode</code> parameter of its redemption request
-(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-4.1" class="relref">Section 4.1</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>). It <span class="bcp14">MUST</span> present a DPoP proof <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span> on
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-4.1" class="relref">Section 4.1</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>). It <span class="bcp14">MUST</span> present a DPoP proof <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span> on
 that request, whatever its client authentication method, as for
 deferred issuance (<a href="#opt-in" class="auto internal xref">Section 4.1</a>). For a grant that contains <code>cnf.jkt</code>,
 that proof is the grant proof.<a href="#section-5.1-1" class="pilcrow">¶</a></p>
@@ -2071,7 +2071,7 @@ that proof is the grant proof.<a href="#section-5.1-1" class="pilcrow">¶</a></p
 that does not include <code>deferred</code> or does not present a DPoP proof. It
 <span class="bcp14">MUST NOT</span> defer a redemption for a resource whose configuration selects
 mutual-TLS access tokens ("Access-Token Protection" in
-<span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>): <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-10.1" class="relref">Section 10.1</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span> requires the token issued
+<span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>): <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-10.1" class="relref">Section 10.1</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span> requires the token issued
 after a request with a DPoP proof to be bound to that proof's key, and
 that configuration applies mutual TLS regardless of any DPoP proof.<a href="#section-5.1-2" class="pilcrow">¶</a></p>
 <p id="section-5.1-3">When RAS policy requires approval and the RAS does not defer, it <span class="bcp14">MUST NOT</span> issue a token. It rejects the redemption with the error it returns
@@ -2082,7 +2082,7 @@ that an approval could be obtained. A client that can wait and handle a
 deferred response can include <code>deferred</code> on every redemption that RAS
 policy might hold, as at the IdP (<a href="#opt-in" class="auto internal xref">Section 4.1</a>). A RAS that defers redemptions
 advertises <code>deferred_token_response_supported</code> in its own metadata
-(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-4.1" class="relref">Section 4.1</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>); the IdP's metadata says nothing about the
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-4.1" class="relref">Section 4.1</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>); the IdP's metadata says nothing about the
 RAS.<a href="#section-5.1-3" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -2118,14 +2118,14 @@ and is not deferred. The client does not present the grant again, so
 its time claims are checked when the request is received; the grant's
 <code>exp</code> limits redemption, not later access ("Authorization Lifetime" in
 <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>). This document thus reads the originating-grant
-preconditions that <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-10.7" class="relref">Section 10.7</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span> re-evaluates as excluding
+preconditions that <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-10.7" class="relref">Section 10.7</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span> re-evaluates as excluding
 the grant's own expiration (<a href="#open-items" class="auto internal xref">Appendix C</a>).<a href="#section-5.2-3" class="pilcrow">¶</a></p>
 <p id="section-5.2-4">The RAS then accepts the grant. It <span class="bcp14">MUST</span> record the grant's (<code>iss</code>,
 <code>jti</code>) as accepted, whether or not the grant is bound, and <span class="bcp14">MUST NOT</span>
 accept the grant again for another redemption. This narrows the
 re-acceptance of a bound grant that "Common Grant Validation" in
 <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> permits and the parallel request of
-<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-8.2" class="relref">Section 8.2</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>: one grant yields one outcome, and a denial
+<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-8.2" class="relref">Section 8.2</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>: one grant yields one outcome, and a denial
 cannot be bypassed by presenting the grant again. The RAS retains the
 record until the later of the pending redemption's end and the
 retention of "Time, Replay, and Key Validation" in <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>.<a href="#section-5.2-4" class="pilcrow">¶</a></p>
@@ -2169,10 +2169,10 @@ agent, and the client distinct, as "Optional Policy Services" in
 <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> requires of an API. For an ID-JAG, the agent is the
 issuer-qualified <code>act</code>; for a WAG, the agent is the subject. The client
 identifier never identifies the agent.<a href="#section-5.2-8" class="pilcrow">¶</a></p>
-<p id="section-5.2-9">The RAS returns the deferred response of <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-5.4" class="relref">Section 5.4</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>. It
+<p id="section-5.2-9">The RAS returns the deferred response of <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-5.4" class="relref">Section 5.4</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>. It
 <span class="bcp14">MUST</span> bind the deferral code to the authenticated client and the key of
 the request's DPoP proof, and <span class="bcp14">MUST</span> reject a poll or cancellation that
-does not prove that key (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-10.1" class="relref">Section 10.1</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>). It <span class="bcp14">MUST</span> set
+does not prove that key (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-10.1" class="relref">Section 10.1</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>). It <span class="bcp14">MUST</span> set
 <code>expires_in</code> no greater than a configured maximum pending lifetime and
 so that the pending governed redemption ends no later than the absolute
 authorization expiration. An approval after that expiration therefore
@@ -2234,10 +2234,10 @@ replaces it.<a href="#section-5.3-5" class="pilcrow">¶</a></p>
 <a href="#section-5.4" class="section-number selfRef">5.4. </a><a href="#name-recovery" class="section-name selfRef">Recovery</a>
         </h3>
 <p id="section-5.4-1">A pending governed redemption is recoverable until a successful token
-response redeems its deferral code (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-5.5.2" class="relref">Section 5.5.2</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>), or until
+response redeems its deferral code (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-5.5.2" class="relref">Section 5.5.2</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>), or until
 it is denied, cancelled, or expires. The RAS cannot know whether a
 token response reached the client; a later poll for a redeemed code
-fails (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-5.5.1" class="relref">Section 5.5.1</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>).<a href="#section-5.4-1" class="pilcrow">¶</a></p>
+fails (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-5.5.1" class="relref">Section 5.5.1</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>).<a href="#section-5.4-1" class="pilcrow">¶</a></p>
 <p id="section-5.4-2">While a pending governed redemption is recoverable, the RAS <span class="bcp14">MUST</span> return
 its deferral code, with the remaining <code>expires_in</code>, to a redemption
 request that presents:<a href="#section-5.4-2" class="pilcrow">¶</a></p>
@@ -2280,7 +2280,7 @@ the pending governed redemption ends.<a href="#section-5.4-5" class="pilcrow">¶
 resolution; an approval for another approval request leaves the pending
 governed redemption pending. Before issuing a token in response to a
 poll, the RAS <span class="bcp14">MUST</span> re-evaluate the redemption under
-<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-10.7" class="relref">Section 10.7</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>, with the approval kept under
+<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-10.7" class="relref">Section 10.7</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>, with the approval kept under
 <a href="#redemption-approval" class="auto internal xref">Section 5.3</a>, and <span class="bcp14">MUST</span> confirm that:<a href="#section-5.5-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-5.5-2.1">
@@ -2311,9 +2311,9 @@ Target Tenant, and resource.<a href="#section-5.5-2.5.1" class="pilcrow">¶</a><
 </li>
         </ul>
 <p id="section-5.5-3">If any check fails, the RAS returns <code>access_denied</code> and issues no
-token, as <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-10.7" class="relref">Section 10.7</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span> requires. A denial resolves to
+token, as <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-10.7" class="relref">Section 10.7</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span> requires. A denial resolves to
 <code>access_denied</code>, and a pending governed redemption that outlives
-<code>expires_in</code> resolves to <code>expired_token</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-5.6" class="relref">Section 5.6</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>).
+<code>expires_in</code> resolves to <code>expired_token</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-5.6" class="relref">Section 5.6</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>).
 Grant-derived revocation of the grant reaches "all redemptions" of it
 (<span>[<a href="#AGENT-LIFECYCLE" class="cite xref">AGENT-LIFECYCLE</a>]</span>), so a participating RAS ends the pending governed
 redemption when the event arrives, and the next poll gets
@@ -2331,7 +2331,7 @@ subject and <code>act</code> unchanged ("Actor Preservation" in
 no <code>act</code>;<a href="#section-5.5-5.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-5.5-5.2">
-            <p id="section-5.5-5.2.1">an access token bound to the proof key (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-10.1" class="relref">Section 10.1</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>),
+            <p id="section-5.5-5.2.1">an access token bound to the proof key (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-10.1" class="relref">Section 10.1</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>),
 with <code>iat</code> set at resolution and an expiration no later than the
 approval expiry, any enforcement deadline, and the absolute
 authorization expiration; and<a href="#section-5.5-5.2.1" class="pilcrow">¶</a></p>
@@ -2342,7 +2342,7 @@ response's <code>scope</code> reports it.<a href="#section-5.5-5.3.1" class="pil
 </li>
         </ul>
 <p id="section-5.5-6">The successful polling response is the token response that the
-redemption would have returned (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-5.5.2" class="relref">Section 5.5.2</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>); the JWT
+redemption would have returned (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-5.5.2" class="relref">Section 5.5.2</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>); the JWT
 bearer grant defines no <code>issued_token_type</code>. The access token <span class="bcp14">MAY</span> carry
 <code>txn</code> for audit
 correlation, as a grant may (<a href="#resolution" class="auto internal xref">Section 4.4</a>); an API <span class="bcp14">MUST NOT</span> treat it
@@ -2603,7 +2603,7 @@ confirmation is client behavior, not an approval under this document
       </table>
 <p id="section-9-3">A claim of deferred governed issuance or deferred redemption requires
 the polling mode of
-<span>[<a href="#DTR" class="cite xref">DTR</a>]</span>; callback notification (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-6" class="relref">Section 6</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>) is optional. Each
+<span>[<a href="#DTR" class="cite xref">DTR</a>]</span>; callback notification (<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-6" class="relref">Section 6</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>) is optional. Each
 claim requires the realization of <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> it applies to.<a href="#section-9-3" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -2678,7 +2678,7 @@ do the same.<a href="#section-10.4-1" class="pilcrow">¶</a></p>
 <p id="section-10.5-1">A stolen deferral code could otherwise yield the grant after approval.
 The code is bound to the client and to a DPoP key (<a href="#deferring" class="auto internal xref">Section 4.2</a>,
 <a href="#redemption-deferring" class="auto internal xref">Section 5.2</a>), as
-<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-10.1" class="relref">Section 10.1</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span> requires for clients whose profile mandates
+<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-10.1" class="relref">Section 10.1</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span> requires for clients whose profile mandates
 DPoP, and the grant carries the same key.<a href="#section-10.5-1" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -2745,7 +2745,7 @@ requested authority, and an overseer sees the same for each grant. The
 approval channel and overseer notices therefore carry personal data and
 reveal patterns of an agent's work for a user. Deployments limit what
 approvers and overseers can see to the requests they are designated
-for, and follow <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-8.3" class="relref">Section 8.3</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>: progress information in a
+for, and follow <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-8.3" class="relref">Section 8.3</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span>: progress information in a
 polling response carries no personal data.<a href="#section-11-1" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -2774,7 +2774,7 @@ polling response carries no personal data.<a href="#section-11-1" class="pilcrow
 <dd class="break"></dd>
 <dt id="DTR">[DTR]</dt>
         <dd>
-<span class="refAuthor">Jacobsen, F. K.</span>, <span class="refAuthor">de Oliveira Niero, G.</span>, and <span class="refAuthor">M. Gerber</span>, <span class="refTitle">"Deferred Token Response"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-deferred-token-response-00</span>, <time datetime="2026-09-16" class="refDate">16 September 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00</a>&gt;</span>. </dd>
+<span class="refAuthor">de Oliveira Niero, G.</span> and <span class="refAuthor">D. Liu</span>, <span class="refTitle">"Deferred Token Response"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-deferred-token-response-01</span>, <time datetime="2026-10-31" class="refDate">31 October 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC6749">[RFC6749]</dt>
         <dd>
@@ -3310,7 +3310,7 @@ recovery settles this (<a href="#redemption-recovery" class="auto internal xref"
 </li>
         <li id="appendix-C-1.5">
           <p id="appendix-C-1.5.1"><strong>Originating-grant preconditions.</strong> Whether the preconditions of
-the originating grant that <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-00#section-10.7" class="relref">Section 10.7</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span> re-evaluates
+the originating grant that <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-deferred-token-response-01#section-10.7" class="relref">Section 10.7</a> of [<a href="#DTR" class="cite xref">DTR</a>]</span> re-evaluates
 include the grant's own expiration when the client does not present
 the grant again. <a href="#redemption-deferring" class="auto internal xref">Section 5.2</a> reads them as checked on
 receipt.<a href="#appendix-C-1.5.1" class="pilcrow">¶</a></p>

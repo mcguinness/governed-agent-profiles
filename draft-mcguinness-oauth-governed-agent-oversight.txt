@@ -1260,11 +1260,11 @@ Table of Contents
               <https://mcguinness.github.io/governed-agent-profiles/
               draft-mcguinness-oauth-governed-agent-federation.html>.
 
-   [DTR]      Jacobsen, F. K., de Oliveira Niero, G., and M. Gerber,
-              "Deferred Token Response", Work in Progress, Internet-
-              Draft, draft-ietf-oauth-deferred-token-response-00, 16
-              September 2026, <https://datatracker.ietf.org/doc/html/
-              draft-ietf-oauth-deferred-token-response-00>.
+   [DTR]      de Oliveira Niero, G. and D. Liu, "Deferred Token
+              Response", Work in Progress, Internet-Draft, draft-ietf-
+              oauth-deferred-token-response-01, 31 October 2026,
+              <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
+              deferred-token-response-01>.
 
    [RFC6749]  Hardt, D., Ed., "The OAuth 2.0 Authorization Framework",
               RFC 6749, DOI 10.17487/RFC6749, October 2012,

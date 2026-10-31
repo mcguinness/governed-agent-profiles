@@ -1,0 +1,16 @@
+{
+  "name": "mcp-transport-experiment",
+  "private": true,
+  "type": "module",
+  "description": "How the MCP TypeScript SDK carries HTTP status and JSON-RPC errors for a policy enforcement point",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node exp.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/client": "2.4.0",
+    "@modelcontextprotocol/server": "2.4.0"
+  }
+}

@@ -1065,7 +1065,7 @@ svg {
 </tr></thead>
 <tfoot><tr>
 <td class="left">McGuinness</td>
-<td class="center">Expires 3 May 2027</td>
+<td class="center">Expires 4 May 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1078,12 +1078,12 @@ svg {
 <dd class="internet-draft">draft-mcguinness-oauth-governed-agent-federation-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-10-30" class="published">30 October 2026</time>
+<time datetime="2026-10-31" class="published">31 October 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2027-05-03">3 May 2027</time></dd>
+<dd class="expires"><time datetime="2027-05-04">4 May 2027</time></dd>
 <dt class="label-authors">Author:</dt>
 <dd class="authors">
 <div class="author">
@@ -1149,7 +1149,7 @@ subject.<a href="#section-abstract-3" class="pilcrow">¶</a></p>
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 3 May 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 4 May 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -2351,7 +2351,7 @@ tenant, and resource policy.<a href="#section-3.6.4-5" class="pilcrow">¶</a></p
 <a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-delegated-access-with-id-ja" class="section-name selfRef">Delegated Access with ID-JAG</a>
         </h3>
 <p id="section-4.1-1">This document profiles ID-JAG issuance and redemption through the actor
-extension point in <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05#section-9.7" class="relref">Section 9.7</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>. Where it is silent, ID-JAG
+extension point in <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-9.7" class="relref">Section 9.7</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>. Where it is silent, ID-JAG
 applies unchanged.<a href="#section-4.1-1" class="pilcrow">¶</a></p>
 <div id="profile-additions">
 <section id="section-4.1.1">
@@ -2371,7 +2371,7 @@ OAuth clients, not the agents a shared client serves.<a href="#section-4.1.1-2.1
             <li id="section-4.1.1-2.2">
               <p id="section-4.1.1-2.2.1">How authority to use that principal is separated from identity
 resolution. ID-JAG leaves two things to extensions
-(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05#section-9.7" class="relref">Section 9.7</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>): validating and authorizing an actor,
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-9.7" class="relref">Section 9.7</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>): validating and authorizing an actor,
 and relating client, subject, and actor.<a href="#section-4.1.1-2.2.1" class="pilcrow">¶</a></p>
 </li>
             <li id="section-4.1.1-2.3">
@@ -2488,12 +2488,12 @@ resource.<a href="#section-4.4-3.2.1" class="pilcrow">¶</a></p>
 <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span>. An endpoint that does not support DPoP <span class="bcp14">MUST</span> reject a
 request containing a DPoP proof with <code>invalid_request</code>; it <span class="bcp14">MUST NOT</span>
 silently ignore the proof. At issuance, a valid proof <span class="bcp14">MUST</span> result in
-<code>cnf.jkt</code> binding of the grant, as in <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05#section-9.8.1.1" class="relref">Section 9.8.1.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>.<a href="#section-4.4-5.1.1" class="pilcrow">¶</a></p>
+<code>cnf.jkt</code> binding of the grant, as in <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-9.8.1.1" class="relref">Section 9.8.1.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>.<a href="#section-4.4-5.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-4.4-5.2">
             <p id="section-4.4-5.2.1"><strong>Bound grant:</strong> A grant containing <code>cnf</code> <span class="bcp14">MUST</span> have a valid, supported
 <code>jkt</code> binding. The RAS <span class="bcp14">MUST</span> require a fresh DPoP proof whose public
-key thumbprint matches exactly, as in <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05#section-9.8.1.2" class="relref">Section 9.8.1.2</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>.
+key thumbprint matches exactly, as in <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-9.8.1.2" class="relref">Section 9.8.1.2</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>.
 Missing proof, missing required binding, unsupported confirmation, or
 key mismatch <span class="bcp14">MUST</span> fail with <code>invalid_grant</code>.<a href="#section-4.4-5.2.1" class="pilcrow">¶</a></p>
 </li>
@@ -2731,7 +2731,7 @@ identity, client, delegation, and target relationships (<a href="#model" class="
 <p id="section-5.1-2"><strong>Downstream client:</strong> The IdP <span class="bcp14">MUST</span> derive the grant's <code>client_id</code> from
 an authoritative association between the authenticated IdP client and
 that client's registration at the target RAS
-(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05#section-5" class="relref">Section 5</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>). This client registration association is not
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-5" class="relref">Section 5</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>). This client registration association is not
 a Client Association. If the client uses one identifier at both servers,
 such as a Client ID Metadata Document (CIMD) Client Identifier URL
 <span>[<a href="#CIMD" class="cite xref">CIMD</a>]</span>, the association is the identity mapping. A client-supplied downstream client identifier <span class="bcp14">MUST NOT</span>
@@ -3303,7 +3303,7 @@ a shorter grant lifetime as enforcing it. Revocation follows
               <td class="text-left" rowspan="1" colspan="1">
                 <code>exp</code>, <code>iat</code>, <code>jti</code>
 </td>
-              <td class="text-left" rowspan="1" colspan="1">As in <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05#section-3.1" class="relref">Section 3.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>, within the lifetime limits below</td>
+              <td class="text-left" rowspan="1" colspan="1">As in <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-3.1" class="relref">Section 3.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>, within the lifetime limits below</td>
             </tr>
           </tbody>
         </table>
@@ -3346,11 +3346,11 @@ authenticates one transaction and does not cap the grant.<a href="#section-5.5-4
         </table>
 <p id="section-5.5-6">The ID-JAG is also limited by its subject credential
 (<a href="#grant-issuance" class="auto internal xref">Section 5.6.5</a>).<a href="#section-5.5-6" class="pilcrow">¶</a></p>
-<p id="section-5.5-7"><strong>Response:</strong> The response follows <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05#section-4.3.4" class="relref">Section 4.3.4</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>; for a
+<p id="section-5.5-7"><strong>Response:</strong> The response follows <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-4.3.4" class="relref">Section 4.3.4</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>; for a
 WAG, <code>issued_token_type</code> is the WAG token type. For a bound grant, the
 client <span class="bcp14">MUST</span> retain the DPoP key for redemption and <span class="bcp14">SHOULD</span> inspect
 the grant to confirm that <code>cnf.jkt</code> identifies that key
-(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05#section-9.8.1.1" class="relref">Section 9.8.1.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>).<a href="#section-5.5-7" class="pilcrow">¶</a></p>
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-9.8.1.1" class="relref">Section 9.8.1.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>).<a href="#section-5.5-7" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="exchange-request">
@@ -3363,7 +3363,7 @@ the grant to confirm that <code>cnf.jkt</code> identifies that key
           <h4 id="name-request">
 <a href="#section-5.6.1" class="section-number selfRef">5.6.1. </a><a href="#name-request" class="section-name selfRef">Request</a>
           </h4>
-<p id="section-5.6.1-1">The client sends the token exchange request of <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05#section-4.3" class="relref">Section 4.3</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>
+<p id="section-5.6.1-1">The client sends the token exchange request of <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-4.3" class="relref">Section 4.3</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>
 with the common parameters and rules of <a href="#issuance-request" class="auto internal xref">Section 5.2</a>. The
 following parameters are <span class="bcp14">REQUIRED</span> except where the resolution mode
 specifies otherwise:<a href="#section-5.6.1-1" class="pilcrow">¶</a></p>
@@ -3425,12 +3425,12 @@ specifies otherwise:<a href="#section-5.6.1-1" class="pilcrow">¶</a></p>
           </h4>
 <p id="section-5.6.2-1">The IdP <span class="bcp14">MUST</span> support ID Token subjects, <span class="bcp14">MAY</span> support SAML 2.0 assertion
 subjects, and <span class="bcp14">MAY</span> support its own refresh tokens when agreed in client
-configuration, validating each under <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05#section-4.3.3" class="relref">Section 4.3.3</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>:<a href="#section-5.6.2-1" class="pilcrow">¶</a></p>
+configuration, validating each under <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-4.3.3" class="relref">Section 4.3.3</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>:<a href="#section-5.6.2-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-5.6.2-2.1">
               <p id="section-5.6.2-2.1.1"><strong>SAML 2.0 assertion:</strong> The IdP <span class="bcp14">MUST</span> map the assertion's Audience to
-the authenticated client under <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05#section-4.5" class="relref">Section 4.5</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span> and resolve
-the subject under <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05#section-3.2" class="relref">Section 3.2</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>.<a href="#section-5.6.2-2.1.1" class="pilcrow">¶</a></p>
+the authenticated client under <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-4.5" class="relref">Section 4.5</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span> and resolve
+the subject under <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-3.2" class="relref">Section 3.2</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>.<a href="#section-5.6.2-2.1.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="section-5.6.2-2.2">
               <p id="section-5.6.2-2.2.1"><strong>Refresh token:</strong> The IdP <span class="bcp14">MUST</span> establish that the refresh token's
@@ -3524,7 +3524,7 @@ classification of <span>[<a href="#ENTITY-PROFILES" class="cite xref">ENTITY-PRO
 <a href="#section-5.6.5" class="section-number selfRef">5.6.5. </a><a href="#name-grant-issuance" class="section-name selfRef">Grant Issuance</a>
           </h4>
 <p id="section-5.6.5-1"><strong>Claims:</strong> The ID-JAG <span class="bcp14">MUST</span> use the format and claims of
-<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05#section-3.1" class="relref">Section 3.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span> and the common claims of <a href="#grant-common" class="auto internal xref">Section 5.5</a>, and
+<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-3.1" class="relref">Section 3.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span> and the common claims of <a href="#grant-common" class="auto internal xref">Section 5.5</a>, and
 additionally satisfy:<a href="#section-5.6.5-1" class="pilcrow">¶</a></p>
 <span id="name-id-jag-subject-and-actor-cl"></span><table class="center" id="table-10">
             <caption>
@@ -3845,7 +3845,7 @@ Principal, downstream client, and tenant are unambiguous.<a href="#section-5.7.2
           </tbody>
         </table>
 <p id="section-5.8-4">Subject and agent-resolution credential failures use <code>invalid_grant</code>,
-as in the example of <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05#section-4.3.4.3" class="relref">Section 4.3.4.3</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>, instead of the
+as in the example of <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-4.3.4.3" class="relref">Section 4.3.4.3</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>, instead of the
 default <code>invalid_request</code> of <span><a href="https://rfc-editor.org/rfc/rfc8693#section-2.2.2" class="relref">Section 2.2.2</a> of [<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>.<a href="#section-5.8-4" class="pilcrow">¶</a></p>
 <p id="section-5.8-5">Self-acting issuance adds these errors:<a href="#section-5.8-5" class="pilcrow">¶</a></p>
 <span id="name-self-acting-issuance-errors"></span><table class="center" id="table-15">
@@ -3913,7 +3913,7 @@ default <code>invalid_request</code> of <span><a href="https://rfc-editor.org/rf
         </h3>
 <p id="section-6.1-1">The client redeems either grant at the RAS token endpoint with the JWT
 bearer grant type, <code>urn:ietf:params:oauth:grant-type:jwt-bearer</code>: an
-ID-JAG as in <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05#section-4.4" class="relref">Section 4.4</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>, and a WAG as in <span>[<a href="#WAG" class="cite xref">WAG</a>]</span>. The
+ID-JAG as in <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-4.4" class="relref">Section 4.4</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>, and a WAG as in <span>[<a href="#WAG" class="cite xref">WAG</a>]</span>. The
 request includes the proof required by <a href="#grant-protection" class="auto internal xref">Section 4.4</a> and the
 applicable access-token protection. These additional parameters are
 <span class="bcp14">REQUIRED</span> unless marked <span class="bcp14">OPTIONAL</span>:<a href="#section-6.1-1" class="pilcrow">¶</a></p>
@@ -3944,7 +3944,7 @@ applicable access-token protection. These additional parameters are
             </tr>
           </tbody>
         </table>
-<p id="section-6.1-3">The confirmation checks of <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05#section-9.8.1.2" class="relref">Section 9.8.1.2</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span> apply to this
+<p id="section-6.1-3">The confirmation checks of <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-9.8.1.2" class="relref">Section 9.8.1.2</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span> apply to this
 grant type (<a href="#upstream-gaps" class="auto internal xref">Appendix B</a>).<a href="#section-6.1-3" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -3967,7 +3967,7 @@ independently authenticate the client identified by <code>client_id</code>.<a hr
 <li class="normal" id="section-6.2-2.2.2.1">
                 <p id="section-6.2-2.2.2.1.1"><strong>Resource claim:</strong> Require <code>resource</code> to be one URI, encoded as a
 JSON string or a single-element JSON array
-(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05#section-3.1" class="relref">Section 3.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>), and normalize it to that URI. Reject
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-3.1" class="relref">Section 3.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>), and normalize it to that URI. Reject
 a missing or invalid value, an empty array, or a multi-element
 array with <code>invalid_grant</code>.<a href="#section-6.2-2.2.2.1.1" class="pilcrow">¶</a></p>
 </li>
@@ -3997,7 +3997,7 @@ used only for client authentication or access-token binding is not such
 a constraint. The RAS <span class="bcp14">MAY</span> accept a bound grant again under explicit
 policy, each time with a fresh proof that matches its <code>cnf.jkt</code>
 (<a href="#grant-protection" class="auto internal xref">Section 4.4</a>). This narrows re-submission under
-<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05#section-4.4.3" class="relref">Section 4.4.3</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span> for unbound ID-JAGs, and settles for the WAG
+<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-4.4.3" class="relref">Section 4.4.3</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span> for unbound ID-JAGs, and settles for the WAG
 the replay question that <span><a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-01#section-8" class="relref">Section 8</a> of [<a href="#WAG" class="cite xref">WAG</a>]</span> leaves open. The retention
 rule of <a href="#time-validation" class="auto internal xref">Section 4.6</a> applies to accepted identifiers.<a href="#section-6.2-3" class="pilcrow">¶</a></p>
 </section>
@@ -4269,7 +4269,7 @@ authority.<a href="#section-6.6-2.5.1" class="pilcrow">¶</a></p>
 limit.<a href="#section-6.6-2.6.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-6.6-3"><strong>Response:</strong> The response follows <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05#section-4.4.2" class="relref">Section 4.4.2</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>. The
+<p id="section-6.6-3"><strong>Response:</strong> The response follows <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-4.4.2" class="relref">Section 4.4.2</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>. The
 client <span class="bcp14">MUST</span> reject an output that does not satisfy its configured
 protection requirement.<a href="#section-6.6-3" class="pilcrow">¶</a></p>
 <p id="section-6.6-4"><strong>Instance context:</strong> When the client authenticates at redemption with a
@@ -4763,7 +4763,7 @@ or grant for the current context (<a href="#implementation-client" class="auto i
 <a href="#section-8.2" class="section-number selfRef">8.2. </a><a href="#name-optional-ras-refresh-tokens" class="section-name selfRef">Optional RAS Refresh Tokens</a>
         </h3>
 <p id="section-8.2-1"><strong>Issuance:</strong> The RAS <span class="bcp14">SHOULD NOT</span> issue refresh tokens, retaining
-<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05#section-4.4.3" class="relref">Section 4.4.3</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>, but <span class="bcp14">MAY</span> do so for authorized long-running
+<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-4.4.3" class="relref">Section 4.4.3</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>, but <span class="bcp14">MAY</span> do so for authorized long-running
 work under explicit policy. A WAG redemption never yields a refresh
 token (<a href="#wag-redemption" class="auto internal xref">Section 6.5</a>).<a href="#section-8.2-1" class="pilcrow">¶</a></p>
 <p id="section-8.2-2"><strong>Binding:</strong> The RAS <span class="bcp14">MUST</span> bind each refresh token to the authenticated
@@ -4936,7 +4936,7 @@ presenting it. Implementations that support only different native
 inputs do not interoperate on a shared client, and their conformance
 claims show this.<a href="#section-9.1-8" class="pilcrow">¶</a></p>
 <p id="section-9.1-9">ID-JAG requires support for Identity Assertions
-(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05#section-4.3" class="relref">Section 4.3</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>). Requiring ID Token subjects specifically
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-4.3" class="relref">Section 4.3</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>). Requiring ID Token subjects specifically
 gives independent implementations a common subject-token format. This is
 an implementation baseline, not a requirement to deploy one client per
 agent: deployments <span class="bcp14">MAY</span> use mutually supported optional inputs
@@ -4998,7 +4998,7 @@ same parameter, pending coordination (<a href="#wag-gaps" class="auto internal x
               <p id="section-9.2.1-2.2.1"><strong>IdP:</strong> Advertise Token Exchange in <code>grant_types_supported</code>. For
 delegated access, advertise ID-JAG in
 <code>identity_chaining_requested_token_types_supported</code> under
-<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05#section-7.1" class="relref">Section 7.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>. For self-acting access, advertise the WAG
+<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-7.1" class="relref">Section 7.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>. For self-acting access, advertise the WAG
 token type in the same parameter, pending coordination (<a href="#wag-gaps" class="auto internal xref">Appendix B.2.1</a>).<a href="#section-9.2.1-2.2.1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-9.2.1-2.2.2.1">
@@ -5024,7 +5024,7 @@ and <span>[<a href="#RFC8705" class="cite xref">RFC8705</a>]</span>.<a href="#se
           </h4>
 <p id="section-9.2.2-1">A client <span class="bcp14">SHOULD</span> advertise each supported governed profile URI in
 <code>authorization_grant_profiles_supported</code> in its authoritative client
-metadata under <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05#section-8" class="relref">Section 8</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>, including when supplied through
+metadata under <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-8" class="relref">Section 8</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>, including when supplied through
 CIMD. Its <code>grant_types</code> <span class="bcp14">MUST</span> permit:<a href="#section-9.2.2-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-9.2.2-2.1">
@@ -5230,7 +5230,7 @@ alone establishes neither a credential's intended use nor permission to
 resolve or exercise an agent.<a href="#section-11.2-1" class="pilcrow">¶</a></p>
 <p id="section-11.2-2">Both grants are JWTs redeemed with the same grant type, so the RAS tells
 them apart by explicit type: <code>oauth-id-jag+jwt</code> for an ID-JAG
-(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05#section-3.1" class="relref">Section 3.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>) and <code>wag+jwt</code> for a WAG
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06#section-3.1" class="relref">Section 3.1</a> of [<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>) and <code>wag+jwt</code> for a WAG
 (<a href="#wag-redemption" class="auto internal xref">Section 6.5</a>).<a href="#section-11.2-2" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -5615,7 +5615,7 @@ coordination (<a href="#wag-gaps" class="auto internal xref">Appendix B.2.1</a>)
 <dd class="break"></dd>
 <dt id="ID-JAG">[ID-JAG]</dt>
         <dd>
-<span class="refAuthor">Parecki, A.</span>, <span class="refAuthor">McGuinness, K.</span>, and <span class="refAuthor">B. Campbell</span>, <span class="refTitle">"Identity Assertion JWT Authorization Grant"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-identity-assertion-authz-grant-05</span>, <time datetime="2026-10-30" class="refDate">30 October 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-05</a>&gt;</span>. </dd>
+<span class="refAuthor">Parecki, A.</span>, <span class="refAuthor">McGuinness, K.</span>, and <span class="refAuthor">B. Campbell</span>, <span class="refTitle">"Identity Assertion JWT Authorization Grant"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-identity-assertion-authz-grant-06</span>, <time datetime="2026-10-30" class="refDate">30 October 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-06</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC7523bis">[RFC7523bis]</dt>
         <dd>

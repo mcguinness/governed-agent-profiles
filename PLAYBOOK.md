@@ -230,9 +230,16 @@ token, the local principal stands for the agent.
   operation that needs the decision and reports no denial: it answers
   HTTP 503, normally with `Retry-After`, unless a failure is established
   and no unfinished check ranks earlier than it in the selection order.
-  A COAZ-MCP enforcement point fails closed and returns JSON-RPC error
-  `-32603`; the drafts do not yet say how that composes with the core's
-  503. Whether a local fallback policy can stand in for the unreachable
+  At an MCP server or gateway, place the enforcement point where it both
+  sets the HTTP status and finishes its decision before the response is
+  committed; otherwise it cannot send the 503. In the MCP TypeScript SDK
+  2.4.0, that means middleware ahead of the SDK: neither a tool handler
+  nor the `scopeChallenge` hook can send a 503. Where the
+  deployment claims COAZ-MCP, also test for COAZ-MCP's `-32603` error in
+  the body. That combination is an interpretation that awaits
+  clarification from COAZ-MCP's authors ([implementer's
+  guide](IMPLEMENTERS-GUIDE.md#failures-at-an-mcp-enforcement-point)).
+  Whether a local fallback policy can stand in for the unreachable
   service is also unsettled, so test the 503 and do not count a
   fallback as completing the check (a deployment requirement).
 * A decision cached before the agent was disabled, or before its grant
@@ -753,7 +760,7 @@ are for the evaluator.
 | IdP, gateway, and the gateway's RAS: continuation, with the gateway's RAS, or an issuer trusted for it, as Continuation Assertion Issuer; the target RAS, with DPoP at its token endpoint and, where policy requires it, path disclosure | Gateways | Step 4's continuation checks, and the continuation profile's negative tests | | | |
 | IdP: grant-anchored continuation | Scheduled work | The scheduled-work variation's test | | | |
 | API or gateway: an external policy decision point, with the agent identity taken from the validated token and never from `client_id` or a tool's declared mapping | Delegated per-action policy | Step 4's policy checks | | | |
-| API or gateway: behavior when the policy decision point is unreachable: no operation, and HTTP 503 unless a failure is established and no unfinished check ranks earlier than it; `-32603` under COAZ-MCP, whose composition with the 503 is unsettled | Delegated per-action policy | Step 4's unreachable-PDP check | | | |
+| API or gateway: behavior when the policy decision point is unreachable: no operation, and HTTP 503 unless a failure is established and no unfinished check ranks earlier than it; at an MCP enforcement point, one that sets the status and decides before the response is committed, and, where the deployment claims COAZ-MCP, its `-32603` error in the 503's body (an interpretation that awaits COAZ-MCP's clarification) | Delegated per-action policy | Step 4's unreachable-PDP check | | | |
 | API or gateway: decision cache lifetime, and invalidation when a disablement or revocation is applied (a deployment requirement) | Delegated per-action policy | Step 4's cached-decision check | | | |
 | IdP: deferred governed issuance, in Deferred Token Response's polling mode, with DPoP on every deferred request and the governed checks again at resolution | Approval before issuance | Step 4's oversight checks; the approval variation's tests | | | |
 | Client: deferred governed issuance: the opt-in with DPoP, polling with the same key, and no retry of a denied request another way | Approval before issuance | The approval variation's transaction | | | |

@@ -26,6 +26,7 @@ Identification-00, Client Attester Endorsement-00, and WISE draft 03.
 | ID-JAG | Bound-grant example aligned with the normative `jwt-bearer` grant type, and grant-confirmation errors separated from RFC 9449 proof errors (below) | Confirmation checks are applied to `jwt-bearer` here |
 | Actor Profile | A reusable principal-resolution extension point separating credential validation, identity mapping, and actor construction | The mapping is defined locally in `actor-construction` |
 | AuthZEN OAuth mapping profile (planned; openid/authzen issue 788) | Governed-profile requirements for the represented subject, the issuer-qualified agent, the client, and the path, all taken from the validated token; COAZ-MCP, the token issuance and exchange profiles, and ARAP are to build on it (below) | Governed enforcement points supply these themselves (`policy-services`); this profile defines no AuthZEN mapping |
+| COAZ-MCP error transport | Which HTTP status accompanies each JSON-RPC error on Streamable HTTP, whether a JSON-RPC error body on a non-2xx response satisfies Section 10, when the enforcement point decides, and how an actor denial is identified (below) | The implementer's guide gives a proposed interpretation: the core's status, with COAZ-MCP's error in the body. How the core's denial responses compose with COAZ-MCP is open |
 | Deferred Token Response | A statement that the token returned after a deferral carries the identities the authorization server resolved from the originating request | The oversight profile requires this for governed issuance and for deferred redemption at the RAS |
 | AuthZEN profiles (ARAP and its Actor Delegation Profile, AROP, Token Issuance, Token Exchange) | The mapping profile's identity model; the resolved agent as a mandatory issuance-decision input; an approval bound to the governed request and its resolved identities; an approval deadline that bounds only what the approving server issues (below) | Each enforcement point maps each profile into the governed model; the oversight profile profiles AROP at the RAS, without continuation, and AROP at the IdP stays an excluded composition |
 
@@ -206,6 +207,49 @@ vocabulary for these members belongs there, not in these profiles,
 whose examples are illustrations only. The implementer's guide
 ("Authorization decisions with AuthZEN") shows the enforcement point's
 inputs and COAZ-MCP's default mapping as a counter-example.
+
+**Error transport.** COAZ-MCP reports each failure as a JSON-RPC error
+(Section 10) and names no HTTP status:
+- mapping errors as `-32602`;
+- denials as `-32001`, or as an `isError` result;
+- PDP communication errors as `-32603`.
+
+The COAZ Framework leaves error transport to each binding. The core
+fixes the HTTP response (`resource-errors`). The implementer's guide
+("Failures at an MCP enforcement point") proposes a deployment
+interpretation: the core's status, with COAZ-MCP's error in the body.
+It applies where the enforcement point controls the HTTP status and
+decides before the response is committed.
+
+That interpretation needs COAZ-MCP to settle:
+* whether a JSON-RPC error body on a non-2xx response satisfies
+  Section 10, and which HTTP status accompanies each category on
+  Streamable HTTP;
+* that the enforcement point decides before the response is committed,
+  or what happens once a stream has opened;
+* a way to tell an actor denial, which the core reports as
+  `actor_unauthorized`, from any other denial;
+* the HTTP status of a mapping failure. The guide's interpretation is
+  400 when the request violates its declared contract, and 503, under
+  the core's precedence, when the mapping is defective.
+
+A related question belongs to the core, not to COAZ-MCP. The core's
+table does not list a request that violates its declared contract, so
+the core does not rank such a 400 against an unfinished check.
+
+A separate question remains open: how the core's denial responses
+(HTTP 403 with its challenge) compose with COAZ-MCP's denials, and with
+denials that MCP reports inside a result (SEP-2643, a draft).
+
+The MCP TypeScript SDK 2.4.0 has two gaps for this interpretation
+([experiment](experiments/mcp-transport/README.md)):
+- for a 503, or a 403 without `insufficient_scope`, the error a client
+  receives carries the status and the body as text, but not
+  `Retry-After` or the challenge;
+- a pre-dispatch authorization hook has no supported way to return an
+  explicit unavailable response.
+
+None of these is filed.
 
 #### Convergence across AuthZEN profiles
 

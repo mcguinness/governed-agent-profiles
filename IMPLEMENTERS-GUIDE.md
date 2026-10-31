@@ -499,7 +499,9 @@ introspection call without a usable response, gets HTTP 503, with
 unfinished check ranks earlier than it. An API that relies on a policy service for the
 actor gate needs the decision to say whether the gate denied, or it
 evaluates the gate itself; a decision it cannot obtain or interpret is a
-check that cannot complete.
+check that cannot complete. At an MCP server or gateway, [Failures at an
+MCP enforcement point](#failures-at-an-mcp-enforcement-point) proposes
+how these responses combine with COAZ-MCP's JSON-RPC errors.
 
 ### In optional capabilities
 
@@ -733,8 +735,10 @@ point (PDP) keeps the user, the issuer-qualified Agent Principal, and
 the OAuth client distinct, and supplies the tenant and token constraints
 ([Optional Policy Services][policy-services]). The profiles define no
 AuthZEN mapping. This chapter shows where a PDP fits, the use cases, the
-inputs an enforcement point must supply itself, and illustrative
-requests in the [AuthZEN Authorization API 1.0][AUTHZEN] format. The
+inputs an enforcement point must supply itself, a proposed
+interpretation of how an MCP enforcement point reports failures, and
+illustrative requests in the [AuthZEN Authorization API 1.0][AUTHZEN]
+format. The
 [architecture overview](ARCHITECTURE.md#policy-decision-services)
 states the core's rules for any policy service.
 
@@ -823,6 +827,89 @@ therefore must not supply or override the attributes in the table, and
 policy must not grant identity or privilege on the strength of
 attributes it supplies. What the decision must convey back is in
 [Errors and recovery](#errors-and-recovery).
+
+### Failures at an MCP enforcement point
+
+At an MCP enforcement point that implements [COAZ-MCP][COAZ-MCP], the
+core fixes the HTTP response ([Error Responses][resource-errors]).
+COAZ-MCP fixes the JSON-RPC error in the body (Section 10 of COAZ-MCP)
+but names no HTTP status. This section proposes a deployment
+interpretation of how the two combine. Whether a JSON-RPC error body on
+a non-2xx response satisfies COAZ-MCP awaits clarification from its
+authors ([coordination notes](COORDINATION.md#authzen-and-coaz-mcp)).
+For every failure in the core's table, the core's order decides the
+response.
+
+**Where the enforcement point runs.** The interpretation applies only
+where the enforcement point both controls the HTTP status and finishes
+its decision before the response is committed. A gateway, or HTTP
+middleware beside token validation, can do both. Deciding early is not
+enough on its own. In the MCP TypeScript SDK 2.4.0:
+- a streamed response sends 200 before the tool handler finishes;
+- a JSON response has status 200, whatever the handler returns;
+- `McpServer` returns an error that a tool handler throws as an
+  `isError` result, unless the error is a URL elicitation request;
+- the per-tool `scopeChallenge` hook decides before the status is sent,
+  but it can answer only 403 `insufficient_scope`, and a hook that fails
+  gets 500.
+
+The [MCP transport experiment](experiments/mcp-transport/README.md)
+records this behavior. Other SDKs and versions can differ.
+
+**An unreachable PDP.** Suppose the PDP cannot be reached, or returns a
+response that the enforcement point cannot interpret. The response is
+then HTTP 503, with `Retry-After` recommended. Its body is COAZ-MCP's
+`-32603` error, with the request's `id`. There is one exception: a
+failure that is established while no unfinished check ranks earlier
+than it gets the response that the core selects for it. When the PDP
+owns the actor gate, the unfinished gate ranks before scope. A scope
+failure that is already established therefore still gets 503 ([One
+request, several outcomes](#one-request-several-outcomes)).
+
+**Denials.** A denial gets the response that the core selects:
+- HTTP 403 with `actor_unauthorized`, for a denial by the actor gate;
+- HTTP 403 with `insufficient_scope`, for scope or authorization details
+  that the token does not carry;
+- HTTP 403 with a challenge that carries no `error` attribute, for any
+  other denial.
+
+Neither the core nor COAZ-MCP says which body that 403 carries:
+COAZ-MCP's `-32001` error, or an `isError` result. A separate question
+is still open: how the core's denial responses compose with COAZ-MCP,
+and with denials carried inside a result, as MCP's draft SEP-2643
+proposes.
+
+**Mapping failures.** Two checks can reject a call's arguments:
+- **The server's own input validation** checks the arguments, for
+  example against the tool's input schema. In the SDK version tested, it
+  runs before a tool handler does. MCP's [tools
+  specification](https://modelcontextprotocol.io/specification/2026-07-28/server/tools)
+  (revision 2026-07-28) reports input validation errors as an `isError`
+  result.
+- **A COAZ-MCP mapping failure** always carries `-32602` (Section 10.1
+  of COAZ-MCP), but COAZ-MCP does not settle its HTTP status. The
+  proposed interpretation is:
+  - HTTP 400 when the request violates its declared contract. For
+    example, at a gateway that maps before the server validates, the
+    mapping needs an argument that the tool's input schema requires, and
+    the caller omitted it.
+  - HTTP 503, under the core's precedence, when the mapping is
+    defective. It dereferences a field that the input schema lets a
+    caller omit, it is malformed, or it yields a subject other than the
+    token's.
+
+The core's table does not list a request that violates its declared
+contract. The core therefore does not rank that 400 against an
+unfinished check, and the coordination notes track the question. A
+token whose audience does not name this server fails token validation
+before the enforcement point runs.
+
+**What a client receives.** In the SDK version tested, a client receives
+a 503, or a 403 without `insufficient_scope`, as an HTTP error. That
+error carries the status and the body as text, but not `Retry-After` or
+the challenge. A host sees those headers through the `fetch` that it
+supplies to the transport. A 200 response with `-32603` arrives as a
+JSON-RPC error that does not say whether the failure is temporary.
 
 ### One identity model across AuthZEN profiles
 

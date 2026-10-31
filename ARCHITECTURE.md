@@ -677,9 +677,14 @@ disablement.
 established and no unfinished check ranks earlier, the API answers HTTP
 503, normally with `Retry-After` ([core, Error
 Responses][core-resource-errors]). A COAZ-MCP enforcement point fails
-closed and returns an error of its own; the drafts do not yet say how
-that composes with the core's 503. Whether local policy can stand in for
-the unavailable service is not settled either. Where an IdP issuance
+closed with a JSON-RPC error, and COAZ-MCP names no HTTP status for it.
+The guide proposes an interpretation for an enforcement point that
+controls the HTTP status and decides before the response is committed:
+it keeps the 503 and carries that error in the body ([Failures at an
+MCP enforcement
+point](IMPLEMENTERS-GUIDE.md#failures-at-an-mcp-enforcement-point)).
+Whether local policy can stand in for the unavailable service is not
+settled either. Where an IdP issuance
 decision depends on resource-domain evaluation through that service, the
 IdP cannot make it.
 
@@ -771,10 +776,16 @@ Services][core-policy-services] rules apply:
 client as the agent by default, which for a shared client or a gateway
 is the same for every agent behind it. The API supplies the agent from
 the validated `act` or, for a self-acting token, the correlated subject,
-as the token population configured for the resource selects. The
-implementer's guide has the [integration points and illustrative
+as the token population configured for the resource selects. COAZ-MCP
+reports a denial as a JSON-RPC error or as an `isError` tool result,
+and the core answers a denial with HTTP 403 and a challenge. How the two
+compose is still open.
+
+The implementer's guide has the [integration points and illustrative
 requests](IMPLEMENTERS-GUIDE.md#authorization-decisions-with-authzen),
-and [COORDINATION.md](COORDINATION.md) the changes proposed to the
+and proposes [how an MCP enforcement point reports
+failures](IMPLEMENTERS-GUIDE.md#failures-at-an-mcp-enforcement-point).
+[COORDINATION.md](COORDINATION.md) has the changes proposed to the
 AuthZEN profiles.
 
 ### Beyond these drafts

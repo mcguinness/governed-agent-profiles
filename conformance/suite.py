@@ -80,6 +80,12 @@ class Config:
     other_tenant: str = "beta-data"
     self_acting_client_id: str = "analysis-agent-client"
     self_acting_sub: str = "service-principal-42"
+    # Requests the API cannot identify (S32 to S35): a path under the API
+    # that names no route, and a well-formed read of a file that does not
+    # exist. Empty means read_path + "/unknown", and report-99 beside the
+    # read's file.
+    unknown_path: str = ""
+    missing_path: str = ""
 
 
 class Response:
@@ -179,6 +185,16 @@ class Client:
     def refresh(self, refresh_token, dpop_key="k"):
         return self.ras_token({"grant_type": "refresh_token", "refresh_token": refresh_token},
                               dpop_key)
+
+    def call(self, method, path, token=None, dpop_key="k", proof_method=None):
+        """A request at the API with any method and no body; with a token, a proof
+        whose htm is proof_method, or else the request's own method."""
+        headers = {}
+        if token is not None:
+            headers = {"Authorization": f"DPoP {token}",
+                       "DPoP": self.proof(dpop_key, proof_method or method,
+                                          self.cfg.api_base + path, access_token=token)}
+        return http(method, self.cfg.api_transport + path, headers=headers)
 
     def get(self, path, token, dpop_key="k", query=None, proof_token=None):
         """A read at the API; query goes in the URL, and not in htu (RFC 9449 Section 4.2).
@@ -1997,6 +2013,99 @@ def s31(ctx):
         check(resp.status == 503, f"{label}expected HTTP 503, got {resp} {challenge_of(resp)!r}")
         check(data not in resp.body, f"{label}the response carried the file's data")
     in_each_order(ctx, request, expect)
+
+
+# Requests the API cannot identify (core: Error Disclosure). The API
+# validates the token, its proof and its applicability before it says
+# whether a route exists, and reports a file's absence only when no failure
+# in Error Responses applies. Validating first is a SHOULD, so S32 to S34
+# note a departure; the reference run treats any note as a failure.
+
+def unknown_path(cfg):
+    return cfg.unknown_path or cfg.read_path + "/unknown"
+
+
+def missing_path(cfg):
+    return cfg.missing_path or cfg.read_path.rsplit("/", 1)[0] + "/report-99"
+
+
+def outcome(resp):
+    return resp.status, challenge_error(resp)
+
+
+@case("S32", "API", "Validates the token and proof before saying a path does not exist",
+      "core: Error Disclosure (SHOULD); Error Responses (row 1)",
+      needs=("mint_access_token",), defeats=("api.authenticate_before_route",))
+def s32(ctx):
+    cfg, client = ctx.cfg, ctx.client
+    token = ctx.access_token()
+    now = int(ctx.now())
+    expired = ctx.adapter.mint_access_token(minted_token_claims(ctx, iat=now - 7200,
+                                                                exp=now - 3600))
+    unknown = unknown_path(cfg)
+    for label, send in (("no token", lambda p: client.call("GET", p)),
+                        ("an expired token", lambda p: client.call("GET", p, expired)),
+                        ("a proof made with another key",
+                         lambda p: client.call("GET", p, token, dpop_key="k2"))):
+        known, resp = send(cfg.read_path), send(unknown)
+        check(not 200 <= resp.status < 300, f"{label}: the unknown path was served: {resp}")
+        if outcome(resp) != outcome(known):
+            ctx.notes.append(f"{label}: the unknown path got HTTP {resp.status} "
+                             f"{challenge_error(resp)!r} where the read path got HTTP "
+                             f"{known.status} {challenge_error(known)!r}; validating the token "
+                             "first does not disclose which paths exist (core: Error "
+                             "Disclosure SHOULD)")
+    resp = client.call("GET", unknown, token)
+    check(not 200 <= resp.status < 300, f"the unknown path was served: {resp}")
+
+
+@case("S33", "API", "Checks the proof against the request's own method before rejecting the "
+      "method",
+      "core: Error Disclosure (SHOULD); Token Validation (Protection); RFC 9449 Section 4.3",
+      defeats=("api.authenticate_before_route", "api.proof_method"))
+def s33(ctx):
+    cfg, client = ctx.cfg, ctx.client
+    token = ctx.access_token()
+    resp = client.call("POST", cfg.read_path, token)
+    check(not 200 <= resp.status < 300, f"POST was served: {resp}")
+    if resp.status == 401:
+        ctx.notes.append(f"a proof made for POST was rejected, HTTP 401 "
+                         f"{challenge_error(resp)!r}; RFC 9449 Section 4.3 checks htm against "
+                         "the request's own method")
+    resp = client.call("POST", cfg.read_path, token, proof_method="GET")
+    check(not 200 <= resp.status < 300, f"POST with a GET proof was served: {resp}")
+    if resp.status != 401:
+        ctx.notes.append(f"POST with a proof made for GET got HTTP {resp.status}, not 401 for the "
+                         "proof; checking the proof first does not disclose which methods a "
+                         "path supports (core: Error Disclosure SHOULD)")
+
+
+@case("S34", "API", "Answers HTTP 503, not 404, for an unknown path while introspection cannot "
+      "complete",
+      "core: Error Disclosure (SHOULD; precedence not specified); the reference's choice",
+      needs=("mint_opaque_token", "set:ras.introspection_unavailable"),
+      defeats=("api.authenticate_before_route",))
+def s34(ctx):
+    token = ctx.adapter.mint_opaque_token(minted_token_claims(ctx))   # never introspected
+    ctx.adapter.set("ras", "introspection_unavailable", "error")
+    resp = ctx.client.call("GET", unknown_path(ctx.cfg), token)
+    check(not 200 <= resp.status < 300, f"the unknown path was served: {resp}")
+    if resp.status != 503:
+        ctx.notes.append(f"HTTP {resp.status} for an unknown path while introspection cannot "
+                         "complete; with the token unvalidated, the reference answers 503 rather "
+                         "than say whether the path exists (core: Error Disclosure)")
+
+
+@case("S35", "API", "Reports the actor-gate denial, not 404, for a file that does not exist",
+      "core: Error Responses; Error Disclosure",
+      needs=("set:api.actor_gate",), defeats=("api.existence_after_authorization",))
+def s35(ctx):
+    token = ctx.access_token()
+    missing = missing_path(ctx.cfg)
+    resp = ctx.client.get(missing, token)
+    check(not 200 <= resp.status < 300, f"setup: {missing} exists: {resp}")
+    ctx.adapter.set("api", "actor_gate", False)
+    expect_denial_code(ctx, ctx.client.get(missing, token), "actor_unauthorized")
 
 
 def run_case(c, cfg, adapter, disable=()):

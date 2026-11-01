@@ -8,7 +8,9 @@
     python3 conformance/run.py --list      list the cases, their sources and needs
 
 Exits 1 if a case fails, or, with --vacuity, if a case still passes with one
-of its checks switched off.
+of its checks switched off. The reference follows every recommendation the
+suite notes, so a note from it counts as a failure here; against another
+implementation, a note is reported and does not fail the case.
 """
 import argparse
 import os
@@ -60,6 +62,8 @@ def main():
     failures = 0
     for c in suite.CASES:
         passed, detail, notes = suite.run_case(c, cfg, adapter)
+        if passed and notes:
+            passed, detail = False, "the reference produced a note"
         failures += not passed
         print(f"{'PASS' if passed else 'FAIL'}  {c.id:4} {c.role:4} {c.title}")
         for note in notes:
@@ -73,7 +77,9 @@ def main():
         print("\nVacuity: each case must fail with each check it cites switched off")
         for c in suite.CASES:
             for name in c.defeats:
-                passed, detail, _ = suite.run_case(c, cfg, adapter, disable=(name,))
+                passed, detail, notes = suite.run_case(c, cfg, adapter, disable=(name,))
+                if passed and notes:
+                    passed, detail = False, "note: " + notes[0]
                 vacuous += passed
                 checked += 1
                 print(f"{'VACUOUS' if passed else 'ok':7} {c.id:4} without {name}")

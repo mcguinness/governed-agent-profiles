@@ -159,6 +159,11 @@ CHECKS = {
                          "evaluates them in",
     "api.arguments_outrank_unfinished": "invalid arguments are reported, not HTTP 503, when only "
                                         "a later check is unfinished",
+    "api.authenticate_before_route": "the token, its proof and its applicability are validated "
+                                     "before the API says whether a route exists",
+    "api.existence_after_authorization": "a file's absence is reported only when no failure in "
+                                         "Error Responses applies",
+    "api.proof_method": "the DPoP proof's htm is checked against the request's own method",
 }
 
 
@@ -1387,17 +1392,25 @@ class API(Server):
 
     def handle(self, environ, start_response):
         path = environ.get("PATH_INFO", "")
+        method = environ["REQUEST_METHOD"]
         parts = path.strip("/").split("/")
-        if environ["REQUEST_METHOD"] != "GET" or len(parts) != 4 or \
-                parts[0] != "tenants" or parts[2] != "files":
+        # The API protects every path it serves. It validates the token, its
+        # proof and its applicability before it says whether a route exists,
+        # and reports a file's absence only after authorization (core: Error
+        # Disclosure). The read's route is GET /tenants/{t}/files/{name}.
+        routed = len(parts) == 4 and parts[0] == "tenants" and parts[2] == "files"
+        # Non-conforming without api.proof_method: every proof checked as for GET.
+        htm = method if self.on("api.proof_method") else "GET"
+        if not self.on("api.authenticate_before_route") and (not routed or method != "GET"):
+            # Non-conforming: routed first, as by a router in front of the API.
             return _respond(start_response, 404, {"error": "not_found"})
-        tenant, name = parts[1], parts[3]
+        tenant, name = (parts[1], parts[3]) if routed else (None, None)
         # Request-derived attributes, standing in for a tool call's arguments.
         attributes = {k: v[0] if len(v) == 1 else v for k, v in
                       parse_qs(environ.get("QUERY_STRING", ""), keep_blank_values=True).items()}
         # Invalid arguments rank after token and token-context failures and
         # before every authorization failure (core: Error Responses, row 3).
-        bad_arguments = self.invalid_arguments(attributes)
+        bad_arguments = routed and method == "GET" and self.invalid_arguments(attributes)
         validate_first = self.evaluation_order == "validate_first"
         if bad_arguments and validate_first and not self.on("api.argument_rank"):
             # Non-conforming: reported as found, before the token is checked.
@@ -1419,12 +1432,12 @@ class API(Server):
                 # Token validation is unfinished, but a proof failure in the
                 # same row is established without the response (core: Error
                 # Responses); the key binding needs cnf, so it stays unchecked.
-                if self.validate_dpop(environ, "GET", API_BASE + path, access_token=token,
+                if self.validate_dpop(environ, htm, API_BASE + path, access_token=token,
                                       status=401) is None:
                     raise invalid
             raise OAuthError(None, 503, headers=[("Retry-After", str(RETRY_AFTER))])
         # Protection: DPoP proof, ath, and key binding.
-        jkt = self.validate_dpop(environ, "GET", API_BASE + path, access_token=token, status=401)
+        jkt = self.validate_dpop(environ, htm, API_BASE + path, access_token=token, status=401)
         cnf = claims.get("cnf") if isinstance(claims.get("cnf"), dict) else {}
         if jkt is None or (cnf.get("jkt") != jkt and self.on("api.key_binding")):
             raise invalid
@@ -1443,6 +1456,16 @@ class API(Server):
                 raise invalid
         else:
             raise invalid
+        # Route, now that the token is known to be for this API: an unknown
+        # path, then a method the read does not support.
+        if not routed:
+            return _respond(start_response, 404, {"error": "not_found"})
+        if method != "GET":
+            return _respond(start_response, 405, {"error": "method_not_allowed"},
+                            headers=[("Allow", "GET")])
+        if not self.on("api.existence_after_authorization") and (tenant, name) not in self.files:
+            # Non-conforming: the file's absence reported before authorization.
+            return _respond(start_response, 404, {"error": "not_found"})
         # Tenant from token context only.
         token_tenant = self.resource_tenants.get(aud)
         if token_tenant is None or (token_tenant != tenant and self.on("api.tenant")):

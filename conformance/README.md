@@ -136,7 +136,7 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | S19 | API | When the actor gate cannot be evaluated and the user's permission denies, the request gets HTTP 503, since the unfinished actor gate could come earlier | core: Error Responses; Optional Policy Services | Turn on the policy service; set its policy; make the `actor` condition unavailable |
 | S20 | API | With an opaque token the API has not introspected before, when the introspection endpoint answers HTTP 503, answers 200 with a body that is not a JSON object, or closes the connection before the body it declares, the request gets HTTP 503, none of the file's data and no `invalid_token`; a missing `Retry-After` is noted | core: Optional Opaque Access Tokens and Introspection; Error Responses; RFC 7662 Section 2.3 | Mint an opaque token; make introspection fail |
 | S21 | API | When introspection cannot complete and the DPoP proof's `ath` names another token, the request gets HTTP 401 for the proof, not 503, since the unfinished validation is in the same row | core: Error Responses; Token Validation; RFC 9449 Section 4.3 | Mint an opaque token; make introspection fail |
-| S22 | API | With `version=abc`, an argument outside the read's declared contract, the request is rejected with a 4xx other than 401 and 403, none of the file's data and neither denial code, whether the API checks arguments first or last; `version=3` is served | core: Error Responses (row 3) | Set the evaluation order |
+| S22 | API | With `version=abc`, an argument outside the read's declared contract, the request gets the argument's rejection (HTTP 400 `invalid_request`, unless the adapter recognizes another form), none of the file's data and neither denial code, whether the API checks arguments first or last; `version=3` is served | core: Error Responses (row 3) | Set the evaluation order |
 | S23 | API | With `version=abc` and a proof made with another key, the request gets HTTP 401 for the proof in both orders | core: Error Responses (rows 1 and 3); Token Validation (Protection) | Set the evaluation order |
 | S24 | API | With `version=abc` and a token used in another tenant, the request gets HTTP 401 `invalid_token` in both orders | core: Error Responses (rows 2 and 3); Token Validation (Tenant) | Set the evaluation order |
 | S25 | API | With `version=abc`, while the API's own actor gate denies, the request gets the argument's rejection, not `actor_unauthorized`, in both orders | core: Error Responses (rows 3 and 4); Delegated Actor Authorization | Set the evaluation order; close the actor gate at the API |
@@ -524,7 +524,10 @@ another IdP, RAS or API:
    `evaluations`, `mint_access_token`, and `mint_opaque_token`. The
    `Adapter` docstring defines each one, including the policy document
    that `set_policy` takes. S22 to S31 send `version`, which the API
-   must declare as a positive integer. They also set
+   must declare as a positive integer, and expect its rejection as
+   `Adapter.argument_rejection` recognizes it: HTTP 400 with
+   `invalid_request` unless the adapter overrides that for its
+   protocol. They also set
    `evaluation_order`; a deployment that cannot switch it can skip them
    and report them as not run, or run them in its own order with an
    adapter whose `set` accepts that setting without acting on it.

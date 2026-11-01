@@ -251,6 +251,14 @@ class Adapter:
                                    other members in the response
     reset()                        restore the examples' configuration
     disable_check(role, name)      reference implementation only (vacuity mode)
+    argument_rejection(resp)       whether resp is the API's rejection of an
+                                   argument outside the read's declared
+                                   contract (core: Error Responses, row 3);
+                                   by default, HTTP 400 with invalid_request
+                                   in the challenge's error attribute or the
+                                   body. A deployment whose protocol rejects
+                                   invalid arguments in another form
+                                   overrides it
 
     The deferral cases also control the RAS's Access Request Service and
     the clock. A task is a dict with id, status ("pending", "approved",
@@ -307,6 +315,9 @@ class Adapter:
 
     def reset(self):
         raise NotImplementedError
+
+    def argument_rejection(self, resp):
+        return resp.status == 400 and challenge_error(resp) == "invalid_request"
 
     def id_token(self, user, aud=None, claims=None):
         raise NotImplementedError
@@ -573,21 +584,18 @@ def expect_no_code_denial(ctx, resp, data):
 def expect_argument_rejection(ctx, resp, data, label=""):
     """The rejection of an invalid argument (core: Error Responses, row 3).
 
-    The representation is the protocol's: any 4xx other than 401 and 403
-    (a status other than 400 is noted), no file data, and neither
-    actor_unauthorized nor insufficient_scope in the challenge or the body.
+    The representation is the protocol's, which the adapter recognizes
+    (Adapter.argument_rejection: HTTP 400 invalid_request by default). The
+    rejection carries no file data, and neither actor_unauthorized nor
+    insufficient_scope in the challenge or the body.
     """
     challenge = challenge_of(resp)
-    check(400 <= resp.status < 500 and resp.status not in (401, 403),
-          f"{label}expected the rejection of an invalid argument (a 4xx other than 401 and "
-          f"403), got {resp} {challenge!r}")
+    check(ctx.adapter.argument_rejection(resp),
+          f"{label}expected the rejection of an invalid argument, got {resp} {challenge!r}")
     check(data not in resp.body, f"{label}the rejection carried the file's data")
     for code in ("actor_unauthorized", "insufficient_scope"):
         check(code not in challenge and code.encode() not in resp.body,
               f"{label}the rejection conveys {code}: {resp} {challenge!r}")
-    if resp.status != 400:
-        ctx.notes.append(f"{label}HTTP {resp.status} for an invalid argument; RFC 6750 "
-                         "Section 3.1 suggests 400")
 
 
 # Positive path -------------------------------------------------------------

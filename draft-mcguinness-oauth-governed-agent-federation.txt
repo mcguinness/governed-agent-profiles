@@ -4,8 +4,8 @@
 
 Web Authorization Protocol                                 K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                         31 October 2026
-Expires: 4 May 2027
+Intended status: Standards Track                         1 November 2026
+Expires: 5 May 2027
 
 
             OAuth 2.0 Profile for Governed Agent Federation
@@ -67,7 +67,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 4 May 2027.
+   This Internet-Draft will expire on 5 May 2027.
 
 Copyright Notice
 
@@ -2439,17 +2439,25 @@ Table of Contents
      |       | token tenant different from the  |                    |
      |       | requested operation's tenant     |                    |
      +-------+----------------------------------+--------------------+
-     | 3     | Actor-gate denial, including a   | HTTP 403,          |
+     | 3     | The requested operation's        | The rejection the  |
+     |       | declared argument contract is    | API's protocol     |
+     |       | violated, including by a missing | defines, such as   |
+     |       | required argument or an argument | HTTP 400 with      |
+     |       | that cannot be parsed            | invalid_request    |
+     |       |                                  | (Section 3.1 of    |
+     |       |                                  | [RFC6750])         |
+     +-------+----------------------------------+--------------------+
+     | 4     | Actor-gate denial, including a   | HTTP 403,          |
      |       | categorical prohibition of the   | actor_unauthorized |
      |       | agent (Section 3.6.4)            | under Section 8.2  |
      |       |                                  | of [ACTOR-PROFILE] |
      +-------+----------------------------------+--------------------+
-     | 4     | The operation needs scope or     | HTTP 403,          |
+     | 5     | The operation needs scope or     | HTTP 403,          |
      |       | authorization details that the   | insufficient_scope |
      |       | token does not carry             | under Section 3.1  |
      |       |                                  | of [RFC6750]       |
      +-------+----------------------------------+--------------------+
-     | 5     | Any other denial of a valid      | HTTP 403 with a    |
+     | 6     | Any other denial of a valid      | HTTP 403 with a    |
      |       | token, such as the user's own    | challenge that     |
      |       | permissions, a self-acting       | carries no error   |
      |       | agent's own permissions, or      | attribute          |
@@ -2457,6 +2465,15 @@ Table of Contents
      +-------+----------------------------------+--------------------+
 
                  Table 19: Resource server error responses
+
+   Row 3 applies only when the API has identified the requested
+   operation, its target, and its tenant without the invalid argument.
+   A failure to present the access token or proof belongs to row 1, and
+   a request whose operation, target, or tenant the API cannot identify
+   is outside this table.  An invalid argument is established from the
+   request itself; it is not a check that cannot complete.  For a row-3
+   failure, the API MUST NOT perform the operation, and the response
+   MUST NOT convey actor_unauthorized or insufficient_scope.
 
    Actor denial MUST NOT use insufficient_scope, and the API MUST NOT
    return actor_unauthorized for any failure other than an actor-gate
@@ -2844,8 +2861,9 @@ Table of Contents
 
       -  At an API, insufficient_scope calls for a token with more
          authority, which can need a new governed grant; a 403 whose
-         challenge has no error attribute has no token-level remedy; and
-         a 503 can be retried after any Retry-After interval
+         challenge has no error attribute has no token-level remedy; a
+         503 can be retried after any Retry-After interval; and the
+         rejection of an invalid argument calls for a corrected request
          (Section 7.6).
 
       Apart from the invalid_client and invalid_grant attempts above and
@@ -3659,163 +3677,182 @@ A.1.5.  Renewal and Negative Tests
    The last column is the required result.  Token endpoint errors follow
    Section 4.7; API errors follow Section 7.6.
 
-   +=================================+=========+=======================+
-   | Changed condition               | Checked | Required result       |
-   |                                 | by      |                       |
-   +=================================+=========+=======================+
-   | Nonce retry with a fresh DPoP   | IdP     | HTTP 400,             |
-   | proof reuses the consumed       |         | invalid_client;       |
-   | analysis-auth-1 assertion       |         | regenerate            |
-   |                                 |         | client_assertion      |
-   +---------------------------------+---------+-----------------------+
-   | Identity Binding disabled       | IdP     | HTTP 400,             |
-   |                                 |         | invalid_grant;        |
-   |                                 |         | successful            |
-   |                                 |         | authentication does   |
-   |                                 |         | not resolve the agent |
-   +---------------------------------+---------+-----------------------+
-   | Client Association for          | IdP     | HTTP 400,             |
-   | analysis-client disabled        |         | actor_unauthorized;   |
-   |                                 |         | no ID-JAG             |
-   +---------------------------------+---------+-----------------------+
-   | Alice's Delegation              | IdP     | HTTP 400,             |
-   | Authorization for agent-42      |         | invalid_scope; the    |
-   | permits files.read, and the     |         | authorization         |
-   | client requests files.write     |         | applies, and its      |
-   |                                 |         | scope ceiling         |
-   |                                 |         | excludes the request  |
-   +---------------------------------+---------+-----------------------+
-   | The Delegation Authorization    | IdP     | HTTP 400,             |
-   | permits files.read              |         | actor_unauthorized    |
-   | files.write, policy             |         | (Section 5.4)         |
-   | categorically prohibits         |         |                       |
-   | agent-42 from files.write,      |         |                       |
-   | and the client requests         |         |                       |
-   | files.write                     |         |                       |
-   +---------------------------------+---------+-----------------------+
-   | The grant's scope claim is      | RAS     | HTTP 400,             |
-   | missing, empty, or not a        |         | invalid_grant         |
-   | string                          |         | (Section 6.2)         |
-   +---------------------------------+---------+-----------------------+
-   | The RAS has no authorized       | RAS     | HTTP 400,             |
-   | correlation for agent-42, or    |         | invalid_grant, not    |
-   | agent-42 is disabled there      |         | actor_unauthorized    |
-   |                                 |         | (Section 6.9)         |
-   +---------------------------------+---------+-----------------------+
-   | Bound governed agent access     | RAS     | HTTP 400,             |
-   | required; grant has no cnf      |         | invalid_grant; no     |
-   |                                 |         | fallback to governed  |
-   |                                 |         | agent access          |
-   +---------------------------------+---------+-----------------------+
-   | Grant has cnf.jkt; redemption   | RAS     | HTTP 400,             |
-   | omits the proof                 |         | invalid_grant; grant  |
-   |                                 |         | binding enforced      |
-   +---------------------------------+---------+-----------------------+
-   | Access token used in another    | API     | HTTP 401,             |
-   | tenant where Alice and the      |         | invalid_token; no     |
-   | agent also have permissions,    |         | operation performed   |
-   | with a fresh valid proof        |         |                       |
-   +---------------------------------+---------+-----------------------+
-   | Governed agent access: the      | RAS     | HTTP 400,             |
-   | grant has no cnf, was           |         | invalid_grant; an     |
-   | redeemed once with a DPoP       |         | access-token proof    |
-   | proof, and is presented again   |         | does not make an      |
-   | with a fresh proof by another   |         | unbound grant         |
-   | key                             |         | reusable              |
-   |                                 |         | (Section 6.2)         |
-   +---------------------------------+---------+-----------------------+
-   | Self-acting variant             | RAS     | HTTP 400,             |
-   | (Appendix A.1.6) under          |         | invalid_grant; an     |
-   | governed agent access: the      |         | unbound WAG is        |
-   | WAG has no cnf, was redeemed    |         | single-use            |
-   | once, and is presented again    |         | (Section 6.2)         |
-   +---------------------------------+---------+-----------------------+
-   | Delegated access token          | API     | HTTP 401,             |
-   | without act, presented to an    |         | invalid_token; a      |
-   | API configured for the          |         | missing act does not  |
-   | governed delegated population   |         | make the token self-  |
-   |                                 |         | acting (Section 7.1)  |
-   +---------------------------------+---------+-----------------------+
-   | Platform JWT variant            | Client  | Obtains a grant for   |
-   | (Appendix A.2.1): the shared    |         | that agent; a         |
-   | client platform-sso holds a     |         | matching client_id    |
-   | token for agent-42 and starts   |         | and scope do not      |
-   | an operation for another        |         | permit reuse          |
-   | agent with the same scope       |         | (Section 8.1)         |
-   +---------------------------------+---------+-----------------------+
-   | Platform JWT variant            | IdP     | HTTP 400,             |
-   | (Appendix A.2.1): the           |         | invalid_grant; no     |
-   | platform JWT fails validation   |         | retry from            |
-   |                                 |         | authentication        |
-   |                                 |         | context or under      |
-   |                                 |         | another credential    |
-   |                                 |         | class (Section 5.3.5) |
-   +---------------------------------+---------+-----------------------+
-   | The API delegates evaluation    | API     | HTTP 403,             |
-   | to a policy service; an         |         | actor_unauthorized;   |
-   | attribute derived from the      |         | the evaluation uses   |
-   | request names agent-77 as the   |         | agent-42 from the     |
-   | agent, and policy permits       |         | validated act         |
-   | agent-77 but not agent-42       |         | (Section 7.5)         |
-   +---------------------------------+---------+-----------------------+
-   | The API's policy does not       | API     | HTTP 403,             |
-   | permit agent-42 to act for      |         | actor_unauthorized,   |
-   | Alice, and the operation also   |         | not                   |
-   | needs files.write, which the    |         | insufficient_scope;   |
-   | access token lacks              |         | the actor gate comes  |
-   |                                 |         | first (Section 7.6)   |
-   +---------------------------------+---------+-----------------------+
-   | The actor gate permits agent-   | API     | HTTP 403,             |
-   | 42, and the operation needs     |         | insufficient_scope    |
-   | files.write, which the access   |         |                       |
-   | token lacks                     |         |                       |
-   +---------------------------------+---------+-----------------------+
-   | The actor gate permits agent-   | API     | HTTP 403 with a       |
-   | 42, the token's scope covers    |         | challenge that        |
-   | the read, and Alice has no      |         | carries no error      |
-   | permission on report-7          |         | attribute             |
-   +---------------------------------+---------+-----------------------+
-   | The API delegates evaluation    | API     | HTTP 503; no          |
-   | to a policy service, which      |         | operation performed   |
-   | cannot be reached               |         | and no denial         |
-   |                                 |         | reported              |
-   +---------------------------------+---------+-----------------------+
-   | The access token is opaque,     | API     | HTTP 503; no          |
-   | the API holds no usable         |         | operation performed,  |
-   | cached introspection response   |         | and not invalid_token |
-   | for it, and the introspection   |         | (Section 6.8)         |
-   | endpoint cannot be reached or   |         |                       |
-   | returns a response without a    |         |                       |
-   | boolean active                  |         |                       |
-   +---------------------------------+---------+-----------------------+
-   | The introspection endpoint      | API     | HTTP 401 for the      |
-   | cannot be reached, and the      |         | proof; the unfinished |
-   | DPoP proof's ath does not       |         | token validation is   |
-   | match the access token          |         | in the same row, not  |
-   |                                 |         | earlier (Section 7.6) |
-   +---------------------------------+---------+-----------------------+
-   | The policy service denies       | API     | HTTP 403,             |
-   | agent-42 under the actor        |         | actor_unauthorized;   |
-   | gate, and its evaluation of     |         | no unfinished check   |
-   | Alice's own permissions         |         | comes earlier         |
-   | cannot complete                 |         |                       |
-   +---------------------------------+---------+-----------------------+
-   | The policy service cannot       | API     | HTTP 503; the         |
-   | complete the actor gate, and    |         | unfinished actor gate |
-   | Alice has no permission on      |         | could come earlier    |
-   | report-7                        |         | than the user's       |
-   |                                 |         | denial                |
-   +---------------------------------+---------+-----------------------+
-   | Platform JWT variant            | API     | HTTP 403,             |
-   | (Appendix A.2.1): Alice's       |         | actor_unauthorized    |
-   | access tokens for agent-42      |         | for the other agent;  |
-   | and for another agent carry     |         | the client identifier |
-   | the same client_id, and the     |         | does not stand in for |
-   | API's policy permits only       |         | the agent             |
-   | agent-42                        |         | (Section 3.6.4)       |
-   +---------------------------------+---------+-----------------------+
+   +===============================+=========+========================+
+   | Changed condition             | Checked | Required result        |
+   |                               | by      |                        |
+   +===============================+=========+========================+
+   | Nonce retry with a fresh DPoP | IdP     | HTTP 400,              |
+   | proof reuses the consumed     |         | invalid_client;        |
+   | analysis-auth-1 assertion     |         | regenerate             |
+   |                               |         | client_assertion       |
+   +-------------------------------+---------+------------------------+
+   | Identity Binding disabled     | IdP     | HTTP 400,              |
+   |                               |         | invalid_grant;         |
+   |                               |         | successful             |
+   |                               |         | authentication does    |
+   |                               |         | not resolve the agent  |
+   +-------------------------------+---------+------------------------+
+   | Client Association for        | IdP     | HTTP 400,              |
+   | analysis-client disabled      |         | actor_unauthorized; no |
+   |                               |         | ID-JAG                 |
+   +-------------------------------+---------+------------------------+
+   | Alice's Delegation            | IdP     | HTTP 400,              |
+   | Authorization for agent-42    |         | invalid_scope; the     |
+   | permits files.read, and the   |         | authorization applies, |
+   | client requests files.write   |         | and its scope ceiling  |
+   |                               |         | excludes the request   |
+   +-------------------------------+---------+------------------------+
+   | The Delegation Authorization  | IdP     | HTTP 400,              |
+   | permits files.read            |         | actor_unauthorized     |
+   | files.write, policy           |         | (Section 5.4)          |
+   | categorically prohibits       |         |                        |
+   | agent-42 from files.write,    |         |                        |
+   | and the client requests       |         |                        |
+   | files.write                   |         |                        |
+   +-------------------------------+---------+------------------------+
+   | The grant's scope claim is    | RAS     | HTTP 400,              |
+   | missing, empty, or not a      |         | invalid_grant          |
+   | string                        |         | (Section 6.2)          |
+   +-------------------------------+---------+------------------------+
+   | The RAS has no authorized     | RAS     | HTTP 400,              |
+   | correlation for agent-42, or  |         | invalid_grant, not     |
+   | agent-42 is disabled there    |         | actor_unauthorized     |
+   |                               |         | (Section 6.9)          |
+   +-------------------------------+---------+------------------------+
+   | Bound governed agent access   | RAS     | HTTP 400,              |
+   | required; grant has no cnf    |         | invalid_grant; no      |
+   |                               |         | fallback to governed   |
+   |                               |         | agent access           |
+   +-------------------------------+---------+------------------------+
+   | Grant has cnf.jkt; redemption | RAS     | HTTP 400,              |
+   | omits the proof               |         | invalid_grant; grant   |
+   |                               |         | binding enforced       |
+   +-------------------------------+---------+------------------------+
+   | Access token used in another  | API     | HTTP 401,              |
+   | tenant where Alice and the    |         | invalid_token; no      |
+   | agent also have permissions,  |         | operation performed    |
+   | with a fresh valid proof      |         |                        |
+   +-------------------------------+---------+------------------------+
+   | Governed agent access: the    | RAS     | HTTP 400,              |
+   | grant has no cnf, was         |         | invalid_grant; an      |
+   | redeemed once with a DPoP     |         | access-token proof     |
+   | proof, and is presented again |         | does not make an       |
+   | with a fresh proof by another |         | unbound grant reusable |
+   | key                           |         | (Section 6.2)          |
+   +-------------------------------+---------+------------------------+
+   | Self-acting variant           | RAS     | HTTP 400,              |
+   | (Appendix A.1.6) under        |         | invalid_grant; an      |
+   | governed agent access: the    |         | unbound WAG is single- |
+   | WAG has no cnf, was redeemed  |         | use (Section 6.2)      |
+   | once, and is presented again  |         |                        |
+   +-------------------------------+---------+------------------------+
+   | Delegated access token        | API     | HTTP 401,              |
+   | without act, presented to an  |         | invalid_token; a       |
+   | API configured for the        |         | missing act does not   |
+   | governed delegated population |         | make the token self-   |
+   |                               |         | acting (Section 7.1)   |
+   +-------------------------------+---------+------------------------+
+   | Platform JWT variant          | Client  | Obtains a grant for    |
+   | (Appendix A.2.1): the shared  |         | that agent; a matching |
+   | client platform-sso holds a   |         | client_id and scope do |
+   | token for agent-42 and starts |         | not permit reuse       |
+   | an operation for another      |         | (Section 8.1)          |
+   | agent with the same scope     |         |                        |
+   +-------------------------------+---------+------------------------+
+   | Platform JWT variant          | IdP     | HTTP 400,              |
+   | (Appendix A.2.1): the         |         | invalid_grant; no      |
+   | platform JWT fails validation |         | retry from             |
+   |                               |         | authentication context |
+   |                               |         | or under another       |
+   |                               |         | credential class       |
+   |                               |         | (Section 5.3.5)        |
+   +-------------------------------+---------+------------------------+
+   | The API delegates evaluation  | API     | HTTP 403,              |
+   | to a policy service; an       |         | actor_unauthorized;    |
+   | attribute derived from the    |         | the evaluation uses    |
+   | request names agent-77 as the |         | agent-42 from the      |
+   | agent, and policy permits     |         | validated act          |
+   | agent-77 but not agent-42     |         | (Section 7.5)          |
+   +-------------------------------+---------+------------------------+
+   | The API's policy does not     | API     | HTTP 403,              |
+   | permit agent-42 to act for    |         | actor_unauthorized,    |
+   | Alice, and the operation also |         | not                    |
+   | needs files.write, which the  |         | insufficient_scope;    |
+   | access token lacks            |         | the actor gate comes   |
+   |                               |         | first (Section 7.6)    |
+   +-------------------------------+---------+------------------------+
+   | The actor gate permits agent- | API     | HTTP 403,              |
+   | 42, and the operation needs   |         | insufficient_scope     |
+   | files.write, which the access |         |                        |
+   | token lacks                   |         |                        |
+   +-------------------------------+---------+------------------------+
+   | The actor gate permits agent- | API     | HTTP 403 with a        |
+   | 42, the token's scope covers  |         | challenge that carries |
+   | the read, and Alice has no    |         | no error attribute     |
+   | permission on report-7        |         |                        |
+   +-------------------------------+---------+------------------------+
+   | The read carries an argument  | API     | The rejection of the   |
+   | outside the operation's       |         | invalid argument, such |
+   | declared contract, and the    |         | as HTTP 400            |
+   | API's policy does not permit  |         | invalid_request, not   |
+   | agent-42 to act for Alice     |         | actor_unauthorized;    |
+   |                               |         | invalid arguments come |
+   |                               |         | before the actor gate  |
+   +-------------------------------+---------+------------------------+
+   | The API delegates evaluation  | API     | HTTP 503; no operation |
+   | to a policy service, which    |         | performed and no       |
+   | cannot be reached             |         | denial reported        |
+   +-------------------------------+---------+------------------------+
+   | The read carries an argument  | API     | The rejection of the   |
+   | outside the operation's       |         | invalid argument, not  |
+   | declared contract, and the    |         | HTTP 503; no           |
+   | policy service cannot be      |         | unfinished check comes |
+   | reached                       |         | earlier (Section 7.6)  |
+   +-------------------------------+---------+------------------------+
+   | The access token is opaque,   | API     | HTTP 503; no operation |
+   | the API holds no usable       |         | performed, and not     |
+   | cached introspection response |         | invalid_token          |
+   | for it, and the introspection |         | (Section 6.8)          |
+   | endpoint cannot be reached or |         |                        |
+   | returns a response without a  |         |                        |
+   | boolean active                |         |                        |
+   +-------------------------------+---------+------------------------+
+   | The introspection endpoint    | API     | HTTP 401 for the       |
+   | cannot be reached, and the    |         | proof; the unfinished  |
+   | DPoP proof's ath does not     |         | token validation is in |
+   | match the access token        |         | the same row, not      |
+   |                               |         | earlier (Section 7.6)  |
+   +-------------------------------+---------+------------------------+
+   | The access token is opaque,   | API     | HTTP 503; the          |
+   | the API holds no usable       |         | unfinished token       |
+   | cached introspection response |         | validation comes       |
+   | for it, the introspection     |         | earlier than the       |
+   | endpoint cannot be reached,   |         | invalid argument       |
+   | and the read carries an       |         |                        |
+   | argument outside the          |         |                        |
+   | operation's declared contract |         |                        |
+   +-------------------------------+---------+------------------------+
+   | The policy service denies     | API     | HTTP 403,              |
+   | agent-42 under the actor      |         | actor_unauthorized; no |
+   | gate, and its evaluation of   |         | unfinished check comes |
+   | Alice's own permissions       |         | earlier                |
+   | cannot complete               |         |                        |
+   +-------------------------------+---------+------------------------+
+   | The policy service cannot     | API     | HTTP 503; the          |
+   | complete the actor gate, and  |         | unfinished actor gate  |
+   | Alice has no permission on    |         | could come earlier     |
+   | report-7                      |         | than the user's denial |
+   +-------------------------------+---------+------------------------+
+   | Platform JWT variant          | API     | HTTP 403,              |
+   | (Appendix A.2.1): Alice's     |         | actor_unauthorized for |
+   | access tokens for agent-42    |         | the other agent; the   |
+   | and for another agent carry   |         | client identifier does |
+   | the same client_id, and the   |         | not stand in for the   |
+   | API's policy permits only     |         | agent (Section 3.6.4)  |
+   | agent-42                      |         |                        |
+   +-------------------------------+---------+------------------------+
 
-                       Table 23: Negative test cases
+                      Table 23: Negative test cases
 
    The grant binding is enforced regardless of access-token protection,
    even when the resource accepts bearer access tokens or policy permits

@@ -319,27 +319,27 @@ JWT variant's two agents with one `client_id`. S04 to S13 cover each
 member, self-acting access, and introspection.
 
 The S cases also test the core's Error Responses. When several checks
-fail, the API reports the first in this order: the token and proof
-(HTTP 401), the token context (HTTP 401 `invalid_token`), an invalid
-argument (the protocol's rejection; the reference answers HTTP 400
-`invalid_request`), the actor gate (HTTP 403 `actor_unauthorized`), token authority (HTTP 403
-`insufficient_scope`), and any other denial (HTTP 403 with a challenge
-that carries no `error` attribute). An evaluation that cannot complete
-is not a denial: HTTP 503. S04 to S07 and S09 each fail one condition
-after the actor gate; S14 to S16 fail two conditions at once; S17 makes
-the policy service unavailable; S18 and S19 make one condition's
-evaluation fail beside a denial, so that an established failure is
-reported only when no unfinished check comes earlier. S20 and S21 do the
-same for token validation: an introspection call that cannot complete
-gets 503, unless a proof failure in the same row is already
-established. S22 to S31 add an invalid argument: the read declares
-`version`, a positive integer, and each case sends `version=abc` beside
-one other condition. Each runs twice, with the API checking arguments
-first and then last (test control `evaluation_order`), and expects the
-same response: the argument's rejection over every authorization
-failure and unfinished policy evaluation (S25 to S30), and the proof,
-the tenant and an unfinished introspection over the argument (S23, S24,
-S31).
+fail, the API reports the first in this order: the token and proof (HTTP
+401), the token context (HTTP 401 `invalid_token`), an invalid argument
+(the protocol's rejection; the reference answers HTTP 400
+`invalid_request`), the actor gate (HTTP 403 `actor_unauthorized`),
+token authority (HTTP 403 `insufficient_scope`), and any other denial
+(HTTP 403 with a challenge that carries no `error` attribute). An
+evaluation that cannot complete is not a denial: HTTP 503. S04 to S07
+and S09 each fail one condition after the actor gate; S14 to S16 fail
+two conditions at once; S17 makes the policy service unavailable; S18
+and S19 make one condition's evaluation fail beside a denial, so that an
+established failure is reported only when no unfinished check comes
+earlier. S20 and S21 do the same for token validation: an introspection
+call that cannot complete gets 503, unless a proof failure in the same
+row is already established. S22 to S31 add an invalid argument: the read
+declares `version`, a positive integer, and each case sends
+`version=abc` beside one other condition. Each runs twice, with the API
+checking arguments first and then last (test control
+`evaluation_order`), and expects the same response: the argument's
+rejection over every authorization failure and unfinished policy
+evaluation (S25 to S30), and the proof, the tenant and an unfinished
+introspection over the argument (S23, S24, S31).
 
 **Test fixtures.** The policy service and the API's introspection
 caller are test fixtures under the suite's control. The policy service

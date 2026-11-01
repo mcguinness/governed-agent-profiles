@@ -233,10 +233,6 @@ That interpretation needs COAZ-MCP to settle:
   400 when the request violates its declared contract, and 503, under
   the core's precedence, when the mapping is defective.
 
-A related question belongs to the core, not to COAZ-MCP. The core's
-table does not list a request that violates its declared contract, so
-the core does not rank such a 400 against an unfinished check.
-
 A separate question remains open: how the core's denial responses
 (HTTP 403 with its challenge) compose with COAZ-MCP's denials, and with
 denials that MCP reports inside a result (SEP-2643, a draft).

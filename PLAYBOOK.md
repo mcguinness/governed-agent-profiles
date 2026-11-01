@@ -223,9 +223,12 @@ token, the local principal stands for the agent.
   or override the identities ([core, Optional Policy
   Services][core-policy-services]).
 * A permit never widens the token's scope or tenant.
-* The API reports actor denial, insufficient token authority, other
-  denial, and incomplete evaluation according to the core's selection
-  order ([core, Error Responses][core-resource-errors]).
+* The API reports an invalid argument, actor denial, insufficient token
+  authority, other denial, and incomplete evaluation according to the
+  core's selection order ([core, Error
+  Responses][core-resource-errors]). An invalid argument comes before
+  every denial and every unfinished policy check, whether the API
+  checks arguments before or after it asks the policy decision point.
 * With the policy decision point unreachable, the API performs no
   operation that needs the decision and reports no denial: it answers
   HTTP 503, normally with `Retry-After`, unless a failure is established

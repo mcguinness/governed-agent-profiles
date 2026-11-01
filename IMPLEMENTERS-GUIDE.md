@@ -478,7 +478,7 @@ Validation][redemption-common]; cases N10 to N16, N23, N26, and N27.
 
 [Error Responses][resource-errors] and [Optional Policy
 Services][policy-services]; cases N17 to N20, N24, S02 to S07, and S14
-to S21.
+to S31.
 
 The API reports the first failure in this order, whatever order it
 evaluates its checks in:
@@ -487,10 +487,15 @@ evaluates its checks in:
    as the token or proof specification requires.
 2. Missing actor claims, or missing or mismatched tenant context: HTTP
    401 `invalid_token`.
-3. An actor-gate denial: HTTP 403 `actor_unauthorized`.
-4. Missing scope or authorization details: HTTP 403
+3. An argument of the operation that is missing, cannot be parsed, or is
+   outside the operation's declared contract, once the operation, its
+   target, and its tenant are known: the rejection the API's protocol
+   defines, such as HTTP 400 `invalid_request`, with no body that
+   conveys either denial code.
+4. An actor-gate denial: HTTP 403 `actor_unauthorized`.
+5. Missing scope or authorization details: HTTP 403
    `insufficient_scope`.
-5. Any other denial: HTTP 403 with no `error` attribute, and no body
+6. Any other denial: HTTP 403 with no `error` attribute, and no body
    that conveys either code.
 
 A check that cannot complete, such as a policy evaluation or an
@@ -555,8 +560,10 @@ API evaluates the actor gate itself, except in the fourth row:
 | `files.read` | Permits | Policy service unreachable | 403 `insufficient_scope`: no unfinished check ranks earlier |
 | `files.read` | Unreachable policy service owns it | — | 503: the unfinished gate ranks before scope |
 | `files.write` | Permits | Alice cannot write, with or without a client-policy check that cannot complete in the same row | 403 with no `error` attribute |
+| `files.read` | Denies | The `PUT` carries an argument outside its declared contract, and the policy service is unreachable | The argument's rejection, such as 400 `invalid_request`: invalid arguments rank before the actor gate, scope, and every unfinished policy check |
 
-The nearest conformance cases are S07, S14, S18, S19, and S04.
+The nearest conformance cases are S07, S14, S18, S19, S04, and S25 to
+S30.
 
 ## Continuation through gateways
 
@@ -898,10 +905,11 @@ proposes.
     caller omit, it is malformed, or it yields a subject other than the
     token's.
 
-The core's table does not list a request that violates its declared
-contract. The core therefore does not rank that 400 against an
-unfinished check, and the coordination notes track the question. A
-token whose audience does not name this server fails token validation
+The core ranks an invalid argument after token and token-context
+failures and before every authorization failure ([Error
+Responses][resource-errors]). The 400 therefore holds whoever owns the
+actor gate, and an unfinished policy check does not turn it into a 503.
+A token whose audience does not name this server fails token validation
 before the enforcement point runs.
 
 **What a client receives.** In the SDK version tested, a client receives

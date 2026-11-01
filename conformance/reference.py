@@ -68,6 +68,9 @@ ID_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:id_token"
 ASSERTION_TYPE = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
 
 IDP_ISSUER = "https://idp.example/"
+# A second IdP whose agents the RAS also names in access tokens. Its
+# agent-42 is not the home IdP's agent-42: agents are issuer-qualified.
+PARTNER_IDP_ISSUER = "https://partner-idp.example/"
 RAS_ISSUER = "https://ras.example/"
 API_BASE = "https://api.example"
 RESOURCE = "https://api.example/tenants/acme-data/"
@@ -164,6 +167,8 @@ CHECKS = {
     "api.existence_after_authorization": "a file's absence is reported only when no failure in "
                                          "Error Responses applies",
     "api.proof_method": "the DPoP proof's htm is checked against the request's own method",
+    "api.issuer_qualified_agent": "the API identifies the agent by issuer and subject, never by "
+                                  "subject alone",
 }
 
 
@@ -1336,7 +1341,8 @@ class API(Server):
 
     def reset(self):
         super().reset()
-        self.trusted_ras = {RAS_ISSUER: {"key": self.ras_public_key, "namespaces": {IDP_ISSUER}}}
+        self.trusted_ras = {RAS_ISSUER: {"key": self.ras_public_key,
+                                         "namespaces": {IDP_ISSUER, PARTNER_IDP_ISSUER}}}
         self.resource_tenants = {RESOURCE: "acme-data", OTHER_RESOURCE: "beta-data"}
         # A separate client registration distinguishes the self-acting
         # population (core: Profile Applicability).
@@ -1606,7 +1612,12 @@ class API(Server):
         if not self.on("api.agent_from_token"):
             # Non-conforming: the client registration stands in for the agent.
             return copy.deepcopy(self.client_agents.get(claims.get("client_id")))
-        return {"iss": act["iss"], "sub": act["sub"]} if isinstance(act, dict) else None
+        if not isinstance(act, dict):
+            return None
+        if not self.on("api.issuer_qualified_agent"):
+            # Non-conforming: agents keyed by subject alone, as the home IdP's.
+            return {"iss": IDP_ISSUER, "sub": act["sub"]}
+        return {"iss": act["iss"], "sub": act["sub"]}
 
     def evaluation_request(self, population, claims, agent, aud, tenant, name, attributes):
         """The policy evaluation request (see PolicyService).

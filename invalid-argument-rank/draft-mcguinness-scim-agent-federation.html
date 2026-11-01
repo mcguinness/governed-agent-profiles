@@ -28,18 +28,18 @@ revoke previously issued downstream authorization.
 <meta content="draft-mcguinness-scim-agent-federation-latest" name="ietf.draft">
 <!-- Generator version information:
   xml2rfc 3.34.1
-    Python 3.14.7
-    ConfigArgParse 1.7.7
+    Python 3.14.8
+    ConfigArgParse 1.8.0
     google-i18n-address 3.1.1
     intervaltree 3.2.1
     Jinja2 3.1.6
     lxml 6.1.1
     natsort 8.4.0
-    platformdirs 4.11.10
+    platformdirs 4.13.4
     pycountry 24.6.1
     PyYAML 6.0.3
     requests 2.33.1
-    wcwidth 0.8.4
+    wcwidth 0.9.2
 -->
 <link href="draft-mcguinness-scim-agent-federation.xml" rel="alternate" type="application/rfc+xml">
 <link href="#copyright" rel="license">
@@ -1055,11 +1055,11 @@ svg {
 <thead><tr>
 <td class="left">Internet-Draft</td>
 <td class="center">SCIM Agent Federation</td>
-<td class="right">October 2026</td>
+<td class="right">November 2026</td>
 </tr></thead>
 <tfoot><tr>
 <td class="left">McGuinness</td>
-<td class="center">Expires 4 April 2027</td>
+<td class="center">Expires 5 May 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1072,12 +1072,12 @@ svg {
 <dd class="internet-draft">draft-mcguinness-scim-agent-federation-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-10-01" class="published">1 October 2026</time>
+<time datetime="2026-11-01" class="published">1 November 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2027-04-04">4 April 2027</time></dd>
+<dd class="expires"><time datetime="2027-05-05">5 May 2027</time></dd>
 <dt class="label-authors">Author:</dt>
 <dd class="authors">
 <div class="author">
@@ -1139,7 +1139,7 @@ revoke previously issued downstream authorization.<a href="#section-abstract-2" 
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 4 April 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 5 May 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1237,101 +1237,115 @@ revoke previously issued downstream authorization.<a href="#section-abstract-2" 
             <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-platform-hosted-agents" class="internal xref">Platform-Hosted Agents</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
-            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-implementation-consideratio" class="internal xref">Implementation Considerations</a></p>
 <ul class="compact toc ulBare ulEmpty">
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.1">
-                <p id="section-toc.1-1.8.2.1.1"><a href="#section-8.1" class="auto internal xref">8.1</a>.  <a href="#name-administrative-privilege-an" class="internal xref">Administrative Privilege and Confused Deputies</a></p>
+                <p id="section-toc.1-1.8.2.1.1"><a href="#section-8.1" class="auto internal xref">8.1</a>.  <a href="#name-provisioning-client" class="internal xref">Provisioning Client</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.2">
-                <p id="section-toc.1-1.8.2.2.1"><a href="#section-8.2" class="auto internal xref">8.2</a>.  <a href="#name-independent-controls-and-st" class="internal xref">Independent Controls and Stale State</a></p>
+                <p id="section-toc.1-1.8.2.2.1"><a href="#section-8.2" class="auto internal xref">8.2</a>.  <a href="#name-service-provider" class="internal xref">Service Provider</a></p>
 </li>
             </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
-            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-privacy-considerations" class="internal xref">Privacy Considerations</a></p>
-</li>
-          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
-            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
 <ul class="compact toc ulBare ulEmpty">
-<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.1">
-                <p id="section-toc.1-1.10.2.1.1"><a href="#section-10.1" class="auto internal xref">10.1</a>.  <a href="#name-agent-federation-extension-2" class="internal xref">Agent Federation Extension</a></p>
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.1">
+                <p id="section-toc.1-1.9.2.1.1"><a href="#section-9.1" class="auto internal xref">9.1</a>.  <a href="#name-administrative-privilege-an" class="internal xref">Administrative Privilege and Confused Deputies</a></p>
 </li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.2">
-                <p id="section-toc.1-1.10.2.2.1"><a href="#section-10.2" class="auto internal xref">10.2</a>.  <a href="#name-agent-identity-binding" class="internal xref">Agent Identity Binding</a></p>
-</li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.3">
-                <p id="section-toc.1-1.10.2.3.1"><a href="#section-10.3" class="auto internal xref">10.3</a>.  <a href="#name-agent-client-association" class="internal xref">Agent Client Association</a></p>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.2">
+                <p id="section-toc.1-1.9.2.2.1"><a href="#section-9.2" class="auto internal xref">9.2</a>.  <a href="#name-independent-controls-and-st" class="internal xref">Independent Controls and Stale State</a></p>
 </li>
             </ul>
 </li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-privacy-considerations" class="internal xref">Privacy Considerations</a></p>
+</li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
-            <p id="section-toc.1-1.11.1"><a href="#section-11" class="auto internal xref">11</a>. <a href="#name-references" class="internal xref">References</a></p>
+            <p id="section-toc.1-1.11.1"><a href="#section-11" class="auto internal xref">11</a>. <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
 <ul class="compact toc ulBare ulEmpty">
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.1">
-                <p id="section-toc.1-1.11.2.1.1"><a href="#section-11.1" class="auto internal xref">11.1</a>.  <a href="#name-normative-references" class="internal xref">Normative References</a></p>
+                <p id="section-toc.1-1.11.2.1.1"><a href="#section-11.1" class="auto internal xref">11.1</a>.  <a href="#name-agent-federation-extension-2" class="internal xref">Agent Federation Extension</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.2">
-                <p id="section-toc.1-1.11.2.2.1"><a href="#section-11.2" class="auto internal xref">11.2</a>.  <a href="#name-informative-references" class="internal xref">Informative References</a></p>
+                <p id="section-toc.1-1.11.2.2.1"><a href="#section-11.2" class="auto internal xref">11.2</a>.  <a href="#name-agent-identity-binding" class="internal xref">Agent Identity Binding</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.3">
+                <p id="section-toc.1-1.11.2.3.1"><a href="#section-11.3" class="auto internal xref">11.3</a>.  <a href="#name-agent-client-association" class="internal xref">Agent Client Association</a></p>
 </li>
             </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
-            <p id="section-toc.1-1.12.1"><a href="#appendix-A" class="auto internal xref">Appendix A</a>.  <a href="#name-example-platform-onboarding" class="internal xref">Example: Platform Onboarding</a></p>
+            <p id="section-toc.1-1.12.1"><a href="#section-12" class="auto internal xref">12</a>. <a href="#name-references" class="internal xref">References</a></p>
 <ul class="compact toc ulBare ulEmpty">
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.1">
-                <p id="section-toc.1-1.12.2.1.1"><a href="#appendix-A.1" class="auto internal xref">A.1</a>.  <a href="#name-obtain-the-oauthclient-refe" class="internal xref">Obtain the OAuthClient Reference</a></p>
+                <p id="section-toc.1-1.12.2.1.1"><a href="#section-12.1" class="auto internal xref">12.1</a>.  <a href="#name-normative-references" class="internal xref">Normative References</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.2">
-                <p id="section-toc.1-1.12.2.2.1"><a href="#appendix-A.2" class="auto internal xref">A.2</a>.  <a href="#name-create-an-inactive-agent" class="internal xref">Create an Inactive Agent</a></p>
-</li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.3">
-                <p id="section-toc.1-1.12.2.3.1"><a href="#appendix-A.3" class="auto internal xref">A.3</a>.  <a href="#name-bind-the-workload-identity" class="internal xref">Bind the Workload Identity</a></p>
-</li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.4">
-                <p id="section-toc.1-1.12.2.4.1"><a href="#appendix-A.4" class="auto internal xref">A.4</a>.  <a href="#name-authorize-client-use" class="internal xref">Authorize Client Use</a></p>
-</li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.5">
-                <p id="section-toc.1-1.12.2.5.1"><a href="#appendix-A.5" class="auto internal xref">A.5</a>.  <a href="#name-enable-the-agent" class="internal xref">Enable the Agent</a></p>
-</li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.6">
-                <p id="section-toc.1-1.12.2.6.1"><a href="#appendix-A.6" class="auto internal xref">A.6</a>.  <a href="#name-recover-a-lost-creation-res" class="internal xref">Recover a Lost Creation Response</a></p>
-</li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.7">
-                <p id="section-toc.1-1.12.2.7.1"><a href="#appendix-A.7" class="auto internal xref">A.7</a>.  <a href="#name-disable-one-binding" class="internal xref">Disable One Binding</a></p>
-</li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.8">
-                <p id="section-toc.1-1.12.2.8.1"><a href="#appendix-A.8" class="auto internal xref">A.8</a>.  <a href="#name-rejection-and-boundary-exam" class="internal xref">Rejection and Boundary Examples</a></p>
+                <p id="section-toc.1-1.12.2.2.1"><a href="#section-12.2" class="auto internal xref">12.2</a>.  <a href="#name-informative-references" class="internal xref">Informative References</a></p>
 </li>
             </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
-            <p id="section-toc.1-1.13.1"><a href="#appendix-B" class="auto internal xref">Appendix B</a>.  <a href="#name-example-dedicated-client" class="internal xref">Example: Dedicated Client</a></p>
-</li>
-          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14">
-            <p id="section-toc.1-1.14.1"><a href="#appendix-C" class="auto internal xref">Appendix C</a>.  <a href="#name-schema-and-resourcetype-rep" class="internal xref">Schema and ResourceType Representations</a></p>
+            <p id="section-toc.1-1.13.1"><a href="#appendix-A" class="auto internal xref">Appendix A</a>.  <a href="#name-example-platform-onboarding" class="internal xref">Example: Platform Onboarding</a></p>
 <ul class="compact toc ulBare ulEmpty">
-<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.1">
-                <p id="section-toc.1-1.14.2.1.1"><a href="#appendix-C.1" class="auto internal xref">C.1</a>.  <a href="#name-agentfederation-schema" class="internal xref">AgentFederation Schema</a></p>
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.1">
+                <p id="section-toc.1-1.13.2.1.1"><a href="#appendix-A.1" class="auto internal xref">A.1</a>.  <a href="#name-obtain-the-oauthclient-refe" class="internal xref">Obtain the OAuthClient Reference</a></p>
 </li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.2">
-                <p id="section-toc.1-1.14.2.2.1"><a href="#appendix-C.2" class="auto internal xref">C.2</a>.  <a href="#name-agentidentitybinding-schema" class="internal xref">AgentIdentityBinding Schema</a></p>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.2">
+                <p id="section-toc.1-1.13.2.2.1"><a href="#appendix-A.2" class="auto internal xref">A.2</a>.  <a href="#name-create-an-inactive-agent" class="internal xref">Create an Inactive Agent</a></p>
 </li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.3">
-                <p id="section-toc.1-1.14.2.3.1"><a href="#appendix-C.3" class="auto internal xref">C.3</a>.  <a href="#name-agentclientassociation-sche" class="internal xref">AgentClientAssociation Schema</a></p>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.3">
+                <p id="section-toc.1-1.13.2.3.1"><a href="#appendix-A.3" class="auto internal xref">A.3</a>.  <a href="#name-bind-the-workload-identity" class="internal xref">Bind the Workload Identity</a></p>
 </li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.4">
-                <p id="section-toc.1-1.14.2.4.1"><a href="#appendix-C.4" class="auto internal xref">C.4</a>.  <a href="#name-resource-types" class="internal xref">Resource Types</a></p>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.4">
+                <p id="section-toc.1-1.13.2.4.1"><a href="#appendix-A.4" class="auto internal xref">A.4</a>.  <a href="#name-authorize-client-use" class="internal xref">Authorize Client Use</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.5">
+                <p id="section-toc.1-1.13.2.5.1"><a href="#appendix-A.5" class="auto internal xref">A.5</a>.  <a href="#name-enable-the-agent" class="internal xref">Enable the Agent</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.6">
+                <p id="section-toc.1-1.13.2.6.1"><a href="#appendix-A.6" class="auto internal xref">A.6</a>.  <a href="#name-recover-a-lost-creation-res" class="internal xref">Recover a Lost Creation Response</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.7">
+                <p id="section-toc.1-1.13.2.7.1"><a href="#appendix-A.7" class="auto internal xref">A.7</a>.  <a href="#name-find-bindings-and-dependenc" class="internal xref">Find Bindings and Dependencies</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.8">
+                <p id="section-toc.1-1.13.2.8.1"><a href="#appendix-A.8" class="auto internal xref">A.8</a>.  <a href="#name-disable-one-binding" class="internal xref">Disable One Binding</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.9">
+                <p id="section-toc.1-1.13.2.9.1"><a href="#appendix-A.9" class="auto internal xref">A.9</a>.  <a href="#name-rejection-and-boundary-exam" class="internal xref">Rejection and Boundary Examples</a></p>
 </li>
             </ul>
 </li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14">
+            <p id="section-toc.1-1.14.1"><a href="#appendix-B" class="auto internal xref">Appendix B</a>.  <a href="#name-example-dedicated-client" class="internal xref">Example: Dedicated Client</a></p>
+</li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15">
-            <p id="section-toc.1-1.15.1"><a href="#appendix-D" class="auto internal xref">Appendix D</a>.  <a href="#name-document-history" class="internal xref">Document History</a></p>
+            <p id="section-toc.1-1.15.1"><a href="#appendix-C" class="auto internal xref">Appendix C</a>.  <a href="#name-schema-and-resourcetype-rep" class="internal xref">Schema and ResourceType Representations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.1">
+                <p id="section-toc.1-1.15.2.1.1"><a href="#appendix-C.1" class="auto internal xref">C.1</a>.  <a href="#name-agentfederation-schema" class="internal xref">AgentFederation Schema</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.2">
+                <p id="section-toc.1-1.15.2.2.1"><a href="#appendix-C.2" class="auto internal xref">C.2</a>.  <a href="#name-agentidentitybinding-schema" class="internal xref">AgentIdentityBinding Schema</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.3">
+                <p id="section-toc.1-1.15.2.3.1"><a href="#appendix-C.3" class="auto internal xref">C.3</a>.  <a href="#name-agentclientassociation-sche" class="internal xref">AgentClientAssociation Schema</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.4">
+                <p id="section-toc.1-1.15.2.4.1"><a href="#appendix-C.4" class="auto internal xref">C.4</a>.  <a href="#name-resource-types" class="internal xref">Resource Types</a></p>
+</li>
+            </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.16">
-            <p id="section-toc.1-1.16.1"><a href="#appendix-E" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
+            <p id="section-toc.1-1.16.1"><a href="#appendix-D" class="auto internal xref">Appendix D</a>.  <a href="#name-document-history" class="internal xref">Document History</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.17">
-            <p id="section-toc.1-1.17.1"><a href="#appendix-F" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
+            <p id="section-toc.1-1.17.1"><a href="#appendix-E" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.18">
+            <p id="section-toc.1-1.18.1"><a href="#appendix-F" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
 </li>
         </ul>
 </nav>
@@ -1424,16 +1438,17 @@ identity.<a href="#section-1-8" class="pilcrow">¶</a></p>
         </h3>
 <p id="section-1.1-1">This profile defines explicit bindings and associations for delegated
 ID-JAG issuance, and registration of platform-hosted agents for
-governance without issuance (<a href="#platform-hosted" class="auto internal xref">Section 7</a>). It supports the federation draft's dedicated-client,
-SPIFFE, Client Attestation, and existing platform JWT resolution inputs.
-Implementations need only support the credential classes they accept
-under <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>.<a href="#section-1.1-1" class="pilcrow">¶</a></p>
+governance without issuance (<a href="#platform-hosted" class="auto internal xref">Section 7</a>). It supports the
+federation draft's dedicated-client, SPIFFE, Client Attestation, and
+existing platform JWT resolution inputs of <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> and
+<span>[<a href="#INPUTS" class="cite xref">INPUTS</a>]</span>. Implementations need only support the credential classes
+they accept under <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>.<a href="#section-1.1-1" class="pilcrow">¶</a></p>
 <p id="section-1.1-2">The following remain outside this profile:<a href="#section-1.1-2" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-1.1-3.1">
             <p id="section-1.1-3.1.1">Establishing trust in a new credential authority. Trust remains a
-prerequisite, not an effect of a binding write. OAuth client registration
-is defined separately by <span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span>.<a href="#section-1.1-3.1.1" class="pilcrow">¶</a></p>
+prerequisite, not an effect of a binding write. OAuth client
+registration is defined separately by <span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span>.<a href="#section-1.1-3.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-1.1-3.2">
             <p id="section-1.1-3.2.1">User delegation, resource permissions, and cross-domain user linking.<a href="#section-1.1-3.2.1" class="pilcrow">¶</a></p>
@@ -1443,7 +1458,8 @@ is defined separately by <span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-
 continuity.<a href="#section-1.1-3.3.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-1.1-3.4">
-            <p id="section-1.1-3.4.1">Relationship-change events and revocation of outstanding authorization.<a href="#section-1.1-3.4.1" class="pilcrow">¶</a></p>
+            <p id="section-1.1-3.4.1">Relationship-change events and revocation of outstanding
+authorization.<a href="#section-1.1-3.4.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-1.1-3.5">
             <p id="section-1.1-3.5.1">A portable policy language, automatic principal merging, and a WAG
@@ -1478,9 +1494,8 @@ an OAuth client permitted to exercise an Agent Principal.<a href="#section-2-3.2
 <dt id="section-2-3.3">Service Provider:</dt>
         <dd style="margin-left: 1.5em" id="section-2-3.4">
           <p id="section-2-3.4.1">The IdP's SCIM service, including the administration of configuration
-used by its grant issuer. <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> calls this role the IdP
-Service Provider; the resource-domain SCIM service that accepts IdP
-provisioning is the Receiver of <span>[<a href="#LIFECYCLE" class="cite xref">LIFECYCLE</a>]</span>, not a Service Provider
+used by its grant issuer. The resource-domain SCIM service that
+accepts IdP provisioning is the Receiver of <span>[<a href="#LIFECYCLE" class="cite xref">LIFECYCLE</a>]</span>, not a Service Provider
 in this document's sense.<a href="#section-2-3.4.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
@@ -1510,7 +1525,8 @@ within its administrative authorization.<a href="#section-3-1" class="pilcrow">�
 <p id="section-3-2">Before provisioning, administrators establish:<a href="#section-3-2" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-3-3.1">
-          <p id="section-3-3.1.1">The authenticated connector, Governance Tenant, and Provisioning Domain.<a href="#section-3-3.1.1" class="pilcrow">¶</a></p>
+          <p id="section-3-3.1.1">The authenticated connector, Governance Tenant, and Provisioning
+Domain.<a href="#section-3-3.1.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-3-3.2">
           <p id="section-3-3.2.1">The credential authorities, validation profiles, and source-identity
@@ -1519,9 +1535,9 @@ ranges the connector may use in Identity Bindings.<a href="#section-3-3.2.1" cla
         <li class="normal" id="section-3-3.3">
           <p id="section-3-3.3.1">The IdP OAuthClient resources the connector may reference in bindings
 and associations, and any separate client-management permissions under
-<span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span>. Referencing an existing client does not require permission
-to create it or change its metadata. Client-management permission does
-not imply binding or association permission.<a href="#section-3-3.3.1" class="pilcrow">¶</a></p>
+<span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span>. Referencing an existing client does not require
+permission to create it or change its metadata. Client-management
+permission does not imply binding or association permission.<a href="#section-3-3.3.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 <p id="section-3-4">Authentication and authorization of SCIM requests follow
@@ -1545,7 +1561,8 @@ clients and bindings for delegated ID-JAG issuance.<a href="#section-3-6.3.1" cl
 </li>
         <li class="normal" id="section-3-6.4">
           <p id="section-3-6.4.1">Permission to disable a resource <span class="bcp14">MUST NOT</span> imply permission to enable
-it. An active resource is an approved relationship, not a pending request.<a href="#section-3-6.4.1" class="pilcrow">¶</a></p>
+it. An active resource is an approved relationship, not a pending
+request.<a href="#section-3-6.4.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-3-6.5">
           <p id="section-3-6.5.1">Resource references <span class="bcp14">MUST</span> resolve within the authorized Governance
@@ -1604,11 +1621,12 @@ profiles.<a href="#section-4-1" class="pilcrow">¶</a></p>
         </tbody>
       </table>
 <p id="section-4-3">The Service Provider <span class="bcp14">MUST</span> expose referenced OAuth clients under
-<span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span> in the same authorized SCIM service. Existing registrations
-can be represented without changing their OAuth client identifiers or keys.
-Connectors can discover an authorized resource by its issuer and <code>clientId</code>
-and then reference its SCIM <code>id</code>. They need not create a client for each
-Agent. Client creation and CIMD admission remain separately authorized.<a href="#section-4-3" class="pilcrow">¶</a></p>
+<span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span> in the same authorized SCIM service. Existing
+registrations can be represented without changing their OAuth client
+identifiers or keys. Connectors can discover an authorized resource by
+its issuer and <code>clientId</code> and then reference its SCIM <code>id</code>. They need
+not create a client for each Agent. Client creation and CIMD admission
+remain separately authorized.<a href="#section-4-3" class="pilcrow">¶</a></p>
 <p id="section-4-4">These are management representations, not requirements on an IdP's
 internal database. An existing principal <span class="bcp14">MAY</span> be exposed as the Agent
 resource without creating a second authorization principal. Establishing
@@ -1656,8 +1674,8 @@ immutable, single-valued, returned by default, and have uniqueness
 accepted values from <a href="#classes" class="auto internal xref">Section 4.3.1</a> as <code>canonicalValues</code>. Values outside
 the advertised set are rejected with <code>invalidValue</code>. The common
 attributes retain SCIM's characteristics except for the <code>externalId</code>
-uniqueness rule in those conventions. Attribute-name processing remains that of SCIM,
-independently of case-exact identity values.<a href="#section-4.1-3" class="pilcrow">¶</a></p>
+uniqueness rule in those conventions. Attribute-name processing remains
+that of SCIM, independently of case-exact identity values.<a href="#section-4.1-3" class="pilcrow">¶</a></p>
 <p id="section-4.1-4">Reference sub-attributes have <code>value</code> mutability <code>immutable</code>; <code>$ref</code> and
 <code>display</code> have mutability <code>readOnly</code>. They use uniqueness <code>none</code> and
 returned <code>default</code>. <code>display</code> has <code>caseExact: false</code>. A reference's
@@ -1818,16 +1836,17 @@ have schema characteristic <code>required: false</code> with these conditional
 requirements:<a href="#section-4.3-4" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-4.3-5.1">
-            <p id="section-4.3-5.1.1">For <code>dedicated-client</code>, <code>client</code> <span class="bcp14">MUST</span> be present and <code>sourceAuthority</code>,
-<code>sourceSubject</code>, and <code>selectors</code> <span class="bcp14">MUST</span> be absent. The IdP resolves the
-authenticated client to the referenced OAuthClient using its configured
-authorization-server issuer and exact <code>client_id</code>.<a href="#section-4.3-5.1.1" class="pilcrow">¶</a></p>
+            <p id="section-4.3-5.1.1">For <code>dedicated-client</code>, <code>client</code> <span class="bcp14">MUST</span> be present and
+<code>sourceAuthority</code>, <code>sourceSubject</code>, and <code>selectors</code> <span class="bcp14">MUST</span> be absent.
+The IdP resolves the authenticated client to the referenced
+OAuthClient using its configured authorization-server issuer and exact
+<code>client_id</code>.<a href="#section-4.3-5.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-4.3-5.2">
             <p id="section-4.3-5.2.1">For all other classes, <code>sourceAuthority</code> and <code>sourceSubject</code> <span class="bcp14">MUST</span> be
-present and <code>client</code> <span class="bcp14">MUST</span> be absent. The external identity is validated
-and matched under <a href="#classes" class="auto internal xref">Section 4.3.1</a>; an OAuthClient reference cannot substitute
-for that evidence.<a href="#section-4.3-5.2.1" class="pilcrow">¶</a></p>
+present and <code>client</code> <span class="bcp14">MUST</span> be absent. The external identity is
+validated and matched under <a href="#classes" class="auto internal xref">Section 4.3.1</a>; an OAuthClient reference
+cannot substitute for that evidence.<a href="#section-4.3-5.2.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 <p id="section-4.3-6">Every referenced OAuthClient's <code>authorizationServer</code> <span class="bcp14">MUST</span> equal the
@@ -1861,7 +1880,7 @@ initially populate an unassigned immutable attribute.<a href="#section-4.3-8" cl
 <p id="section-4.3-9"><code>clientInstanceId</code> and <code>receiverScope</code> are optional, single-valued,
 immutable, case-exact strings, returned by default, with uniqueness
 <code>none</code>. They are permitted only for <code>client-attestation</code>, where they
-make a managed-installation binding (<span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>), and <span class="bcp14">MUST</span> be both
+make a managed-installation binding (<span>[<a href="#INPUTS" class="cite xref">INPUTS</a>]</span>), and <span class="bcp14">MUST</span> be both
 present or both absent. <code>clientInstanceId</code> is the exact
 <code>client_instance_id</code> (<span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>); <code>receiverScope</code> identifies the IdP
 Receiver Scope configured for that attester and client. The Service
@@ -1876,7 +1895,8 @@ binding.<a href="#section-4.3-9" class="pilcrow">¶</a></p>
           </h4>
 <p id="section-4.3.1-1">These names identify management input classes, not OAuth token types or
 new credential formats. Each class uses its validation and presentation
-rules from <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>. The following classes use external identity
+rules from <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> or, for the SPIFFE and Client Attestation
+classes, <span>[<a href="#INPUTS" class="cite xref">INPUTS</a>]</span>. The following classes use external identity
 fields:<a href="#section-4.3.1-1" class="pilcrow">¶</a></p>
 <table class="center" id="table-5">
             <caption><a href="#table-5" class="selfRef">Table 5</a></caption>
@@ -2003,10 +2023,11 @@ silently authorize its use.<a href="#section-4.3.2-5" class="pilcrow">¶</a></p>
 <p id="section-4.4-1">An <code>AgentClientAssociation</code> permits one authenticated IdP OAuth client
 to use one external-identity binding for delegated ID-JAG issuance. A
 dedicated-client binding carries its own permission and <span class="bcp14">MUST NOT</span> be
-referenced here. Multiple resources can express an explicitly enumerated binding set.
-This is an explicit narrowing of Federation's policy-defined binding
-sets to one binding per resource. This profile defines no predicates
-that automatically cover future bindings. Its schema URI is:<a href="#section-4.4-1" class="pilcrow">¶</a></p>
+referenced here. Multiple resources can express an explicitly enumerated
+binding set. This is an explicit narrowing of Federation's
+policy-defined binding sets to one binding per resource. This profile
+defines no predicates that automatically cover future bindings. Its
+schema URI is:<a href="#section-4.4-1" class="pilcrow">¶</a></p>
 <p id="section-4.4-2"><code>urn:ietf:params:scim:schemas:core:2.0:AgentClientAssociation</code><a href="#section-4.4-2" class="pilcrow">¶</a></p>
 <table class="center" id="table-7">
           <caption><a href="#table-7" class="selfRef">Table 7</a></caption>
@@ -2042,9 +2063,10 @@ that automatically cover future bindings. Its schema URI is:<a href="#section-4.
           </tbody>
         </table>
 <p id="section-4.4-4"><code>active</code> has the same characteristics as in <a href="#binding-schema" class="auto internal xref">Section 4.3</a>. The
-reference target type of <code>binding</code> is AgentIdentityBinding; that of <code>client</code>
-is OAuthClient. Each uses the <code>value</code> and <code>$ref</code> characteristics in
-<a href="#common" class="auto internal xref">Section 4.1</a>. The client reference carries a SCIM <code>id</code>, not <code>client_id</code>.<a href="#section-4.4-4" class="pilcrow">¶</a></p>
+reference target type of <code>binding</code> is AgentIdentityBinding; that of
+<code>client</code> is OAuthClient. Each uses the <code>value</code> and <code>$ref</code>
+characteristics in <a href="#common" class="auto internal xref">Section 4.1</a>. The client reference carries a SCIM <code>id</code>,
+not <code>client_id</code>.<a href="#section-4.4-4" class="pilcrow">¶</a></p>
 <p id="section-4.4-5">The binding determines the Agent and permitted credential class. An
 association <span class="bcp14">MUST NOT</span> be interpreted as permission to use another binding
 to the same Agent, even with the same credential class. For
@@ -2063,7 +2085,8 @@ registration and authorize their use together. It <span class="bcp14">MUST</span
 associations for the same binding and client in the Governance Tenant,
 regardless of active state. All client-use permissions in this profile
 apply only to delegated ID-JAG issuance. No per-resource flow attribute
-is needed; these permissions <span class="bcp14">MUST NOT</span> authorize WAG or another grant path.<a href="#section-4.4-7" class="pilcrow">¶</a></p>
+is needed; these permissions <span class="bcp14">MUST NOT</span> authorize WAG or another grant
+path.<a href="#section-4.4-7" class="pilcrow">¶</a></p>
 <p id="section-4.4-8">The association is necessary permission to use this binding.
 Target, scope, user delegation, and other policy constraints remain
 independently configured and evaluated by the IdP. This resource does
@@ -2176,11 +2199,11 @@ Principal's qualified identity.<a href="#section-5.3-1" class="pilcrow">¶</a></
 <p id="section-5.3-4">OAuthClient deletion follows <span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span>, including CIMD
 readmission controls and the treatment of outstanding authorization. The
 rules here do not weaken that behavior. The Service Provider <span class="bcp14">MAY</span> retain
-dependent resources as non-effective references or cascade their deletion
-under documented administrative policy. Cascading deletion <span class="bcp14">MUST</span> be
-authorized for the affected dependents; otherwise they remain unusable.
-A new target receives a new SCIM <code>id</code> and <span class="bcp14">MUST NOT</span> inherit or repair the
-deleted resource's bindings or associations.<a href="#section-5.3-4" class="pilcrow">¶</a></p>
+dependent resources as non-effective references or cascade their
+deletion under documented administrative policy. Cascading deletion <span class="bcp14">MUST</span>
+be authorized for the affected dependents; otherwise they remain
+unusable. A new target receives a new SCIM <code>id</code> and <span class="bcp14">MUST NOT</span> inherit or
+repair the deleted resource's bindings or associations.<a href="#section-5.3-4" class="pilcrow">¶</a></p>
 <p id="section-5.3-5">GET of a retained dependent returns its original immutable <code>value</code>,
 omits <code>$ref</code> and <code>display</code> for a missing target, and retains its
 administrative <code>active</code> value. That value does not assert effective
@@ -2190,11 +2213,8 @@ retained references. A missing target <span class="bcp14">MUST NOT</span> preven
 disablement or deletion of a dependent resource. Creation or activation
 with a missing target <span class="bcp14">MUST</span> be rejected.<a href="#section-5.3-5" class="pilcrow">¶</a></p>
 <p id="section-5.3-6">A later POST with a previously used <code>externalId</code> is a new creation,
-requiring current authorization and receiving a new <code>id</code>. Clients that
-need reversible disablement use <code>active: false</code>, not
-DELETE. To prevent an old connector from recreating deleted records,
-administrators withdraw that connector's create authority; DELETE alone
-does not revoke its management credentials.<a href="#section-5.3-6" class="pilcrow">¶</a></p>
+requiring current authorization and receiving a new <code>id</code>
+(<a href="#implementation-client" class="auto internal xref">Section 8.1</a>).<a href="#section-5.3-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="query">
@@ -2244,15 +2264,7 @@ platform connector, an <code>externalId</code> lookup is scoped to its Provision
 Domain and resource type; another connector's correlation value cannot
 select its resource. An administrative reader spanning several domains
 cannot assume that externalId alone is unique.<a href="#section-5.4-3" class="pilcrow">¶</a></p>
-<p id="section-5.4-4">A binding lookup can use <code>agent.value eq "a17" and active eq true</code>. To
-find dependencies of OAuthClient <code>oc7</code>, query both relationship
-collections with <code>client.value eq "oc7"</code>. This finds dedicated-client
-bindings and all associations naming that client. External-identity
-bindings have no <code>client</code> attribute; their client permissions are found
-through associations. For an Agent subject lookup, the attribute name is
-the extension schema URI followed by <code>:subject</code>, with the expression <code>eq
-"agent-42"</code>. The connector URI-encodes the complete filter under SCIM's
-query rules.<a href="#section-5.4-4" class="pilcrow">¶</a></p>
+<p id="section-5.4-4"><a href="#example-queries" class="auto internal xref">Appendix A.7</a> shows these filters in use.<a href="#section-5.4-4" class="pilcrow">¶</a></p>
 <p id="section-5.4-5">Incremental reads on <code>meta.lastModified</code> follow the common provisioning
 conventions of <span>[<a href="#OAUTH-CLIENT" class="cite xref">OAUTH-CLIENT</a>]</span>. A connector <span class="bcp14">MUST NOT</span> delete records
 solely because they were absent from an incomplete or failed listing.
@@ -2274,8 +2286,8 @@ for that resource; Agent includes the federation extension in
 <a href="#common" class="auto internal xref">Section 4.1</a>, <a href="#agent-schema" class="auto internal xref">Section 4.2</a>, <a href="#binding-schema" class="auto internal xref">Section 4.3</a>, and
 <a href="#association-schema" class="auto internal xref">Section 4.4</a>. Discovery advertises syntax and capabilities;
 it does not approve a connector, credential authority, or relationship.
-Unsupported credential classes remain subject to <a href="#classes" class="auto internal xref">Section 4.3.1</a>. The
-connector and IdP agree on usable input classes during trust setup.<a href="#section-5.5-2" class="pilcrow">¶</a></p>
+Unsupported credential classes remain subject to <a href="#classes" class="auto internal xref">Section 4.3.1</a>
+(<a href="#implementation-client" class="auto internal xref">Section 8.1</a>).<a href="#section-5.5-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="errors">
@@ -2334,9 +2346,8 @@ the profile's failures predictable:<a href="#section-5.6-1" class="pilcrow">¶</
         </table>
 <p id="section-5.6-3">Standard SCIM request syntax, filter, authentication, and not-found
 errors retain their meanings. Responses <span class="bcp14">MUST NOT</span> reveal cross-tenant
-resource existence. Authorized administrators need sufficient
-diagnostics to distinguish configuration and permission failures without
-exposing credentials or key material.<a href="#section-5.6-3" class="pilcrow">¶</a></p>
+resource existence. <a href="#implementation-sp" class="auto internal xref">Section 8.2</a> covers diagnostics for
+authorized administrators.<a href="#section-5.6-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -2357,8 +2368,9 @@ authenticated client.<a href="#section-6-2.1.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-6-2.3">
           <p id="section-6-2.3.1">Exactly one matching, active Identity Binding whose Agent exists.
-Dedicated-client matching uses the authenticated OAuthClient reference;
-other classes use the independently validated external identity.<a href="#section-6-2.3.1" class="pilcrow">¶</a></p>
+Dedicated-client matching uses the authenticated OAuthClient
+reference; other classes use the independently validated external
+identity.<a href="#section-6-2.3.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-6-2.4">
           <p id="section-6-2.4.1">Client-use permission for delegated ID-JAG issuance: either the active
@@ -2409,7 +2421,9 @@ Client Association, so under <a href="#issuance" class="auto internal xref">Sect
 <li class="normal" id="section-7-3.1">
           <p id="section-7-3.1.1"><strong>Registration:</strong> The connector sets <code>externalId</code> to the platform's
 identifier for the agent and supplies descriptive attributes such as
-<code>displayName</code>, <code>description</code>, and <code>owners</code>. The Service Provider
+<code>displayName</code>, <code>description</code>, and <code>owners</code>. A platform that sends WISE
+events about the agent uses their workload identifier URI
+(<span>[<a href="#LIFECYCLE" class="cite xref">LIFECYCLE</a>]</span>). The Service Provider
 assigns <code>AgentFederation.subject</code>; the platform retains the qualified
 Agent Principal identifier as its correlation to the Agent.<a href="#section-7-3.1.1" class="pilcrow">¶</a></p>
 </li>
@@ -2421,7 +2435,8 @@ deactivation of an agent is local to the platform (<span>[<a href="#LIFECYCLE" c
 </li>
         <li class="normal" id="section-7-3.3">
           <p id="section-7-3.3.1"><strong>Retirement:</strong> When the platform deletes the agent, the connector
-deletes the Agent (<a href="#deletion" class="auto internal xref">Section 5.3</a>). Its qualified identity is not reused.<a href="#section-7-3.3.1" class="pilcrow">¶</a></p>
+deletes the Agent (<a href="#deletion" class="auto internal xref">Section 5.3</a>). Its qualified identity is not
+reused.<a href="#section-7-3.3.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-7-3.4">
           <p id="section-7-3.4.1"><strong>Approval:</strong> IdP policy <span class="bcp14">MAY</span> create registered Agents with
@@ -2435,193 +2450,245 @@ approval state.<a href="#section-7-3.4.1" class="pilcrow">¶</a></p>
       </ul>
 <p id="section-7-4">The platform applies the IdP's administrative state to its own
 authorization under <span>[<a href="#LIFECYCLE" class="cite xref">LIFECYCLE</a>]</span>. To give the agent access beyond the
-platform later, an authorized administrator adds an Identity Binding and,
-where the input requires one, a Client Association to the same Agent.
+platform later, an authorized administrator adds an Identity Binding to
+the same Agent, with the client-use permission <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> requires
+before any governed grant. For delegated ID-JAG issuance, a
+dedicated-client binding carries it, and an external-identity binding
+needs a Client Association (<a href="#association-schema" class="auto internal xref">Section 4.4</a>); this profile
+manages no client-use permission for self-acting issuance.
 <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span> then applies, and the Agent Principal identifier and its
 governance history do not change.<a href="#section-7-4" class="pilcrow">¶</a></p>
 <p id="section-7-5">This profile defines registration by the platform. An IdP can also
 discover hosted agents by reading a platform's agent inventory; that
-interface is outside this profile.<a href="#section-7-5" class="pilcrow">¶</a></p>
+interface is outside this profile. <span>[<a href="#GUIDE" class="cite xref">GUIDE</a>]</span> follows one
+platform-hosted agent from registration to retirement, and
+<span>[<a href="#LIFECYCLE" class="cite xref">LIFECYCLE</a>]</span> shows its signals, disablement, and re-enablement.<a href="#section-7-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="implementation">
+<section id="section-8">
+      <h2 id="name-implementation-consideratio">
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-implementation-consideratio" class="section-name selfRef">Implementation Considerations</a>
+      </h2>
+<p id="section-8-1">These considerations add no requirements. They describe how a
+Provisioning Client and a Service Provider meet the requirements of the
+sections cited.<a href="#section-8-1" class="pilcrow">¶</a></p>
+<div id="implementation-client">
+<section id="section-8.1">
+        <h3 id="name-provisioning-client">
+<a href="#section-8.1" class="section-number selfRef">8.1. </a><a href="#name-provisioning-client" class="section-name selfRef">Provisioning Client</a>
+        </h3>
+<ul class="normal">
+<li class="normal" id="section-8.1-1.1">
+            <p id="section-8.1-1.1.1"><strong>Reversible disablement:</strong> Clients that need reversible disablement
+use <code>active: false</code>, not DELETE; a later POST receives a new <code>id</code>
+(<a href="#deletion" class="auto internal xref">Section 5.3</a>). To prevent an old connector from recreating deleted
+records, administrators withdraw that connector's create authority;
+DELETE alone does not revoke its management credentials.<a href="#section-8.1-1.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.1-1.2">
+            <p id="section-8.1-1.2.1"><strong>Credential classes:</strong> The connector and the IdP agree on usable
+input classes during trust setup. Schema discovery advertises
+supported classes; it does not authorize their use (<a href="#discovery" class="auto internal xref">Section 5.5</a>).<a href="#section-8.1-1.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="implementation-sp">
+<section id="section-8.2">
+        <h3 id="name-service-provider">
+<a href="#section-8.2" class="section-number selfRef">8.2. </a><a href="#name-service-provider" class="section-name selfRef">Service Provider</a>
+        </h3>
+<ul class="normal">
+<li class="normal" id="section-8.2-1.1">
+            <p id="section-8.2-1.1.1"><strong>Diagnostics:</strong> Authorized administrators need sufficient
+diagnostics to distinguish configuration and permission failures
+without exposing credentials or key material.<a href="#section-8.2-1.1.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
 </section>
 </div>
 <div id="security-considerations">
-<section id="section-8">
+<section id="section-9">
       <h2 id="name-security-considerations">
-<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
+<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
       </h2>
 <div id="administrative-privilege-and-confused-deputies">
-<section id="section-8.1">
+<section id="section-9.1">
         <h3 id="name-administrative-privilege-an">
-<a href="#section-8.1" class="section-number selfRef">8.1. </a><a href="#name-administrative-privilege-an" class="section-name selfRef">Administrative Privilege and Confused Deputies</a>
+<a href="#section-9.1" class="section-number selfRef">9.1. </a><a href="#name-administrative-privilege-an" class="section-name selfRef">Administrative Privilege and Confused Deputies</a>
         </h3>
-<p id="section-8.1-1">Binding and association writes can enable impersonation of an Agent
+<p id="section-9.1-1">Binding and association writes can enable impersonation of an Agent
 Principal. The Service Provider <span class="bcp14">MUST</span> check the connector's authority
 over both ends of each relationship, including on creation with disabled
 state and on later enablement. Permission to manage a platform catalog
 is not permission to bind its records to arbitrary enterprise
-principals.<a href="#section-8.1-1" class="pilcrow">¶</a></p>
-<p id="section-8.1-2">Credential-authority trust remains preconfigured. <code>sourceAuthority</code> is
+principals.<a href="#section-9.1-1" class="pilcrow">¶</a></p>
+<p id="section-9.1-2">Credential-authority trust remains preconfigured. <code>sourceAuthority</code> is
 an identifier to match, not a URL to fetch or an instruction to trust a
 new issuer. A valid workload credential or control of an OAuth client
 key cannot authorize an administrative write by itself. References do
-not permit cross-tenant attachment or SSRF.<a href="#section-8.1-2" class="pilcrow">¶</a></p>
+not permit cross-tenant attachment or SSRF.<a href="#section-9.1-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="independent-controls-and-stale-state">
-<section id="section-8.2">
+<section id="section-9.2">
         <h3 id="name-independent-controls-and-st">
-<a href="#section-8.2" class="section-number selfRef">8.2. </a><a href="#name-independent-controls-and-st" class="section-name selfRef">Independent Controls and Stale State</a>
+<a href="#section-9.2" class="section-number selfRef">9.2. </a><a href="#name-independent-controls-and-st" class="section-name selfRef">Independent Controls and Stale State</a>
         </h3>
-<p id="section-8.2-1">OAuthClient, Agent, binding, and association enablement have distinct
+<p id="section-9.2-1">OAuthClient, Agent, binding, and association enablement have distinct
 effects. An owner, group, or display-name update <span class="bcp14">MUST NOT</span> implicitly
 enable any of them. All writers to the underlying relationships,
 including local administrative interfaces, need to preserve the same
 semantics and invalidate the SCIM resource version when visible state
-changes.<a href="#section-8.2-1" class="pilcrow">¶</a></p>
-<p id="section-8.2-2">A client key rotation or CIMD metadata update does not create a new
+changes.<a href="#section-9.2-1" class="pilcrow">¶</a></p>
+<p id="section-9.2-2">A client key rotation or CIMD metadata update does not create a new
 Agent Principal or expand its bindings and associations. A shared
 client's authentication credential cannot select among agents without
 the resolution input required by <span>[<a href="#FEDERATION" class="cite xref">FEDERATION</a>]</span>. Dedicated-client
 resolution proves the authenticated client identity, not an independent
-runtime.<a href="#section-8.2-2" class="pilcrow">¶</a></p>
-<p id="section-8.2-3">ETags prevent stale conditional writes; they are not lifecycle versions
+runtime.<a href="#section-9.2-2" class="pilcrow">¶</a></p>
+<p id="section-9.2-3">ETags prevent stale conditional writes; they are not lifecycle versions
 and do not revoke previously issued tokens. A connector that retains
 create or enable permission can request new access after earlier
 disablement, subject to current policy. Administrators <span class="bcp14">SHOULD</span> withdraw
-that authority when the connector itself is compromised.<a href="#section-8.2-3" class="pilcrow">¶</a></p>
-<p id="section-8.2-4">Management changes <span class="bcp14">SHOULD</span> be audited with the administrative actor,
+that authority when the connector itself is compromised.<a href="#section-9.2-3" class="pilcrow">¶</a></p>
+<p id="section-9.2-4">Management changes <span class="bcp14">SHOULD</span> be audited with the administrative actor,
 Provisioning Domain, affected resource, and changed relationships. Audit
 records <span class="bcp14">SHOULD</span> identify principals and configuration changes without
-retaining reusable workload credentials.<a href="#section-8.2-4" class="pilcrow">¶</a></p>
+retaining reusable workload credentials.<a href="#section-9.2-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
 </div>
 <div id="privacy-considerations">
-<section id="section-9">
+<section id="section-10">
       <h2 id="name-privacy-considerations">
-<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-privacy-considerations" class="section-name selfRef">Privacy Considerations</a>
+<a href="#section-10" class="section-number selfRef">10. </a><a href="#name-privacy-considerations" class="section-name selfRef">Privacy Considerations</a>
       </h2>
-<p id="section-9-1">The profile correlates platform records, workload identities, enterprise
+<p id="section-10-1">The profile correlates platform records, workload identities, enterprise
 principals, and OAuth clients. SCIM readers <span class="bcp14">SHOULD</span> receive only the
 attributes and resources needed for their management role. Stable
 correlation identifiers and selectors <span class="bcp14">SHOULD</span> avoid personal data when
 opaque platform identifiers suffice. Read authorization is independent
-of permission to exercise the agent at a token endpoint.<a href="#section-9-1" class="pilcrow">¶</a></p>
+of permission to exercise the agent at a token endpoint.<a href="#section-10-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="iana">
-<section id="section-10">
+<section id="section-11">
       <h2 id="name-iana-considerations">
-<a href="#section-10" class="section-number selfRef">10. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+<a href="#section-11" class="section-number selfRef">11. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
       </h2>
-<p id="section-10-1">This document requests the following entries in the SCIM Schema URIs
+<p id="section-11-1">This document requests the following entries in the SCIM Schema URIs
 registry using <span><a href="https://rfc-editor.org/rfc/rfc7643#section-10.3.2" class="relref">Section 10.3.2</a> of [<a href="#RFC7643" class="cite xref">RFC7643</a>]</span>. The proposed <code>core:2.0</code>
 namespace registrations require Expert Review and RFC publication under
-<span><a href="https://rfc-editor.org/rfc/rfc7643#section-10.3.1" class="relref">Section 10.3.1</a> of [<a href="#RFC7643" class="cite xref">RFC7643</a>]</span>.<a href="#section-10-1" class="pilcrow">¶</a></p>
+<span><a href="https://rfc-editor.org/rfc/rfc7643#section-10.3.1" class="relref">Section 10.3.1</a> of [<a href="#RFC7643" class="cite xref">RFC7643</a>]</span>.<a href="#section-11-1" class="pilcrow">¶</a></p>
 <div id="agent-federation-extension">
-<section id="section-10.1">
+<section id="section-11.1">
         <h3 id="name-agent-federation-extension-2">
-<a href="#section-10.1" class="section-number selfRef">10.1. </a><a href="#name-agent-federation-extension-2" class="section-name selfRef">Agent Federation Extension</a>
+<a href="#section-11.1" class="section-number selfRef">11.1. </a><a href="#name-agent-federation-extension-2" class="section-name selfRef">Agent Federation Extension</a>
         </h3>
 <ul class="normal">
-<li class="normal" id="section-10.1-1.1">
-            <p id="section-10.1-1.1.1">Schema URI:
-<code>urn:ietf:params:scim:schemas:extension:agent-federation:2.0:Agent</code><a href="#section-10.1-1.1.1" class="pilcrow">¶</a></p>
+<li class="normal" id="section-11.1-1.1">
+            <p id="section-11.1-1.1.1">Schema URI:
+<code>urn:ietf:params:scim:schemas:extension:agent-federation:2.0:Agent</code><a href="#section-11.1-1.1.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-10.1-1.2">
-            <p id="section-10.1-1.2.1">Schema Name: Agent Federation<a href="#section-10.1-1.2.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-11.1-1.2">
+            <p id="section-11.1-1.2.1">Schema Name: Agent Federation<a href="#section-11.1-1.2.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-10.1-1.3">
-            <p id="section-10.1-1.3.1">Intended or Associated Resource Type: Agent<a href="#section-10.1-1.3.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-11.1-1.3">
+            <p id="section-11.1-1.3.1">Intended or Associated Resource Type: Agent<a href="#section-11.1-1.3.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-10.1-1.4">
-            <p id="section-10.1-1.4.1">Purpose: Expose the IdP-qualified Agent Principal represented by a
-SCIM Agent resource.<a href="#section-10.1-1.4.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-11.1-1.4">
+            <p id="section-11.1-1.4.1">Purpose: Expose the IdP-qualified Agent Principal represented by a
+SCIM Agent resource.<a href="#section-11.1-1.4.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-10.1-1.5">
-            <p id="section-10.1-1.5.1">Single-value Attributes: <code>issuer</code>, <code>subject</code>, defined in <a href="#agent-schema" class="auto internal xref">Section 4.2</a>.<a href="#section-10.1-1.5.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-11.1-1.5">
+            <p id="section-11.1-1.5.1">Single-value Attributes: <code>issuer</code>, <code>subject</code>, defined in
+<a href="#agent-schema" class="auto internal xref">Section 4.2</a>.<a href="#section-11.1-1.5.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-10.1-1.6">
-            <p id="section-10.1-1.6.1">Multi-valued Attributes: None.<a href="#section-10.1-1.6.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-11.1-1.6">
+            <p id="section-11.1-1.6.1">Multi-valued Attributes: None.<a href="#section-11.1-1.6.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 </section>
 </div>
 <div id="agent-identity-binding">
-<section id="section-10.2">
+<section id="section-11.2">
         <h3 id="name-agent-identity-binding">
-<a href="#section-10.2" class="section-number selfRef">10.2. </a><a href="#name-agent-identity-binding" class="section-name selfRef">Agent Identity Binding</a>
+<a href="#section-11.2" class="section-number selfRef">11.2. </a><a href="#name-agent-identity-binding" class="section-name selfRef">Agent Identity Binding</a>
         </h3>
 <ul class="normal">
-<li class="normal" id="section-10.2-1.1">
-            <p id="section-10.2-1.1.1">Schema URI:
-<code>urn:ietf:params:scim:schemas:core:2.0:AgentIdentityBinding</code><a href="#section-10.2-1.1.1" class="pilcrow">¶</a></p>
+<li class="normal" id="section-11.2-1.1">
+            <p id="section-11.2-1.1.1">Schema URI:
+<code>urn:ietf:params:scim:schemas:core:2.0:AgentIdentityBinding</code><a href="#section-11.2-1.1.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-10.2-1.2">
-            <p id="section-10.2-1.2.1">Schema Name: Agent Identity Binding<a href="#section-10.2-1.2.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-11.2-1.2">
+            <p id="section-11.2-1.2.1">Schema Name: Agent Identity Binding<a href="#section-11.2-1.2.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-10.2-1.3">
-            <p id="section-10.2-1.3.1">Intended or Associated Resource Type: AgentIdentityBinding<a href="#section-10.2-1.3.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-11.2-1.3">
+            <p id="section-11.2-1.3.1">Intended or Associated Resource Type: AgentIdentityBinding<a href="#section-11.2-1.3.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-10.2-1.4">
-            <p id="section-10.2-1.4.1">Purpose: Manage an approved resolution identity's binding to an Agent
-Principal.<a href="#section-10.2-1.4.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-11.2-1.4">
+            <p id="section-11.2-1.4.1">Purpose: Manage an approved resolution identity's binding to an Agent
+Principal.<a href="#section-11.2-1.4.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-10.2-1.5">
-            <p id="section-10.2-1.5.1">Single-value Attributes: <code>agent</code>, <code>credentialClass</code>, <code>client</code>,
+          <li class="normal" id="section-11.2-1.5">
+            <p id="section-11.2-1.5.1">Single-value Attributes: <code>agent</code>, <code>credentialClass</code>, <code>client</code>,
 <code>sourceAuthority</code>, <code>sourceSubject</code>, <code>clientInstanceId</code>,
-<code>receiverScope</code>, and <code>active</code>, defined in <a href="#binding-schema" class="auto internal xref">Section 4.3</a>.<a href="#section-10.2-1.5.1" class="pilcrow">¶</a></p>
+<code>receiverScope</code>, and <code>active</code>, defined in <a href="#binding-schema" class="auto internal xref">Section 4.3</a>.<a href="#section-11.2-1.5.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-10.2-1.6">
-            <p id="section-10.2-1.6.1">Multi-valued Attributes: <code>selectors</code>, defined in <a href="#binding-schema" class="auto internal xref">Section 4.3</a>.<a href="#section-10.2-1.6.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-11.2-1.6">
+            <p id="section-11.2-1.6.1">Multi-valued Attributes: <code>selectors</code>, defined in <a href="#binding-schema" class="auto internal xref">Section 4.3</a>.<a href="#section-11.2-1.6.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 </section>
 </div>
 <div id="agent-client-association">
-<section id="section-10.3">
+<section id="section-11.3">
         <h3 id="name-agent-client-association">
-<a href="#section-10.3" class="section-number selfRef">10.3. </a><a href="#name-agent-client-association" class="section-name selfRef">Agent Client Association</a>
+<a href="#section-11.3" class="section-number selfRef">11.3. </a><a href="#name-agent-client-association" class="section-name selfRef">Agent Client Association</a>
         </h3>
 <ul class="normal">
-<li class="normal" id="section-10.3-1.1">
-            <p id="section-10.3-1.1.1">Schema URI:
-<code>urn:ietf:params:scim:schemas:core:2.0:AgentClientAssociation</code><a href="#section-10.3-1.1.1" class="pilcrow">¶</a></p>
+<li class="normal" id="section-11.3-1.1">
+            <p id="section-11.3-1.1.1">Schema URI:
+<code>urn:ietf:params:scim:schemas:core:2.0:AgentClientAssociation</code><a href="#section-11.3-1.1.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-10.3-1.2">
-            <p id="section-10.3-1.2.1">Schema Name: Agent Client Association<a href="#section-10.3-1.2.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-11.3-1.2">
+            <p id="section-11.3-1.2.1">Schema Name: Agent Client Association<a href="#section-11.3-1.2.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-10.3-1.3">
-            <p id="section-10.3-1.3.1">Intended or Associated Resource Type: AgentClientAssociation<a href="#section-10.3-1.3.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-11.3-1.3">
+            <p id="section-11.3-1.3.1">Intended or Associated Resource Type: AgentClientAssociation<a href="#section-11.3-1.3.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-10.3-1.4">
-            <p id="section-10.3-1.4.1">Purpose: Manage an OAuth client's permission to use an Identity
-Binding for delegated ID-JAG issuance.<a href="#section-10.3-1.4.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-11.3-1.4">
+            <p id="section-11.3-1.4.1">Purpose: Manage an OAuth client's permission to use an Identity
+Binding for delegated ID-JAG issuance.<a href="#section-11.3-1.4.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-10.3-1.5">
-            <p id="section-10.3-1.5.1">Single-value Attributes: <code>binding</code>, <code>client</code>, <code>active</code>,
-defined in <a href="#association-schema" class="auto internal xref">Section 4.4</a>.<a href="#section-10.3-1.5.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-11.3-1.5">
+            <p id="section-11.3-1.5.1">Single-value Attributes: <code>binding</code>, <code>client</code>, <code>active</code>,
+defined in <a href="#association-schema" class="auto internal xref">Section 4.4</a>.<a href="#section-11.3-1.5.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-10.3-1.6">
-            <p id="section-10.3-1.6.1">Multi-valued Attributes: None.<a href="#section-10.3-1.6.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-11.3-1.6">
+            <p id="section-11.3-1.6.1">Multi-valued Attributes: None.<a href="#section-11.3-1.6.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-10.3-2">No new OAuth token type, event type, HTTP method, or SCIM error type is
-registered. Credential-class names are local to this profile's schema.<a href="#section-10.3-2" class="pilcrow">¶</a></p>
+<p id="section-11.3-2">No new OAuth token type, event type, HTTP method, or SCIM error type is
+registered. Credential-class names are local to this profile's schema.<a href="#section-11.3-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
 </div>
 <div id="sec-combined-references">
-<section id="section-11">
+<section id="section-12">
       <h2 id="name-references">
-<a href="#section-11" class="section-number selfRef">11. </a><a href="#name-references" class="section-name selfRef">References</a>
+<a href="#section-12" class="section-number selfRef">12. </a><a href="#name-references" class="section-name selfRef">References</a>
       </h2>
 <div id="sec-normative-references">
-<section id="section-11.1">
+<section id="section-12.1">
         <h3 id="name-normative-references">
-<a href="#section-11.1" class="section-number selfRef">11.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
+<a href="#section-12.1" class="section-number selfRef">12.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
         </h3>
 <dl class="references">
 <dt id="OAUTH-CLIENT">[OAUTH-CLIENT]</dt>
@@ -2652,6 +2719,10 @@ registered. Credential-class names are local to this profile's schema.<a href="#
         <dd>
 <span class="refAuthor">Bryan, P., Ed.</span>, <span class="refAuthor">Zyp, K.</span>, and <span class="refAuthor">M. Nottingham, Ed.</span>, <span class="refTitle">"JavaScript Object Notation (JSON) Pointer"</span>, <span class="seriesInfo">RFC 6901</span>, <span class="seriesInfo">DOI 10.17487/RFC6901</span>, <time datetime="2013-04" class="refDate">April 2013</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc6901">https://www.rfc-editor.org/rfc/rfc6901</a>&gt;</span>. </dd>
 <dd class="break"></dd>
+<dt id="INPUTS">[INPUTS]</dt>
+        <dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Agent Resolution Input Profiles for Governed Agent Federation"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-governed-agent-inputs</span>, <time datetime="2026-10-09" class="refDate">9 October 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-inputs.html</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="BCP14">[BCP14]</dt>
       <dd>
 <div class="refInstance">Best Current Practice 14, <span>&lt;<a href="https://www.rfc-editor.org/info/bcp14">https://www.rfc-editor.org/info/bcp14</a>&gt;</span>.<br><span>At the time of writing, this BCP comprises the following:</span>
@@ -2666,14 +2737,18 @@ registered. Credential-class names are local to this profile's schema.<a href="#
 </section>
 </div>
 <div id="sec-informative-references">
-<section id="section-11.2">
+<section id="section-12.2">
         <h3 id="name-informative-references">
-<a href="#section-11.2" class="section-number selfRef">11.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
+<a href="#section-12.2" class="section-number selfRef">12.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
         </h3>
 <dl class="references">
 <dt id="LIFECYCLE">[LIFECYCLE]</dt>
-      <dd>
+        <dd>
 <span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Governed Agent Lifecycle Profile for SCIM and OAuth"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-governed-agent-lifecycle</span>, <time datetime="2026-09-18" class="refDate">18 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html">https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-lifecycle.html</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="GUIDE">[GUIDE]</dt>
+      <dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Implementer's Guide for Governed Agent Federation"</span>, <span>&lt;<a href="https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md">https://github.com/mcguinness/governed-agent-profiles/blob/main/IMPLEMENTERS-GUIDE.md</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 </dl>
 </section>
@@ -2916,12 +2991,28 @@ connector verifies the record before continuing. A racing duplicate POST
 receives <code>409</code> with <code>scimType: uniqueness</code>, not another principal.<a href="#appendix-A.6-3" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="disable-one-binding">
+<div id="example-queries">
 <section id="appendix-A.7">
-        <h3 id="name-disable-one-binding">
-<a href="#appendix-A.7" class="section-number selfRef">A.7. </a><a href="#name-disable-one-binding" class="section-name selfRef">Disable One Binding</a>
+        <h3 id="name-find-bindings-and-dependenc">
+<a href="#appendix-A.7" class="section-number selfRef">A.7. </a><a href="#name-find-bindings-and-dependenc" class="section-name selfRef">Find Bindings and Dependencies</a>
         </h3>
-<div class="lang-http-message sourcecode" id="appendix-A.7-1">
+<p id="appendix-A.7-1">A binding lookup can use <code>agent.value eq "a17" and active eq true</code>. To
+find dependencies of OAuthClient <code>oc7</code>, query both relationship
+collections with <code>client.value eq "oc7"</code>. This finds dedicated-client
+bindings and all associations naming that client. External-identity
+bindings have no <code>client</code> attribute; their client permissions are found
+through associations. For an Agent subject lookup, the attribute name is
+the extension schema URI followed by <code>:subject</code>, with the expression <code>eq
+"agent-42"</code>. The connector URI-encodes the complete filter under SCIM's
+query rules.<a href="#appendix-A.7-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="disable-one-binding">
+<section id="appendix-A.8">
+        <h3 id="name-disable-one-binding">
+<a href="#appendix-A.8" class="section-number selfRef">A.8. </a><a href="#name-disable-one-binding" class="section-name selfRef">Disable One Binding</a>
+        </h3>
+<div class="lang-http-message sourcecode" id="appendix-A.8-1">
 <pre>
 PATCH /scim/acme/AgentIdentityBindings/b9 HTTP/1.1
 Host: idp.example
@@ -2934,19 +3025,19 @@ If-Match: W/"b1"
     {"op": "replace", "path": "active", "value": false}
   ]
 }
-</pre><a href="#appendix-A.7-1" class="pilcrow">¶</a>
+</pre><a href="#appendix-A.8-1" class="pilcrow">¶</a>
 </div>
-<p id="appendix-A.7-2">After a successful response, new grant-authorization decisions cannot
+<p id="appendix-A.8-2">After a successful response, new grant-authorization decisions cannot
 use <code>b9</code>. Association <code>c3</code> remains recorded but cannot override the
 disabled binding. Another independently approved binding can still
 resolve <code>agent-42</code>. Previously issued tokens are not revoked by this
-SCIM operation.<a href="#appendix-A.7-2" class="pilcrow">¶</a></p>
+SCIM operation.<a href="#appendix-A.8-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="rejection-and-boundary-examples">
-<section id="appendix-A.8">
+<section id="appendix-A.9">
         <h3 id="name-rejection-and-boundary-exam">
-<a href="#appendix-A.8" class="section-number selfRef">A.8. </a><a href="#name-rejection-and-boundary-exam" class="section-name selfRef">Rejection and Boundary Examples</a>
+<a href="#appendix-A.9" class="section-number selfRef">A.9. </a><a href="#name-rejection-and-boundary-exam" class="section-name selfRef">Rejection and Boundary Examples</a>
         </h3>
 <table class="center" id="table-12">
           <caption><a href="#table-12" class="selfRef">Table 12</a></caption>
@@ -3049,8 +3140,8 @@ client use:<a href="#appendix-B-1" class="pilcrow">¶</a></p>
 <p id="appendix-B-3">The connector needs authorization for both binding and client use. No
 AgentClientAssociation is created. At issuance, the IdP authenticates
 <code>analysis-client</code>, matches <code>oc9</code>, resolves the binding to <code>a17</code>, and
-applies the delegated ID-JAG permission and remaining policy. The actor remains
-(<code>https://idp.example/</code>, <code>agent-42</code>). Deactivating this binding
+applies the delegated ID-JAG permission and remaining policy. The actor
+remains (<code>https://idp.example/</code>, <code>agent-42</code>). Deactivating this binding
 withdraws both its resolution path and its client-use permission; it
 does not change the Agent Principal.<a href="#appendix-B-3" class="pilcrow">¶</a></p>
 <p id="appendix-B-4">For a CIMD client the runtime <code>client_id</code> is its URL; the relationship
@@ -3067,7 +3158,8 @@ Replacing <code>oc9</code> requires a separately authorized binding.<a href="#ap
 attributes retain RFC 7643 definitions; profile-level conditional
 requirements and uniqueness constraints still apply. A Service Provider
 advertises only the supported subset of <code>credentialClass</code> canonical
-values. Service-specific <code>meta</code> values are omitted from these definitions.<a href="#appendix-C-1" class="pilcrow">¶</a></p>
+values. Service-specific <code>meta</code> values are omitted from these
+definitions.<a href="#appendix-C-1" class="pilcrow">¶</a></p>
 <div id="agentfederation-schema">
 <section id="appendix-C.1">
         <h3 id="name-agentfederation-schema">

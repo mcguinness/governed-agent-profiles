@@ -1945,6 +1945,8 @@ def s29(ctx):
     token = ctx.access_token()
     data = file_data(ctx, token)
     use_policy(ctx, policy(ctx, user_permissions=[]))
+    # Without the invalid argument, the user's denial is the response.
+    expect_no_code_denial(ctx, ctx.client.get(ctx.cfg.read_path, token), data)
     in_each_order(ctx, lambda: ctx.client.get(ctx.cfg.read_path, token, query=BAD_VERSION),
                   lambda resp, label: expect_argument_rejection(ctx, resp, data, label))
 
@@ -1960,6 +1962,9 @@ def s30(ctx):
     data = file_data(ctx, token)
     use_policy(ctx, policy(ctx))
     ctx.adapter.set("api", "policy_unavailable", True)
+    # Without the invalid argument, the unreachable service gives HTTP 503.
+    resp = ctx.client.get(ctx.cfg.read_path, token)
+    check(resp.status == 503, f"setup: expected HTTP 503, got {resp} {challenge_of(resp)!r}")
     in_each_order(ctx, lambda: ctx.client.get(ctx.cfg.read_path, token, query=BAD_VERSION),
                   lambda resp, label: expect_argument_rejection(ctx, resp, data, label))
 

@@ -357,7 +357,7 @@ one also exchanges or agrees on its item:
 |---|---|---|---|---|---|
 |  Refresh tokens ([Optional RAS Refresh Tokens][ras-refresh]) | Client and RAS | RAS policy | None | No | Direct after a deferred redemption, against the reference: D13, D14, D15, D21, D22. Otherwise untested: P2 notes a refresh token but does not fail  |
 |  Introspection endpoint and the API's credentials for it, where access tokens are opaque ([Optional Opaque Access Tokens and Introspection][introspection]) | RAS and API | RAS | Not used | Introspection endpoint | Direct against the reference, without caching: S12 for an inactive token, S13 for a delegated response without `act`, S20 for an endpoint that fails or answers without a boolean `active` (503, not `invalid_token`), and S21 for a proof failure established during that outage. Positive path: S10, S11  |
-|  Whether the API delegates evaluation to a policy service, which then receives the user, agent, client, tenant, and token constraints only from the validated token or introspection response and from trusted configuration ([Optional Policy Services][policy-services]) | RAS and API | API | No policy service | No | Direct against the reference, whose policy service the suite controls: S02 to S07, S09, S11, and for the error selection order, S14 to S19. Positive path: S01, S08, S10  |
+|  Whether the API delegates evaluation to a policy service, which then receives the user, agent, client, tenant, and token constraints only from the validated token or introspection response and from trusted configuration ([Optional Policy Services][policy-services]) | RAS and API | API | No policy service | No | Direct against the reference, whose policy service the suite controls: S02 to S07, S09, S11, and for the error selection order, S14 to S19 and S26 to S30. Positive path: S01, S08, S10  |
 
 ### Choices to agree
 
@@ -539,9 +539,10 @@ how these responses combine with COAZ-MCP's JSON-RPC errors.
 
 A client recovers as the core's [recovery list][implementation-client]
 describes: at most one bounded attempt after `invalid_client` or
-`invalid_grant`, a corrected request after `invalid_scope`, a token
-with more authority after `insufficient_scope`, a retry after a 503,
-and otherwise no automatic retry of the unchanged request. After
+`invalid_grant`, a corrected request after `invalid_scope` or the
+rejection of an invalid argument, a token with more authority after
+`insufficient_scope`, a retry after a 503, and otherwise no automatic
+retry of the unchanged request. After
 `invalid_continuation`, a gateway should answer the agent with 401
 `invalid_token`; after a continuation `invalid_grant`, it must not, and
 fails the request with an error of its own API instead ([Gateway
@@ -905,10 +906,13 @@ proposes.
     caller omit, it is malformed, or it yields a subject other than the
     token's.
 
-The core ranks an invalid argument after token and token-context
-failures and before every authorization failure ([Error
-Responses][resource-errors]). The 400 therefore holds whoever owns the
-actor gate, and an unfinished policy check does not turn it into a 503.
+When the operation, its target, and its tenant are known without the
+missing or invalid argument, the core ranks it after token and
+token-context failures and before every authorization failure ([Error
+Responses][resource-errors]). The 400 then holds whoever owns the actor
+gate, and an unfinished policy check does not turn it into a 503. An
+argument that identifies the target or tenant puts the request outside
+the core's table.
 A token whose audience does not name this server fails token validation
 before the enforcement point runs.
 

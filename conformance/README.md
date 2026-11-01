@@ -143,8 +143,8 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | S26 | API | With `version=abc`, while a policy evaluation that parses `version` before deciding cannot decide a prohibition that does not depend on it, the request gets the argument's rejection in both orders; with `version=3` the prohibition gives `actor_unauthorized` | core: Error Responses (rows 3 and 4); Optional Policy Services | Set the evaluation order; turn on the policy service; set its policy |
 | S27 | API | With `version=abc`, while the actor gate's policy needs `version` to be at least 2, the request gets the argument's rejection in both orders; `version=3` is served and `version=1` gets `actor_unauthorized` | core: Error Responses (rows 3 and 4); Optional Policy Services | Set the evaluation order; turn on the policy service; set its policy |
 | S28 | API | With `version=abc` and a token that lacks `files.read`, the request gets the argument's rejection, not `insufficient_scope`, in both orders | core: Error Responses (rows 3 and 5) | Set the evaluation order; mint an access token |
-| S29 | API | With `version=abc`, while the user lacks permission, the request gets the argument's rejection, not a 403, in both orders | core: Error Responses (rows 3 and 6); Optional Policy Services | Set the evaluation order; turn on the policy service; set its policy |
-| S30 | API | With `version=abc`, while the policy service cannot be reached, the request gets the argument's rejection, not HTTP 503, in both orders | core: Error Responses (row 3; evaluation that cannot complete); Optional Policy Services | Set the evaluation order; turn on the policy service; set its policy; make it unavailable |
+| S29 | API | With `version=abc`, while the user lacks permission, the request gets the argument's rejection, not a 403, in both orders; without the argument, the user's denial is a 403 without a code | core: Error Responses (rows 3 and 6); Optional Policy Services | Set the evaluation order; turn on the policy service; set its policy |
+| S30 | API | With `version=abc`, while the policy service cannot be reached, the request gets the argument's rejection, not HTTP 503, in both orders; without the argument, the request gets HTTP 503 | core: Error Responses (row 3; evaluation that cannot complete); Optional Policy Services | Set the evaluation order; turn on the policy service; set its policy; make it unavailable |
 | S31 | API | With `version=abc` and an opaque token the API has not introspected before, while introspection cannot complete, the request gets HTTP 503 in both orders | core: Error Responses (rows 1 and 3); Optional Opaque Access Tokens and Introspection | Set the evaluation order; mint an opaque token; make introspection fail |
 
 The "negative-test row" sources are the rows of the core's "Renewal and
@@ -333,9 +333,9 @@ established failure is reported only when no unfinished check comes
 earlier. S20 and S21 do the same for token validation: an introspection
 call that cannot complete gets 503, unless a proof failure in the same
 row is already established. S22 to S31 add an invalid argument: the read
-declares `version`, a positive integer, and each case sends
-`version=abc` beside one other condition. Each runs twice, with the API
-checking arguments first and then last (test control
+declares `version`, a positive integer. S22 sends `version=abc` alone,
+and each other case sends it beside one other condition. Each runs
+twice, with the API checking arguments first and then last (test control
 `evaluation_order`), and expects the same response: the argument's
 rejection over every authorization failure and unfinished policy
 evaluation (S25 to S30), and the proof, the tenant and an unfinished
@@ -524,8 +524,10 @@ another IdP, RAS or API:
    `evaluations`, `mint_access_token`, and `mint_opaque_token`. The
    `Adapter` docstring defines each one, including the policy document
    that `set_policy` takes. S22 to S31 send `version`, which the API
-   must declare as a positive integer; a deployment that cannot switch
-   `evaluation_order` tests only its own order.
+   must declare as a positive integer. They also set
+   `evaluation_order`; a deployment that cannot switch it can skip them
+   and report them as not run, or run them in its own order with an
+   adapter whose `set` accepts that setting without acting on it.
 3. Call `suite.run_case` for each case in `suite.CASES`.
 
 `disable_check` exists only for the reference implementation's vacuity

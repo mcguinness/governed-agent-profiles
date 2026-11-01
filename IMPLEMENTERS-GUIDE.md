@@ -478,7 +478,7 @@ Validation][redemption-common]; cases N10 to N16, N23, N26, and N27.
 
 [Error Responses][resource-errors] and [Optional Policy
 Services][policy-services]; cases N17 to N20, N24, S02 to S07, and S14
-to S31.
+to S35.
 
 The API reports the first failure in this order, whatever order it
 evaluates its checks in:
@@ -507,6 +507,13 @@ evaluates the gate itself; a decision it cannot obtain or interpret is a
 check that cannot complete. At an MCP server or gateway, [Failures at an
 MCP enforcement point](#failures-at-an-mcp-enforcement-point) proposes
 how these responses combine with COAZ-MCP's JSON-RPC errors.
+
+A request whose operation, target, or tenant the API cannot identify is
+outside this order. [Error Disclosure][security-errors] recommends
+validating the token, its proof, and its applicability before an error
+that reveals whether a route, target, or tenant exists. A file that
+does not exist is not such a request: a denial in the order is reported
+first, and its absence only when nothing in the order applies.
 
 ### In optional capabilities
 
@@ -1600,6 +1607,7 @@ agent cannot use the token directly.
 [redemption-errors]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#redemption-errors
 [redemption-common]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#redemption-common
 [resource-errors]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#resource-errors
+[security-errors]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#security-errors
 [implementation-client]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#implementation-client
 [actor-authorization]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#actor-authorization
 [api-applicability]: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html#api-applicability

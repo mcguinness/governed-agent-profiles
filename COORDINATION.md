@@ -234,10 +234,14 @@ That interpretation needs COAZ-MCP to settle:
   the core's precedence, when the mapping is defective.
 
 The core ranks the 400 only when the operation, its target, and its
-tenant are identified without the invalid argument. A request whose
-operation, target, or tenant cannot be identified, including a mapping
-failure on an argument that names the target, stays outside the core's
-table, and its precedence is open.
+tenant are identified without the invalid argument. The core's Error
+Disclosure recommends validating the access token, its proof, and the
+token's applicability before an error that reveals whether a route,
+target, or tenant exists. The precedence of a request whose operation,
+target, or tenant cannot be identified, against the core's error table,
+stays unspecified. That includes a token validation that cannot complete
+(503 against 404 or 400), and a mapping failure on an argument that
+names the target.
 
 A separate question remains open: how the core's denial responses
 (HTTP 403 with its challenge) compose with COAZ-MCP's denials, and with

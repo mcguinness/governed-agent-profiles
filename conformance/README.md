@@ -136,6 +136,16 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | S19 | API | When the actor gate cannot be evaluated and the user's permission denies, the request gets HTTP 503, since the unfinished actor gate could come earlier | core: Error Responses; Optional Policy Services | Turn on the policy service; set its policy; make the `actor` condition unavailable |
 | S20 | API | With an opaque token the API has not introspected before, when the introspection endpoint answers HTTP 503, answers 200 with a body that is not a JSON object, or closes the connection before the body it declares, the request gets HTTP 503, none of the file's data and no `invalid_token`; a missing `Retry-After` is noted | core: Optional Opaque Access Tokens and Introspection; Error Responses; RFC 7662 Section 2.3 | Mint an opaque token; make introspection fail |
 | S21 | API | When introspection cannot complete and the DPoP proof's `ath` names another token, the request gets HTTP 401 for the proof, not 503, since the unfinished validation is in the same row | core: Error Responses; Token Validation; RFC 9449 Section 4.3 | Mint an opaque token; make introspection fail |
+| S22 | API | With `version=abc`, an argument outside the read's declared contract, the request gets the argument's rejection (HTTP 400 `invalid_request`, unless the adapter recognizes another form), none of the file's data and neither denial code, whether the API checks arguments first or last; `version=3` is served | core: Error Responses (row 3) | Set the evaluation order |
+| S23 | API | With `version=abc` and a proof made with another key, the request gets HTTP 401 for the proof in both orders | core: Error Responses (rows 1 and 3); Token Validation (Protection) | Set the evaluation order |
+| S24 | API | With `version=abc` and a token used in another tenant, the request gets HTTP 401 `invalid_token` in both orders | core: Error Responses (rows 2 and 3); Token Validation (Tenant) | Set the evaluation order |
+| S25 | API | With `version=abc`, while the API's own actor gate denies, the request gets the argument's rejection, not `actor_unauthorized`, in both orders | core: Error Responses (rows 3 and 4); Delegated Actor Authorization | Set the evaluation order; close the actor gate at the API |
+| S26 | API | With `version=abc`, while a policy evaluation that parses `version` before deciding cannot decide a prohibition that does not depend on it, the request gets the argument's rejection in both orders; with `version=3` the prohibition gives `actor_unauthorized` | core: Error Responses (rows 3 and 4); Optional Policy Services | Set the evaluation order; turn on the policy service; set its policy |
+| S27 | API | With `version=abc`, while the actor gate's policy needs `version` to be at least 2, the request gets the argument's rejection in both orders; `version=3` is served and `version=1` gets `actor_unauthorized` | core: Error Responses (rows 3 and 4); Optional Policy Services | Set the evaluation order; turn on the policy service; set its policy |
+| S28 | API | With `version=abc` and a token that lacks `files.read`, the request gets the argument's rejection, not `insufficient_scope`, in both orders | core: Error Responses (rows 3 and 5) | Set the evaluation order; mint an access token |
+| S29 | API | With `version=abc`, while the user lacks permission, the request gets the argument's rejection, not a 403, in both orders; without the argument, the user's denial is a 403 without a code | core: Error Responses (rows 3 and 6); Optional Policy Services | Set the evaluation order; turn on the policy service; set its policy |
+| S30 | API | With `version=abc`, while the policy service cannot be reached, the request gets the argument's rejection, not HTTP 503, in both orders; without the argument, the request gets HTTP 503 | core: Error Responses (row 3; evaluation that cannot complete); Optional Policy Services | Set the evaluation order; turn on the policy service; set its policy; make it unavailable |
+| S31 | API | With `version=abc` and an opaque token the API has not introspected before, while introspection cannot complete, the request gets HTTP 503 in both orders | core: Error Responses (rows 1 and 3); Optional Opaque Access Tokens and Introspection | Set the evaluation order; mint an opaque token; make introspection fail |
 
 The "negative-test row" sources are the rows of the core's "Renewal and
 Negative Tests" table. N15 and N27 assert `invalid_grant`, which the
@@ -155,14 +165,15 @@ minutes, a 401 challenge without an `error` parameter, or a 503 without
 core's Error Responses, a 403 challenge without an `error` attribute is
 the response for a denial other than the actor gate or token authority.
 A case that expects `actor_unauthorized` or `insufficient_scope` at the
-API (N20, S02, S03, S07, S11, S14, S15 and S18) therefore requires the code,
+API (N20, S02, S03, S07, S11, S14, S15, S18, and the setup reads of S25 to
+S28) therefore requires the code,
 in the challenge's `error` attribute or, where the challenge has none,
 in the body.
 
 Every negative case, P2 and D02 name the reference checks they exercise
 (`CHECKS` in [reference.py](reference.py)). With `--vacuity`, each of
-these 68 cases runs once for each check it names, with that check
-switched off; five S cases name two checks, so there are 73 runs, and
+these 78 cases runs once for each check it names, with that check
+switched off; seven S cases name two checks, so there are 85 runs, and
 every run fails. Twenty-six N cases fail because the server then accepts
 the request. P2 fails because the access token then carries a rewritten
 `act`. N11 fails because the RAS's access-token protection check then
@@ -198,7 +209,8 @@ file (HTTP 200):
 * S12 (`api.introspection_active`): the API reads the members of an
   inactive response;
 * S13 (`api.introspection_act`): without `act`, the API applies no
-  actor gate, as if the token were self-acting.
+  actor gate, as if the token were self-acting;
+* S22 (`api.argument_validation`): the API ignores the invalid argument.
 
 Without these, they fail on the response the API selects:
 
@@ -222,7 +234,19 @@ Without these, they fail on the response the API selects:
 * S20 (`api.introspection_unavailable`): the API reads the failed
   introspection call as an invalid token, HTTP 401 `invalid_token`;
 * S21 (`api.established_failure`): the API answers HTTP 503 without
-  checking the proof it could have rejected.
+  checking the proof it could have rejected;
+* S23, S24 and S31 (`api.argument_rank`), with the arguments checked
+  first: the API reports the invalid argument as soon as it finds it,
+  HTTP 400, before the proof (S23), the tenant (S24) or the unfinished
+  introspection (S31);
+* S25 to S30 (`api.argument_rank`), with the arguments checked last: the
+  API reports what authorization found, `actor_unauthorized` (S25,
+  S27), `insufficient_scope` (S28), a 403 without a code (S29), or HTTP
+  503 for the unfinished evaluation (S26, S30);
+* S26 and S30 (`api.arguments_outrank_unfinished`): the API answers HTTP
+  503 for the unfinished evaluation. Only the run with the arguments
+  checked last can fail, since an API that checks them first never
+  calls the policy service.
 
 S01, S08 and S10 are positive cases and name no check.
 
@@ -295,19 +319,27 @@ JWT variant's two agents with one `client_id`. S04 to S13 cover each
 member, self-acting access, and introspection.
 
 The S cases also test the core's Error Responses. When several checks
-fail, the API reports the first in this order: the token and proof
-(HTTP 401), the token context (HTTP 401 `invalid_token`), the actor gate
-(HTTP 403 `actor_unauthorized`), token authority (HTTP 403
-`insufficient_scope`), and any other denial (HTTP 403 with a challenge
-that carries no `error` attribute). An evaluation that cannot complete
-is not a denial: HTTP 503. S04 to S07 and S09 each fail one condition
-after the actor gate; S14 to S16 fail two conditions at once; S17 makes
-the policy service unavailable; S18 and S19 make one condition's
-evaluation fail beside a denial, so that an established failure is
-reported only when no unfinished check comes earlier. S20 and S21 do the
-same for token validation: an introspection call that cannot complete
-gets 503, unless a proof failure in the same row is already
-established.
+fail, the API reports the first in this order: the token and proof (HTTP
+401), the token context (HTTP 401 `invalid_token`), an invalid argument
+(the protocol's rejection; the reference answers HTTP 400
+`invalid_request`), the actor gate (HTTP 403 `actor_unauthorized`),
+token authority (HTTP 403 `insufficient_scope`), and any other denial
+(HTTP 403 with a challenge that carries no `error` attribute). An
+evaluation that cannot complete is not a denial: HTTP 503. S04 to S07
+and S09 each fail one condition after the actor gate; S14 to S16 fail
+two conditions at once; S17 makes the policy service unavailable; S18
+and S19 make one condition's evaluation fail beside a denial, so that an
+established failure is reported only when no unfinished check comes
+earlier. S20 and S21 do the same for token validation: an introspection
+call that cannot complete gets 503, unless a proof failure in the same
+row is already established. S22 to S31 add an invalid argument: the read
+declares `version`, a positive integer. S22 sends `version=abc` alone,
+and each other case sends it beside one other condition. Each runs
+twice, with the API checking arguments first and then last (test control
+`evaluation_order`), and expects the same response: the argument's
+rejection over every authorization failure and unfinished policy
+evaluation (S25 to S30), and the proof, the tenant and an unfinished
+introspection over the argument (S23, S24, S31).
 
 **Test fixtures.** The policy service and the API's introspection
 caller are test fixtures under the suite's control. The policy service
@@ -317,6 +349,8 @@ validation, DPoP, applicability and the tenant check still run first,
 and the API still requires the token's scope for the read, so a permit
 never overrides the token's constraints. Test control sets its policy,
 makes it unavailable, and reads the evaluation requests it received.
+The API's `evaluation_order` control chooses when it checks the read's
+arguments; a conforming API reports the same failure either way.
 The S cases are reference-implementation tests, not black-box
 conformance cases, and passing them claims nothing about a real policy
 decision point integration.
@@ -334,7 +368,10 @@ and maps it to `actor_unauthorized`, to `insufficient_scope` with the
 required scope, or to a DPoP challenge without an `error` attribute and
 an empty JSON body. A decision it cannot interpret, or an unreachable
 service, gets HTTP 503 with `Retry-After`. The API's own evaluation,
-without the service, uses the same order.
+without the service, uses the same order. Two members serve S26 and
+S27: `parse_arguments` makes the evaluation parse request attributes
+before deciding anything, and an actor-gate entry with `min_version`
+also needs the request's `version` to be at least that.
 
 **Evaluation requests.** The API's request follows the implementer's
 guide's [illustrative AuthZEN
@@ -346,8 +383,11 @@ member. The drafts define no AuthZEN mapping; this shape is the
 reference's own.
 
 **Request attributes.** The API accepts the query parameters `agent`,
-`user`, `client_id`, `tenant` and `scope` on a file read. They stand in
-for a tool call's arguments; the drafts define no such parameters. The
+`user`, `client_id`, `tenant`, `scope` and `version` on a file read.
+They stand in for a tool call's arguments; the drafts define no such
+parameters. The read declares one argument contract: `version`, where
+present, is one positive integer, and any other value is rejected with
+HTTP 400 `invalid_request`. The
 API passes every query parameter to the policy service unchanged, in
 `context.request` and nowhere else.
 
@@ -387,6 +427,9 @@ Some cases depend on choices made for the reference:
 * S14 makes the actor gate fail through a categorical prohibition of
   `agent-42`, and S15 through an actor gate with no entry for it, so the
   two cases cover both forms.
+* S25 and S28 pair the invalid argument with the API's own actor gate
+  and scope check, and S26, S27, S29 and S30 with the policy service, so
+  the argument's rank is tested under both.
 * S03 mints the other agent's token, for `agent-43`, with the same
   `client_id` as `agent-42`'s. It stands for the platform JWT variant's
   shared client.
@@ -421,10 +464,15 @@ The suite tests nothing outside the path above, including:
 * a real policy decision point, and policy services at the IdP or the
   RAS;
 * the error selection order under the API's own evaluation, except the
-  actor gate (N20), and a policy decision the API cannot interpret; the
+  actor gate (N20) and an invalid argument beside the API's own actor
+  gate or scope (S25, S28), and a policy decision the API cannot
+  interpret; the
   S cases test the order through the policy service, S17 an
   unreachable one, S18 and S19 one condition that cannot complete, and
   S20 and S21 an introspection call that cannot complete;
+* argument contracts other than the read's one declared argument, and
+  requests whose operation, target or tenant cannot be identified,
+  which Error Responses leaves outside its order;
 * RAS refresh tokens other than those from a deferred redemption;
 * DPoP server nonces, mutual TLS (including the refusal to defer for a
   resource configured for mutual-TLS access tokens), and bearer access
@@ -469,12 +517,20 @@ another IdP, RAS or API:
    the Access Request Service hooks `tasks`, `approve`, `deny`, `revoke`,
    `shorten` and `substitute`, and `advance_clock`, which must advance
    every server's clock. The S cases use `set` on the API
-   (`policy_service`, `actor_gate`, `policy_unavailable`) and on the RAS
+   (`policy_service`, `actor_gate`, `policy_unavailable`,
+   `condition_unavailable`, `evaluation_order`) and on the RAS
    (`introspection_omit_act`, `introspection_unavailable`), the policy
    service hooks `set_policy` and
    `evaluations`, `mint_access_token`, and `mint_opaque_token`. The
    `Adapter` docstring defines each one, including the policy document
-   that `set_policy` takes.
+   that `set_policy` takes. S22 to S31 send `version`, which the API
+   must declare as a positive integer, and expect its rejection as
+   `Adapter.argument_rejection` recognizes it: HTTP 400 with
+   `invalid_request` unless the adapter overrides that for its
+   protocol. They also set
+   `evaluation_order`; a deployment that cannot switch it can skip them
+   and report them as not run, or run them in its own order with an
+   adapter whose `set` accepts that setting without acting on it.
 3. Call `suite.run_case` for each case in `suite.CASES`.
 
 `disable_check` exists only for the reference implementation's vacuity
@@ -500,6 +556,7 @@ implementations](../IMPLEMENTERS-GUIDE.md#configuration-exchanged-between-implem
 | Re-redeeming a bound grant | Not accepted: each grant is redeemed once | core: Common Grant Validation (MAY accept again under explicit policy) |
 | Access tokens | JWT access tokens validated at the API, 600 s, no refresh token except after a deferred redemption; opaque tokens only through test control | core: Token Validation; Optional RAS Refresh Tokens |
 | Introspection | RFC 7662 at the RAS, for opaque tokens; the API authenticates with HTTP Basic, calls over HTTP, and caches nothing | core: Optional Opaque Access Tokens and Introspection |
+| Declared argument contract | The read's `version`, where present, is one positive integer; any other value gets HTTP 400 `invalid_request` with a DPoP challenge | core: Error Responses (row 3) |
 | Policy service | Off unless test control turns it on; in-process, replacing the API's own evaluation; policy set by test control; the decision names the first failing condition | core: Optional Policy Services |
 | API denials | HTTP 403 `actor_unauthorized` for the actor gate; HTTP 403 `insufficient_scope`, with the required scope, for token authority; for any other denial, delegated or self-acting, HTTP 403 with `DPoP algs="ES256"` and an empty JSON body; HTTP 503 with `Retry-After: 5` and an empty JSON body when an evaluation cannot complete | core: Error Responses; Self-Acting Access |
 | Approval at the RAS | Not required unless test control names the scopes that need it; the Access Request Service is in-process and test-controlled | oversight: Redemption Opt-In; Approval Binding |

@@ -2041,10 +2041,20 @@ checks in:
 |---|---|---|
 | 1 | Missing or invalid access token, proof, or certificate binding ({{api-validation}}) | HTTP 401, as the applicable token or proof specification requires |
 | 2 | Missing or invalid required actor claims, unauthorized namespace assertion, or missing, ambiguous, or conflicting token tenant context, including a token tenant different from the requested operation's tenant | HTTP 401, `invalid_token` |
-| 3 | Actor-gate denial, including a categorical prohibition of the agent ({{actor-authorization}}) | HTTP 403, `actor_unauthorized` under {{Section 8.2 of ACTOR-PROFILE}} |
-| 4 | The operation needs scope or authorization details that the token does not carry | HTTP 403, `insufficient_scope` under {{Section 3.1 of RFC6750}} |
-| 5 | Any other denial of a valid token, such as the user's own permissions, a self-acting agent's own permissions, or policy for the client or tenant | HTTP 403 with a challenge that carries no `error` attribute |
+| 3 | The requested operation's declared argument contract is violated, including by a missing required argument or an argument that cannot be parsed | The rejection the API's protocol defines, such as HTTP 400 with `invalid_request` ({{Section 3.1 of RFC6750}}) |
+| 4 | Actor-gate denial, including a categorical prohibition of the agent ({{actor-authorization}}) | HTTP 403, `actor_unauthorized` under {{Section 8.2 of ACTOR-PROFILE}} |
+| 5 | The operation needs scope or authorization details that the token does not carry | HTTP 403, `insufficient_scope` under {{Section 3.1 of RFC6750}} |
+| 6 | Any other denial of a valid token, such as the user's own permissions, a self-acting agent's own permissions, or policy for the client or tenant | HTTP 403 with a challenge that carries no `error` attribute |
 {: title="Resource server error responses"}
+
+Row 3 applies only when the API has identified the requested operation,
+its target, and its tenant without the invalid argument. A failure to
+present the access token or proof belongs to row 1, and a request whose
+operation, target, or tenant the API cannot identify is outside this
+table. An invalid argument is established from the request itself; it
+is not a check that cannot complete. For a row-3 failure, the API MUST
+NOT perform the operation, and the response MUST NOT convey
+`actor_unauthorized` or `insufficient_scope`.
 
 Actor denial MUST NOT use `insufficient_scope`, and the API MUST NOT
 return `actor_unauthorized` for any failure other than an actor-gate
@@ -2365,8 +2375,9 @@ cited are met.
     not.
   * At an API, `insufficient_scope` calls for a token with more
     authority, which can need a new governed grant; a 403 whose
-    challenge has no `error` attribute has no token-level remedy; and a
-    503 can be retried after any `Retry-After` interval
+    challenge has no `error` attribute has no token-level remedy; a 503
+    can be retried after any `Retry-After` interval; and the rejection
+    of an invalid argument calls for a corrected request
     ({{resource-errors}}).
 
   Apart from the `invalid_client` and `invalid_grant` attempts above
@@ -2893,9 +2904,12 @@ last column is the required result. Token endpoint errors follow
 | The API's policy does not permit `agent-42` to act for Alice, and the operation also needs `files.write`, which the access token lacks | API | HTTP 403, `actor_unauthorized`, not `insufficient_scope`; the actor gate comes first ({{resource-errors}}) |
 | The actor gate permits `agent-42`, and the operation needs `files.write`, which the access token lacks | API | HTTP 403, `insufficient_scope` |
 | The actor gate permits `agent-42`, the token's scope covers the read, and Alice has no permission on `report-7` | API | HTTP 403 with a challenge that carries no `error` attribute |
+| The read carries an argument outside the operation's declared contract, and the API's policy does not permit `agent-42` to act for Alice | API | The rejection of the invalid argument, such as HTTP 400 `invalid_request`, not `actor_unauthorized`; invalid arguments come before the actor gate |
 | The API delegates evaluation to a policy service, which cannot be reached | API | HTTP 503; no operation performed and no denial reported |
+| The read carries an argument outside the operation's declared contract, and the policy service cannot be reached | API | The rejection of the invalid argument, not HTTP 503; no unfinished check comes earlier ({{resource-errors}}) |
 | The access token is opaque, the API holds no usable cached introspection response for it, and the introspection endpoint cannot be reached or returns a response without a boolean `active` | API | HTTP 503; no operation performed, and not `invalid_token` ({{introspection}}) |
 | The introspection endpoint cannot be reached, and the DPoP proof's `ath` does not match the access token | API | HTTP 401 for the proof; the unfinished token validation is in the same row, not earlier ({{resource-errors}}) |
+| The access token is opaque, the API holds no usable cached introspection response for it, the introspection endpoint cannot be reached, and the read carries an argument outside the operation's declared contract | API | HTTP 503; the unfinished token validation comes earlier than the invalid argument |
 | The policy service denies `agent-42` under the actor gate, and its evaluation of Alice's own permissions cannot complete | API | HTTP 403, `actor_unauthorized`; no unfinished check comes earlier |
 | The policy service cannot complete the actor gate, and Alice has no permission on `report-7` | API | HTTP 503; the unfinished actor gate could come earlier than the user's denial |
 | Platform JWT variant ({{aws-example}}): Alice's access tokens for `agent-42` and for another agent carry the same `client_id`, and the API's policy permits only `agent-42` | API | HTTP 403, `actor_unauthorized` for the other agent; the client identifier does not stand in for the agent ({{actor-authorization}}) |

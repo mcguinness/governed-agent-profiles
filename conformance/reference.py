@@ -79,6 +79,9 @@ INTROSPECTION_CLIENT = "api-introspector"      # the API's credential at the RAS
 # call's arguments; the drafts define no such parameters. A conforming API
 # passes them to its policy service only in context.request.
 REQUEST_ATTRIBUTES = ("agent", "user", "client_id", "tenant", "scope")
+# The read's declared argument contract: version, where present, is one
+# positive integer. Any other attribute is accepted as is.
+ARGUMENT_CONTRACT = {"version": "a positive integer"}
 
 CHECKS = {
     "idp.client_assertion_audience": "client assertion aud is the IdP issuer only",
@@ -149,6 +152,13 @@ CHECKS = {
     "api.established_failure": "a failure no unfinished check outranks is reported, not HTTP 503",
     "api.incomplete_outranks": "an unfinished check that could outrank every established failure "
                                "gets HTTP 503",
+    "api.argument_validation": "an argument outside the operation's declared contract is rejected, "
+                               "and the operation is not performed",
+    "api.argument_rank": "invalid arguments are reported after token and token-context failures "
+                         "and before every authorization failure, whatever order the API "
+                         "evaluates them in",
+    "api.arguments_outrank_unfinished": "invalid arguments are reported, not HTTP 503, when only "
+                                        "a later check is unfinished",
 }
 
 
@@ -1126,6 +1136,12 @@ WRONG_ORDER = ("other", "authority", "actor")
 RETRY_AFTER = 5   # seconds, on a 503 for an evaluation that could not complete
 
 
+def _positive_integer(value):
+    """One positive integer, as a query parameter carries it."""
+    return isinstance(value, str) and value.isascii() and value.isdigit() and \
+        not value.startswith("0")
+
+
 def default_policy():
     """The policy service's policy when test control enables it, as the API's own
     configuration has it: the positive path in both tenants, and its self-acting
@@ -1173,7 +1189,10 @@ class PolicyService:
 
     The policy is a document whose members each list what policy permits:
 
-        actor_gate         [{user, agent: {iss, sub}, tenant}]  the actor gate
+        actor_gate         [{user, agent: {iss, sub}, tenant,   the actor gate; an entry
+                             min_version}]                    with min_version also needs
+                                                              context.request.version to
+                                                              be an integer at least that
         prohibited         [{agent: {iss, sub}, action}]        categorical prohibitions
                                                                 of an agent
         required_scope     {action: scope}                      the scope an action needs
@@ -1183,6 +1202,11 @@ class PolicyService:
                                                                 principal
         allowed_clients    [client]
         allowed_tenants    [tenant]
+        parse_arguments    [name]                               request attributes a combined
+                                                                evaluation parses as positive
+                                                                integers before any condition;
+                                                                one it cannot parse leaves the
+                                                                first condition incomplete
 
     It evaluates three conditions in the order the API asks for, and
     returns the first that fails as the decision's reason:
@@ -1225,6 +1249,17 @@ class PolicyService:
         agent, tenant = context.get("agent"), context.get("tenant")
         scope = str((context.get("constraints") or {}).get("scope") or "").split()
         required = (policy.get("required_scope") or {}).get(action)
+        arguments = context.get("request") or {}
+        first = next(r for r in order if delegated or r != "actor")
+        if any(name in arguments and not _positive_integer(arguments[name])
+               for name in policy.get("parse_arguments", [])):
+            # A combined evaluation that reads the argument before deciding
+            # anything, even a condition that does not depend on it.
+            return {"incomplete": first}
+
+        def version_at_least(minimum):
+            value = arguments.get("version")
+            return _positive_integer(value) and int(value) >= minimum
 
         def actor():
             if not delegated:   # self-acting access: no actor gate
@@ -1233,7 +1268,9 @@ class PolicyService:
                    for p in policy.get("prohibited", [])):
                 return False
             return any(p.get("user") == subject and p.get("agent") == agent and
-                       p.get("tenant") == tenant for p in policy.get("actor_gate", []))
+                       p.get("tenant") == tenant and
+                       ("min_version" not in p or version_at_least(p["min_version"]))
+                       for p in policy.get("actor_gate", []))
 
         def authority():
             return required is None or required in scope
@@ -1316,6 +1353,10 @@ class API(Server):
         # Optional Policy Services: off unless test control enables it.
         self.policy_service = False
         self.policy = PolicyService(default_policy())
+        # When the API checks the read's arguments: validate_first, before
+        # anything else, or authorize_first, after authorization. A
+        # conforming API reports the same failure either way.
+        self.evaluation_order = "validate_first"
 
     def control_op(self, op, body):
         if op == "set" and body["what"] == "actor_gate":
@@ -1331,6 +1372,11 @@ class API(Server):
         if op == "set" and body["what"] == "condition_unavailable":
             # One condition's evaluation cannot complete: actor, authority, or other.
             self.policy.unavailable = set(body["value"] or ())
+            return {}
+        if op == "set" and body["what"] == "evaluation_order":
+            if body["value"] not in ("validate_first", "authorize_first"):
+                raise OAuthError("invalid_request", 400, "unknown evaluation order")
+            self.evaluation_order = body["value"]
             return {}
         if op == "policy":
             self.policy.policy = copy.deepcopy(body["policy"])
@@ -1349,6 +1395,13 @@ class API(Server):
         # Request-derived attributes, standing in for a tool call's arguments.
         attributes = {k: v[0] if len(v) == 1 else v for k, v in
                       parse_qs(environ.get("QUERY_STRING", ""), keep_blank_values=True).items()}
+        # Invalid arguments rank after token and token-context failures and
+        # before every authorization failure (core: Error Responses, row 3).
+        bad_arguments = self.invalid_arguments(attributes)
+        validate_first = self.evaluation_order == "validate_first"
+        if bad_arguments and validate_first and not self.on("api.argument_rank"):
+            # Non-conforming: reported as found, before the token is checked.
+            raise self.argument_rejection()
         invalid = OAuthError("invalid_token", 401,
                              challenge='DPoP error="invalid_token", algs="ES256"')
         scheme, _, token = environ.get("HTTP_AUTHORIZATION", "").partition(" ")
@@ -1394,6 +1447,8 @@ class API(Server):
         token_tenant = self.resource_tenants.get(aud)
         if token_tenant is None or (token_tenant != tenant and self.on("api.tenant")):
             raise invalid
+        if bad_arguments and validate_first:
+            raise self.argument_rejection()
         # Authorization of a valid token (core: Error Responses). Every
         # failing condition is recorded, and the first in the reporting
         # order is reported: the actor gate, then token authority, then any
@@ -1437,6 +1492,12 @@ class API(Server):
         elif "read" not in self.agent_permissions.get((claims.get("sub"), tenant), set()):
             # Self-acting access: the agent's own permissions; no actor gate.
             failures["other"] = []
+        if bad_arguments and self.on("api.argument_rank"):
+            # Checked after authorization: the invalid argument still comes
+            # first, before any denial and before an unfinished check.
+            if incomplete is not None and not self.on("api.arguments_outrank_unfinished"):
+                raise OAuthError(None, 503, headers=[("Retry-After", str(RETRY_AFTER))])
+            raise self.argument_rejection()
         if incomplete is not None:
             # An evaluation that could not complete is not a denial. A failure
             # is still reported when no unfinished check comes before it in
@@ -1450,6 +1511,9 @@ class API(Server):
         if failures:
             reason = next(r for r in order if r in failures)
             raise self.denial(population, reason, failures[reason])
+        if bad_arguments:
+            # Non-conforming order: reached only after every authorization check passed.
+            raise self.argument_rejection()
         data = self.files.get((tenant, name))
         if data is None:
             return _respond(start_response, 404, {"error": "not_found"})
@@ -1559,6 +1623,19 @@ class API(Server):
             if "scope" in given:
                 context["constraints"]["scope"] = given["scope"]
         return request
+
+    def invalid_arguments(self, attributes):
+        """Whether an argument is outside the read's declared contract (ARGUMENT_CONTRACT)."""
+        if not self.on("api.argument_validation"):
+            return False
+        return "version" in attributes and not _positive_integer(attributes["version"])
+
+    @staticmethod
+    def argument_rejection():
+        """HTTP 400 invalid_request (RFC 6750 Section 3.1) for an invalid argument (core:
+        Error Responses, row 3). The body conveys no denial code."""
+        return OAuthError("invalid_request", 400,
+                          challenge='DPoP error="invalid_request", algs="ES256"')
 
     def order(self):
         """The reporting order for a valid token's denials (core: Error Responses)."""

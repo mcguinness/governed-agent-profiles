@@ -234,7 +234,12 @@ class Adapter:
                                           reached), condition_unavailable
                                           (a list of conditions, actor,
                                           authority or other, whose
-                                          evaluation cannot complete)
+                                          evaluation cannot complete),
+                                          evaluation_order
+                                          ("validate_first": check the
+                                          read's arguments before anything
+                                          else; "authorize_first": after
+                                          authorization)
     mint_grant(claims)             an ID-JAG the IdP signs with these claims
     mint_access_token(claims, typ="at+jwt")
                                    an access token the RAS signs with these
@@ -246,6 +251,14 @@ class Adapter:
                                    other members in the response
     reset()                        restore the examples' configuration
     disable_check(role, name)      reference implementation only (vacuity mode)
+    argument_rejection(resp)       whether resp is the API's rejection of an
+                                   argument outside the read's declared
+                                   contract (core: Error Responses, row 3);
+                                   by default, HTTP 400 with invalid_request
+                                   in the challenge's error attribute or the
+                                   body. A deployment whose protocol rejects
+                                   invalid arguments in another form
+                                   overrides it
 
     The deferral cases also control the RAS's Access Request Service and
     the clock. A task is a dict with id, status ("pending", "approved",
@@ -267,7 +280,10 @@ class Adapter:
     set_policy(policy)             the service's policy, a document whose
                                    members each list what policy permits:
                                      actor_gate [{user, agent {iss, sub},
-                                       tenant}];
+                                       tenant}], where an entry with
+                                       min_version also needs the request's
+                                       version to be an integer at least
+                                       that;
                                      prohibited [{agent {iss, sub}, action}],
                                        categorical prohibitions of an agent;
                                      required_scope {action: scope};
@@ -277,7 +293,13 @@ class Adapter:
                                        action}], a self-acting agent's own
                                        permissions by local principal;
                                      allowed_clients [client];
-                                     allowed_tenants [tenant].
+                                     allowed_tenants [tenant];
+                                     parse_arguments [name], request
+                                       attributes a combined evaluation
+                                       parses as positive integers before
+                                       deciding anything; one it cannot
+                                       parse leaves the evaluation
+                                       incomplete.
                                    A denial names its first failing
                                    condition in the core's order: the actor
                                    gate (delegated access only), then the
@@ -293,6 +315,9 @@ class Adapter:
 
     def reset(self):
         raise NotImplementedError
+
+    def argument_rejection(self, resp):
+        return resp.status == 400 and challenge_error(resp) == "invalid_request"
 
     def id_token(self, user, aud=None, claims=None):
         raise NotImplementedError
@@ -554,6 +579,23 @@ def expect_no_code_denial(ctx, resp, data):
     for code in ("actor_unauthorized", "insufficient_scope"):
         check(code not in challenge and code.encode() not in resp.body,
               f"the response conveys {code}: {resp} {challenge!r}")
+
+
+def expect_argument_rejection(ctx, resp, data, label=""):
+    """The rejection of an invalid argument (core: Error Responses, row 3).
+
+    The representation is the protocol's, which the adapter recognizes
+    (Adapter.argument_rejection: HTTP 400 invalid_request by default). The
+    rejection carries no file data, and neither actor_unauthorized nor
+    insufficient_scope in the challenge or the body.
+    """
+    challenge = challenge_of(resp)
+    check(ctx.adapter.argument_rejection(resp),
+          f"{label}expected the rejection of an invalid argument, got {resp} {challenge!r}")
+    check(data not in resp.body, f"{label}the rejection carried the file's data")
+    for code in ("actor_unauthorized", "insufficient_scope"):
+        check(code not in challenge and code.encode() not in resp.body,
+              f"{label}the rejection conveys {code}: {resp} {challenge!r}")
 
 
 # Positive path -------------------------------------------------------------
@@ -1772,6 +1814,189 @@ def s21(ctx):
     check(resp.status == 401,
           f"expected HTTP 401 for the proof, got {resp} {challenge_of(resp)!r}")
     check(data not in resp.body, "the response carried the file's data")
+
+
+# Invalid arguments (core: Error Responses, row 3). The read declares one
+# argument, version, a positive integer. An invalid argument is reported
+# after token and token-context failures and before every authorization
+# failure, whatever order the API checks them in, so each case runs with
+# the arguments checked first and again with them checked last.
+
+ORDERS = ("validate_first", "authorize_first")
+BAD_VERSION = {"version": "abc"}
+
+
+def in_each_order(ctx, request, expect):
+    """Make the request under each evaluation order and check the response.
+
+    request() makes one request and returns the response; expect(resp,
+    label) checks it, with label naming the order in any failure.
+    """
+    for order in ORDERS:
+        ctx.adapter.set("api", "evaluation_order", order)
+        expect(request(), f"{order}: ")
+
+
+@case("S22", "API", "Rejects an argument outside the operation's declared contract, and serves "
+      "a valid one",
+      "core: Error Responses (row 3)",
+      needs=("set:api.evaluation_order",), defeats=("api.argument_validation",))
+def s22(ctx):
+    token = ctx.access_token()
+    data = file_data(ctx, token)
+    resp = ctx.client.get(ctx.cfg.read_path, token, query={"version": "3"})
+    check(resp.status == 200 and resp.body == data, f"setup: version=3 was not served: {resp}")
+    in_each_order(ctx, lambda: ctx.client.get(ctx.cfg.read_path, token, query=BAD_VERSION),
+                  lambda resp, label: expect_argument_rejection(ctx, resp, data, label))
+
+
+@case("S23", "API", "Reports a proof with another key as 401, not the invalid argument",
+      "core: Error Responses (rows 1 and 3); Token Validation (Protection)",
+      needs=("set:api.evaluation_order",), defeats=("api.argument_rank",))
+def s23(ctx):
+    token = ctx.access_token()
+
+    def expect(resp, label):
+        check(resp.status == 401, f"{label}expected HTTP 401 for the proof, got {resp} "
+                                  f"{challenge_of(resp)!r}")
+    in_each_order(ctx, lambda: ctx.client.get(ctx.cfg.read_path, token, dpop_key="k2",
+                                              query=BAD_VERSION), expect)
+
+
+@case("S24", "API", "Reports a token used in another tenant as invalid_token, not the invalid "
+      "argument",
+      "core: Error Responses (rows 2 and 3); Token Validation (Tenant)",
+      needs=("set:api.evaluation_order",), defeats=("api.argument_rank",))
+def s24(ctx):
+    token = ctx.access_token()
+
+    def expect(resp, label):
+        check(resp.status == 401 and challenge_error(resp) == "invalid_token",
+              f"{label}expected HTTP 401 invalid_token, got {resp} {challenge_of(resp)!r}")
+    in_each_order(ctx, lambda: ctx.client.get(ctx.cfg.other_tenant_path, token,
+                                              query=BAD_VERSION), expect)
+
+
+@case("S25", "API", "Reports the invalid argument, not actor_unauthorized, when the API's own "
+      "actor gate denies",
+      "core: Error Responses (rows 3 and 4); Delegated Actor Authorization",
+      needs=("set:api.evaluation_order", "set:api.actor_gate"), defeats=("api.argument_rank",))
+def s25(ctx):
+    token = ctx.access_token()
+    data = file_data(ctx, token)
+    ctx.adapter.set("api", "actor_gate", False)
+    resp = ctx.client.get(ctx.cfg.read_path, token)
+    check(data not in resp.body, "setup: the denial carried the file's data")
+    expect_denial_code(ctx, resp, "actor_unauthorized")
+    in_each_order(ctx, lambda: ctx.client.get(ctx.cfg.read_path, token, query=BAD_VERSION),
+                  lambda resp, label: expect_argument_rejection(ctx, resp, data, label))
+
+
+@case("S26", "API", "Reports the invalid argument when a combined policy evaluation cannot "
+      "decide a prohibition that does not depend on it",
+      "core: Error Responses (rows 3 and 4); Optional Policy Services",
+      needs=("set:api.evaluation_order", "set:api.policy_service", "set_policy"),
+      defeats=("api.argument_rank", "api.arguments_outrank_unfinished"))
+def s26(ctx):
+    token = ctx.access_token()
+    data = file_data(ctx, token)
+    use_policy(ctx, policy(ctx, prohibited=[{"agent": agent_id(ctx), "action": "read"}],
+                           parse_arguments=["version"]))
+    # The prohibition does not depend on the argument: with a valid one, it denies.
+    resp = ctx.client.get(ctx.cfg.read_path, token, query={"version": "3"})
+    check(data not in resp.body, "setup: the denial carried the file's data")
+    expect_denial_code(ctx, resp, "actor_unauthorized")
+    in_each_order(ctx, lambda: ctx.client.get(ctx.cfg.read_path, token, query=BAD_VERSION),
+                  lambda resp, label: expect_argument_rejection(ctx, resp, data, label))
+
+
+@case("S27", "API", "Reports the invalid argument when the actor gate's policy needs it",
+      "core: Error Responses (rows 3 and 4); Optional Policy Services",
+      needs=("set:api.evaluation_order", "set:api.policy_service", "set_policy"),
+      defeats=("api.argument_rank",))
+def s27(ctx):
+    token = ctx.access_token()
+    data = file_data(ctx, token)
+    cfg = ctx.cfg
+    use_policy(ctx, policy(ctx, actor_gate=[dict(gate_entry(ctx, tenant=t), min_version=2)
+                                            for t in (cfg.tenant, cfg.other_tenant)]))
+    # The gate really reads the argument: version 3 is served, version 1 denied.
+    resp = ctx.client.get(cfg.read_path, token, query={"version": "3"})
+    check(resp.status == 200 and resp.body == data, f"setup: version=3 was not served: {resp}")
+    resp = ctx.client.get(cfg.read_path, token, query={"version": "1"})
+    check(data not in resp.body, "setup: the denial carried the file's data")
+    expect_denial_code(ctx, resp, "actor_unauthorized")
+    in_each_order(ctx, lambda: ctx.client.get(cfg.read_path, token, query=BAD_VERSION),
+                  lambda resp, label: expect_argument_rejection(ctx, resp, data, label))
+
+
+@case("S28", "API", "Reports the invalid argument, not insufficient_scope, when the token also "
+      "lacks the scope",
+      "core: Error Responses (rows 3 and 5)",
+      needs=("set:api.evaluation_order", "mint_access_token"), defeats=("api.argument_rank",))
+def s28(ctx):
+    data = file_data(ctx, ctx.access_token())
+    token = ctx.adapter.mint_access_token(minted_token_claims(ctx, scope="files.write"))
+    resp = ctx.client.get(ctx.cfg.read_path, token)
+    check(data not in resp.body, "setup: the denial carried the file's data")
+    expect_denial_code(ctx, resp, "insufficient_scope")
+    in_each_order(ctx, lambda: ctx.client.get(ctx.cfg.read_path, token, query=BAD_VERSION),
+                  lambda resp, label: expect_argument_rejection(ctx, resp, data, label))
+
+
+@case("S29", "API", "Reports the invalid argument, not the denial, when the user also lacks "
+      "permission",
+      "core: Error Responses (rows 3 and 6); Optional Policy Services",
+      needs=("set:api.evaluation_order", "set:api.policy_service", "set_policy"),
+      defeats=("api.argument_rank",))
+def s29(ctx):
+    token = ctx.access_token()
+    data = file_data(ctx, token)
+    use_policy(ctx, policy(ctx, user_permissions=[]))
+    # Without the invalid argument, the user's denial is the response.
+    expect_no_code_denial(ctx, ctx.client.get(ctx.cfg.read_path, token), data)
+    in_each_order(ctx, lambda: ctx.client.get(ctx.cfg.read_path, token, query=BAD_VERSION),
+                  lambda resp, label: expect_argument_rejection(ctx, resp, data, label))
+
+
+@case("S30", "API", "Reports the invalid argument, not HTTP 503, when the policy service cannot "
+      "be reached",
+      "core: Error Responses (row 3; evaluation that cannot complete); Optional Policy Services",
+      needs=("set:api.evaluation_order", "set:api.policy_service", "set_policy",
+             "set:api.policy_unavailable"),
+      defeats=("api.argument_rank", "api.arguments_outrank_unfinished"))
+def s30(ctx):
+    token = ctx.access_token()
+    data = file_data(ctx, token)
+    use_policy(ctx, policy(ctx))
+    ctx.adapter.set("api", "policy_unavailable", True)
+    # Without the invalid argument, the unreachable service gives HTTP 503.
+    resp = ctx.client.get(ctx.cfg.read_path, token)
+    check(resp.status == 503, f"setup: expected HTTP 503, got {resp} {challenge_of(resp)!r}")
+    in_each_order(ctx, lambda: ctx.client.get(ctx.cfg.read_path, token, query=BAD_VERSION),
+                  lambda resp, label: expect_argument_rejection(ctx, resp, data, label))
+
+
+@case("S31", "API", "Answers HTTP 503, not the invalid argument, when introspection cannot "
+      "complete",
+      "core: Error Responses (rows 1 and 3; evaluation that cannot complete); Optional Opaque "
+      "Access Tokens and Introspection",
+      needs=("set:api.evaluation_order", "mint_opaque_token",
+             "set:ras.introspection_unavailable"),
+      defeats=("api.argument_rank",))
+def s31(ctx):
+    data = file_data(ctx, ctx.adapter.mint_opaque_token(minted_token_claims(ctx)))
+    ctx.adapter.set("ras", "introspection_unavailable", "error")
+
+    def request():
+        # Each request uses a token the API has never introspected.
+        token = ctx.adapter.mint_opaque_token(minted_token_claims(ctx))
+        return ctx.client.get(ctx.cfg.read_path, token, query=BAD_VERSION)
+
+    def expect(resp, label):
+        check(resp.status == 503, f"{label}expected HTTP 503, got {resp} {challenge_of(resp)!r}")
+        check(data not in resp.body, f"{label}the response carried the file's data")
+    in_each_order(ctx, request, expect)
 
 
 def run_case(c, cfg, adapter, disable=()):

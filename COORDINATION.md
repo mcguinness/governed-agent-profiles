@@ -233,9 +233,11 @@ That interpretation needs COAZ-MCP to settle:
   400 when the request violates its declared contract, and 503, under
   the core's precedence, when the mapping is defective.
 
-A related question belongs to the core, not to COAZ-MCP. The core's
-table does not list a request that violates its declared contract, so
-the core does not rank such a 400 against an unfinished check.
+The core ranks the 400 only when the operation, its target, and its
+tenant are identified without the invalid argument. A request whose
+operation, target, or tenant cannot be identified, including a mapping
+failure on an argument that names the target, stays outside the core's
+table, and its precedence is open.
 
 A separate question remains open: how the core's denial responses
 (HTTP 403 with its challenge) compose with COAZ-MCP's denials, and with

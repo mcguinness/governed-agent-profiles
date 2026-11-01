@@ -357,7 +357,7 @@ one also exchanges or agrees on its item:
 |---|---|---|---|---|---|
 |  Refresh tokens ([Optional RAS Refresh Tokens][ras-refresh]) | Client and RAS | RAS policy | None | No | Direct after a deferred redemption, against the reference: D13, D14, D15, D21, D22. Otherwise untested: P2 notes a refresh token but does not fail  |
 |  Introspection endpoint and the API's credentials for it, where access tokens are opaque ([Optional Opaque Access Tokens and Introspection][introspection]) | RAS and API | RAS | Not used | Introspection endpoint | Direct against the reference, without caching: S12 for an inactive token, S13 for a delegated response without `act`, S20 for an endpoint that fails or answers without a boolean `active` (503, not `invalid_token`), and S21 for a proof failure established during that outage. Positive path: S10, S11  |
-|  Whether the API delegates evaluation to a policy service, which then receives the user, agent, client, tenant, and token constraints only from the validated token or introspection response and from trusted configuration ([Optional Policy Services][policy-services]) | RAS and API | API | No policy service | No | Direct against the reference, whose policy service the suite controls: S02 to S07, S09, S11, and for the error selection order, S14 to S19. Positive path: S01, S08, S10  |
+|  Whether the API delegates evaluation to a policy service, which then receives the user, agent, client, tenant, and token constraints only from the validated token or introspection response and from trusted configuration ([Optional Policy Services][policy-services]) | RAS and API | API | No policy service | No | Direct against the reference, whose policy service the suite controls: S02 to S07, S09, S11, and for the error selection order, S14 to S19 and S26 to S30. Positive path: S01, S08, S10  |
 
 ### Choices to agree
 
@@ -478,7 +478,7 @@ Validation][redemption-common]; cases N10 to N16, N23, N26, and N27.
 
 [Error Responses][resource-errors] and [Optional Policy
 Services][policy-services]; cases N17 to N20, N24, S02 to S07, and S14
-to S21.
+to S31.
 
 The API reports the first failure in this order, whatever order it
 evaluates its checks in:
@@ -487,10 +487,15 @@ evaluates its checks in:
    as the token or proof specification requires.
 2. Missing actor claims, or missing or mismatched tenant context: HTTP
    401 `invalid_token`.
-3. An actor-gate denial: HTTP 403 `actor_unauthorized`.
-4. Missing scope or authorization details: HTTP 403
+3. A violation of the operation's declared argument contract, including
+   a missing required argument or one that cannot be parsed, once the
+   operation, its target, and its tenant are known: the rejection the
+   API's protocol defines, such as HTTP 400 `invalid_request`, with no body that
+   conveys either denial code.
+4. An actor-gate denial: HTTP 403 `actor_unauthorized`.
+5. Missing scope or authorization details: HTTP 403
    `insufficient_scope`.
-5. Any other denial: HTTP 403 with no `error` attribute, and no body
+6. Any other denial: HTTP 403 with no `error` attribute, and no body
    that conveys either code.
 
 A check that cannot complete, such as a policy evaluation or an
@@ -534,9 +539,10 @@ how these responses combine with COAZ-MCP's JSON-RPC errors.
 
 A client recovers as the core's [recovery list][implementation-client]
 describes: at most one bounded attempt after `invalid_client` or
-`invalid_grant`, a corrected request after `invalid_scope`, a token
-with more authority after `insufficient_scope`, a retry after a 503,
-and otherwise no automatic retry of the unchanged request. After
+`invalid_grant`, a corrected request after `invalid_scope` or the
+rejection of an invalid argument, a token with more authority after
+`insufficient_scope`, a retry after a 503, and otherwise no automatic
+retry of the unchanged request. After
 `invalid_continuation`, a gateway should answer the agent with 401
 `invalid_token`; after a continuation `invalid_grant`, it must not, and
 fails the request with an error of its own API instead ([Gateway
@@ -555,8 +561,10 @@ API evaluates the actor gate itself, except in the fourth row:
 | `files.read` | Permits | Policy service unreachable | 403 `insufficient_scope`: no unfinished check ranks earlier |
 | `files.read` | Unreachable policy service owns it | — | 503: the unfinished gate ranks before scope |
 | `files.write` | Permits | Alice cannot write, with or without a client-policy check that cannot complete in the same row | 403 with no `error` attribute |
+| `files.read` | Denies | The `PUT` carries an argument outside its declared contract, and the policy service is unreachable | The argument's rejection, such as 400 `invalid_request`: invalid arguments rank before the actor gate, scope, and every unfinished policy check |
 
-The nearest conformance cases are S07, S14, S18, S19, and S04.
+The nearest conformance cases are S07, S14, S18, S19, S04, and S25 to
+S30.
 
 ## Continuation through gateways
 
@@ -898,11 +906,15 @@ proposes.
     caller omit, it is malformed, or it yields a subject other than the
     token's.
 
-The core's table does not list a request that violates its declared
-contract. The core therefore does not rank that 400 against an
-unfinished check, and the coordination notes track the question. A
-token whose audience does not name this server fails token validation
-before the enforcement point runs.
+When the operation, its target, and its tenant are known without the
+argument that violates the contract, the core ranks the violation after
+token and token-context failures and before every authorization failure
+([Error Responses][resource-errors]). The 400 then holds whoever owns
+the actor gate, and an unfinished policy check does not turn it into a
+503. A violation in an argument that identifies the target or tenant
+puts the request outside the core's table. A token whose audience does
+not name this server fails token validation before the enforcement point
+runs.
 
 **What a client receives.** In the SDK version tested, a client receives
 a 503, or a 403 without `insufficient_scope`, as an HTTP error. That

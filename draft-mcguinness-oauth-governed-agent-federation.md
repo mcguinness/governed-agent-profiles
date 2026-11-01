@@ -2051,7 +2051,10 @@ Row 3 applies only when the API has identified the requested operation,
 its target, and its tenant without the invalid argument. A failure to
 present the access token or proof belongs to row 1, and a request whose
 operation, target, or tenant the API cannot identify is outside this
-table ({{security-errors}}). An invalid argument is established from the request itself; it
+table ({{security-errors}}). A request that names a target that does not
+exist is within this table: the target's absence is not a failure in
+it, so it does not displace a failure the table selects. An invalid
+argument is established from the request itself; it
 is not a check that cannot complete. For a row-3 failure, the API MUST
 NOT perform the operation, and the response MUST NOT convey
 `actor_unauthorized` or `insufficient_scope`.
@@ -2438,17 +2441,19 @@ content depends on that existence. This does not require validation
 before every rejection: a rejection that is the same for every request
 in the namespace, such as of an unsupported media type, discloses
 nothing, and the API can need to route a request to select the
-validation that applies, or parse it to obtain the credential. How such
-a rejection ranks against the failures of {{resource-errors}}, including
-a token validation that cannot complete, is not specified.
+validation that applies, or parse it to obtain the credential. Beyond
+this recommendation, how the rejection of a request the API cannot
+identify ranks against the failures of {{resource-errors}}, including a
+token validation that cannot complete, is not specified.
 
-A request that identifies an object that does not exist is not a
-request the API cannot identify. {{resource-errors}} applies to it, so
-the API reports a failure that table selects, such as an actor-gate
-denial, and reports the object's absence only when no failure in the
-table applies. For the failures that table covers, its responses take
-precedence over the 404 (Not Found) that {{Section 15.5.4 of RFC9110}}
-permits a server to send to hide a forbidden resource.
+A request that names a target that does not exist is not a request the
+API cannot identify. {{resource-errors}} applies to it, so the API
+reports a failure that table selects, such as an actor-gate denial,
+before the target's absence, and a caller that would be denied does not
+learn whether the target exists. For the failures that table covers,
+its responses take precedence over the 404 (Not Found) that
+{{Section 15.5.4 of RFC9110}} permits a server to send to hide a
+forbidden resource.
 
 ## Bearer Workload Evidence {#security-bearer-evidence}
 

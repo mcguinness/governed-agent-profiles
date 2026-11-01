@@ -2059,41 +2059,53 @@ def s32(ctx):
     check(not 200 <= resp.status < 300, f"the unknown path was served: {resp}")
 
 
-@case("S33", "API", "Checks the proof against the request's own method before rejecting the "
-      "method",
+@case("S33", "API", "Checks the proof against the request's own method, and answers an unsupported "
+      "method alike on known and unknown paths",
       "core: Error Disclosure (SHOULD); Token Validation (Protection); RFC 9449 Section 4.3",
-      defeats=("api.authenticate_before_route", "api.proof_method"))
+      defeats=("api.proof_method",))
 def s33(ctx):
     cfg, client = ctx.cfg, ctx.client
     token = ctx.access_token()
     resp = client.call("POST", cfg.read_path, token)
     check(not 200 <= resp.status < 300, f"POST was served: {resp}")
-    if resp.status == 401:
-        ctx.notes.append(f"a proof made for POST was rejected, HTTP 401 "
-                         f"{challenge_error(resp)!r}; RFC 9449 Section 4.3 checks htm against "
-                         "the request's own method")
-    resp = client.call("POST", cfg.read_path, token, proof_method="GET")
-    check(not 200 <= resp.status < 300, f"POST with a GET proof was served: {resp}")
-    if resp.status != 401:
-        ctx.notes.append(f"POST with a proof made for GET got HTTP {resp.status}, not 401 for the "
-                         "proof; checking the proof first does not disclose which methods a "
-                         "path supports (core: Error Disclosure SHOULD)")
+    if resp.status == 401 and challenge_error(resp) == "invalid_dpop_proof":
+        ctx.notes.append("a proof made for POST was rejected as invalid_dpop_proof; RFC 9449 "
+                         "Section 4.3 checks htm against the request's own method")
+    # A proof made for GET: an answer that differs between the read path and
+    # an unknown path discloses which paths exist.
+    known = client.call("POST", cfg.read_path, token, proof_method="GET")
+    unknown = client.call("POST", unknown_path(cfg), token, proof_method="GET")
+    for resp in (known, unknown):
+        check(not 200 <= resp.status < 300, f"POST with a GET proof was served: {resp}")
+    if outcome(known) != outcome(unknown):
+        ctx.notes.append(f"POST with a proof made for GET got HTTP {known.status} "
+                         f"{challenge_error(known)!r} on the read path and HTTP {unknown.status} "
+                         f"{challenge_error(unknown)!r} on an unknown path; checking the proof "
+                         "first does not disclose which paths exist (core: Error Disclosure "
+                         "SHOULD)")
 
 
-@case("S34", "API", "Answers HTTP 503, not 404, for an unknown path while introspection cannot "
-      "complete",
-      "core: Error Disclosure (SHOULD; precedence not specified); the reference's choice",
+@case("S34", "API", "Answers an unknown path as it answers the read path while introspection "
+      "cannot complete",
+      "core: Error Disclosure (SHOULD; precedence not specified)",
       needs=("mint_opaque_token", "set:ras.introspection_unavailable"),
       defeats=("api.authenticate_before_route",))
 def s34(ctx):
-    token = ctx.adapter.mint_opaque_token(minted_token_claims(ctx))   # never introspected
     ctx.adapter.set("ras", "introspection_unavailable", "error")
-    resp = ctx.client.call("GET", unknown_path(ctx.cfg), token)
+    # Each request uses a token the API has never introspected. The read path
+    # gets 503 (S20); an unknown path that answers otherwise discloses that
+    # the read path exists, though the token is unvalidated.
+    known = ctx.client.call("GET", ctx.cfg.read_path,
+                            ctx.adapter.mint_opaque_token(minted_token_claims(ctx)))
+    resp = ctx.client.call("GET", unknown_path(ctx.cfg),
+                           ctx.adapter.mint_opaque_token(minted_token_claims(ctx)))
     check(not 200 <= resp.status < 300, f"the unknown path was served: {resp}")
-    if resp.status != 503:
-        ctx.notes.append(f"HTTP {resp.status} for an unknown path while introspection cannot "
-                         "complete; with the token unvalidated, the reference answers 503 rather "
-                         "than say whether the path exists (core: Error Disclosure)")
+    if outcome(resp) != outcome(known):
+        ctx.notes.append(f"while introspection cannot complete, an unknown path got HTTP "
+                         f"{resp.status} {challenge_error(resp)!r} and the read path HTTP "
+                         f"{known.status} {challenge_error(known)!r}; with the token "
+                         "unvalidated, a different answer discloses which paths exist (core: "
+                         "Error Disclosure SHOULD)")
 
 
 @case("S35", "API", "Reports the actor-gate denial, not 404, for a file that does not exist",

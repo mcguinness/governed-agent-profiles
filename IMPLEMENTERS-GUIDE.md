@@ -477,8 +477,8 @@ Validation][redemption-common]; cases N10 to N16, N23, N26, and N27.
 ### At the API
 
 [Error Responses][resource-errors] and [Optional Policy
-Services][policy-services]; cases N17 to N20, N24, S02 to S07, and S14
-to S35.
+Services][policy-services]; cases N17 to N20, N24, S02 to S07, S14 to
+S31, and S35. [Error Disclosure][security-errors]: S32 to S34.
 
 The API reports the first failure in this order, whatever order it
 evaluates its checks in:
@@ -509,11 +509,13 @@ MCP enforcement point](#failures-at-an-mcp-enforcement-point) proposes
 how these responses combine with COAZ-MCP's JSON-RPC errors.
 
 A request whose operation, target, or tenant the API cannot identify is
-outside this order. [Error Disclosure][security-errors] recommends
-validating the token, its proof, and its applicability before an error
-that reveals whether a route, target, or tenant exists. A file that
-does not exist is not such a request: a denial in the order is reported
-first, and its absence only when nothing in the order applies.
+outside this order. Within a namespace the API protects, where it knows
+which validation applies, [Error Disclosure][security-errors]
+recommends validating the token, its proof, and its applicability
+before an error that reveals whether a route, target, or tenant exists.
+A target that does not exist is not such a request: a denial in the
+order is reported first, and its absence only when nothing in the order
+applies.
 
 ### In optional capabilities
 

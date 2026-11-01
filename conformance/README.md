@@ -147,8 +147,8 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | S30 | API | With `version=abc`, while the policy service cannot be reached, the request gets the argument's rejection, not HTTP 503, in both orders; without the argument, the request gets HTTP 503 | core: Error Responses (row 3; evaluation that cannot complete); Optional Policy Services | Set the evaluation order; turn on the policy service; set its policy; make it unavailable |
 | S31 | API | With `version=abc` and an opaque token the API has not introspected before, while introspection cannot complete, the request gets HTTP 503 in both orders | core: Error Responses (rows 1 and 3); Optional Opaque Access Tokens and Introspection | Set the evaluation order; mint an opaque token; make introspection fail |
 | S32 | API | An unknown path under the API, with no token, an expired token, or a proof made with another key, gets the same status and error as the read path; with a valid token it is not served. A difference is noted | core: Error Disclosure (SHOULD); Error Responses | Mint an access token |
-| S33 | API | `POST` to the read path with a proof made for `POST` is not rejected as a proof failure, and with a proof made for `GET` gets 401 for the proof, not the method's rejection. A difference is noted | core: Error Disclosure (SHOULD); Token Validation (Protection); RFC 9449 Section 4.3 | None |
-| S34 | API | An unknown path with an opaque token the API has not introspected, while introspection cannot complete, gets HTTP 503, the reference's choice; another response is noted | core: Error Disclosure (SHOULD; precedence not specified) | Mint an opaque token; make introspection fail |
+| S33 | API | `POST` to the read path with a proof made for `POST` is not rejected as `invalid_dpop_proof`, and `POST` with a proof made for `GET` gets the same answer on the read path and an unknown path. A rejected proof or a difference is noted | core: Error Disclosure (SHOULD); Token Validation (Protection); RFC 9449 Section 4.3 | None |
+| S34 | API | While introspection cannot complete, an unknown path gets the same answer as the read path (HTTP 503, S20), each with an opaque token the API has not introspected; a difference is noted | core: Error Disclosure (SHOULD; precedence not specified) | Mint an opaque token; make introspection fail |
 | S35 | API | A read of a file that does not exist, while the API's actor gate denies, gets 403 `actor_unauthorized`, not 404 | core: Error Responses; Error Disclosure | Close the actor gate at the API |
 
 The "negative-test row" sources are the rows of the core's "Renewal and
@@ -178,13 +178,13 @@ Run against the reference, `run.py` also fails a case that produces a
 note, in normal and vacuity runs alike: the reference follows every
 recommendation the suite notes, so a note from it is a regression.
 Another implementation's notes are reported and fail nothing. S32 to
-S34 note only, since validating the token before saying whether a path
-exists is a SHOULD.
+S34 fail only if a path is served; their other checks are notes, since
+validating the token before saying whether a path exists is a SHOULD.
 
 Every negative case, P2 and D02 name the reference checks they exercise
 (`CHECKS` in [reference.py](reference.py)). With `--vacuity`, each of
 these 82 cases runs once for each check it names, with that check
-switched off; eight S cases name two checks, so there are 90 runs, and
+switched off; seven S cases name two checks, so there are 89 runs, and
 every run fails. Twenty-six N cases fail because the server then accepts
 the request. P2 fails because the access token then carries a rewritten
 `act`. N11 fails because the RAS's access-token protection check then
@@ -258,13 +258,14 @@ Without these, they fail on the response the API selects:
   503 for the unfinished evaluation. Only the run with the arguments
   checked last can fail, since an API that checks them first never
   calls the policy service;
-* S32 to S34 (`api.authenticate_before_route`): the API routes before it
-  validates the token, so an unknown path, or a method the read does not
-  support, gets 404 whatever the credentials. The cases fail through
-  the note this produces;
+* S32 and S34 (`api.authenticate_before_route`): the API routes before
+  it validates the token, so an unknown path gets 404 whatever the
+  credentials, where the read path gets 401 or 503. The cases fail
+  through the note this produces;
 * S33 (`api.proof_method`): the API checks every proof as for `GET`, so
-  it rejects the proof made for `POST`, and accepts the one made for
-  `GET` before rejecting the method;
+  it rejects the proof made for `POST` as `invalid_dpop_proof`, and
+  accepts the one made for `GET`, so that the read path gets 405 and an
+  unknown path 404;
 * S35 (`api.existence_after_authorization`): the API reports the
   missing file, HTTP 404, before the actor gate's denial.
 

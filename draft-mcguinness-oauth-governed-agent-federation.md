@@ -2041,7 +2041,7 @@ checks in:
 |---|---|---|
 | 1 | Missing or invalid access token, proof, or certificate binding ({{api-validation}}) | HTTP 401, as the applicable token or proof specification requires |
 | 2 | Missing or invalid required actor claims, unauthorized namespace assertion, or missing, ambiguous, or conflicting token tenant context, including a token tenant different from the requested operation's tenant | HTTP 401, `invalid_token` |
-| 3 | An argument of the requested operation is missing, cannot be parsed, or is outside the operation's declared argument contract | The rejection the API's protocol defines, such as HTTP 400 with `invalid_request` ({{Section 3.1 of RFC6750}}) |
+| 3 | The requested operation's declared argument contract is violated, including by a missing required argument or an argument that cannot be parsed | The rejection the API's protocol defines, such as HTTP 400 with `invalid_request` ({{Section 3.1 of RFC6750}}) |
 | 4 | Actor-gate denial, including a categorical prohibition of the agent ({{actor-authorization}}) | HTTP 403, `actor_unauthorized` under {{Section 8.2 of ACTOR-PROFILE}} |
 | 5 | The operation needs scope or authorization details that the token does not carry | HTTP 403, `insufficient_scope` under {{Section 3.1 of RFC6750}} |
 | 6 | Any other denial of a valid token, such as the user's own permissions, a self-acting agent's own permissions, or policy for the client or tenant | HTTP 403 with a challenge that carries no `error` attribute |

@@ -487,10 +487,10 @@ evaluates its checks in:
    as the token or proof specification requires.
 2. Missing actor claims, or missing or mismatched tenant context: HTTP
    401 `invalid_token`.
-3. An argument of the operation that is missing, cannot be parsed, or is
-   outside the operation's declared contract, once the operation, its
-   target, and its tenant are known: the rejection the API's protocol
-   defines, such as HTTP 400 `invalid_request`, with no body that
+3. A violation of the operation's declared argument contract, including
+   a missing required argument or one that cannot be parsed, once the
+   operation, its target, and its tenant are known: the rejection the
+   API's protocol defines, such as HTTP 400 `invalid_request`, with no body that
    conveys either denial code.
 4. An actor-gate denial: HTTP 403 `actor_unauthorized`.
 5. Missing scope or authorization details: HTTP 403
@@ -907,14 +907,14 @@ proposes.
     token's.
 
 When the operation, its target, and its tenant are known without the
-missing or invalid argument, the core ranks it after token and
-token-context failures and before every authorization failure ([Error
-Responses][resource-errors]). The 400 then holds whoever owns the actor
-gate, and an unfinished policy check does not turn it into a 503. An
-argument that identifies the target or tenant puts the request outside
-the core's table.
-A token whose audience does not name this server fails token validation
-before the enforcement point runs.
+argument that violates the contract, the core ranks the violation after
+token and token-context failures and before every authorization failure
+([Error Responses][resource-errors]). The 400 then holds whoever owns
+the actor gate, and an unfinished policy check does not turn it into a
+503. A violation in an argument that identifies the target or tenant
+puts the request outside the core's table. A token whose audience does
+not name this server fails token validation before the enforcement point
+runs.
 
 **What a client receives.** In the SDK version tested, a client receives
 a 503, or a 403 without `insufficient_scope`, as an HTTP error. That

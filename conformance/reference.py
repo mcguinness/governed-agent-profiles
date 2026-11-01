@@ -68,8 +68,9 @@ ID_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:id_token"
 ASSERTION_TYPE = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
 
 IDP_ISSUER = "https://idp.example/"
-# A second IdP whose agents the RAS also names in access tokens. Its
-# agent-42 is not the home IdP's agent-42: agents are issuer-qualified.
+# A second IdP whose agents the API trusts the RAS to assert (core:
+# Delegated Access, Identity). The RAS issues no such tokens itself; test
+# control mints them. Its agent-42 is not the home IdP's agent-42.
 PARTNER_IDP_ISSUER = "https://partner-idp.example/"
 RAS_ISSUER = "https://ras.example/"
 API_BASE = "https://api.example"

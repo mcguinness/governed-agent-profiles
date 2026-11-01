@@ -87,8 +87,9 @@ class Config:
     unknown_path: str = ""
     missing_path: str = ""
     # Issuer-qualified agents (S36, S37): a second issuer whose agents the
-    # RAS's access tokens may name, and an issuer the API does not trust for
-    # agents. Both name an agent with the same sub as expect["agent"].
+    # API trusts the RAS to assert, and an issuer the API does not trust for
+    # agents. Both name an agent with the same sub as expect["agent"]; the
+    # API's actor gate has no entry for the partner issuer's.
     partner_agent_iss: str = "https://partner-idp.example/"
     untrusted_agent_iss: str = "https://untrusted-idp.example/"
 

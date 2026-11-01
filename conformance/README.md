@@ -146,6 +146,10 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | S29 | API | With `version=abc`, while the user lacks permission, the request gets the argument's rejection, not a 403, in both orders; without the argument, the user's denial is a 403 without a code | core: Error Responses (rows 3 and 6); Optional Policy Services | Set the evaluation order; turn on the policy service; set its policy |
 | S30 | API | With `version=abc`, while the policy service cannot be reached, the request gets the argument's rejection, not HTTP 503, in both orders; without the argument, the request gets HTTP 503 | core: Error Responses (row 3; evaluation that cannot complete); Optional Policy Services | Set the evaluation order; turn on the policy service; set its policy; make it unavailable |
 | S31 | API | With `version=abc` and an opaque token the API has not introspected before, while introspection cannot complete, the request gets HTTP 503 in both orders | core: Error Responses (rows 1 and 3); Optional Opaque Access Tokens and Introspection | Set the evaluation order; mint an opaque token; make introspection fail |
+| S32 | API | An unknown path under the API, with no token, an expired token, or a proof made with another key, gets the same status and error as the read path; with a valid token it is rejected as `Adapter.route_rejection` recognizes (the reference: 404). A difference is noted | core: Error Disclosure (SHOULD); Error Responses | Mint an access token |
+| S33 | API | `POST` to the read path with a proof made for `POST` is rejected as `Adapter.route_rejection` recognizes (the reference: 405 with `Allow: GET`) and not as `invalid_dpop_proof`, and `POST` with a proof made for `GET` gets the same answer on the read path and an unknown path. A rejected proof or a difference is noted | core: Error Disclosure (SHOULD); Token Validation (Protection); RFC 9449 Section 4.3 | None |
+| S34 | API | While introspection cannot complete, an unknown path gets the same answer as the read path (HTTP 503, S20), each with an opaque token the API has not introspected; a difference is noted | core: Error Disclosure (SHOULD; precedence not specified) | Mint an opaque token; make introspection fail |
+| S35 | API | A read of a file that does not exist, while the API's actor gate denies, gets 403 `actor_unauthorized`, not 404 | core: Error Responses; Error Disclosure | Close the actor gate at the API |
 
 The "negative-test row" sources are the rows of the core's "Renewal and
 Negative Tests" table. N15 and N27 assert `invalid_grant`, which the
@@ -165,15 +169,22 @@ minutes, a 401 challenge without an `error` parameter, or a 503 without
 core's Error Responses, a 403 challenge without an `error` attribute is
 the response for a denial other than the actor gate or token authority.
 A case that expects `actor_unauthorized` or `insufficient_scope` at the
-API (N20, S02, S03, S07, S11, S14, S15, S18, and the setup reads of S25 to
-S28) therefore requires the code,
+API (N20, S02, S03, S07, S11, S14, S15, S18, S35, and the setup reads of
+S25 to S28) therefore requires the code,
 in the challenge's `error` attribute or, where the challenge has none,
 in the body.
 
+Run against the reference, `run.py` also fails a case that produces a
+note, in normal and vacuity runs alike: the reference follows every
+recommendation the suite notes, so a note from it is a regression.
+Another implementation's notes are reported and fail nothing. S32 to
+S34 fail only if a path is served; their other checks are notes, since
+validating the token before saying whether a path exists is a SHOULD.
+
 Every negative case, P2 and D02 name the reference checks they exercise
 (`CHECKS` in [reference.py](reference.py)). With `--vacuity`, each of
-these 78 cases runs once for each check it names, with that check
-switched off; seven S cases name two checks, so there are 85 runs, and
+these 82 cases runs once for each check it names, with that check
+switched off; seven S cases name two checks, so there are 89 runs, and
 every run fails. Twenty-six N cases fail because the server then accepts
 the request. P2 fails because the access token then carries a rewritten
 `act`. N11 fails because the RAS's access-token protection check then
@@ -246,7 +257,17 @@ Without these, they fail on the response the API selects:
 * S26 and S30 (`api.arguments_outrank_unfinished`): the API answers HTTP
   503 for the unfinished evaluation. Only the run with the arguments
   checked last can fail, since an API that checks them first never
-  calls the policy service.
+  calls the policy service;
+* S32 and S34 (`api.authenticate_before_route`): the API routes before
+  it validates the token, so an unknown path gets 404 whatever the
+  credentials, where the read path gets 401 or 503. The cases fail
+  through the note this produces;
+* S33 (`api.proof_method`): the API checks every proof as for `GET`, so
+  it rejects the proof made for `POST` as `invalid_dpop_proof`, and
+  accepts the one made for `GET`, so that the read path gets 405 and an
+  unknown path 404;
+* S35 (`api.existence_after_authorization`): the API reports the
+  missing file, HTTP 404, before the actor gate's denial.
 
 S01, S08 and S10 are positive cases and name no check.
 
@@ -471,8 +492,10 @@ The suite tests nothing outside the path above, including:
   unreachable one, S18 and S19 one condition that cannot complete, and
   S20 and S21 an introspection call that cannot complete;
 * argument contracts other than the read's one declared argument, and
-  requests whose operation, target or tenant cannot be identified,
-  which Error Responses leaves outside its order;
+  the precedence of a request whose operation, target or tenant cannot
+  be identified, which Error Responses leaves outside its order; S32 to
+  S34 test only Error Disclosure's recommendation to validate the token
+  first;
 * RAS refresh tokens other than those from a deferred redemption;
 * DPoP server nonces, mutual TLS (including the refusal to defer for a
   resource configured for mutual-TLS access tokens), and bearer access
@@ -506,7 +529,11 @@ another IdP, RAS or API:
    need `tenant` and `other_tenant`, the Target Tenants of the two
    resources, and `self_acting_client_id` and `self_acting_sub`, a
    registration the API configures as the self-acting population for
-   `resource` and the local agent principal its tokens name.
+   `resource` and the local agent principal its tokens name. S32 to S35
+   use `unknown_path`, a path under the API that names no route, and
+   `missing_path`, a well-formed read of a file that does not exist; by
+   default, `read_path` plus `/unknown`, and `report-99` beside the
+   read's file.
 2. Implement `suite.Adapter` for the deployment. Every case needs
    `id_token`; the "Test control" column lists the other capabilities.
    A case whose capability the deployment cannot provide can be skipped
@@ -526,11 +553,14 @@ another IdP, RAS or API:
    that `set_policy` takes. S22 to S31 send `version`, which the API
    must declare as a positive integer, and expect its rejection as
    `Adapter.argument_rejection` recognizes it: HTTP 400 with
-   `invalid_request` unless the adapter overrides that for its
-   protocol. They also set
-   `evaluation_order`; a deployment that cannot switch it can skip them
-   and report them as not run, or run them in its own order with an
-   adapter whose `set` accepts that setting without acting on it.
+   `invalid_request` unless the adapter overrides that for its protocol.
+   They also set `evaluation_order`; a deployment that cannot switch it
+   can skip them and report them as not run, or run them in its own
+   order with an adapter whose `set` accepts that setting without acting
+   on it. S32 and S33 ask `Adapter.route_rejection` whether an unknown
+   path or an unsupported method was rejected; by default any response
+   that does not serve the request counts, and only the reference
+   adapter requires 404 and 405 with `Allow: GET`.
 3. Call `suite.run_case` for each case in `suite.CASES`.
 
 `disable_check` exists only for the reference implementation's vacuity
@@ -556,6 +586,7 @@ implementations](../IMPLEMENTERS-GUIDE.md#configuration-exchanged-between-implem
 | Re-redeeming a bound grant | Not accepted: each grant is redeemed once | core: Common Grant Validation (MAY accept again under explicit policy) |
 | Access tokens | JWT access tokens validated at the API, 600 s, no refresh token except after a deferred redemption; opaque tokens only through test control | core: Token Validation; Optional RAS Refresh Tokens |
 | Introspection | RFC 7662 at the RAS, for opaque tokens; the API authenticates with HTTP Basic, calls over HTTP, and caches nothing | core: Optional Opaque Access Tokens and Introspection |
+| Routing | The API validates the token, its proof against the request's own method, and its applicability before routing. An unknown path gets 404, a method the read does not support 405 with `Allow: GET`, and a missing file 404 only after authorization. While introspection cannot complete, an unknown path gets 503 | core: Error Disclosure (SHOULD; precedence not specified) |
 | Declared argument contract | The read's `version`, where present, is one positive integer; any other value gets HTTP 400 `invalid_request` with a DPoP challenge | core: Error Responses (row 3) |
 | Policy service | Off unless test control turns it on; in-process, replacing the API's own evaluation; policy set by test control; the decision names the first failing condition | core: Optional Policy Services |
 | API denials | HTTP 403 `actor_unauthorized` for the actor gate; HTTP 403 `insufficient_scope`, with the required scope, for token authority; for any other denial, delegated or self-acting, HTTP 403 with `DPoP algs="ES256"` and an empty JSON body; HTTP 503 with `Retry-After: 5` and an empty JSON body when an evaluation cannot complete | core: Error Responses; Self-Acting Access |

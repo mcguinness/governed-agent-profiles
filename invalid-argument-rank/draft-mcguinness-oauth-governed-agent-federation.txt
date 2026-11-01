@@ -2439,11 +2439,11 @@ Table of Contents
      |       | token tenant different from the  |                    |
      |       | requested operation's tenant     |                    |
      +-------+----------------------------------+--------------------+
-     | 3     | An argument of the requested     | The rejection the  |
-     |       | operation is missing, cannot be  | API's protocol     |
-     |       | parsed, or is outside the        | defines, such as   |
-     |       | operation's declared argument    | HTTP 400 with      |
-     |       | contract                         | invalid_request    |
+     | 3     | The requested operation's        | The rejection the  |
+     |       | declared argument contract is    | API's protocol     |
+     |       | violated, including by a missing | defines, such as   |
+     |       | required argument or an argument | HTTP 400 with      |
+     |       | that cannot be parsed            | invalid_request    |
      |       |                                  | (Section 3.1 of    |
      |       |                                  | [RFC6750])         |
      +-------+----------------------------------+--------------------+

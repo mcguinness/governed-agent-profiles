@@ -146,8 +146,8 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | S29 | API | With `version=abc`, while the user lacks permission, the request gets the argument's rejection, not a 403, in both orders; without the argument, the user's denial is a 403 without a code | core: Error Responses (rows 3 and 6); Optional Policy Services | Set the evaluation order; turn on the policy service; set its policy |
 | S30 | API | With `version=abc`, while the policy service cannot be reached, the request gets the argument's rejection, not HTTP 503, in both orders; without the argument, the request gets HTTP 503 | core: Error Responses (row 3; evaluation that cannot complete); Optional Policy Services | Set the evaluation order; turn on the policy service; set its policy; make it unavailable |
 | S31 | API | With `version=abc` and an opaque token the API has not introspected before, while introspection cannot complete, the request gets HTTP 503 in both orders | core: Error Responses (rows 1 and 3); Optional Opaque Access Tokens and Introspection | Set the evaluation order; mint an opaque token; make introspection fail |
-| S32 | API | An unknown path under the API, with no token, an expired token, or a proof made with another key, gets the same status and error as the read path; with a valid token it is not served. A difference is noted | core: Error Disclosure (SHOULD); Error Responses | Mint an access token |
-| S33 | API | `POST` to the read path with a proof made for `POST` is not rejected as `invalid_dpop_proof`, and `POST` with a proof made for `GET` gets the same answer on the read path and an unknown path. A rejected proof or a difference is noted | core: Error Disclosure (SHOULD); Token Validation (Protection); RFC 9449 Section 4.3 | None |
+| S32 | API | An unknown path under the API, with no token, an expired token, or a proof made with another key, gets the same status and error as the read path; with a valid token it is rejected as `Adapter.route_rejection` recognizes (the reference: 404). A difference is noted | core: Error Disclosure (SHOULD); Error Responses | Mint an access token |
+| S33 | API | `POST` to the read path with a proof made for `POST` is rejected as `Adapter.route_rejection` recognizes (the reference: 405 with `Allow: GET`) and not as `invalid_dpop_proof`, and `POST` with a proof made for `GET` gets the same answer on the read path and an unknown path. A rejected proof or a difference is noted | core: Error Disclosure (SHOULD); Token Validation (Protection); RFC 9449 Section 4.3 | None |
 | S34 | API | While introspection cannot complete, an unknown path gets the same answer as the read path (HTTP 503, S20), each with an opaque token the API has not introspected; a difference is noted | core: Error Disclosure (SHOULD; precedence not specified) | Mint an opaque token; make introspection fail |
 | S35 | API | A read of a file that does not exist, while the API's actor gate denies, gets 403 `actor_unauthorized`, not 404 | core: Error Responses; Error Disclosure | Close the actor gate at the API |
 
@@ -553,11 +553,14 @@ another IdP, RAS or API:
    that `set_policy` takes. S22 to S31 send `version`, which the API
    must declare as a positive integer, and expect its rejection as
    `Adapter.argument_rejection` recognizes it: HTTP 400 with
-   `invalid_request` unless the adapter overrides that for its
-   protocol. They also set
-   `evaluation_order`; a deployment that cannot switch it can skip them
-   and report them as not run, or run them in its own order with an
-   adapter whose `set` accepts that setting without acting on it.
+   `invalid_request` unless the adapter overrides that for its protocol.
+   They also set `evaluation_order`; a deployment that cannot switch it
+   can skip them and report them as not run, or run them in its own
+   order with an adapter whose `set` accepts that setting without acting
+   on it. S32 and S33 ask `Adapter.route_rejection` whether an unknown
+   path or an unsupported method was rejected; by default any response
+   that does not serve the request counts, and only the reference
+   adapter requires 404 and 405 with `Allow: GET`.
 3. Call `suite.run_case` for each case in `suite.CASES`.
 
 `disable_check` exists only for the reference implementation's vacuity

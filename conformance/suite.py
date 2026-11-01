@@ -275,6 +275,15 @@ class Adapter:
                                    body. A deployment whose protocol rejects
                                    invalid arguments in another form
                                    overrides it
+    route_rejection(resp, kind)    whether resp, to a request with valid
+                                   credentials, is the deployment's
+                                   rejection of an unknown path (kind
+                                   "path") or of a method the read does not
+                                   support ("method"). The drafts fix no
+                                   form, so by default any response that
+                                   does not serve the request; the
+                                   reference adapter requires the
+                                   reference's 404 and 405 with Allow: GET
 
     The deferral cases also control the RAS's Access Request Service and
     the clock. A task is a dict with id, status ("pending", "approved",
@@ -335,6 +344,9 @@ class Adapter:
     def argument_rejection(self, resp):
         return resp.status == 400 and challenge_error(resp) == "invalid_request"
 
+    def route_rejection(self, resp, kind):
+        return not 200 <= resp.status < 300
+
     def id_token(self, user, aud=None, claims=None):
         raise NotImplementedError
 
@@ -383,6 +395,14 @@ class Adapter:
 
 class ReferenceAdapter(Adapter):
     """Adapter for the reference servers' POST /_test/<op> endpoints."""
+
+    def route_rejection(self, resp, kind):
+        """The reference's choices: 404 for an unknown path; 405 with Allow: GET for a
+        method the read does not support."""
+        if kind == "method":
+            allow = {m.strip() for m in (resp.headers.get("Allow") or "").split(",")}
+            return resp.status == 405 and "GET" in allow
+        return resp.status == 404
 
     def __init__(self, transports):
         self.transports = transports
@@ -2057,6 +2077,8 @@ def s32(ctx):
                              "Disclosure SHOULD)")
     resp = client.call("GET", unknown, token)
     check(not 200 <= resp.status < 300, f"the unknown path was served: {resp}")
+    check(ctx.adapter.route_rejection(resp, "path"),
+          f"with valid credentials, expected the rejection of an unknown path, got {resp}")
 
 
 @case("S33", "API", "Checks the proof against the request's own method, and answers an unsupported "
@@ -2068,6 +2090,9 @@ def s33(ctx):
     token = ctx.access_token()
     resp = client.call("POST", cfg.read_path, token)
     check(not 200 <= resp.status < 300, f"POST was served: {resp}")
+    check(ctx.adapter.route_rejection(resp, "method"),
+          f"with valid credentials, expected the rejection of POST, got {resp} "
+          f"Allow={resp.headers.get('Allow') if resp.headers else None!r}")
     if resp.status == 401 and challenge_error(resp) == "invalid_dpop_proof":
         ctx.notes.append("a proof made for POST was rejected as invalid_dpop_proof; RFC 9449 "
                          "Section 4.3 checks htm against the request's own method")

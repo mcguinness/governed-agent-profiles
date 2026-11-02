@@ -86,6 +86,12 @@ class Config:
     # read's file.
     unknown_path: str = ""
     missing_path: str = ""
+    # Issuer-qualified agents (S36, S37): a second issuer whose agents the
+    # API trusts the RAS to assert, and an issuer the API does not trust for
+    # agents. Both name an agent with the same sub as expect["agent"]; the
+    # API's actor gate has no entry for the partner issuer's.
+    partner_agent_iss: str = "https://partner-idp.example/"
+    untrusted_agent_iss: str = "https://untrusted-idp.example/"
 
 
 class Response:
@@ -2143,6 +2149,58 @@ def s35(ctx):
     check(not 200 <= resp.status < 300, f"setup: {missing} exists: {resp}")
     ctx.adapter.set("api", "actor_gate", False)
     expect_denial_code(ctx, ctx.client.get(missing, token), "actor_unauthorized")
+
+
+# Issuer-qualified agents (core: Delegated Actor Authorization; Optional
+# Policy Services). An agent is its issuer and subject together: a trusted
+# partner issuer's agent with the same sub as the home issuer's is another
+# agent, and an issuer the API does not trust for agents is an invalid token.
+
+def agent_token(ctx, iss):
+    """A delegated access token whose act names expect["agent"] under issuer iss."""
+    return ctx.adapter.mint_access_token(minted_token_claims(
+        ctx, act={"iss": iss, "sub": ctx.cfg.expect["agent"]}))
+
+
+@case("S36", "API", "Tells apart two trusted issuers' agents with the same sub at its own actor "
+      "gate, and rejects an untrusted issuer's",
+      "core: Delegated Access (Identity); Delegated Actor Authorization; Error Responses (rows 2 "
+      "and 4)",
+      needs=("mint_access_token",),
+      defeats=("api.issuer_qualified_agent", "api.require_act"))
+def s36(ctx):
+    cfg = ctx.cfg
+    resp = ctx.client.get(cfg.read_path, agent_token(ctx, cfg.expect["agent_iss"]))
+    check(resp.status == 200 and resp.body, f"setup: the home issuer's agent was not served: {resp}")
+    data = resp.body
+    resp = ctx.client.get(cfg.read_path, agent_token(ctx, cfg.partner_agent_iss))
+    check(data not in resp.body, "the partner issuer's agent was served")
+    expect_denial_code(ctx, resp, "actor_unauthorized")
+    resp = ctx.client.get(cfg.read_path, agent_token(ctx, cfg.untrusted_agent_iss))
+    check(data not in resp.body, "the untrusted issuer's agent was served")
+    expect_challenge(ctx, resp, 401, "invalid_token")
+
+
+@case("S37", "API", "Evaluates a trusted partner issuer's agent as another agent than the home "
+      "issuer's with the same sub",
+      "core: Optional Policy Services; Delegated Actor Authorization",
+      needs=("mint_access_token", "set:api.policy_service", "set_policy", "evaluations"),
+      defeats=("api.issuer_qualified_agent",))
+def s37(ctx):
+    cfg = ctx.cfg
+    home = agent_token(ctx, cfg.expect["agent_iss"])
+    partner = agent_token(ctx, cfg.partner_agent_iss)
+    data = file_data(ctx, home)
+    use_policy(ctx, policy(ctx))   # the gate permits the home issuer's agent only
+    resp = ctx.client.get(cfg.read_path, home)
+    check(resp.status == 200 and resp.body == data,
+          f"setup: the home issuer's agent was not served through the policy service: {resp}")
+    resp = ctx.client.get(cfg.read_path, partner)
+    check(data not in resp.body, "the partner issuer's agent was served")
+    expect_denial_code(ctx, resp, "actor_unauthorized")
+    _, context = last_evaluation(ctx)
+    check(context.get("agent") == {"iss": cfg.partner_agent_iss, "sub": cfg.expect["agent"]},
+          f"the evaluation named the agent {context.get('agent')!r}, not the partner issuer's")
 
 
 def run_case(c, cfg, adapter, disable=()):

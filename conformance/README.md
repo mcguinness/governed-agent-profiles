@@ -150,6 +150,8 @@ transaction](../EXAMPLES.md#first-delegated-transaction) in
 | S33 | API | `POST` to the read path with a proof made for `POST` is rejected as `Adapter.route_rejection` recognizes (the reference: 405 with `Allow: GET`) and not as `invalid_dpop_proof`, and `POST` with a proof made for `GET` gets the same answer on the read path and an unknown path. A rejected proof or a difference is noted | core: Error Disclosure (SHOULD); Token Validation (Protection); RFC 9449 Section 4.3 | None |
 | S34 | API | While introspection cannot complete, an unknown path gets the same answer as the read path (HTTP 503, S20), each with an opaque token the API has not introspected; a difference is noted | core: Error Disclosure (SHOULD; precedence not specified) | Mint an opaque token; make introspection fail |
 | S35 | API | A read of a file that does not exist, while the API's actor gate denies, gets 403 `actor_unauthorized`, not 404 | core: Error Responses; Error Disclosure | Close the actor gate at the API |
+| S36 | API | A token whose `act` names `agent-42` under the home issuer is served; the same `sub` under a trusted partner issuer gets 403 `actor_unauthorized` at the API's own actor gate, and under an untrusted issuer 401 `invalid_token` | core: Delegated Access (Identity); Delegated Actor Authorization; Error Responses | Mint access tokens |
+| S37 | API | Through the policy service, whose gate permits only the home issuer's `agent-42`, the partner issuer's `agent-42` gets 403 `actor_unauthorized`, and the evaluation names it with the partner's issuer | core: Optional Policy Services; Delegated Actor Authorization | Mint access tokens; turn on the policy service; set its policy; read its evaluations |
 
 The "negative-test row" sources are the rows of the core's "Renewal and
 Negative Tests" table. N15 and N27 assert `invalid_grant`, which the
@@ -169,8 +171,8 @@ minutes, a 401 challenge without an `error` parameter, or a 503 without
 core's Error Responses, a 403 challenge without an `error` attribute is
 the response for a denial other than the actor gate or token authority.
 A case that expects `actor_unauthorized` or `insufficient_scope` at the
-API (N20, S02, S03, S07, S11, S14, S15, S18, S35, and the setup reads of
-S25 to S28) therefore requires the code,
+API (N20, S02, S03, S07, S11, S14, S15, S18, S35 to S37, and the setup
+reads of S25 to S28) therefore requires the code,
 in the challenge's `error` attribute or, where the challenge has none,
 in the body.
 
@@ -183,8 +185,8 @@ validating the token before saying whether a path exists is a SHOULD.
 
 Every negative case, P2 and D02 name the reference checks they exercise
 (`CHECKS` in [reference.py](reference.py)). With `--vacuity`, each of
-these 82 cases runs once for each check it names, with that check
-switched off; seven S cases name two checks, so there are 89 runs, and
+these 84 cases runs once for each check it names, with that check
+switched off; eight S cases name two checks, so there are 92 runs, and
 every run fails. Twenty-six N cases fail because the server then accepts
 the request. P2 fails because the access token then carries a rewritten
 `act`. N11 fails because the RAS's access-token protection check then
@@ -221,7 +223,10 @@ file (HTTP 200):
   inactive response;
 * S13 (`api.introspection_act`): without `act`, the API applies no
   actor gate, as if the token were self-acting;
-* S22 (`api.argument_validation`): the API ignores the invalid argument.
+* S22 (`api.argument_validation`): the API ignores the invalid argument;
+* S36 and S37 (`api.issuer_qualified_agent`): the API keys agents by
+  `sub` alone, as the home issuer's, so it serves the partner issuer's
+  `agent-42`.
 
 Without these, they fail on the response the API selects:
 
@@ -267,7 +272,10 @@ Without these, they fail on the response the API selects:
   accepts the one made for `GET`, so that the read path gets 405 and an
   unknown path 404;
 * S35 (`api.existence_after_authorization`): the API reports the
-  missing file, HTTP 404, before the actor gate's denial.
+  missing file, HTTP 404, before the actor gate's denial;
+* S36 (`api.require_act`): the API accepts the untrusted issuer's `act`
+  and denies it at the actor gate, HTTP 403 `actor_unauthorized`, not
+  401 `invalid_token`.
 
 S01, S08 and S10 are positive cases and name no check.
 
@@ -533,7 +541,12 @@ another IdP, RAS or API:
    use `unknown_path`, a path under the API that names no route, and
    `missing_path`, a well-formed read of a file that does not exist; by
    default, `read_path` plus `/unknown`, and `report-99` beside the
-   read's file.
+   read's file. S36 and S37 need `partner_agent_iss`, a second issuer
+   whose agents the API trusts the RAS to assert, and
+   `untrusted_agent_iss`, an issuer the API does not trust for agents.
+   They assume the API's actor gate, and the policy S37 sets, permit the
+   user's `agent-42` only under `expect["agent_iss"]`, with no entry for
+   the partner issuer's.
 2. Implement `suite.Adapter` for the deployment. Every case needs
    `id_token`; the "Test control" column lists the other capabilities.
    A case whose capability the deployment cannot provide can be skipped
@@ -586,6 +599,7 @@ implementations](../IMPLEMENTERS-GUIDE.md#configuration-exchanged-between-implem
 | Re-redeeming a bound grant | Not accepted: each grant is redeemed once | core: Common Grant Validation (MAY accept again under explicit policy) |
 | Access tokens | JWT access tokens validated at the API, 600 s, no refresh token except after a deferred redemption; opaque tokens only through test control | core: Token Validation; Optional RAS Refresh Tokens |
 | Introspection | RFC 7662 at the RAS, for opaque tokens; the API authenticates with HTTP Basic, calls over HTTP, and caches nothing | core: Optional Opaque Access Tokens and Introspection |
+| Agent namespaces | The API trusts the RAS to assert agents of `https://idp.example/` and `https://partner-idp.example/`; the RAS itself trusts only the first, so tokens naming the partner's agents come from test control. The API's actor gate and the policy service compare the issuer and the `sub` together | core: Delegated Access (Identity); Delegated Actor Authorization |
 | Routing | The API validates the token, its proof against the request's own method, and its applicability before routing. An unknown path gets 404, a method the read does not support 405 with `Allow: GET`, and a missing file 404 only after authorization. While introspection cannot complete, an unknown path gets 503 | core: Error Disclosure (SHOULD; precedence not specified) |
 | Declared argument contract | The read's `version`, where present, is one positive integer; any other value gets HTTP 400 `invalid_request` with a DPoP challenge | core: Error Responses (row 3) |
 | Policy service | Off unless test control turns it on; in-process, replacing the API's own evaluation; policy set by test control; the decision names the first failing condition | core: Optional Policy Services |

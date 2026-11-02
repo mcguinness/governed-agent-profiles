@@ -18,6 +18,10 @@ Assessed revisions: WAG-01, ID-JAG-04, ICA-02, Actor
 Profile-01, SPIFFE OAuth-02, ATTEST-11, WIT-02, CIMD-02, Client Instance
 Identification-00, Client Attester Endorsement-00, and WISE draft 03.
 
+The drafts and the implementer's guide pin ID-JAG to -04. ID-JAG-06
+(2026-10-31) renumbers sections the drafts cite and adds an Error
+Response section; it is not yet assessed.
+
 ### Upstream Dependencies
 
 | Specification | What this profile needs | Consequence until resolved |

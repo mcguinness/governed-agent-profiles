@@ -35,7 +35,7 @@ normative:
       Internet-Draft: draft-mcguinness-oauth-governed-agent-federation
     target: https://mcguinness.github.io/governed-agent-profiles/draft-mcguinness-oauth-governed-agent-federation.html
   ICA: I-D.mcguinness-oauth-id-continuation-assertion
-  ID-JAG: I-D.ietf-oauth-identity-assertion-authz-grant
+  ID-JAG: I-D.ietf-oauth-identity-assertion-authz-grant-04
   RFC6749:
   RFC6750:
   RFC7523:

@@ -37,7 +37,7 @@ normative:
   ATTEST: I-D.ietf-oauth-attestation-based-client-auth
   INSTANCE: I-D.mcguinness-oauth-client-instance-id
   ACTOR-PROFILE: I-D.mcguinness-oauth-actor-profile
-  ID-JAG: I-D.ietf-oauth-identity-assertion-authz-grant
+  ID-JAG: I-D.ietf-oauth-identity-assertion-authz-grant-04
   RFC7523bis: I-D.ietf-oauth-rfc7523bis
   CIMD: I-D.ietf-oauth-client-id-metadata-document
   OPENID:

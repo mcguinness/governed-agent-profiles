@@ -51,7 +51,7 @@ normative:
   RFC9967:
   RFC8935:
   RFC8936:
-  ID-JAG: I-D.ietf-oauth-identity-assertion-authz-grant
+  ID-JAG: I-D.ietf-oauth-identity-assertion-authz-grant-04
   FEDERATION:
     title: "OAuth 2.0 Profile for Governed Agent Federation"
     author:
